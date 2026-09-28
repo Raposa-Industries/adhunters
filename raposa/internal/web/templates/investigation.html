@@ -1,0 +1,76 @@
+{{template "head" (printf "Investigation %d" .ID)}}
+<h1>Investigation {{.ID}}: creative {{.CreativeID}}{{with .AdID}}, ad {{.}}{{end}}</h1>
+<p>{{.Mode}}, {{.Status}}{{if .StopRequested}} (stop asked){{end}}, {{.Stage}}{{with .StageNote}}: {{.}}{{end}}.
+Attempt {{.Attempt}}{{with .RetryOf}}, retry of <a href="/i/{{.}}">{{.}}</a>{{end}}.
+Asked {{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}.{{if .CompletedAt}} Ended {{when .CompletedAt}}.{{end}}</p>
+{{if .Running}}
+<p>Next visit {{when .NextVisitAt}}{{with .ClaimedBy}}, held by {{.}}{{end}}.
+<form class="inline" method="post" action="/i/{{.ID}}/stop"><button>Stop it</button></form></p>
+{{end}}
+
+<h2>Verdict</h2>
+{{if .Cloaked}}
+<p class="dark">Cloaked: {{printf "%.0f" .Confidence}}% of the visits on rung {{deref .BreachRung}} saw a dark page. {{len .Variants}} variant(s).</p>
+{{else if eq .Status "completed"}}<p>No dark page found.</p>
+{{else}}<p class="note">Not yet.</p>{{end}}
+<p>Highest rung tried {{.RungReached}}. Device {{.Device}}. Site {{with .Scope}}{{.}}{{else}}not known yet{{end}}.
+{{with .WhitePageID}}White page <a href="/p/{{.}}">{{.}}</a>.{{end}} Line traffic {{bytes .BytesUsed}}.</p>
+{{with .TargetURL}}<p>Saved link: <span class="url">{{.}}</span></p>{{end}}
+{{with .Referer}}<p>Publisher: <span class="url">{{.}}</span></p>{{end}}
+
+{{if .Variants}}
+<h2>Variants</h2>
+<table><tr><th>Label</th><th>Visits</th><th>Share</th><th>Pages</th></tr>
+{{range .Variants}}<tr><td>{{.Label}}</td><td>{{.Visits}}</td><td>{{printf "%.0f" .Share}}%</td>
+<td>{{range $i, $p := .PageIDs}}{{if $i}} → {{end}}<a href="/p/{{$p}}">{{$p}}</a>{{end}}</td></tr>{{end}}
+</table>
+{{end}}
+
+{{if .Evidence}}
+<h2>Evidence</h2>
+<div class="scroll"><table><tr><th>Seen</th><th>Landing page</th><th>Kind</th><th>Checkout</th><th>Seller</th><th>Account</th><th>Device</th></tr>
+{{range .Evidence}}<tr>
+<td class="{{if eq .Outcome "dark"}}dark{{end}}">{{.Outcome}}</td>
+<td class="url"><a href="/p/{{.PageID}}">{{.Title}}</a><br>{{.FinalURL}}</td>
+<td>{{.Kind}}</td><td>{{.Checkout}} {{.Merchant}}</td><td>{{.Seller}} {{.SellerAcct}}</td>
+<td>{{deref .Account}} {{.Campaign}}</td><td>{{.Device}}</td>
+</tr>{{end}}
+</table></div>
+{{end}}
+
+<h2>Watches</h2>
+{{if .Watches}}
+<table><tr><th>Pushcut notification</th><th>Events</th><th>Covers</th><th>Sent</th><th></th></tr>
+{{range .Watches}}<tr><td>{{.Notification}}</td><td>{{range $i, $k := .Kinds}}{{if $i}}, {{end}}{{$k}}{{end}}</td>
+<td>{{if .Creative}}the creative{{else}}this investigation{{end}}{{with .By}}, by {{.}}{{end}}</td>
+<td>{{.Sent}} sent{{if .Failed}}, {{.Failed}} failed{{end}}{{if .Skipped}}, {{.Skipped}} skipped{{end}}</td>
+<td><form class="inline" method="post" action="/watch/{{.ID}}/end"><input type="hidden" name="back" value="/i/{{$.ID}}"><button>End</button></form></td></tr>{{end}}
+</table>
+{{end}}
+<form method="post" action="/i/{{.ID}}/watch">
+<fieldset><legend>Watch</legend>
+<label>Pushcut notification <input name="notification" required size="16"></label>
+<label><input type="checkbox" name="kind" value="started" checked> started</label>
+<label><input type="checkbox" name="kind" value="dark_found" checked> dark page found</label>
+<label><input type="checkbox" name="kind" value="finished" checked> finished</label>
+<label><input type="radio" name="scope" value="investigation" checked> this investigation</label>
+<label><input type="radio" name="scope" value="creative"> every investigation of the creative</label>
+<label>Your name <input name="by" size="10"></label>
+<button>Watch</button>
+</fieldset>
+</form>
+
+<h2>Visits</h2>
+<div class="scroll"><table>
+<tr><th>When</th><th>For</th><th>Rung</th><th>Device</th><th>Engine</th><th>Link</th><th>Line</th><th>Exit</th><th>Seen</th><th>Page</th><th>Steps</th><th>Traffic</th><th>Took</th></tr>
+{{range .Visits}}<tr class="{{if eq .Outcome "error"}}error{{end}}">
+<td>{{when .At}}</td><td>{{.Purpose}}</td><td>{{.Rung}}</td><td>{{.Device}}</td><td>{{.Engine}}</td><td>{{.Link}}</td>
+<td>{{.Line}}{{with .Place}} {{.}}{{end}}</td><td>{{deref .ExitIP}}</td>
+<td class="{{if eq .Outcome "dark"}}dark{{end}}">{{.Outcome}}{{with .Error}} <span class="note">{{.}}</span>{{end}}</td>
+<td>{{with .PageID}}<a href="/p/{{.}}">{{.}}</a>{{end}}</td><td>{{.Steps}}</td><td>{{bytes .Bytes}}</td><td>{{.Ms}} ms</td>
+</tr>{{else}}<tr><td colspan="13">No visits yet.</td></tr>{{end}}
+</table></div>
+
+<h2>Log</h2>
+<table>{{range .Log}}<tr><td>{{when .At}}</td><td>{{.Line}}</td></tr>{{end}}</table>
+{{template "foot"}}

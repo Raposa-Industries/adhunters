@@ -1,0 +1,11 @@
+{{template "head" "Burned lines"}}
+<h1>Burned lines</h1>
+<p class="note">A line is burned for a site when that site shows it the white page while other lines on the same rung see the dark page. Investigations of the site skip it. A line burned for many sites is burned in general and is skipped everywhere.</p>
+<div class="scroll"><table>
+<tr><th>Site</th><th>Line</th><th>Rung</th><th>Its visits</th><th>Others</th><th>Since</th><th>Checked</th><th>Sites</th></tr>
+{{range .}}<tr><td>{{.Scope}}</td><td>{{.Line}}</td><td>{{.Rung}}</td><td>{{.Dark}} dark of {{.Visits}}</td>
+<td>{{.OtherD}} dark of {{.OtherV}}</td><td>{{when .Detected}}</td><td>{{when .Checked}}</td>
+<td>{{.Sites}}{{if .General}} <span class="dark">burned in general</span>{{end}}</td></tr>
+{{else}}<tr><td colspan="8">No line is burned.</td></tr>{{end}}
+</table></div>
+{{template "foot"}}

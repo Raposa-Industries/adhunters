@@ -1,0 +1,32 @@
+{{template "head" "Investigations"}}
+<h1>Investigations</h1>
+<form method="post" action="/request">
+<fieldset><legend>Investigate an ad</legend>
+<label>Creative <input name="creative" inputmode="numeric" required size="8"></label>
+<label>Ad (optional) <input name="ad" inputmode="numeric" size="8"></label>
+<label><input type="radio" name="mode" value="deep" checked> deep</label>
+<label><input type="radio" name="mode" value="quick"> quick</label>
+<label>Your name <input name="by" size="10"></label>
+<button>Start</button>
+<p class="note">Deep climbs the whole ladder of disguises, then samples the funnel. Quick tries the rungs that cost nothing and reads the landing page only. Asking again while one runs opens that one.</p>
+</fieldset>
+</form>
+<div class="scroll"><table>
+<tr><th>#</th><th>Creative</th><th>Mode</th><th>Status</th><th>Stage</th><th>Visits</th><th>Verdict</th><th>Asked</th><th>Ended</th></tr>
+{{range .Rows}}
+<tr>
+<td><a href="/i/{{.ID}}">{{.ID}}</a></td>
+<td>{{.CreativeID}}{{with .AdID}} (ad {{.}}){{end}}</td>
+<td>{{.Mode}}{{if ne .Origin "user"}} ({{.Origin}}){{end}}</td>
+<td>{{.Status}}</td>
+<td>{{.Stage}}{{with .StageNote}} <span class="note">{{.}}</span>{{end}}</td>
+<td>{{.VisitsDone}}{{if .VisitsTarget}}/{{.VisitsTarget}}{{end}}</td>
+<td>{{if .Cloaked}}<span class="dark">cloaked {{printf "%.0f" .Confidence}}%</span>, rung {{deref .BreachRung}}, {{.Variants}} variant(s){{else if eq .Status "completed"}}no dark page{{end}}</td>
+<td>{{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}</td>
+<td>{{when .CompletedAt}}</td>
+</tr>
+{{else}}
+<tr><td colspan="9">No investigations yet.</td></tr>
+{{end}}
+</table></div>
+{{template "foot"}}
