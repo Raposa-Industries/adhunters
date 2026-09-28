@@ -1,0 +1,120 @@
+// Every box: host metrics, Alloy's own metrics and the journal of our units,
+// sent to Grafana Cloud. Installed by platform/servers/setup.sh into
+// /etc/alloy/adhunters/; the settings come from /etc/adhunters/alloy.env.
+//
+// Scrapes run every 60 s: Grafana Cloud's free tier counts one sample a
+// minute per series, and a minute is fine-grained enough for every alert.
+
+// ---- where it all goes ------------------------------------------------------
+
+// Samples wait in Alloy's write-ahead log on disk (/var/lib/alloy/data) while
+// Grafana Cloud is unreachable, so a network blip loses nothing.
+prometheus.remote_write "cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_METRICS_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_METRICS_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+  external_labels = {
+    box = sys.env("ADHUNTERS_BOX"),
+  }
+}
+
+loki.write "cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_LOGS_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_LOGS_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+  external_labels = {
+    box = sys.env("ADHUNTERS_BOX"),
+  }
+}
+
+// ---- the host ----------------------------------------------------------------
+
+prometheus.exporter.unix "host" {
+  enable_collectors = ["systemd"]
+
+  systemd {
+    unit_include = "(tracks-.*|raposa-.*|postgresql.*|alloy|cloudflared|tailscaled)\\.service"
+  }
+
+  filesystem {
+    mount_points_exclude = "^/(dev|proc|run|sys|snap)($|/)"
+  }
+}
+
+prometheus.scrape "host" {
+  job_name        = "node"
+  targets         = prometheus.exporter.unix.host.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.cloud.receiver]
+}
+
+// Alloy's own health: failed or delayed sends show up here.
+prometheus.exporter.self "alloy" { }
+
+prometheus.scrape "alloy" {
+  job_name        = "alloy"
+  targets         = prometheus.exporter.self.alloy.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.cloud.receiver]
+}
+
+// ---- logs --------------------------------------------------------------------
+
+// Our units write one JSON line per event (kit/logx). Only they, Postgres,
+// Alloy and the kernel (out-of-memory kills) are shipped. The journal
+// remembers how far Alloy read, so an outage is caught up when it ends.
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit", "__journal__transport"]
+    separator     = ";"
+    regex         = "(tracks-.*|raposa-.*|postgresql.*|alloy|cloudflared)\\.service;.*|;kernel"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "priority"
+  }
+}
+
+loki.source.journal "units" {
+  max_age       = "12h"
+  relabel_rules = loki.relabel.journal.rules
+  labels        = { job = "journal" }
+  forward_to    = [loki.process.units.receiver]
+}
+
+// Lift the level out of our JSON lines, so "every error in the last hour" is
+// one query: {level="ERROR"}.
+loki.process "units" {
+  stage.match {
+    selector = "{unit=~\"(tracks|raposa)-.*\"}"
+
+    stage.json {
+      expressions = { level = "level", service = "service" }
+    }
+
+    stage.labels {
+      values = { level = "", service = "" }
+    }
+  }
+
+  forward_to = [loki.write.cloud.receiver]
+}

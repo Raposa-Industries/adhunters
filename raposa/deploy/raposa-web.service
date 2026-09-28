@@ -9,6 +9,7 @@ After=network-online.target
 [Service]
 User=raposa
 Group=raposa
+EnvironmentFile=-/etc/adhunters/observe.env
 EnvironmentFile=/etc/adhunters/raposa-web.env
 ExecStart=/opt/adhunters/bin/raposa-web
 Restart=always

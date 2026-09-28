@@ -1,0 +1,11 @@
+// A sample of what platform/servers/setup.sh writes on the worker box, for CI.
+prometheus.scrape "services" {
+  job_name        = "adhunters"
+  scrape_interval = "60s"
+  targets         = [
+    {"__address__" = "127.0.0.1:9101", "service" = "tracks-capture", "instance" = "a"},
+    {"__address__" = "127.0.0.1:9102", "service" = "tracks-capture", "instance" = "b"},
+    {"__address__" = "127.0.0.1:9103", "service" = "tracks-shipper", "instance" = "adhunters-worker"},
+  ]
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}

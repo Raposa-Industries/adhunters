@@ -8,6 +8,7 @@ After=network-online.target
 [Service]
 User=tracks
 Group=tracks
+EnvironmentFile=-/etc/adhunters/observe.env
 EnvironmentFile=/etc/adhunters/tracks-shipper.env
 ExecStart=/opt/adhunters/bin/tracks-shipper run -spool /var/lib/tracks/spool -archive ${ARCHIVE} -box %H
 Restart=always

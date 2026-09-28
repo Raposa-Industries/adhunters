@@ -1,0 +1,91 @@
+# promtool test rules platform/observe/tests/rules_test.yaml
+# Checks the rules that page, and the generic ones, against made-up series.
+rule_files:
+  - ../rules/collection.yaml
+  - ../rules/services.yaml
+  - ../rules/boxes.yaml
+
+evaluation_interval: 1m
+
+tests:
+  # Capture scrapes fine for 10 minutes, then its series vanish (the process
+  # died): CaptureStopped must page once the 5-minute rate window and the
+  # 3 minutes of "for" have passed.
+  - interval: 1m
+    input_series:
+      - series: 'tracks_capture_scrapes_total{network="taboola",publisher="p1",device="mobile",outcome="ok",instance="a",box="worker"}'
+        values: '0+240x10'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: CaptureStopped
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: CaptureStopped
+        exp_alerts:
+          - exp_labels:
+              tier: page
+            exp_annotations:
+              summary: No successful scrape on any box for 3 minutes. Collection is stopped.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-stopped.md
+
+  # Scrapes still come in, but every one fails: that is stopped too.
+  - interval: 1m
+    input_series:
+      - series: 'tracks_capture_scrapes_total{network="taboola",publisher="p1",device="mobile",outcome="ok",instance="a",box="worker"}'
+        values: '0+240x10 2400x20'
+      - series: 'tracks_capture_scrapes_total{network="taboola",publisher="p1",device="mobile",outcome="http_403",instance="a",box="worker"}'
+        values: '0x10 0+240x20'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: CaptureStopped
+        exp_alerts:
+          - exp_labels:
+              tier: page
+            exp_annotations:
+              summary: No successful scrape on any box for 3 minutes. Collection is stopped.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-stopped.md
+
+  # The data box stops sending; the worker box keeps going.
+  - interval: 1m
+    input_series:
+      - series: 'node_boot_time_seconds{box="data",instance="adhunters-data"}'
+        values: '1000x30'
+      - series: 'node_boot_time_seconds{box="worker",instance="adhunters-worker"}'
+        values: '1000x60'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: BoxGone
+        exp_alerts: []
+      - eval_time: 40m
+        alertname: BoxGone
+        exp_alerts:
+          - exp_labels:
+              tier: page
+              box: data
+            exp_annotations:
+              summary: The data box has sent no metrics for over 5 minutes.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/box-gone.md
+
+  # A task that promised every 10 minutes last succeeded at minute 0.
+  - interval: 1m
+    input_series:
+      - series: 'adhunters_task_last_success_timestamp_seconds{service="tracks-loader",task="hour_close",instance="adhunters-data",box="data"}'
+        values: '0x30'
+      - series: 'adhunters_task_promise_seconds{service="tracks-loader",task="hour_close",instance="adhunters-data",box="data"}'
+        values: '600x30'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: TaskLate
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: TaskLate
+        exp_alerts:
+          - exp_labels:
+              tier: chat
+              service: tracks-loader
+              task: hour_close
+              instance: adhunters-data
+              box: data
+            exp_annotations:
+              summary: tracks-loader task hour_close last succeeded 11m 0s ago, later than it promises.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/task-late.md

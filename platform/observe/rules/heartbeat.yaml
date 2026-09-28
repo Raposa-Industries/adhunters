@@ -1,0 +1,14 @@
+groups:
+  - name: heartbeat
+    interval: 1m
+    rules:
+      - alert: Heartbeat
+        # Always firing. Alertmanager sends it to Better Stack every minute;
+        # when it stops arriving, Better Stack calls. It proves the rules,
+        # Alertmanager and the network between them all work.
+        expr: vector(1)
+        labels:
+          tier: heartbeat
+        annotations:
+          summary: The alerting pipeline is alive.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/heartbeat.md

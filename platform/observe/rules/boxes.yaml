@@ -1,0 +1,88 @@
+# Host alerts (Alloy's node metrics, job="node") and Postgres (job="postgres").
+groups:
+  - name: boxes
+    interval: 1m
+    rules:
+      - alert: BoxGone
+        # A box that sent metrics in the last day but none now: it is down,
+        # cut off, or its Alloy stopped.
+        expr: |
+          group by (box) (max_over_time(node_boot_time_seconds[1d]))
+            unless group by (box) (node_boot_time_seconds)
+        for: 3m
+        labels:
+          tier: page
+        annotations:
+          summary: 'The {{ $labels.box }} box has sent no metrics for over 5 minutes.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/box-gone.md
+
+      - alert: DiskFullSoon
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}[6h], 6 * 3600) < 0
+            and node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+              / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"} < 0.25
+        for: 30m
+        labels:
+          tier: page
+        annotations:
+          summary: '{{ $labels.mountpoint }} on the {{ $labels.box }} box will be full within 6 hours at the current rate.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/disk-full-soon.md
+
+      - alert: DiskFilling
+        expr: |
+          node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+            / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"} < 0.15
+        for: 15m
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.mountpoint }} on the {{ $labels.box }} box has {{ $value | humanizePercentage }} free.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/disk-filling.md
+
+      - alert: MemoryLow
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1
+        for: 15m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'The {{ $labels.box }} box has {{ $value | humanizePercentage }} of its memory free.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/memory-low.md
+
+      - alert: OutOfMemoryKill
+        expr: increase(node_vmstat_oom_kill[15m]) > 0
+        labels:
+          tier: chat
+        annotations:
+          summary: 'The kernel killed a process for memory on the {{ $labels.box }} box.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/out-of-memory-kill.md
+
+      - alert: UnitFailed
+        expr: node_systemd_unit_state{state="failed"} == 1
+        for: 5m
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.name }} has failed on the {{ $labels.box }} box.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/unit-failed.md
+
+  - name: postgres
+    interval: 1m
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 3m
+        labels:
+          tier: page
+        annotations:
+          summary: Postgres on the data box is not answering.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/postgres-down.md
+
+      - alert: PostgresConnections
+        # max_connections is 80 (platform/servers/setup.sh).
+        expr: sum(pg_stat_activity_count) > 70
+        for: 10m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'Postgres has {{ $value }} connections open, near its limit of 80.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/postgres-connections.md

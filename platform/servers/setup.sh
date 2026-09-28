@@ -32,6 +32,7 @@ data_ip=10.20.1.20
 standby_ip=10.20.1.30
 
 todo=()
+observe_pw=""
 say() { echo "== $*"; }
 
 # ---- every box --------------------------------------------------------------
@@ -42,7 +43,19 @@ common() {
     id tracks >/dev/null 2>&1 || useradd --system --home-dir /var/lib/tracks --shell /usr/sbin/nologin tracks
     install -d -m 0755 /etc/adhunters /opt/adhunters/bin
     install -d -m 0750 -o tracks -g tracks /var/lib/tracks /var/lib/tracks/spool
+    # Settings every service reads (the units load it before their own file).
+    # An empty SENTRY_DSN leaves Sentry off, so it never holds a unit back.
+    if [ ! -f /etc/adhunters/observe.env ]; then
+        install -m 0600 /dev/null /etc/adhunters/observe.env
+        printf '%s\n' "$observe_env" >/etc/adhunters/observe.env
+        say "wrote /etc/adhunters/observe.env"
+    fi
 }
+
+observe_env='# Read by every AdHunters unit before its own settings (kit/errs).
+# The DSN of the Sentry project for the Go services; empty leaves Sentry off.
+SENTRY_DSN=
+SENTRY_ENVIRONMENT=production'
 
 # install_bin NAME: copies NAME from --bin, keeping the previous build as
 # NAME.prev for a quick rollback.
@@ -196,6 +209,9 @@ data_box() {
     local loader_pw shipper_pw
     loader_pw=$(login tracks_loader)
     shipper_pw=$(login tracks_shipper)
+    # Alloy's read-only login for Postgres metrics.
+    observe_pw=$(login observe)
+    psql_su -c "GRANT pg_monitor TO observe"
     # The loader owns the tracks schemas and runs their migrations.
     psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO tracks_loader"
     psql_su -d adhunters -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC"
@@ -228,6 +244,107 @@ OPS_ADDR=127.0.0.1:9104"
     start tracks-loader tracks-loader
 }
 
+# ---- Grafana Alloy (every box) ----------------------------------------------
+
+# Every service's /metrics port (kit/ops, OPS_ADDR). A unit that is enabled on
+# this box is scraped; the others are left out so they never read as down.
+#   unit                    port  service         instance
+ops_ports='tracks-capture@a        9101  tracks-capture  a
+tracks-capture@b        9102  tracks-capture  b
+tracks-capture@standby  9101  tracks-capture  standby
+tracks-shipper          9103  tracks-shipper  -
+tracks-loader           9104  tracks-loader   -
+raposa-engine           9105  raposa-engine   -
+raposa-web              9106  raposa-web      -'
+
+alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
+GRAFANA_METRICS_URL=FILL_ME
+GRAFANA_METRICS_USER=FILL_ME
+GRAFANA_LOGS_URL=FILL_ME
+GRAFANA_LOGS_USER=FILL_ME
+GRAFANA_CLOUD_TOKEN=FILL_ME'
+
+# services_alloy: the scrape block for the units enabled on this box.
+services_alloy() {
+    local unit port svc inst targets=""
+    while read -r unit port svc inst; do
+        systemctl is-enabled --quiet "$unit" 2>/dev/null || continue
+        [ "$inst" = - ] && inst=$(hostname)
+        targets+="    {\"__address__\" = \"127.0.0.1:$port\", \"service\" = \"$svc\", \"instance\" = \"$inst\"},
+"
+    done <<<"$ops_ports"
+    cat <<ALLOY
+// Written by platform/servers/setup.sh from the units enabled on this box.
+prometheus.scrape "services" {
+  job_name        = "adhunters"
+  scrape_interval = "60s"
+  targets         = [
+${targets}  ]
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}
+ALLOY
+}
+
+# put FILE CONTENT: writes FILE when its content differs; says whether it did.
+put() {
+    if [ "$(cat "$1" 2>/dev/null)" != "$2" ]; then
+        printf '%s\n' "$2" >"$1"
+        return 0
+    fi
+    return 1
+}
+
+alloy_agent() {
+    say "grafana alloy"
+    if ! command -v alloy >/dev/null; then
+        install -d -m 0755 /etc/apt/keyrings
+        curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/grafana.gpg
+        echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" >/etc/apt/sources.list.d/grafana.list
+        apt-get update -q
+        apt-get install -y -q alloy
+    fi
+    # Journal access for the logs.
+    usermod -aG systemd-journal alloy
+
+    local dir=/etc/alloy/adhunters changed=0
+    install -d -m 0755 "$dir"
+    put "$dir/common.alloy" "$(cat "$here/../observe/alloy/common.alloy")" && changed=1
+    put "$dir/services.alloy" "$(services_alloy)" && changed=1
+    if [ "$role" = data ]; then
+        put "$dir/postgres.alloy" "$(cat "$here/../observe/alloy/postgres.alloy")" && changed=1
+    fi
+    # The package's own settings file: read the whole folder, keep the UI on
+    # localhost, no usage reports.
+    put /etc/default/alloy "# Written by platform/servers/setup.sh; edit there.
+CONFIG_FILE=$dir
+CUSTOM_ARGS=\"--server.http.listen-addr=127.0.0.1:12345 --disable-reporting\"
+RESTART_ON_UPGRADE=true" && changed=1
+    install -d -m 0755 /etc/systemd/system/alloy.service.d
+    put /etc/systemd/system/alloy.service.d/adhunters.conf "[Service]
+EnvironmentFile=/etc/adhunters/alloy.env
+Environment=ADHUNTERS_BOX=$role" && changed=1
+    systemctl daemon-reload
+
+    if [ ! -f /etc/adhunters/alloy.env ]; then
+        install -m 0600 /dev/null /etc/adhunters/alloy.env
+        printf '%s\n' "$alloy_env" >/etc/adhunters/alloy.env
+        [ "$role" = data ] && echo "POSTGRES_MONITOR_URL=FILL_ME" >>/etc/adhunters/alloy.env
+        say "wrote /etc/adhunters/alloy.env"
+    fi
+    if [ "$role" = data ] && [ -n "$observe_pw" ]; then
+        sed -i "s|^POSTGRES_MONITOR_URL=FILL_ME\$|POSTGRES_MONITOR_URL=postgres://observe:$observe_pw@localhost:5432/adhunters?sslmode=require|" /etc/adhunters/alloy.env
+    fi
+
+    systemctl enable alloy >/dev/null
+    if grep -q FILL_ME /etc/adhunters/alloy.env; then
+        systemctl stop alloy 2>/dev/null || true
+        todo+=("fill in /etc/adhunters/alloy.env (Grafana Cloud), then: systemctl restart alloy")
+    elif [ "$changed" = 1 ] || ! systemctl is-active --quiet alloy; then
+        systemctl restart alloy
+        say "restarted alloy"
+    fi
+}
+
 # ---- roles ------------------------------------------------------------------
 
 common
@@ -236,6 +353,7 @@ worker) capture_box a:4:9101 b:4:9102 ;;
 standby) capture_box standby:1:9101 ;;
 data) data_box ;;
 esac
+alloy_agent
 
 say "done: $role"
 if [ ${#todo[@]} -gt 0 ]; then

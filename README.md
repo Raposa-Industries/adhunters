@@ -11,7 +11,8 @@ The apps people use are AdHunters Spy, Create, Intel, Funnels and Raposa
 |---|---|---|
 | `kit/` | Shared plumbing for every Go binary: logging, stop handling, `/healthz` and `/metrics`, the Postgres pool, migrations. Nothing domain-specific. | started |
 | `contract/` | The data contract: the views each service publishes for others. | tracks_api v1 |
-| `platform/` | Servers as code (Terraform + HCP Terraform), box setup, deploys, secrets. | Terraform and box setup written, not applied |
+| `platform/` | Servers as code (Terraform + HCP Terraform), box setup, observability (Alloy, alert rules, Telegram routing), deploys, secrets. | Terraform and box setup written; servers partly applied; observability written, accounts not created |
+| `runbooks/` | One page per alert: what it means, what to check, how to fix it. | one per alert |
 | `tracks/` | Collection: capture, shipper, loader, walker. Was adhunters-collector. Internal, no app. | capture in shadow; shipper and loader built |
 | `raposa/` | AdHunters Raposa: dark funnel forensics. Investigations, the browser runner, the keeper, watches and plain pages. Replaces the collector's Raposa. | built, not deployed |
 | `spy/` | AdHunters Spy: research app and its derived numbers. Was adhunters-v4. | later |
