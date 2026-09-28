@@ -39,6 +39,9 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | investigation | Raposa's look at one creative (and, when given, one of its ads): visits under climbing disguises until one sees the dark page, then a sample of visits on that rung. |
 | deep investigation | The whole ladder, then the sample, retried while it finds no dark page. Its pages are kept whole. |
 | quick investigation | Only the rungs that cost nothing, the landing page's HTML only. No sample, no retry, nothing kept whole. |
+| automatic quick investigation | A quick investigation Raposa queues on its own (origin `auto`) for a new ad that runs now and whose landing page no visit has read whole. |
+| usable page | A page read whole: 40 words or more, and not a bot check or an error page (`raposa.usable_page`). |
+| imported investigation | An investigation copied from the collector's database by `raposa-engine import-old`, with its visits, pages and files. |
 | white page | What an operator shows an ad network reviewer: the page the saved link opens from a reviewer's line. |
 | dark page | A page a visit reached that is not the white page: another page on the same site, or another site. |
 | dark funnel | The dark page and the pages its calls to action lead to, up to checkout. |

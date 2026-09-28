@@ -6,6 +6,7 @@
 //	raposa-engine request -creative 123 [-ad 456] [-mode deep|quick] [-by name]
 //	raposa-engine stop    ID
 //	raposa-engine status
+//	raposa-engine import-old [-from URL] [-old-files s3://bucket/raposa] [-dry-run]
 //
 // The database URL comes from DATABASE_URL; the login reads tracks_api
 // (tracks_api_read). Watches need PUSHCUT_API_KEY; without it they are
@@ -22,6 +23,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -34,6 +36,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/run"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/engine"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
+	"github.com/Raposa-Industries/adhunters/raposa/internal/importold"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
 	"github.com/Raposa-Industries/adhunters/raposa/migrations"
 )
@@ -57,6 +60,8 @@ func main() {
 		err = stopCmd(os.Args[2:])
 	case "status":
 		err = statusCmd()
+	case "import-old":
+		err = importOldCmd(os.Args[2:])
 	case "version":
 		fmt.Println(version)
 	default:
@@ -69,7 +74,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: raposa-engine run|migrate|request|stop|status|version [flags]")
+	fmt.Fprintln(os.Stderr, "usage: raposa-engine run|migrate|request|stop|status|import-old|version [flags]")
 	os.Exit(2)
 }
 
@@ -273,6 +278,104 @@ func statusCmd() error {
 		return err
 	}
 	return w.Flush()
+}
+
+// importOldCmd copies the collector's investigations (spy.raposa_*) into
+// raposa. It only reads the collector's database. Run it again at any time:
+// it copies only the jobs not copied yet.
+func importOldCmd(args []string) error {
+	fs := flag.NewFlagSet("import-old", flag.ExitOnError)
+	from := fs.String("from", os.Getenv("OLD_DATABASE_URL"), "the collector's database (default: OLD_DATABASE_URL)")
+	oldFiles := fs.String("old-files", "", "the collector's object storage, s3://BUCKET/raposa (default: from BLOB_BUCKET); its keys come from the collector's BLOB_ENDPOINT, BLOB_REGION, BLOB_KEY_ID and BLOB_KEY_SECRET")
+	filesURI := fs.String("files", envOr("RAPOSA_FILES", "file:///var/lib/raposa/files"), "where kept files go now")
+	tmp := fs.String("tmp", os.TempDir(), "where one file waits between the two stores")
+	dryRun := fs.Bool("dry-run", false, "read and check everything, write nothing")
+	_ = fs.Parse(args)
+	if *from == "" {
+		return errors.New("-from (or OLD_DATABASE_URL) is required")
+	}
+	if *oldFiles == "" && os.Getenv("BLOB_BUCKET") != "" {
+		*oldFiles = "s3://" + os.Getenv("BLOB_BUCKET") + "/raposa"
+	}
+	log := logx.New("raposa-engine", version)
+	ctx := context.Background()
+
+	u, err := url.Parse(*from)
+	if err != nil {
+		return fmt.Errorf("-from: %w", err)
+	}
+	q := u.Query()
+	q.Set("timezone", "UTC")
+	q.Set("default_transaction_read_only", "on") // the collector's database is only read
+	u.RawQuery = q.Encode()
+	old, err := pg.Open(ctx, pg.Config{URL: u.String(), AppName: "raposa-import", StatementTimeout: pg.JobStatementTimeout, MaxConns: 2})
+	if err != nil {
+		return fmt.Errorf("the collector's database: %w", err)
+	}
+	defer old.Close()
+	db, err := open(ctx, pg.JobStatementTimeout, 2)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	store, err := files.Open(*filesURI)
+	if err != nil {
+		return err
+	}
+	var oldStore files.Store
+	if *oldFiles != "" {
+		ou, err := url.Parse(*oldFiles)
+		if err != nil || ou.Scheme != "s3" {
+			return fmt.Errorf("-old-files must be s3://BUCKET/PREFIX, not %q", *oldFiles)
+		}
+		s3, err := files.OpenS3(files.S3Config{
+			Endpoint:  os.Getenv("BLOB_ENDPOINT"),
+			Region:    os.Getenv("BLOB_REGION"),
+			AccessKey: os.Getenv("BLOB_KEY_ID"),
+			SecretKey: os.Getenv("BLOB_KEY_SECRET"),
+		}, ou.Host, ou.Path)
+		if err != nil {
+			return fmt.Errorf("-old-files: %w", err)
+		}
+		oldStore = s3
+	}
+
+	r, err := importold.Run(ctx, importold.Config{
+		Old: old, New: db, OldFiles: oldStore, Files: store, TmpDir: *tmp, DryRun: *dryRun, Log: log,
+	})
+	if err != nil {
+		return err
+	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	if *dryRun {
+		fmt.Fprintln(w, "DRY RUN: nothing was written.")
+	}
+	fmt.Fprintf(w, "jobs in the collector\t%d\n", r.Jobs)
+	fmt.Fprintf(w, "copied now\t%d\n", r.Copied)
+	fmt.Fprintf(w, "copied before\t%d\n", r.AlreadyCopied)
+	fmt.Fprintf(w, "waiting for Tracks to know the creative\t%d\n", r.UnknownCreative)
+	fmt.Fprintf(w, "failed\t%d\n", r.Failed)
+	fmt.Fprintf(w, "visits\t%d\n", r.Visits)
+	fmt.Fprintf(w, "pages copied\t%d\n", r.PagesNew)
+	fmt.Fprintf(w, "files copied\t%d (%d MB)\n", r.Files, r.FileBytes>>20)
+	_ = w.Flush()
+	if len(r.UnknownKeys) > 0 {
+		fmt.Printf("\nCreatives Tracks does not know yet (first %d): %s\n", len(r.UnknownKeys), strings.Join(r.UnknownKeys, ", "))
+	}
+	if len(r.SettingsDiffer) > 0 {
+		fmt.Println("\nSettings the collector had at another value (not changed; UPDATE raposa.setting to carry one over):")
+		for _, l := range r.SettingsDiffer {
+			fmt.Println("  " + l)
+		}
+	}
+	if r.Failed > 0 {
+		fmt.Println("\nNot copied:")
+		for _, l := range r.Errors {
+			fmt.Println("  " + l)
+		}
+		return fmt.Errorf("%d jobs were not copied", r.Failed)
+	}
+	return nil
 }
 
 func envOr(key, def string) string {

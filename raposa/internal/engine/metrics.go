@@ -13,6 +13,7 @@ type metrics struct {
 	keeps       *prometheus.CounterVec
 	deliveries  *prometheus.CounterVec
 	burns       prometheus.Gauge
+	autoQueued  prometheus.Counter
 }
 
 func newMetrics(reg prometheus.Registerer) *metrics {
@@ -42,9 +43,13 @@ func newMetrics(reg prometheus.Registerer) *metrics {
 			Name: "raposa_line_burns",
 			Help: "Burned lines active now, per site.",
 		}),
+		autoQueued: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "raposa_auto_queued_total",
+			Help: "Quick investigations Raposa queued on its own for new ads.",
+		}),
 	}
 	if reg != nil {
-		reg.MustRegister(m.steps, m.stepSeconds, m.visits, m.keeps, m.deliveries, m.burns)
+		reg.MustRegister(m.steps, m.stepSeconds, m.visits, m.keeps, m.deliveries, m.burns, m.autoQueued)
 	}
 	return m
 }
