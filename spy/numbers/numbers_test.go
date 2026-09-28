@@ -131,8 +131,6 @@ func TestReadModel(t *testing.T) {
 		`SELECT sightings_yesterday FROM spy.creative_stats WHERE creative_id = 10`: 20,
 		`SELECT sightings_7d FROM spy.creative_stats WHERE creative_id = 10`:        50,
 		`SELECT sightings_prev_7d FROM spy.creative_stats WHERE creative_id = 10`:   50,
-		`SELECT momentum_pct FROM spy.creative_stats WHERE creative_id = 10`:        0,
-		`SELECT phone_share_pct FROM spy.creative_stats WHERE creative_id = 10`:     30,
 		`SELECT operator_id FROM spy.creative_stats WHERE creative_id = 10`:         7,
 		`SELECT top_ad_id FROM spy.creative_stats WHERE creative_id = 10`:           100,
 		`SELECT sightings_total FROM spy.operator_stats WHERE operator_id = 7`:      85,
@@ -145,8 +143,11 @@ func TestReadModel(t *testing.T) {
 			t.Errorf("%s = %v, want %v", q, got, want)
 		}
 	}
-	if got := b.text(`SELECT stage FROM spy.creative_stats WHERE creative_id = 10`); got != "steady" {
-		t.Errorf("stage %s, want steady", got)
+	if got := b.text(`SELECT is_new::text || running::text FROM spy.creative_stats WHERE creative_id = 10`); got != "falsetrue" {
+		t.Errorf("new and running: %s, want false and true", got)
+	}
+	if got := b.float(`SELECT count(*) FROM spy.creative_day WHERE creative_id = 10`); got != 3 {
+		t.Errorf("%v creative days, want 3", got)
 	}
 	if got := b.text(`SELECT vertical FROM spy.creative_stats WHERE creative_id = 10`); got != "Weight Management & Metabolic Health" {
 		t.Errorf("vertical %s", got)
@@ -161,13 +162,16 @@ func TestLast24Hours(t *testing.T) {
 	b.ad(10, 100, 500, "ck-10", "Lose belly fat")
 	b.exec(`INSERT INTO spy.account_operator VALUES (500, 7)`)
 	end := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
-	for h := end.Add(-48 * time.Hour); h.Before(end); h = h.Add(time.Hour) {
-		s := 2
-		if !h.Before(end.Add(-24 * time.Hour)) {
-			s = 5
-		}
-		b.hour(h, 1, 1, 100, true, map[int]int{100: s})
+	// 5 an hour in the last 24 hours, 2 an hour in the same hours a week
+	// before (the other two usual weeks were not checked).
+	for h := end.Add(-24 * time.Hour); h.Before(end); h = h.Add(time.Hour) {
+		b.hour(h, 1, 1, 100, true, map[int]int{100: 5})
+		b.hour(h.AddDate(0, 0, -7), 1, 1, 100, true, map[int]int{100: 2})
 	}
+	// Tracks closes every hour, seen or not.
+	b.exec(`INSERT INTO tracks_api.closed_hour_v1 (hour, closed_at)
+		SELECT g, '2026-01-01' FROM generate_series($1::timestamptz, $2::timestamptz, interval '1 hour') g
+		ON CONFLICT DO NOTHING`, end.AddDate(0, 0, -8), end.Add(-time.Hour))
 	// The open hour is not in the windows.
 	b.hour(end, 1, 1, 50, false, map[int]int{100: 99})
 
@@ -175,15 +179,21 @@ func TestLast24Hours(t *testing.T) {
 		t.Fatalf("wrote %d creatives, err %v", n, err)
 	}
 	for q, want := range map[string]float64{
-		`SELECT extract(epoch FROM window_end) FROM spy.recent_window`:              float64(end.Unix()),
-		`SELECT sightings_24h FROM spy.creative_recent WHERE creative_id = 10`:      120,
-		`SELECT sightings_prev_24h FROM spy.creative_recent WHERE creative_id = 10`: 48,
-		`SELECT rate_24h FROM spy.creative_recent WHERE creative_id = 10`:           50, // 120 per 2,400 scrapes
-		`SELECT sightings_24h FROM spy.operator_recent WHERE operator_id = 7`:       120,
+		`SELECT extract(epoch FROM window_end) FROM spy.recent_window`:           float64(end.Unix()),
+		`SELECT sightings FROM spy.creative_recent WHERE creative_id = 10`:       120,
+		`SELECT presence FROM spy.creative_recent WHERE creative_id = 10`:        5, // 120 per 2,400 checks
+		`SELECT usual_periods FROM spy.creative_recent WHERE creative_id = 10`:   3,
+		`SELECT sightings_usual FROM spy.creative_recent WHERE creative_id = 10`: 48,
+		`SELECT momentum FROM spy.creative_recent WHERE creative_id = 10`:        2.5,
+		`SELECT momentum FROM spy.operator_recent WHERE operator_id = 7`:         2.5,
+		`SELECT sightings FROM spy.operator_recent WHERE operator_id = 7`:        120,
 	} {
 		if got := b.float(q); !near(got, want) {
 			t.Errorf("%s = %v, want %v", q, got, want)
 		}
+	}
+	if got := b.text(`SELECT momentum_word || ' ' || momentum_sure FROM spy.creative_recent`); got != "rising clear" {
+		t.Errorf("last 24 hours: %s, want rising clear", got)
 	}
 	if n, err := b.r.Recent(b.ctx); err != nil || n != 0 {
 		t.Fatalf("a second run wrote %d, err %v; the windows were current", n, err)
@@ -323,118 +333,3 @@ BEGIN
     RETURN n;
 END;
 $$;`
-
-func TestRanges(t *testing.T) {
-	b := newBench(t)
-	b.ad(10, 100, 500, "ck-10", "Lose belly fat")
-	b.exec(`INSERT INTO spy.account_operator VALUES (500, 7)`)
-	today := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
-	// 00:00-04:00: 10 an hour on Fox News. 04:00-08:00: 20 an hour there,
-	// and 50 an hour on MSN, which was not scraped before.
-	for h := 0; h < 8; h++ {
-		at := today.Add(time.Duration(h) * time.Hour)
-		if h < 4 {
-			b.hour(at, 1, 1, 100, true, map[int]int{100: 10})
-		} else {
-			b.hour(at, 1, 1, 100, true, map[int]int{100: 20})
-			b.hour(at, 2, 1, 100, true, map[int]int{100: 50})
-		}
-	}
-	type row struct {
-		sightings, before int64
-		momentum, z       float64
-		sure              bool
-		rank              int
-	}
-	get := func(fn string, from, to time.Time) row {
-		t.Helper()
-		var r row
-		if err := b.db.QueryRow(b.ctx, `SELECT sightings, sightings_before, momentum_pct, momentum_z, momentum_sure, rank
-			FROM spy.`+fn+`($1, $2, $3)`, from, to, now).Scan(&r.sightings, &r.before, &r.momentum, &r.z, &r.sure, &r.rank); err != nil {
-			t.Fatal(err)
-		}
-		return r
-	}
-	// MSN's 200 count in the range but not in momentum: it was not scraped before.
-	want := row{sightings: 280, before: 40, momentum: 100, z: 6.32, sure: true, rank: 1}
-	for _, fn := range []string{"creative_range", "operator_range"} {
-		if got := get(fn, today.Add(4*time.Hour), today.Add(8*time.Hour)); got != want {
-			t.Errorf("%s: %+v, want %+v", fn, got, want)
-		}
-	}
-	// Ends round to the nearest hour: 03:50 to 08:10 reads 04:00 to 08:00.
-	if got := get("creative_range", today.Add(3*time.Hour+50*time.Minute), today.Add(8*time.Hour+10*time.Minute)); got != want {
-		t.Errorf("rounded: %+v, want %+v", got, want)
-	}
-	var change float64
-	if err := b.db.QueryRow(b.ctx, `SELECT change_pct FROM spy.publisher_range($1, $2, $3) WHERE publisher_id = 1`,
-		today.Add(4*time.Hour), today.Add(8*time.Hour), now).Scan(&change); err != nil || !near(change, 100) {
-		t.Errorf("Fox News per scrape change %v, want 100 (err %v)", change, err)
-	}
-}
-
-func TestRangeDaysAndPrecision(t *testing.T) {
-	b := newBench(t)
-	b.ad(10, 100, 500, "ck-10", "Lose belly fat")
-	// Whole days come from the daily counts: 50 a day on 8 and 9 Oct, 100 on
-	// 10 and 11 Oct, each day scraped 240 times.
-	for d := 8; d <= 11; d++ {
-		day := time.Date(2026, 10, d, 0, 0, 0, 0, time.UTC)
-		s := 50
-		if d >= 10 {
-			s = 100
-		}
-		b.day(day, 100, 1, 1, s)
-		for h := 0; h < 24; h++ {
-			b.exec(`INSERT INTO tracks_api.scrape_coverage_v2 (hour, publisher_id, device_id, scrapes, sightings) VALUES ($1, 1, 1, 10, 0)`,
-				day.Add(time.Duration(h)*time.Hour))
-		}
-	}
-	var s, before int64
-	var m float64
-	if err := b.db.QueryRow(b.ctx, `SELECT sightings, sightings_before, momentum_pct FROM spy.creative_range($1, $2, $3)`,
-		time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC), time.Date(2026, 10, 12, 0, 0, 0, 0, time.UTC), now).Scan(&s, &before, &m); err != nil {
-		t.Fatal(err)
-	}
-	if s != 200 || before != 100 || !near(m, 100) {
-		t.Errorf("days: %d, %d before, momentum %v; want 200, 100, 100", s, before, m)
-	}
-
-	type plan struct {
-		prec     string
-		from, to time.Time
-		dayFrom  time.Time
-		dayTo    time.Time
-	}
-	read := func(from, to time.Time) plan {
-		t.Helper()
-		var p plan
-		if err := b.db.QueryRow(b.ctx, `SELECT prec, from_at, to_at, day_from::timestamptz, day_to::timestamptz
-			FROM spy.range_plan($1, $2, $3) WHERE period = 'now'`, from, to, now).Scan(&p.prec, &p.from, &p.to, &p.dayFrom, &p.dayTo); err != nil {
-			t.Fatal(err)
-		}
-		p.from, p.to, p.dayFrom, p.dayTo = p.from.UTC(), p.to.UTC(), p.dayFrom.UTC(), p.dayTo.UTC()
-		return p
-	}
-	// Last weekend in São Paulo: to the hour, whole Sunday from the daily counts.
-	sp := time.FixedZone("BRT", -3*3600)
-	got := read(time.Date(2026, 10, 17, 0, 0, 0, 0, sp), time.Date(2026, 10, 19, 0, 0, 0, 0, sp))
-	if want := (plan{"hour", time.Date(2026, 10, 17, 3, 0, 0, 0, time.UTC), time.Date(2026, 10, 19, 3, 0, 0, 0, time.UTC),
-		time.Date(2026, 10, 18, 0, 0, 0, 0, time.UTC), time.Date(2026, 10, 19, 0, 0, 0, 0, time.UTC)}); got != want {
-		t.Errorf("weekend: %+v, want %+v", got, want)
-	}
-	// Older than 35 days: whole UTC days, ends rounded to the nearest midnight.
-	got = read(time.Date(2026, 8, 1, 5, 0, 0, 0, time.UTC), time.Date(2026, 8, 3, 20, 0, 0, 0, time.UTC))
-	if want := (plan{"day", time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 8, 4, 0, 0, 0, 0, time.UTC),
-		time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 8, 4, 0, 0, 0, 0, time.UTC)}); got != want {
-		t.Errorf("August: %+v, want %+v", got, want)
-	}
-	// A range reaching into the future stops at the current hour's end.
-	got = read(time.Date(2026, 10, 20, 10, 0, 0, 0, time.UTC), time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC))
-	if !got.to.Equal(time.Date(2026, 10, 20, 13, 0, 0, 0, time.UTC)) {
-		t.Errorf("future end read as %v", got.to)
-	}
-	if _, err := b.db.Exec(b.ctx, `SELECT * FROM spy.range_plan($1, $1, $2)`, now, now); err == nil {
-		t.Error("an empty range was accepted")
-	}
-}

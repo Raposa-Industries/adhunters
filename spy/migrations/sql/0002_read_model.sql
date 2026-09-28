@@ -1,10 +1,17 @@
 -- lint: new-table
 -- The read model: one row per creative, operator and publisher with the
--- numbers the lists filter and sort on, so the app never adds up counts
--- itself. Ported from the collector's spy.refresh_read_model() (018, 019,
--- 026, 030, 034), reading tracks_api instead of the collector's tables.
--- Windows are UTC days including today: 7d is today and the 6 days before.
--- Rebuilt by spy.refresh_read_model() every 5 minutes.
+-- facts the lists filter and sort on (counts, who and what, first and last
+-- seen), so the app never adds up counts itself. Ported from the
+-- collector's spy.refresh_read_model() (018, 019, 026, 030, 034), reading
+-- tracks_api instead of the collector's tables. Windows are UTC days
+-- including today: 7d is today and the 6 days before. Rebuilt by
+-- spy.refresh_read_model() every 5 minutes.
+--
+-- Judgements are not here: momentum, direction and anything per check come
+-- from the range functions (0003) and Direction (0004), which account for
+-- how often each publisher was checked. The collector's stage, momentum_pct,
+-- phone share, average feed position and drop from peak were raw counts
+-- that move with check volume (spy/METRICS.md), so they are gone.
 
 -- Placeholder ads Taboola shows when it has nothing to sell: fallback images,
 -- banner slots and filler headlines. They stay in the data but the apps hide
@@ -40,14 +47,9 @@ CREATE TABLE spy.creative_stats (
     ads_count INTEGER NOT NULL,                -- headlines used with this creative
     publishers_count INTEGER NOT NULL,
     publisher_ids INTEGER[] NOT NULL,          -- most sightings first
-    phone_share_pct NUMERIC(5, 2) NOT NULL,
-    network_share_7d_pct NUMERIC(7, 4) NOT NULL,  -- share of all sightings in the last 7 days
-    momentum_pct NUMERIC(12, 2),               -- 7d against the 7 before, NULL when those were 0
-    avg_feed_position NUMERIC(6, 2),
-    peak_day DATE,
-    peak_day_sightings INTEGER NOT NULL,
-    drop_from_peak_pct NUMERIC(5, 1),          -- yesterday against the peak day
-    stage TEXT NOT NULL,                       -- see Stage in GLOSSARY.md
+    network_share_7d_pct NUMERIC(7, 4) NOT NULL,  -- share of voice: of all sightings in the last 7 days
+    is_new BOOLEAN NOT NULL,                   -- first seen in the last new_days days
+    running BOOLEAN NOT NULL,                  -- seen in the last ended_hours hours
     top_ad_id INTEGER,
     headline TEXT,                             -- of the ad with the most sightings
     brand_id INTEGER,                          -- of the ad seen last
@@ -72,7 +74,6 @@ CREATE INDEX creative_stats_last_seen_idx ON spy.creative_stats (last_seen_at DE
 CREATE INDEX creative_stats_first_seen_idx ON spy.creative_stats (first_seen_at DESC);
 CREATE INDEX creative_stats_share_idx ON spy.creative_stats (network_share_7d_pct DESC);
 CREATE INDEX creative_stats_operator_idx ON spy.creative_stats (operator_id);
-CREATE INDEX creative_stats_stage_idx ON spy.creative_stats (stage);
 CREATE INDEX creative_stats_vertical_idx ON spy.creative_stats (vertical);
 CREATE INDEX creative_stats_publishers_idx ON spy.creative_stats USING gin (publisher_ids);
 CREATE INDEX creative_stats_accounts_idx ON spy.creative_stats USING gin (account_ids);
@@ -87,11 +88,9 @@ CREATE TABLE spy.operator_stats (
     share_today_pct NUMERIC(7, 4) NOT NULL,
     share_7d_pct NUMERIC(7, 4) NOT NULL,
     share_30d_pct NUMERIC(7, 4) NOT NULL,
-    momentum_pct NUMERIC(12, 2),
     creatives_count INTEGER NOT NULL,
-    live_creatives_count INTEGER NOT NULL,     -- stage is not gone
+    live_creatives_count INTEGER NOT NULL,     -- running
     publisher_ids INTEGER[] NOT NULL,          -- most sightings first
-    phone_share_pct NUMERIC(5, 2) NOT NULL,
     vertical TEXT,                             -- the operator's label, else its creatives' most common
     brands TEXT[] NOT NULL,                    -- most sightings first, at most 10
     first_seen_at TIMESTAMPTZ NOT NULL,
@@ -112,6 +111,7 @@ CREATE TABLE spy.publisher_stats (
     creatives_30d INTEGER NOT NULL,
     operators_30d INTEGER NOT NULL,
     operator_hhi NUMERIC(7, 1) NOT NULL,       -- sum of squared operator shares (0-10000), last 30 days
+    even_operators NUMERIC(7, 1),              -- 10000 / operator_hhi: as concentrated as this many equal operators
     top_operators JSONB NOT NULL,              -- [{operator_id, sightings, share_pct}], at most 10
     top_creatives JSONB NOT NULL,              -- [{creative_id, sightings}], at most 8
     verticals JSONB NOT NULL,                  -- [{vertical, sightings, share_pct}]
@@ -130,6 +130,9 @@ DECLARE
     network_today BIGINT;
     network_7d BIGINT;
     network_30d BIGINT;
+    new_for INTERVAL := make_interval(days => (spy.cfg()->>'new_days')::int);
+    ended_after INTERVAL := make_interval(hours => (spy.cfg()->>'ended_hours')::int);
+    last_days TIMESTAMPTZ;
     n INTEGER;
 BEGIN
     IF NOT pg_try_advisory_xact_lock(hashtext('spy.refresh_read_model')) THEN
@@ -148,8 +151,7 @@ BEGIN
     INSERT INTO spy.creative_stats AS cs (
         creative_id, sightings_total, sightings_today, sightings_yesterday, sightings_3d, sightings_prev_3d,
         sightings_7d, sightings_prev_7d, sightings_30d, scrapes_total, active_days, ads_count,
-        publishers_count, publisher_ids, phone_share_pct, network_share_7d_pct, momentum_pct, avg_feed_position,
-        peak_day, peak_day_sightings, drop_from_peak_pct, stage, top_ad_id, headline, brand_id, operator_id,
+        publishers_count, publisher_ids, network_share_7d_pct, is_new, running, top_ad_id, headline, brand_id, operator_id,
         account_ids, trackers, affiliate_networks, vertical, classified_vertical, subvertical,
         vertical_confidence, unsure, vertical_source, health_from_funnel, is_junk,
         first_seen_at, last_seen_at, refreshed_at
@@ -192,14 +194,6 @@ BEGIN
         FROM tracks_api.ad_v1 WHERE brand_id IS NOT NULL
         ORDER BY creative_id, last_seen_at DESC
     ),
-    per_day AS (
-        SELECT creative_id, day, sum(sightings) AS s
-        FROM tracks_api.ad_daily_v1 GROUP BY 1, 2
-    ),
-    peak AS (
-        SELECT DISTINCT ON (creative_id) creative_id, day, s
-        FROM per_day ORDER BY creative_id, s DESC, day DESC
-    ),
     links AS (
         SELECT cl.creative_id,
                array_agg(DISTINCT l.tracker) FILTER (WHERE NULLIF(l.tracker, '') IS NOT NULL) AS trackers,
@@ -222,37 +216,21 @@ BEGIN
             sum(d.scrapes) AS scrapes,
             count(DISTINCT d.day) AS days,
             count(DISTINCT d.ad_id) AS ads,
-            sum(d.sightings) FILTER (WHERE d.device_id = phone) AS phone,
-            sum(d.feed_position_sum) AS pos_sum,
             min(d.first_seen_at) AS first_seen,
             max(d.last_seen_at) AS last_seen
         FROM tracks_api.ad_daily_v1 d
         GROUP BY d.creative_id
     ),
     base AS (
-        SELECT a.*,
-               CASE WHEN COALESCE(a.s_prev_7d, 0) > 0
-                    THEN round(100.0 * (COALESCE(a.s_7d, 0) - a.s_prev_7d) / a.s_prev_7d, 2) END AS momentum
-        FROM agg a
+        SELECT a.* FROM agg a
     )
     SELECT
         b.creative_id, b.total, COALESCE(b.s_today, 0), COALESCE(b.s_yesterday, 0),
         COALESCE(b.s_3d, 0), COALESCE(b.s_prev_3d, 0), COALESCE(b.s_7d, 0), COALESCE(b.s_prev_7d, 0),
         COALESCE(b.s_30d, 0), b.scrapes, b.days, b.ads, p.n, p.ids,
-        round(100.0 * COALESCE(b.phone, 0) / GREATEST(b.total, 1), 2),
         LEAST(100, round(100.0 * COALESCE(b.s_7d, 0) / network_7d, 4)),
-        b.momentum,
-        round(b.pos_sum::numeric / GREATEST(b.total, 1), 2),
-        pk.day, COALESCE(pk.s, 0),
-        CASE WHEN pk.s > 0 AND pk.day < today
-             THEN round(GREATEST(0, 100.0 * (pk.s - COALESCE(b.s_yesterday, 0)) / pk.s), 1) END,
-        CASE
-            WHEN b.last_seen < p_now - interval '32 hours' THEN 'gone'
-            WHEN b.first_seen >= p_now - interval '3 days' THEN 'new'
-            WHEN b.momentum <= -25 THEN 'fading'
-            WHEN b.momentum >= 25 THEN 'rising'
-            ELSE 'steady'
-        END,
+        c.first_seen_at >= p_now - new_for,
+        b.last_seen >= p_now - ended_after,
         tad.ad_id, tad.headline, lb.brand_id, ta.operator_id,
         COALESCE(acc.ids, '{}'), COALESCE(lk.trackers, '{}'), COALESCE(lk.nets, '{}'),
         cv.shown_vertical, cv.vertical, cv.subvertical, COALESCE(cv.confidence, 0), COALESCE(cv.unsure, TRUE),
@@ -265,7 +243,6 @@ BEGIN
     LEFT JOIN top_ad tad USING (creative_id)
     LEFT JOIN top_account ta USING (creative_id)
     LEFT JOIN latest_brand lb USING (creative_id)
-    LEFT JOIN peak pk USING (creative_id)
     LEFT JOIN accounts acc USING (creative_id)
     LEFT JOIN links lk USING (creative_id)
     LEFT JOIN spy.creative_vertical cv USING (creative_id)
@@ -283,14 +260,9 @@ BEGIN
         ads_count = EXCLUDED.ads_count,
         publishers_count = EXCLUDED.publishers_count,
         publisher_ids = EXCLUDED.publisher_ids,
-        phone_share_pct = EXCLUDED.phone_share_pct,
         network_share_7d_pct = EXCLUDED.network_share_7d_pct,
-        momentum_pct = EXCLUDED.momentum_pct,
-        avg_feed_position = EXCLUDED.avg_feed_position,
-        peak_day = EXCLUDED.peak_day,
-        peak_day_sightings = EXCLUDED.peak_day_sightings,
-        drop_from_peak_pct = EXCLUDED.drop_from_peak_pct,
-        stage = EXCLUDED.stage,
+        is_new = EXCLUDED.is_new,
+        running = EXCLUDED.running,
         top_ad_id = EXCLUDED.top_ad_id,
         headline = EXCLUDED.headline,
         brand_id = EXCLUDED.brand_id,
@@ -332,8 +304,8 @@ BEGIN
 
     INSERT INTO spy.operator_stats AS os (
         operator_id, sightings_total, sightings_today, sightings_7d, sightings_prev_7d, sightings_30d,
-        share_today_pct, share_7d_pct, share_30d_pct, momentum_pct, creatives_count, live_creatives_count,
-        publisher_ids, phone_share_pct, vertical, brands, first_seen_at, last_seen_at, refreshed_at
+        share_today_pct, share_7d_pct, share_30d_pct, creatives_count, live_creatives_count,
+        publisher_ids, vertical, brands, first_seen_at, last_seen_at, refreshed_at
     )
     WITH agg AS (
         SELECT operator_id,
@@ -342,7 +314,6 @@ BEGIN
                sum(sightings) FILTER (WHERE day > today - 7) AS s_7d,
                sum(sightings) FILTER (WHERE day > today - 14 AND day <= today - 7) AS s_prev_7d,
                sum(sightings) FILTER (WHERE day > today - 30) AS s_30d,
-               sum(sightings) FILTER (WHERE device_id = phone) AS phone,
                min(first_seen) AS first_seen, max(last_seen) AS last_seen
         FROM spy_op_day GROUP BY 1
     ),
@@ -359,7 +330,7 @@ BEGIN
         GROUP BY 1
     ),
     creatives AS (
-        SELECT operator_id, count(*) AS n, count(*) FILTER (WHERE stage <> 'gone') AS live,
+        SELECT operator_id, count(*) AS n, count(*) FILTER (WHERE running) AS live,
                mode() WITHIN GROUP (ORDER BY vertical) AS vertical
         FROM spy.creative_stats WHERE operator_id IS NOT NULL AND NOT is_junk
         GROUP BY 1
@@ -369,10 +340,7 @@ BEGIN
            LEAST(100, round(100.0 * COALESCE(a.s_today, 0) / network_today, 4)),
            LEAST(100, round(100.0 * COALESCE(a.s_7d, 0) / network_7d, 4)),
            LEAST(100, round(100.0 * COALESCE(a.s_30d, 0) / network_30d, 4)),
-           CASE WHEN COALESCE(a.s_prev_7d, 0) > 0
-                THEN round(100.0 * (COALESCE(a.s_7d, 0) - a.s_prev_7d) / a.s_prev_7d, 2) END,
            COALESCE(c.n, 0), COALESCE(c.live, 0), p.ids,
-           round(100.0 * COALESCE(a.phone, 0) / GREATEST(a.total, 1), 2),
            COALESCE(o.vertical, c.vertical), COALESCE(b.names, '{}'),
            a.first_seen, a.last_seen, p_now
     FROM agg a
@@ -389,11 +357,9 @@ BEGIN
         share_today_pct = EXCLUDED.share_today_pct,
         share_7d_pct = EXCLUDED.share_7d_pct,
         share_30d_pct = EXCLUDED.share_30d_pct,
-        momentum_pct = EXCLUDED.momentum_pct,
         creatives_count = EXCLUDED.creatives_count,
         live_creatives_count = EXCLUDED.live_creatives_count,
         publisher_ids = EXCLUDED.publisher_ids,
-        phone_share_pct = EXCLUDED.phone_share_pct,
         vertical = EXCLUDED.vertical,
         brands = EXCLUDED.brands,
         first_seen_at = EXCLUDED.first_seen_at,
@@ -403,7 +369,7 @@ BEGIN
     -- Publishers ---------------------------------------------------------------
     INSERT INTO spy.publisher_stats AS ps (
         publisher_id, sightings_total, sightings_today, sightings_7d, sightings_30d, share_30d_pct,
-        scrapes_30d, phone_sightings_30d, creatives_30d, operators_30d, operator_hhi,
+        scrapes_30d, phone_sightings_30d, creatives_30d, operators_30d, operator_hhi, even_operators,
         top_operators, top_creatives, verticals, first_seen_at, last_seen_at, refreshed_at
     )
     WITH hourly AS (
@@ -462,7 +428,7 @@ BEGIN
     SELECT h.publisher_id, h.total, COALESCE(h.s_today, 0), COALESCE(h.s_7d, 0), COALESCE(h.s_30d, 0),
            LEAST(100, round(100.0 * COALESCE(h.s_30d, 0) / network_30d, 4)),
            COALESCE(h.scrapes_30d, 0), COALESCE(h.phone_30d, 0),
-           COALESCE(c.n, 0), COALESCE(o.n, 0), COALESCE(o.hhi, 0),
+           COALESCE(c.n, 0), COALESCE(o.n, 0), COALESCE(o.hhi, 0), round(10000 / NULLIF(o.hhi, 0), 1),
            COALESCE(o.top, '[]'), COALESCE(c.top, '[]'), COALESCE(v.list, '[]'),
            h.first_hour, h.last_hour + interval '1 hour', p_now
     FROM hourly h
@@ -480,12 +446,27 @@ BEGIN
         creatives_30d = EXCLUDED.creatives_30d,
         operators_30d = EXCLUDED.operators_30d,
         operator_hhi = EXCLUDED.operator_hhi,
+        even_operators = EXCLUDED.even_operators,
         top_operators = EXCLUDED.top_operators,
         top_creatives = EXCLUDED.top_creatives,
         verticals = EXCLUDED.verticals,
         first_seen_at = EXCLUDED.first_seen_at,
         last_seen_at = EXCLUDED.last_seen_at,
         refreshed_at = EXCLUDED.refreshed_at;
+
+    -- Each creative's days, for lifespan. The last 3 days every time, older
+    -- days when an hour in them closed again, everything the first time.
+    SELECT done_at INTO last_days FROM spy.direction_mark WHERE job = 'creative_day';
+    DELETE FROM spy.creative_day d
+    WHERE last_days IS NULL OR d.day >= today - 2 OR d.day IN (
+        SELECT DISTINCT (c.hour AT TIME ZONE 'UTC')::date FROM tracks_api.closed_hour_v1 c WHERE c.closed_at > last_days);
+    INSERT INTO spy.creative_day (creative_id, day, sightings, first_seen_at, last_seen_at)
+    SELECT d.creative_id, d.day, sum(d.sightings), min(d.first_seen_at), max(d.last_seen_at)
+    FROM tracks_api.ad_daily_v1 d
+    WHERE NOT EXISTS (SELECT 1 FROM spy.creative_day x WHERE x.day = d.day)
+    GROUP BY 1, 2;
+    INSERT INTO spy.direction_mark (job, done_at) VALUES ('creative_day', clock_timestamp())
+    ON CONFLICT (job) DO UPDATE SET done_at = EXCLUDED.done_at;
 
     RETURN n;
 END;

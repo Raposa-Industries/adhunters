@@ -24,7 +24,7 @@
 --                                  and a sentence for people. Every 5 minutes.
 --   spy.direction_event            Every change of direction. Read by alerts.
 --
--- Two changes from the collector:
+-- Four changes from the collector:
 --   - spy.direction_fill_usual() took about 4 minutes per slot hour on a CX43
 --     (tracks/measure/hourclose-direction/results-20260927.md): its CTEs were
 --     joined to each other with nested loops. It now works through analysed
@@ -33,6 +33,14 @@
 --     scrape_coverage_v2, sightings and scrapes alike). An hour before the
 --     window is counted in direction_seen for good only once Tracks closed it,
 --     and again if it closes again.
+--   - The gap to the usual value is measured in its own noise: z divides by
+--     sqrt(noise x expected), noise being the subject's measured dispersion
+--     (spy.dispersion), not 1 as pure chance would have it. Budgets are
+--     paced by the hour, so counts vary about three times more than chance.
+--   - Entering rising or fading also needs the change to pass
+--     Benjamini-Hochberg at fdr across the whole run, since thousands of
+--     subjects are judged every 5 minutes. Leaving is still decided by
+--     rise_exit, fade_exit and min_z.
 
 CREATE TABLE spy.direction_member (
     ad_id INTEGER NOT NULL,
@@ -221,6 +229,97 @@ BEGIN
 END;
 $$;
 
+-- Noise: how much each subject's hourly counts vary beyond chance, over the
+-- last noise_days of closed hours. Against a constant rate per publisher
+-- and device, phi = max(1, Pearson chi-square / (hours - 1)). A subject with
+-- fewer than noise_min_sightings takes the median of its market (vertical,
+-- else all), measured ones only.
+CREATE FUNCTION spy.refresh_dispersion(p_now TIMESTAMPTZ) RETURNS INTEGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    cfg JSONB := spy.cfg();
+    s_min FLOAT8 := (cfg->>'noise_min_sightings')::float8;
+    s_buckets INTEGER := (cfg->>'noise_min_buckets')::int;
+    upto TIMESTAMPTZ := COALESCE(spy.recent_end(p_now), date_trunc('hour', p_now, 'UTC'));
+    since TIMESTAMPTZ := upto - make_interval(days => (cfg->>'noise_days')::int);
+    v_rows INTEGER;
+BEGIN
+    CREATE TEMP TABLE IF NOT EXISTS spy_disp_cell (kind TEXT, key TEXT, publisher_id INTEGER, device_id SMALLINT,
+        hour TIMESTAMPTZ, n BIGINT) ON COMMIT DROP;
+    TRUNCATE spy_disp_cell;
+    INSERT INTO spy_disp_cell
+    SELECT m.kind, m.key, h.publisher_id, h.device_id, h.hour, sum(h.sightings)
+    FROM tracks_api.ad_hourly_v1 h
+    JOIN spy.direction_member m ON m.ad_id = h.ad_id AND m.kind <> 'network'
+    WHERE h.closed AND h.hour >= since AND h.hour < upto
+    GROUP BY 1, 2, 3, 4, 5;
+    ANALYZE spy_disp_cell;
+
+    CREATE TEMP TABLE IF NOT EXISTS spy_disp_cov (publisher_id INTEGER, device_id SMALLINT, hour TIMESTAMPTZ,
+        e BIGINT) ON COMMIT DROP;
+    TRUNCATE spy_disp_cov;
+    INSERT INTO spy_disp_cov
+    SELECT publisher_id, device_id, hour, sum(scrapes) FROM tracks_api.scrape_coverage_v2
+    WHERE closed AND hour >= since AND hour < upto
+    GROUP BY 1, 2, 3 HAVING sum(scrapes) > 0;
+    ANALYZE spy_disp_cov;
+
+    CREATE TEMP TABLE IF NOT EXISTS spy_disp_new (LIKE spy.dispersion) ON COMMIT DROP;
+    TRUNCATE spy_disp_new;
+    INSERT INTO spy_disp_new (kind, key, phi, measured, sightings, hours, refreshed_at)
+    WITH strat AS (
+        SELECT c.kind, c.key, c.publisher_id, c.device_id, sum(c.n) AS n
+        FROM spy_disp_cell c GROUP BY 1, 2, 3, 4
+    ),
+    rate AS (
+        SELECT s.kind, s.key, s.publisher_id, s.device_id, s.n::float8 / sum(v.e) AS r, s.n
+        FROM strat s JOIN spy_disp_cov v ON v.publisher_id = s.publisher_id AND v.device_id = s.device_id
+        GROUP BY s.kind, s.key, s.publisher_id, s.device_id, s.n
+    ),
+    tot AS (
+        SELECT kind, key, sum(n) AS n FROM rate GROUP BY 1, 2
+    ),
+    expd AS (
+        SELECT r.kind, r.key, v.hour, sum(r.r * v.e) AS ex
+        FROM rate r
+        JOIN tot t ON t.kind = r.kind AND t.key = r.key AND t.n >= s_min
+        JOIN spy_disp_cov v ON v.publisher_id = r.publisher_id AND v.device_id = r.device_id
+        GROUP BY 1, 2, 3
+    ),
+    obs AS (
+        SELECT c.kind, c.key, c.hour, sum(c.n) AS n FROM spy_disp_cell c GROUP BY 1, 2, 3
+    ),
+    chi AS (
+        SELECT e.kind, e.key, sum((COALESCE(o.n, 0) - e.ex) ^ 2 / e.ex) AS chi2, count(*) AS hours
+        FROM expd e LEFT JOIN obs o USING (kind, key, hour)
+        WHERE e.ex > 0
+        GROUP BY 1, 2
+    )
+    SELECT t.kind, t.key,
+           CASE WHEN c.hours >= s_buckets THEN GREATEST(1, c.chi2 / (c.hours - 1)) ELSE 1 END,
+           COALESCE(c.hours >= s_buckets, FALSE), t.n, COALESCE(c.hours, 0), p_now
+    FROM tot t LEFT JOIN chi c USING (kind, key);
+
+    -- Too few sightings: the median of its market's measured ones, else of
+    -- every measured one of its kind, else 1.
+    UPDATE spy_disp_new d SET phi = COALESCE(
+        (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY x.phi)
+         FROM spy_disp_new x
+         JOIN spy.direction_subject xs ON xs.kind = x.kind AND xs.key = x.key
+         JOIN spy.direction_subject ds ON ds.kind = d.kind AND ds.key = d.key
+         WHERE x.measured AND x.kind = d.kind AND xs.market_key IS NOT DISTINCT FROM ds.market_key),
+        (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY x.phi) FROM spy_disp_new x
+         WHERE x.measured AND x.kind = d.kind),
+        1)
+    WHERE NOT d.measured;
+
+    TRUNCATE spy.dispersion;
+    INSERT INTO spy.dispersion SELECT * FROM spy_disp_new;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    RETURN v_rows;
+END;
+$$;
+
 -- Daily: members, subjects and usual publishers from scratch. The usual values
 -- are dropped so they are filled again with the new sets.
 CREATE FUNCTION spy.direction_rebuild(p_now TIMESTAMPTZ) RETURNS INTEGER
@@ -273,6 +372,7 @@ BEGIN
     ANALYZE spy.direction_member, spy.direction_subject, spy.direction_usual_publisher;
 
     TRUNCATE spy.direction_usual, spy.direction_seen, spy.direction_hour_mark;
+    PERFORM spy.refresh_dispersion(p_now);
 
     INSERT INTO spy.direction_mark (job, done_at) VALUES ('rebuild', p_now)
     ON CONFLICT (job) DO UPDATE SET done_at = EXCLUDED.done_at;
@@ -545,6 +645,7 @@ DECLARE
     s_free_rise_rest_max NUMERIC := (cfg->>'free_rise_rest_max')::numeric;
     s_min_expected NUMERIC := (cfg->>'min_expected')::numeric;
     s_min_z NUMERIC := (cfg->>'min_z')::numeric;
+    s_fdr FLOAT8 := (cfg->>'fdr')::float8;
     s_push_hours NUMERIC := (cfg->>'push_hours')::numeric;
     s_rise_enter NUMERIC := (cfg->>'rise_enter')::numeric;
     s_rise_exit NUMERIC := (cfg->>'rise_exit')::numeric;
@@ -708,7 +809,8 @@ BEGIN
                COALESCE(mn.win_all, 0) AS m_win_all, COALESCE(mn.win_usual, 0) AS m_win_usual,
                COALESCE(mu.u_all_win, 0) AS m_all_usual,
                ms.sc_win AS m_sc_win, mu.u_win AS m_u_win, mu.u_sc_win AS m_u_sc_win,
-               prev.direction AS prev_direction, prev.direction_since AS prev_since
+               prev.direction AS prev_direction, prev.direction_since AS prev_since,
+               COALESCE(dp.phi, 1) AS noise
         FROM spy_dir_keys k
         JOIN spy.direction_subject s ON s.kind = k.kind AND s.key = k.key
         LEFT JOIN spy_dir_now nw ON nw.kind = s.kind AND nw.key = s.key
@@ -719,6 +821,7 @@ BEGIN
         LEFT JOIN spy_dir_usual mu ON mu.kind = s.market_kind AND mu.key = s.market_key
         LEFT JOIN spy_dir_scrapes ms ON ms.kind = s.market_kind AND ms.key = s.market_key
         LEFT JOIN spy.direction_stats prev ON prev.kind = s.kind AND prev.key = s.key
+        LEFT JOIN spy.dispersion dp ON dp.kind = s.kind AND dp.key = s.key
         WHERE s.kind <> 'network'
     ),
     calc AS (
@@ -750,10 +853,23 @@ BEGIN
     ),
     calc3 AS (
         SELECT c.*,
-               (c.win_usual - COALESCE(c.expected, 0)) / sqrt(GREATEST(COALESCE(c.expected, 0), 1)) AS z,
+               (c.win_usual - COALESCE(c.expected, 0)) / sqrt(c.noise * GREATEST(COALESCE(c.expected, 0), 1)) AS z,
                c.weeks > 0 AND c.sc_win > 0 AND c.usual_sps IS NOT NULL
                  AND (c.expected >= s_min_expected OR c.win_usual >= s_min_expected) AS judgeable
         FROM calc2 c
+    ),
+    -- Benjamini-Hochberg over everything judged in this run.
+    tested AS (
+        SELECT c.*,
+               CASE WHEN c.judgeable THEN erfc(abs(c.z)::float8 / sqrt(2)) END AS p,
+               row_number() OVER (ORDER BY CASE WHEN c.judgeable THEN erfc(abs(c.z)::float8 / sqrt(2)) END) AS p_rank,
+               count(*) FILTER (WHERE c.judgeable) OVER () AS p_count
+        FROM calc3 c
+    ),
+    tested2 AS (
+        SELECT t.*,
+               COALESCE(t.p <= max(t.p) FILTER (WHERE t.p <= t.p_rank * s_fdr / NULLIF(t.p_count, 0)) OVER (), FALSE) AS discovered
+        FROM tested t
     ),
     judged AS (
         SELECT c.*,
@@ -766,12 +882,13 @@ BEGIN
                 WHEN NOT c.judgeable THEN
                     CASE WHEN c.prev_direction IN ('rising', 'steady', 'fading', 'free_rise') THEN c.prev_direction ELSE 'unclear' END
                 -- Ratio NULL: not usually seen at this hour, now seen enough.
-                WHEN (c.ratio IS NULL OR c.ratio >= CASE WHEN c.prev_direction = 'rising' THEN s_rise_exit
-                                                          ELSE s_rise_enter END)
+                WHEN c.prev_direction = 'rising' AND (c.ratio IS NULL OR c.ratio >= s_rise_exit)
                      AND c.z >= s_min_z THEN 'rising'
-                WHEN c.ratio <= CASE WHEN c.prev_direction = 'fading' THEN s_fade_exit
-                                     ELSE s_fade_enter END
-                     AND c.z <= -s_min_z THEN 'fading'
+                WHEN c.prev_direction IS DISTINCT FROM 'rising' AND (c.ratio IS NULL OR c.ratio >= s_rise_enter)
+                     AND c.z >= s_min_z AND c.discovered THEN 'rising'
+                WHEN c.prev_direction = 'fading' AND c.ratio <= s_fade_exit AND c.z <= -s_min_z THEN 'fading'
+                WHEN c.prev_direction IS DISTINCT FROM 'fading' AND c.ratio <= s_fade_enter
+                     AND c.z <= -s_min_z AND c.discovered THEN 'fading'
                 -- Free rise: share up, per scrape flat, the rest of the vertical down.
                 WHEN c.share_ratio >= CASE WHEN c.prev_direction = 'free_rise' THEN s_rise_exit
                                            ELSE s_rise_enter END
@@ -780,7 +897,7 @@ BEGIN
                      AND c.rest_ratio <= s_free_rise_rest_max THEN 'free_rise'
                 ELSE 'steady'
             END AS direction
-        FROM calc3 c
+        FROM tested2 c
     )
     SELECT j.kind, j.key, j.direction,
            CASE WHEN j.direction = j.prev_direction THEN j.prev_since ELSE now_ts END,
@@ -801,6 +918,7 @@ BEGIN
                'ratio', round(j.ratio, 2),
                'expected', round(j.expected, 1),
                'z', round(j.z, 1),
+               'noise', round(j.noise, 1),
                'share_now_pct', round(100 * j.share_now, 3),
                'share_usual_pct', round(100 * j.share_usual, 3),
                'share_ratio', round(j.share_ratio, 2),

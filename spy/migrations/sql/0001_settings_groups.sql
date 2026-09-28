@@ -41,9 +41,7 @@ INSERT INTO spy.setting (name, value, text_value, note) VALUES
     ('push_hours', 24, NULL, 'Push signs: new headlines and creatives in the same campaign within these hours.'),
     ('bid_rise', 1.2, NULL, 'Push sign: NewsBreak bid in the window at least this ratio to the 24 hours before.'),
     ('time_zone', NULL, 'America/Sao_Paulo',
-     'Time zone of the hours and weekdays in the sentences people read, like "Thu 14h". The client is in São Paulo. A name from the IANA list.'),
-    ('recent_from', NULL, '2026-09-23 00:00:00+00',
-     'Last 24 hours: no window starts before this (collection became stable on 23 Sep 2026).');
+     'Time zone of the hours and weekdays in the sentences people read, like "Thu 14h". The client is in São Paulo. A name from the IANA list.');
 
 -- Every setting as one JSON object, numbers as numbers.
 CREATE FUNCTION spy.cfg() RETURNS JSONB LANGUAGE sql STABLE
