@@ -118,6 +118,20 @@ as `NAME.prev` and restarts only units whose settings are complete; the
 capture instances restart one at a time, so collection never stops. It ends
 with a list of what is still to fill in. Details: `platform/servers/README.md`.
 
+The worker and standby boxes share some settings with the data box: the
+object storage keys and the database logins `tracks_shipper` and `raposa`.
+Once the data box has its keys in `tracks-loader.env` and setup.sh has run on
+the other box, fill them in from your computer, with nothing secret on screen:
+
+```
+platform/servers/share-secrets.sh            # or: share-secrets.sh worker
+```
+
+It copies the keys from the data box, copies a login's password from a box
+that already has it (the first time, it sets a new one on the data box),
+writes them into the `.env` files and restarts what is ready. It can run
+again at any time.
+
 If a setup stops at `sudo: Account or password is expired` and asks for
 root's current password, press Ctrl+C (nothing is lost) and run
 `sudo chage -d "$(date +%F)" -M -1 root`, then the setup again. Hetzner

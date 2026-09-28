@@ -184,7 +184,7 @@ raposa_browser() {
 
 # example NAME: the settings lines of raposa/deploy/NAME.env.example.
 example() {
-    grep -E '^[A-Z_]+=' "$raposa_src/deploy/$1.env.example" || true
+    grep -E '^[A-Z0-9_]+=' "$raposa_src/deploy/$1.env.example" || true
 }
 
 raposa_box() {
