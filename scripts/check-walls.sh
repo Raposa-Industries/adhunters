@@ -7,7 +7,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-repo=github.com/marcosCapistrano/adhunters
+repo=github.com/Raposa-Industries/adhunters
 fail=0
 while read -r mod dir; do
   allowed="^($mod|$repo/kit|$repo/contract)(/|\$)"

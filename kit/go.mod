@@ -1,4 +1,4 @@
-module github.com/marcosCapistrano/adhunters/kit
+module github.com/Raposa-Industries/adhunters/kit
 
 go 1.25.0
 

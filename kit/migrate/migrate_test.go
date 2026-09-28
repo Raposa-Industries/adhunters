@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marcosCapistrano/adhunters/kit/pg"
+	"github.com/Raposa-Industries/adhunters/kit/pg"
 )
 
 // TestUp needs a throwaway database: PG_TEST_URL=postgres://… go test ./...
