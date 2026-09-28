@@ -21,6 +21,12 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | books balance | The loaded facts add up: each raw file's scrapes equal its rows, and each closed hour's counts equal its sightings. |
 | watch | Something a person follows in an app (an operator, an investigation). Watches notify through Pushcut. |
 | alert | A system or developer message. Alerts go to Telegram, never Pushcut. |
+| page | An alert that needs someone now: Telegram with sound, repeated every 5 minutes until it clears or is silenced. |
+| chat alert | An alert that can wait for the day: Telegram, silent, grouped, 08:00 to 22:00 São Paulo. |
+| digest | The one Telegram message at 08:00 São Paulo with yesterday in numbers. |
+| heartbeat | The alert that always fires. Better Stack calls when it stops arriving, because then no other alert can be trusted. |
+| runbook | The file in `runbooks/` an alert links: what it means, what to check, how to fix it. |
+| task | Work a service does on a schedule (an hour close, a refresh, a pull). Each promises how often it succeeds; one past its promise is late. |
 | spool | Capture's local folder of raw files not yet archived. Capture writes there and nowhere else. |
 | sealed | A raw file whose minute has ended, compressed with zstd, ready to archive. |
 | shadow run | A new binary running beside the one in service on the same input, writing only its own output, to measure or compare. Nothing reads its output as real data. |

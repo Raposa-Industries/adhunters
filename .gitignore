@@ -13,3 +13,6 @@ coverage.out
 # Local
 .env
 .DS_Store
+
+# Observability secrets for push.sh
+platform/observe/observe.env

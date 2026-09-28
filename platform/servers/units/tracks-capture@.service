@@ -9,6 +9,7 @@ After=network-online.target
 [Service]
 User=tracks
 Group=tracks
+EnvironmentFile=-/etc/adhunters/observe.env
 EnvironmentFile=/etc/adhunters/tracks-capture@%i.env
 ExecStart=/opt/adhunters/bin/tracks-capture run \
     -targets /etc/adhunters/tracks-capture/targets.yaml \

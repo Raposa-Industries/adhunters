@@ -1,0 +1,30 @@
+# Alerts that hold for every service: its /metrics answering, restarts, and
+# periodic tasks (kit/ops Tasks) keeping their promise.
+groups:
+  - name: services
+    interval: 1m
+    rules:
+      - alert: ServiceDown
+        expr: up{job="adhunters"} == 0
+        for: 5m
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.service }} ({{ $labels.instance }}) on the {{ $labels.box }} box has not answered on /metrics for 5 minutes.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/service-down.md
+
+      - alert: ServiceRestarting
+        expr: changes(process_start_time_seconds{job="adhunters"}[30m]) >= 3
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.service }} ({{ $labels.instance }}) on the {{ $labels.box }} box restarted {{ $value }} times in 30 minutes.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/service-restarting.md
+
+      - alert: TaskLate
+        expr: time() - adhunters_task_last_success_timestamp_seconds > adhunters_task_promise_seconds
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.service }} task {{ $labels.task }} last succeeded {{ $value | humanizeDuration }} ago, later than it promises.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/task-late.md

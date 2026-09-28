@@ -32,6 +32,9 @@ type Server struct {
 
 	mu     sync.RWMutex
 	checks map[string]Check
+
+	tasksOnce sync.Once
+	tasks     *Tasks
 }
 
 // New returns a Server whose registry already carries Go runtime and process

@@ -56,3 +56,34 @@ jobs:
       - run: terraform fmt -check -recursive ..
       - run: terraform init -backend=false -input=false
       - run: terraform validate
+
+  observe:
+    runs-on: ubuntu-24.04
+    env:
+      PROMETHEUS_VERSION: 3.7.1
+      ALERTMANAGER_VERSION: 0.28.1
+      ALLOY_VERSION: 1.20.1
+    steps:
+      - uses: actions/checkout@v5
+      - name: tools
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin" && cd "$RUNNER_TEMP"
+          curl -fsSL "https://github.com/prometheus/prometheus/releases/download/v$PROMETHEUS_VERSION/prometheus-$PROMETHEUS_VERSION.linux-amd64.tar.gz" | tar xz
+          curl -fsSL "https://github.com/prometheus/alertmanager/releases/download/v$ALERTMANAGER_VERSION/alertmanager-$ALERTMANAGER_VERSION.linux-amd64.tar.gz" | tar xz
+          curl -fsSLo alloy.zip "https://github.com/grafana/alloy/releases/download/v$ALLOY_VERSION/alloy-linux-amd64.zip" && unzip -q alloy.zip
+          mv prometheus-*/promtool alertmanager-*/amtool bin/ && install -m 0755 alloy-linux-amd64 bin/alloy
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: alert rules, rule tests, runbooks, alertmanager config
+        run: platform/observe/push.sh check
+      - name: alloy config (a worker box and the data box)
+        run: |
+          for box in worker data; do
+            dir=$(mktemp -d)
+            cp platform/observe/alloy/common.alloy platform/observe/tests/services.alloy "$dir/"
+            [ "$box" = data ] && cp platform/observe/alloy/postgres.alloy "$dir/"
+            alloy validate "$dir"
+          done
+      - name: shell
+        run: |
+          bash -n platform/servers/setup.sh platform/servers/pgbackrest-metrics.sh platform/observe/push.sh
+          shellcheck -S warning -e SC2033 platform/servers/setup.sh platform/servers/pgbackrest-metrics.sh platform/observe/push.sh

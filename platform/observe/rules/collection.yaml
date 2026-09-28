@@ -1,0 +1,109 @@
+# Alerts for collection (tracks). Every rule has a tier label (page, chat)
+# and a runbook in runbooks/<name>.md. Pushed to Grafana Cloud with
+# platform/observe/push.sh; see platform/observe/README.md.
+groups:
+  - name: collection
+    interval: 1m
+    rules:
+      - alert: CaptureStopped
+        # No successful scrape anywhere. "or vector(0)" makes a capture that
+        # died completely (no series at all) count as zero.
+        expr: (sum(rate(tracks_capture_scrapes_total{outcome="ok"}[5m])) or vector(0)) == 0
+        for: 3m
+        labels:
+          tier: page
+        annotations:
+          summary: No successful scrape on any box for 3 minutes. Collection is stopped.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-stopped.md
+
+      - alert: CaptureLow
+        # Usual is the same ten minutes a week ago.
+        expr: |
+          sum(rate(tracks_capture_scrapes_total{outcome="ok"}[10m]))
+            < 0.7 * sum(rate(tracks_capture_scrapes_total{outcome="ok"}[10m] offset 1w))
+        for: 10m
+        labels:
+          tier: page
+        annotations:
+          summary: 'Successful scrapes are at {{ $value | humanize }} a second, under 70% of the same time last week, for 10 minutes.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-low.md
+
+      - alert: CaptureInstanceQuiet
+        expr: time() - tracks_capture_last_write_timestamp_seconds > 180
+        for: 2m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'Capture {{ $labels.instance }} on the {{ $labels.box }} box has written nothing to its spool for {{ $value | humanizeDuration }}.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-instance-quiet.md
+
+      - alert: CaptureErrors
+        expr: |
+          sum by (network) (rate(tracks_capture_scrapes_total{outcome!~"ok|empty"}[15m]))
+            / sum by (network) (rate(tracks_capture_scrapes_total[15m])) > 0.3
+        for: 15m
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $value | humanizePercentage }} of {{ $labels.network }} scrapes are failing (timeouts, blocks, errors).'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-errors.md
+
+      - alert: PublisherQuiet
+        # A publisher and device answering with ads far less than last week.
+        expr: |
+          sum by (network, publisher, device) (rate(tracks_capture_scrapes_total{outcome="ok"}[1h]))
+            < 0.4 * sum by (network, publisher, device) (rate(tracks_capture_scrapes_total{outcome="ok"}[1h] offset 1w))
+        for: 2h
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.network }} {{ $labels.publisher }} ({{ $labels.device }}) has answered with ads 60% less than last week for 2 hours.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/publisher-quiet.md
+
+      - alert: ShipperBehind
+        expr: max by (box) (tracks_shipper_oldest_unshipped_seconds) > 900
+        for: 5m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'The {{ $labels.box }} box has a sealed raw file waiting {{ $value | humanizeDuration }} to be archived.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/shipper-behind.md
+
+      - alert: LoaderLag
+        expr: max(tracks_loader_lag_seconds) > 600
+        for: 5m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'The loader is {{ $value | humanizeDuration }} behind capture.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/loader-lag.md
+
+      - alert: RawFileQuarantined
+        expr: max(tracks_loader_files_quarantined) > 0
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $value }} raw file(s) are quarantined and wait for a fix and a replay.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raw-file-quarantined.md
+
+      - alert: FormatDrift
+        expr: |
+          sum by (network) (rate(tracks_loader_scrapes_total{outcome="unparsed"}[30m]))
+            / sum by (network) (rate(tracks_loader_scrapes_total[30m])) > 0.02
+        for: 30m
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $value | humanizePercentage }} of {{ $labels.network }} answers no longer parse. The feed format may have changed.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/format-drift.md
+
+      - alert: HourNotClosed
+        # Hour H closes at about H+1:05, so the newest closed hour starts
+        # at most about 2 hours ago.
+        expr: time() - max(tracks_loader_last_closed_hour_timestamp_seconds) > 9000
+        for: 10m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'The newest closed hour started {{ $value | humanizeDuration }} ago. Hourly counts are late.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/hour-not-closed.md

@@ -15,19 +15,26 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/Raposa-Industries/adhunters/kit/errs"
 )
 
 // DefaultGrace is how long a service gets to drain after a stop signal.
 const DefaultGrace = 30 * time.Second
 
+// flushWait is how long an exit waits for errors still on their way to Sentry.
+const flushWait = 3 * time.Second
+
 // ErrGraceExceeded means the service did not return in time after a stop signal.
 var ErrGraceExceeded = errors.New("run: service did not stop within the grace period")
 
 // Main runs fn until it returns or a stop signal arrives and the grace period
-// passes. It returns fn's error, or ErrGraceExceeded.
+// passes. It returns fn's error, or ErrGraceExceeded. Before returning it
+// waits briefly for errors still on their way to Sentry.
 func Main(log *slog.Logger, grace time.Duration, fn func(ctx context.Context) error) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
+	defer errs.Flush(flushWait)
 	return Until(ctx, log, grace, fn)
 }
 
@@ -35,7 +42,16 @@ func Main(log *slog.Logger, grace time.Duration, fn func(ctx context.Context) er
 // services that embed several loops.
 func Until(stopCtx context.Context, log *slog.Logger, grace time.Duration, fn func(ctx context.Context) error) error {
 	done := make(chan error, 1)
-	go func() { done <- fn(stopCtx) }()
+	go func() {
+		// A panic still crashes the process, but Sentry hears of it first.
+		defer func() {
+			if v := recover(); v != nil {
+				errs.Panic(v)
+				panic(v)
+			}
+		}()
+		done <- fn(stopCtx)
+	}()
 
 	select {
 	case err := <-done:

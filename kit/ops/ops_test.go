@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func get(t *testing.T, h http.Handler, path string) (int, string) {
@@ -34,5 +35,28 @@ func TestMetricsCarryBuildInfo(t *testing.T) {
 	_, body := get(t, New("scout-web", "v2").Handler(), "/metrics")
 	if !strings.Contains(body, `adhunters_build_info{service="scout-web",version="v2"} 1`) {
 		t.Fatalf("build info missing:\n%s", body)
+	}
+}
+
+func TestTasks(t *testing.T) {
+	s := New("tracks-loader", "v1")
+	tasks := s.Tasks()
+	if s.Tasks() != tasks {
+		t.Fatal("Tasks registered twice")
+	}
+	tasks.Promise("hour_close", 75*time.Minute)
+	tasks.Done("hour_close", time.Now().Add(-2*time.Second), 320000, nil)
+	tasks.Done("hour_close", time.Now(), 0, errors.New("boom"))
+	_, body := get(t, s.Handler(), "/metrics")
+	for _, want := range []string{
+		`adhunters_task_promise_seconds{task="hour_close"} 4500`,
+		`adhunters_task_last_rows{task="hour_close"} 320000`,
+		`adhunters_task_runs_total{result="ok",task="hour_close"} 1`,
+		`adhunters_task_runs_total{result="error",task="hour_close"} 1`,
+		`adhunters_task_last_success_timestamp_seconds{task="hour_close"}`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("missing %s", want)
+		}
 	}
 }
