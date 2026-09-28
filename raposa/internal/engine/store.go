@@ -425,6 +425,14 @@ func (s *Store) RefreshLineBurns(ctx context.Context) (int, error) {
 	return n, err
 }
 
+// QueueQuick tops up the automatic quick queue (raposa.queue_quick) and
+// returns how many investigations it queued.
+func (s *Store) QueueQuick(ctx context.Context) (int, error) {
+	var n int
+	err := s.pool.QueryRow(ctx, `SELECT raposa.queue_quick()`).Scan(&n)
+	return n, err
+}
+
 // Request asks for an investigation through the published function, as any
 // other service would.
 func (s *Store) Request(ctx context.Context, creativeID int32, mode string, adID *int32, by string) (int64, error) {

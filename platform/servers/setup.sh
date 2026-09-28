@@ -12,6 +12,7 @@
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
+repo=$(cd "$here/../.." && pwd)
 bin_dir=""
 role=""
 while [ $# -gt 0 ]; do
@@ -59,12 +60,12 @@ install_unit() {
     install -m 0644 "$here/units/$1" "/etc/systemd/system/$1"
 }
 
-# env_file NAME CONTENT: writes /etc/adhunters/NAME.env once; after that it
-# is the owner's and is left alone.
+# env_file NAME CONTENT [GROUP]: writes /etc/adhunters/NAME.env once, readable
+# by GROUP (default tracks); after that it is the owner's and is left alone.
 env_file() {
     local f="/etc/adhunters/$1.env"
     if [ ! -f "$f" ]; then
-        install -m 0640 -o root -g tracks /dev/null "$f"
+        install -m 0640 -o root -g "${3:-tracks}" /dev/null "$f"
         printf '%s\n' "$2" >"$f"
         say "wrote $f"
     fi
@@ -121,6 +122,92 @@ capture_box() { # capture_box INSTANCE:WORKERS:PORT...
     done
 }
 
+# ---- raposa (worker box) ----------------------------------------------------
+
+raposa_src="$repo/raposa"
+
+# nodejs: node 22 from NodeSource. The browser runner needs 20 or later, and
+# Ubuntu 24.04 ships 18.
+nodejs() {
+    local major
+    major=$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/' || true)
+    if [ -z "$major" ] || [ "$major" -lt 20 ]; then
+        say "node 22"
+        curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+        apt-get install -y -q nodejs
+    fi
+}
+
+# raposa_browser: the runner's code in /opt/adhunters/raposa-browser, its
+# packages, and the Chromium build playwright-core names, in the raposa
+# user's home (the unit sets HOME=/var/lib/raposa).
+raposa_browser() {
+    local dst=/opt/adhunters/raposa-browser changed=0 f
+    install -d -m 0755 "$dst"
+    for f in runner.js keep.js package.json package-lock.json; do
+        if ! cmp -s "$raposa_src/browser/$f" "$dst/$f"; then
+            install -m 0644 "$raposa_src/browser/$f" "$dst/$f"
+            changed=1
+        fi
+    done
+    if [ "$changed" = 1 ] || [ ! -d "$dst/node_modules" ]; then
+        say "raposa browser: packages"
+        (cd "$dst" && npm ci --omit=dev --no-audit --no-fund)
+    fi
+    # The libraries Chromium needs (as root), then the build (as raposa).
+    # Both do nothing when they are there already.
+    (cd "$dst" && npx --no-install playwright-core install-deps chromium >/dev/null)
+    (cd "$dst" && sudo -u raposa HOME=/var/lib/raposa npx --no-install playwright-core install chromium)
+}
+
+# example NAME: the settings lines of raposa/deploy/NAME.env.example.
+example() {
+    grep -E '^[A-Z_]+=' "$raposa_src/deploy/$1.env.example" || true
+}
+
+raposa_box() {
+    [ -d "$raposa_src/deploy" ] || { echo "$raposa_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "raposa: the raposa user, folders"
+    id raposa >/dev/null 2>&1 || useradd --system --home-dir /var/lib/raposa --shell /usr/sbin/nologin raposa
+    install -d -m 0750 -o raposa -g raposa /var/lib/raposa /var/lib/raposa/keep /var/lib/raposa/files
+    install -d -m 0750 -o root -g raposa /etc/adhunters/raposa
+    nodejs
+    install_bin raposa-engine
+    install_bin raposa-web
+    raposa_browser
+    local u
+    for u in raposa-browser.service raposa-engine.service raposa-web.service; do
+        install -m 0644 "$raposa_src/deploy/$u" "/etc/systemd/system/$u"
+    done
+    systemctl daemon-reload
+
+    # Raposa uses the proxy lines and targets capture uses. Copied once;
+    # after that they are the owner's.
+    local f
+    for f in proxies.env targets.yaml; do
+        if [ ! -s "/etc/adhunters/raposa/$f" ] && [ -s "/etc/adhunters/tracks-capture/$f" ]; then
+            install -m 0640 -o root -g raposa "/etc/adhunters/tracks-capture/$f" "/etc/adhunters/raposa/$f"
+            say "copied $f from /etc/adhunters/tracks-capture"
+        fi
+    done
+
+    env_file raposa-browser "# raposa-browser settings; all optional (raposa/browser/README.md)." raposa
+    env_file raposa-engine "$(example raposa-engine)" raposa
+    env_file raposa-web "$(example raposa-web)" raposa
+
+    # The runner first: the engine's browser rungs and keeper call it.
+    systemctl enable raposa-browser >/dev/null
+    systemctl restart raposa-browser
+    say "restarted raposa-browser"
+    if [ ! -s /etc/adhunters/raposa/proxies.env ] || [ ! -s /etc/adhunters/raposa/targets.yaml ]; then
+        systemctl enable raposa-engine >/dev/null
+        todo+=("copy proxies.env and targets.yaml into /etc/adhunters/raposa/ (root, group raposa, 0640), then: systemctl restart raposa-engine")
+    else
+        start raposa-engine raposa-engine
+    fi
+    start raposa-web raposa-web
+}
+
 # ---- data box ---------------------------------------------------------------
 
 postgres() {
@@ -160,7 +247,8 @@ shared_preload_libraries = 'pg_stat_statements'"
     local hba=/etc/postgresql/17/main/pg_hba.conf
     local line
     for line in "hostssl adhunters tracks_shipper $worker_ip/32 scram-sha-256" \
-        "hostssl adhunters tracks_shipper $standby_ip/32 scram-sha-256"; do
+        "hostssl adhunters tracks_shipper $standby_ip/32 scram-sha-256" \
+        "hostssl adhunters raposa $worker_ip/32 scram-sha-256"; do
         grep -qxF "$line" "$hba" || { echo "$line" >>"$hba"; restart=1; }
     done
     systemctl enable postgresql >/dev/null
@@ -226,13 +314,30 @@ OPS_ADDR=127.0.0.1:9104"
     # The loader's start runs its migrations, which also grant the shipper
     # and tracks_api_read their rights.
     start tracks-loader tracks-loader
+
+    say "the raposa login"
+    # raposa-engine owns the raposa and raposa_api schemas and runs their
+    # migrations from the worker box; it reads Tracks through tracks_api.
+    # raposa_api_read must exist before its first migration, which grants it.
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'raposa_api_read') THEN CREATE ROLE raposa_api_read NOLOGIN; END IF; END \$\$"
+    local raposa_pw
+    raposa_pw=$(login raposa)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO raposa"
+    psql_su -d adhunters -c "GRANT tracks_api_read TO raposa"
+    if [ -n "$raposa_pw" ]; then
+        todo+=("put this line in /etc/adhunters/raposa-engine.env and raposa-web.env on the worker box (shown once):
+    DATABASE_URL=postgres://raposa:$raposa_pw@$data_ip:5432/adhunters?sslmode=require")
+    fi
 }
 
 # ---- roles ------------------------------------------------------------------
 
 common
 case "$role" in
-worker) capture_box a:4:9101 b:4:9102 ;;
+worker)
+    capture_box a:4:9101 b:4:9102
+    raposa_box
+    ;;
 standby) capture_box standby:1:9101 ;;
 data) data_box ;;
 esac

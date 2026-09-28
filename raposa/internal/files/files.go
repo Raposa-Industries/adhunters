@@ -149,18 +149,44 @@ type S3 struct {
 }
 
 func openS3(bucket, prefix string) (*S3, error) {
-	endpoint := os.Getenv("S3_ENDPOINT")
+	return OpenS3(S3Config{
+		Endpoint:  os.Getenv("S3_ENDPOINT"),
+		Region:    os.Getenv("S3_REGION"),
+		AccessKey: os.Getenv("S3_ACCESS_KEY"),
+		SecretKey: os.Getenv("S3_SECRET_KEY"),
+		Insecure:  os.Getenv("S3_INSECURE") != "",
+	}, bucket, prefix)
+}
+
+// S3Config is how to reach one object storage.
+type S3Config struct {
+	Endpoint  string // host[:port]; a leading https:// or http:// is dropped
+	Region    string
+	AccessKey string
+	SecretKey string
+	Insecure  bool // plain http
+}
+
+// OpenS3 opens bucket/prefix with the keys given, not the S3_ ones. The
+// import reads the collector's bucket this way.
+func OpenS3(cfg S3Config, bucket, prefix string) (*S3, error) {
+	endpoint := strings.TrimSuffix(cfg.Endpoint, "/")
+	if rest, ok := strings.CutPrefix(endpoint, "http://"); ok {
+		endpoint, cfg.Insecure = rest, true
+	}
+	endpoint = strings.TrimPrefix(endpoint, "https://")
 	if bucket == "" || endpoint == "" {
-		return nil, errors.New("files: s3 needs a bucket and S3_ENDPOINT")
+		return nil, errors.New("files: s3 needs a bucket and an endpoint")
 	}
 	c, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(os.Getenv("S3_ACCESS_KEY"), os.Getenv("S3_SECRET_KEY"), ""),
-		Secure: os.Getenv("S3_INSECURE") == "",
-		Region: os.Getenv("S3_REGION"),
+		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
+		Secure: !cfg.Insecure,
+		Region: cfg.Region,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("files: %w", err)
 	}
+	prefix = strings.Trim(prefix, "/")
 	if prefix != "" {
 		prefix += "/"
 	}
