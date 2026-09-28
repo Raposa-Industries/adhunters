@@ -35,7 +35,8 @@ func New(t testing.TB) *pgxpool.Pool {
 	return pool
 }
 
-// Empty creates a database with nothing in it, dropped when the test ends.
+// Empty creates a database with nothing in it, dropped when the test ends
+// (kept, to look into, when SPY_KEEP_DB is set).
 func Empty(t testing.TB) *pgxpool.Pool {
 	t.Helper()
 	base := os.Getenv("PG_TEST_URL")
@@ -67,7 +68,11 @@ func Empty(t testing.TB) *pgxpool.Pool {
 	}
 	t.Cleanup(func() {
 		pool.Close()
-		_, _ = admin.Exec(ctx, "DROP DATABASE IF EXISTS "+name+" WITH (FORCE)")
+		if os.Getenv("SPY_KEEP_DB") != "" {
+			t.Logf("kept database %s", name)
+		} else {
+			_, _ = admin.Exec(ctx, "DROP DATABASE IF EXISTS "+name+" WITH (FORCE)")
+		}
 		_ = admin.Close(ctx)
 	})
 	return pool

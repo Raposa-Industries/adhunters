@@ -259,19 +259,19 @@ CREATE TYPE spy.range_row AS (
     first_seen_at TIMESTAMPTZ
 );
 
--- Which slot of the week a bucket is: its hour of the week ('h0'..'h167',
--- Monday 00h UTC first) or, for a whole day, its day of the week ('d1'..'d7').
+-- Which slot of the week a bucket is: its hour of the week (0..167, Monday
+-- 00h UTC first) or, for a whole day, 200 plus its day of the week (201..207).
 -- Momentum compares each publisher and device slot by slot, so a range is
 -- compared hour for hour with the same hours of its usual weeks, and an
 -- outage or a busier publisher at some hours cannot fake a change through
 -- the daily cycle. A chosen usual period need not line up, so it has one
--- slot ('').
-CREATE FUNCTION spy.range_slot(p_at TIMESTAMPTZ, p_day BOOLEAN, p_usual_kind TEXT) RETURNS TEXT
-LANGUAGE sql IMMUTABLE AS $$
-    SELECT CASE WHEN p_usual_kind = 'chosen' THEN ''
-                WHEN p_day THEN 'd' || extract(isodow FROM p_at AT TIME ZONE 'UTC')::int
-                ELSE 'h' || ((extract(isodow FROM p_at AT TIME ZONE 'UTC')::int - 1) * 24
-                             + extract(hour FROM p_at AT TIME ZONE 'UTC')::int) END
+-- slot (-1). Plain arithmetic on the epoch (1 Jan 1970 was a Thursday), as
+-- it runs once per row read.
+CREATE FUNCTION spy.range_slot(p_at TIMESTAMPTZ, p_day BOOLEAN, p_usual_kind TEXT) RETURNS SMALLINT
+LANGUAGE sql STABLE AS $$
+    SELECT (CASE WHEN p_usual_kind = 'chosen' THEN -1
+                 WHEN p_day THEN 201 + (floor(date_part('epoch', p_at) / 86400)::bigint + 3) % 7
+                 ELSE (floor(date_part('epoch', p_at) / 3600)::bigint + 72) % 168 END)::smallint
 $$;
 
 -- The core: every number of spy.range_row for one kind (ad, creative,
@@ -315,7 +315,10 @@ CREATE FUNCTION spy.subject_range(p_kind TEXT, p_from TIMESTAMPTZ, p_to TIMESTAM
                                   p_usual_from TIMESTAMPTZ DEFAULT NULL, p_usual_to TIMESTAMPTZ DEFAULT NULL,
                                   p_now TIMESTAMPTZ DEFAULT now())
 RETURNS SETOF spy.range_row
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql
+-- Hashes of a million strata fit in memory; compiling them costs more than it saves.
+SET work_mem = '128MB' SET jit = off
+AS $$
 DECLARE
     cfg JSONB := spy.cfg();
     s_rise FLOAT8 := (cfg->>'word_rise')::float8;
@@ -338,10 +341,11 @@ BEGIN
         head_to TIMESTAMPTZ, tail_from TIMESTAMPTZ, tail_to TIMESTAMPTZ) ON COMMIT DROP;
     TRUNCATE spy_r_plan;
     INSERT INTO spy_r_plan SELECT * FROM spy.range_plan(p_from, p_to, p_usual_from, p_usual_to, p_now);
+    ANALYZE spy_r_plan;
 
     -- Checks and all sightings per publisher, device and slot.
     CREATE TEMP TABLE IF NOT EXISTS spy_r_cov (network_id INTEGER, publisher_id INTEGER, device_id SMALLINT,
-        period TEXT, wk INTEGER, slot TEXT, e BIGINT, n_all BIGINT) ON COMMIT DROP;
+        period TEXT, wk INTEGER, slot SMALLINT, e BIGINT, n_all BIGINT) ON COMMIT DROP;
     TRUNCATE spy_r_cov;
     INSERT INTO spy_r_cov
     SELECT pb.network_id, c.publisher_id, c.device_id, p.period, p.wk,
@@ -354,168 +358,186 @@ BEGIN
     HAVING sum(c.scrapes) > 0;
     ANALYZE spy_r_cov;
 
-    -- The subject's sightings per publisher, device and slot.
-    CREATE TEMP TABLE IF NOT EXISTS spy_r_cell (key TEXT, network_id INTEGER, publisher_id INTEGER,
-        device_id SMALLINT, period TEXT, wk INTEGER, slot TEXT, n BIGINT) ON COMMIT DROP;
+    -- The subject's sightings per publisher, device and slot (wk 0 is the
+    -- range itself). Subjects are numbered: ids for ads, creatives and
+    -- operators, and a number per vertical (spy_r_name).
+    CREATE TEMP TABLE IF NOT EXISTS spy_r_name (id INTEGER PRIMARY KEY, name TEXT) ON COMMIT DROP;
+    TRUNCATE spy_r_name;
+    IF p_kind = 'vertical' THEN
+        INSERT INTO spy_r_name
+        SELECT row_number() OVER (ORDER BY v.vertical), v.vertical
+        FROM (SELECT DISTINCT vertical FROM spy.creative_vertical WHERE vertical IS NOT NULL) v;
+        ANALYZE spy_r_name;
+    END IF;
+    CREATE TEMP TABLE IF NOT EXISTS spy_r_cell (id INTEGER, network_id INTEGER, publisher_id INTEGER,
+        device_id SMALLINT, wk INTEGER, slot SMALLINT, n BIGINT) ON COMMIT DROP;
     TRUNCATE spy_r_cell;
     IF p_kind = 'operator' THEN
         -- Each sighting counts for the account that paid for it.
         INSERT INTO spy_r_cell
-        SELECT ao.operator_id::text, pb.network_id, x.publisher_id, x.device_id, x.period, x.wk, x.slot, sum(x.n)
+        SELECT ao.operator_id, pb.network_id, x.publisher_id, x.device_id, x.wk, x.slot, sum(x.n)
         FROM (
-            SELECT p.period, p.wk, spy.range_slot(d.day::timestamp AT TIME ZONE 'UTC', TRUE, p.usual_kind) AS slot,
+            SELECT p.wk, spy.range_slot(d.day::timestamp AT TIME ZONE 'UTC', TRUE, p.usual_kind) AS slot,
                    d.account_id, d.publisher_id, d.device_id, d.sightings AS n
-            FROM spy_r_plan p JOIN tracks_api.ad_account_daily_v1 d ON d.day >= p.day_from AND d.day < p.day_to
+            FROM spy_r_plan p
+            JOIN tracks_api.ad_account_daily_v1 d ON d.day >= p.day_from AND d.day < p.day_to
             UNION ALL
-            SELECT p.period, p.wk, spy.range_slot(h.hour, FALSE, p.usual_kind), h.account_id, h.publisher_id,
-                   h.device_id, h.sightings
+            SELECT p.wk, spy.range_slot(h.hour, FALSE, p.usual_kind), h.account_id, h.publisher_id, h.device_id, h.sightings
             FROM spy_r_plan p
             JOIN tracks_api.ad_account_brand_hourly_v1 h ON h.hour >= p.head_from AND h.hour < p.head_to
             UNION ALL
-            SELECT p.period, p.wk, spy.range_slot(h.hour, FALSE, p.usual_kind), h.account_id, h.publisher_id,
-                   h.device_id, h.sightings
+            SELECT p.wk, spy.range_slot(h.hour, FALSE, p.usual_kind), h.account_id, h.publisher_id, h.device_id, h.sightings
             FROM spy_r_plan p
             JOIN tracks_api.ad_account_brand_hourly_v1 h ON h.hour >= p.tail_from AND h.hour < p.tail_to
         ) x
         JOIN spy.account_operator ao ON ao.account_id = x.account_id
         JOIN tracks_api.publisher_v1 pb ON pb.id = x.publisher_id
-        GROUP BY 1, 2, 3, 4, 5, 6, 7;
+        GROUP BY 1, 2, 3, 4, 5, 6;
     ELSE
         INSERT INTO spy_r_cell
-        SELECT CASE p_kind WHEN 'ad' THEN x.ad_id::text WHEN 'creative' THEN x.creative_id::text ELSE cv.vertical END,
-               pb.network_id, x.publisher_id, x.device_id, x.period, x.wk, x.slot, sum(x.n)
+        SELECT CASE p_kind WHEN 'ad' THEN x.ad_id WHEN 'creative' THEN x.creative_id ELSE vn.id END,
+               pb.network_id, x.publisher_id, x.device_id, x.wk, x.slot, sum(x.n)
         FROM (
-            SELECT p.period, p.wk, spy.range_slot(d.day::timestamp AT TIME ZONE 'UTC', TRUE, p.usual_kind) AS slot,
+            SELECT p.wk, spy.range_slot(d.day::timestamp AT TIME ZONE 'UTC', TRUE, p.usual_kind) AS slot,
                    d.ad_id, d.creative_id, d.publisher_id, d.device_id, d.sightings AS n
-            FROM spy_r_plan p JOIN tracks_api.ad_daily_v1 d ON d.day >= p.day_from AND d.day < p.day_to
+            FROM spy_r_plan p
+            JOIN tracks_api.ad_daily_v1 d ON d.day >= p.day_from AND d.day < p.day_to
             UNION ALL
-            SELECT p.period, p.wk, spy.range_slot(h.hour, FALSE, p.usual_kind), h.ad_id, a.creative_id,
-                   h.publisher_id, h.device_id, h.sightings
+            SELECT p.wk, spy.range_slot(h.hour, FALSE, p.usual_kind), h.ad_id, a.creative_id, h.publisher_id, h.device_id, h.sightings
             FROM spy_r_plan p
             JOIN tracks_api.ad_hourly_v1 h ON h.closed AND h.hour >= p.head_from AND h.hour < p.head_to
             JOIN tracks_api.ad_v1 a ON a.id = h.ad_id
             UNION ALL
-            SELECT p.period, p.wk, spy.range_slot(h.hour, FALSE, p.usual_kind), h.ad_id, a.creative_id,
-                   h.publisher_id, h.device_id, h.sightings
+            SELECT p.wk, spy.range_slot(h.hour, FALSE, p.usual_kind), h.ad_id, a.creative_id, h.publisher_id, h.device_id, h.sightings
             FROM spy_r_plan p
             JOIN tracks_api.ad_hourly_v1 h ON h.closed AND h.hour >= p.tail_from AND h.hour < p.tail_to
             JOIN tracks_api.ad_v1 a ON a.id = h.ad_id
         ) x
         JOIN tracks_api.publisher_v1 pb ON pb.id = x.publisher_id
         LEFT JOIN spy.creative_vertical cv ON p_kind = 'vertical' AND cv.creative_id = x.creative_id
-        WHERE p_kind <> 'vertical' OR cv.vertical IS NOT NULL
-        GROUP BY 1, 2, 3, 4, 5, 6, 7;
+        LEFT JOIN spy_r_name vn ON p_kind = 'vertical' AND vn.name = cv.vertical
+        WHERE p_kind <> 'vertical' OR vn.id IS NOT NULL
+        GROUP BY 1, 2, 3, 4, 5, 6;
     END IF;
     ANALYZE spy_r_cell;
 
-    -- When each subject was first seen, and which usual periods count for
-    -- it: those that started after it existed.
-    CREATE TEMP TABLE IF NOT EXISTS spy_r_subject (key TEXT PRIMARY KEY, first_seen TIMESTAMPTZ) ON COMMIT DROP;
+    -- When each subject was first seen, and how many usual periods count
+    -- for it: those that started after it existed.
+    CREATE TEMP TABLE IF NOT EXISTS spy_r_subject (id INTEGER PRIMARY KEY, first_seen TIMESTAMPTZ,
+        periods INTEGER) ON COMMIT DROP;
     TRUNCATE spy_r_subject;
     IF p_kind = 'ad' THEN
         INSERT INTO spy_r_subject
-        SELECT k.key, a.first_seen_at FROM (SELECT DISTINCT key FROM spy_r_cell) k
-        LEFT JOIN tracks_api.ad_v1 a ON a.id = k.key::int;
+        SELECT k.id, a.first_seen_at, 0 FROM (SELECT DISTINCT id FROM spy_r_cell) k
+        LEFT JOIN tracks_api.ad_v1 a ON a.id = k.id;
     ELSIF p_kind = 'creative' THEN
         INSERT INTO spy_r_subject
-        SELECT k.key, c.first_seen_at FROM (SELECT DISTINCT key FROM spy_r_cell) k
-        LEFT JOIN tracks_api.creative_v1 c ON c.id = k.key::int;
+        SELECT k.id, c.first_seen_at, 0 FROM (SELECT DISTINCT id FROM spy_r_cell) k
+        LEFT JOIN tracks_api.creative_v1 c ON c.id = k.id;
     ELSIF p_kind = 'operator' THEN
         INSERT INTO spy_r_subject
-        SELECT k.key, f.first_seen FROM (SELECT DISTINCT key FROM spy_r_cell) k
-        LEFT JOIN (SELECT ao.operator_id::text AS key, min(a.first_seen_at) AS first_seen
+        SELECT k.id, f.first_seen, 0 FROM (SELECT DISTINCT id FROM spy_r_cell) k
+        LEFT JOIN (SELECT ao.operator_id AS id, min(a.first_seen_at) AS first_seen
                    FROM spy.account_operator ao JOIN tracks_api.ad_v1 a ON a.account_id = ao.account_id
-                   GROUP BY 1) f USING (key);
+                   GROUP BY 1) f USING (id);
     ELSE
         INSERT INTO spy_r_subject
-        SELECT k.key, f.first_seen FROM (SELECT DISTINCT key FROM spy_r_cell) k
-        LEFT JOIN (SELECT cv.vertical AS key, min(c.first_seen_at) AS first_seen
-                   FROM spy.creative_vertical cv JOIN tracks_api.creative_v1 c ON c.id = cv.creative_id
-                   WHERE cv.vertical IS NOT NULL GROUP BY 1) f USING (key);
+        SELECT k.id, f.first_seen, 0 FROM (SELECT DISTINCT id FROM spy_r_cell) k
+        LEFT JOIN (SELECT vn.id, min(c.first_seen_at) AS first_seen
+                   FROM spy.creative_vertical cv
+                   JOIN spy_r_name vn ON vn.name = cv.vertical
+                   JOIN tracks_api.creative_v1 c ON c.id = cv.creative_id
+                   GROUP BY 1) f USING (id);
     END IF;
 
-    CREATE TEMP TABLE IF NOT EXISTS spy_r_elig (key TEXT, wk INTEGER, PRIMARY KEY (key, wk)) ON COMMIT DROP;
+    -- The usual periods start further back as wk grows, so those that count
+    -- are always wk 1 to periods.
+    CREATE TEMP TABLE IF NOT EXISTS spy_r_elig (id INTEGER, wk INTEGER, PRIMARY KEY (id, wk)) ON COMMIT DROP;
     TRUNCATE spy_r_elig;
     INSERT INTO spy_r_elig
-    SELECT s.key, p.wk FROM spy_r_subject s
+    SELECT s.id, p.wk FROM spy_r_subject s
     JOIN spy_r_plan p ON p.period = 'usual' AND COALESCE(s.first_seen, '-infinity') < p.from_at;
+    UPDATE spy_r_subject s SET periods = e.n
+    FROM (SELECT id, count(*) AS n FROM spy_r_elig GROUP BY 1) e WHERE e.id = s.id;
     ANALYZE spy_r_subject, spy_r_elig;
 
+    -- Checks depend only on the stratum and how many usual periods count
+    -- (T0 for "the first k weeks"), so they are summed once, not per subject.
+    CREATE TEMP TABLE IF NOT EXISTS spy_r_checks (publisher_id INTEGER, device_id SMALLINT, slot SMALLINT,
+        periods INTEGER, e BIGINT, PRIMARY KEY (publisher_id, device_id, slot, periods)) ON COMMIT DROP;
+    TRUNCATE spy_r_checks;
+    INSERT INTO spy_r_checks
+    SELECT c.publisher_id, c.device_id, c.slot, k.k, sum(c.e) FILTER (WHERE c.wk BETWEEN 1 AND k.k)
+    FROM spy_r_cov c
+    CROSS JOIN (SELECT DISTINCT periods AS k FROM spy_r_subject) k
+    GROUP BY 1, 2, 3, 4
+    UNION ALL
+    SELECT c.publisher_id, c.device_id, c.slot, -1, sum(c.e)
+    FROM spy_r_cov c WHERE c.wk = 0
+    GROUP BY 1, 2, 3;
+    ANALYZE spy_r_checks;
+
     -- Per subject and stratum (publisher, device and slot): a and b, T1 and T0.
-    CREATE TEMP TABLE IF NOT EXISTS spy_r_stratum (key TEXT, network_id INTEGER, publisher_id INTEGER,
-        device_id SMALLINT, slot TEXT, a BIGINT, b BIGINT, t1 BIGINT, t0 BIGINT) ON COMMIT DROP;
+    CREATE TEMP TABLE IF NOT EXISTS spy_r_stratum (id INTEGER, network_id INTEGER, publisher_id INTEGER,
+        device_id SMALLINT, slot SMALLINT, a BIGINT, b BIGINT, t1 BIGINT, t0 BIGINT) ON COMMIT DROP;
     TRUNCATE spy_r_stratum;
     INSERT INTO spy_r_stratum
-    WITH cell AS (
-        SELECT c.key, c.network_id, c.publisher_id, c.device_id, c.slot,
-               COALESCE(sum(c.n) FILTER (WHERE c.period = 'now'), 0) AS a,
-               COALESCE(sum(c.n) FILTER (WHERE c.period = 'usual' AND el.key IS NOT NULL), 0) AS b
-        FROM spy_r_cell c
-        LEFT JOIN spy_r_elig el ON el.key = c.key AND el.wk = c.wk
-        GROUP BY 1, 2, 3, 4, 5
-    ),
-    cov AS (
-        SELECT publisher_id, device_id, slot, period, wk, sum(e) AS e FROM spy_r_cov GROUP BY 1, 2, 3, 4, 5
-    ),
-    t1 AS (
-        SELECT cl.key, cl.publisher_id, cl.device_id, cl.slot, sum(cv.e) AS e
-        FROM cell cl
-        JOIN cov cv ON cv.period = 'now' AND cv.publisher_id = cl.publisher_id AND cv.device_id = cl.device_id
-                   AND cv.slot = cl.slot
-        GROUP BY 1, 2, 3, 4
-    ),
-    t0 AS (
-        SELECT cl.key, cl.publisher_id, cl.device_id, cl.slot, sum(cv.e) AS e
-        FROM cell cl
-        JOIN spy_r_elig el ON el.key = cl.key
-        JOIN cov cv ON cv.period = 'usual' AND cv.wk = el.wk AND cv.publisher_id = cl.publisher_id
-                   AND cv.device_id = cl.device_id AND cv.slot = cl.slot
-        GROUP BY 1, 2, 3, 4
-    )
-    SELECT cl.key, cl.network_id, cl.publisher_id, cl.device_id, cl.slot, cl.a, cl.b,
+    SELECT cl.id, cl.network_id, cl.publisher_id, cl.device_id, cl.slot, cl.a, cl.b,
            COALESCE(t1.e, 0), COALESCE(t0.e, 0)
-    FROM cell cl
-    LEFT JOIN t1 USING (key, publisher_id, device_id, slot)
-    LEFT JOIN t0 USING (key, publisher_id, device_id, slot)
+    FROM (
+        SELECT c.id, c.network_id, c.publisher_id, c.device_id, c.slot, sb.periods,
+               COALESCE(sum(c.n) FILTER (WHERE c.wk = 0), 0) AS a,
+               COALESCE(sum(c.n) FILTER (WHERE c.wk BETWEEN 1 AND sb.periods), 0) AS b
+        FROM spy_r_cell c
+        JOIN spy_r_subject sb ON sb.id = c.id
+        GROUP BY 1, 2, 3, 4, 5, 6
+    ) cl
+    LEFT JOIN spy_r_checks t1 ON t1.periods = -1 AND t1.publisher_id = cl.publisher_id
+                             AND t1.device_id = cl.device_id AND t1.slot = cl.slot
+    LEFT JOIN spy_r_checks t0 ON t0.periods = cl.periods AND t0.publisher_id = cl.publisher_id
+                             AND t0.device_id = cl.device_id AND t0.slot = cl.slot
     WHERE cl.a > 0 OR cl.b > 0;
     ANALYZE spy_r_stratum;
 
     -- Per subject and network: the sums every number is made of.
-    CREATE TEMP TABLE IF NOT EXISTS spy_r_key (key TEXT, network_id INTEGER, a BIGINT, b BIGINT,
+    CREATE TEMP TABLE IF NOT EXISTS spy_r_key (id INTEGER, key TEXT, network_id INTEGER, a BIGINT, b BIGINT,
         ab_shared BIGINT, num FLOAT8, den FLOAT8, v FLOAT8, reach1 FLOAT8, reach0 FLOAT8, pubs INTEGER, a_phone BIGINT, a_desktop BIGINT,
-        periods INTEGER, first_seen TIMESTAMPTZ, noise FLOAT8, PRIMARY KEY (key, network_id)) ON COMMIT DROP;
+        periods INTEGER, first_seen TIMESTAMPTZ, noise FLOAT8, PRIMARY KEY (id, network_id)) ON COMMIT DROP;
     TRUNCATE spy_r_key;
     INSERT INTO spy_r_key
-    SELECT s.key, s.network_id, sum(s.a), sum(s.b),
+    SELECT s.id, COALESCE(vn.name, s.id::text), s.network_id, sum(s.a), sum(s.b),
            COALESCE(sum(s.a + s.b) FILTER (WHERE s.t1 > 0 AND s.t0 > 0), 0),
            COALESCE(sum(s.a::float8 * s.t0 / (s.t1 + s.t0)) FILTER (WHERE s.t1 + s.t0 > 0), 0),
            COALESCE(sum(s.b::float8 * s.t1 / (s.t1 + s.t0)) FILTER (WHERE s.t1 + s.t0 > 0), 0),
            COALESCE(sum(s.t1::float8 * s.t0 * (s.a + s.b) / ((s.t1 + s.t0)::float8 ^ 2)) FILTER (WHERE s.t1 + s.t0 > 0), 0),
            COALESCE(sum((s.a + s.b)::float8 * s.t1 / s.t0) FILTER (WHERE s.t1 > 0 AND s.t0 > 0), 0),
            COALESCE(sum((s.a + s.b)::float8 * s.t0 / s.t1) FILTER (WHERE s.t1 > 0 AND s.t0 > 0), 0),
-           count(DISTINCT s.publisher_id) FILTER (WHERE s.a > 0),
+           COALESCE(max(pc.pubs), 0),
            COALESCE(sum(s.a) FILTER (WHERE s.device_id = phone), 0),
            COALESCE(sum(s.a) FILTER (WHERE s.device_id = desktop), 0),
-           (SELECT count(*) FROM spy_r_elig el WHERE el.key = s.key),
-           sb.first_seen, NULL
+           sb.periods, sb.first_seen, NULL
     FROM spy_r_stratum s
-    JOIN spy_r_subject sb ON sb.key = s.key
-    GROUP BY s.key, s.network_id, sb.first_seen;
+    JOIN spy_r_subject sb ON sb.id = s.id
+    LEFT JOIN spy_r_name vn ON vn.id = s.id
+    LEFT JOIN (SELECT id, network_id, count(*) AS pubs
+               FROM (SELECT DISTINCT id, network_id, publisher_id FROM spy_r_stratum WHERE a > 0) x
+               GROUP BY 1, 2) pc ON pc.id = s.id AND pc.network_id = s.network_id
+    GROUP BY s.id, vn.name, s.network_id, sb.periods, sb.first_seen;
     ANALYZE spy_r_key;
 
     -- Noise, measured on the strata for subjects with enough sightings.
     WITH fit AS (
-        SELECT s.key, s.network_id, (s.a + s.b)::float8 AS ab, s.a::float8 AS a,
+        SELECT s.id, s.network_id, (s.a + s.b)::float8 AS ab, s.a::float8 AS a,
                (k.num / k.den) * s.t1 / ((k.num / k.den) * s.t1 + s.t0) AS p
-        FROM spy_r_stratum s JOIN spy_r_key k USING (key, network_id)
+        FROM spy_r_stratum s JOIN spy_r_key k USING (id, network_id)
         WHERE k.num > 0 AND k.den > 0 AND k.ab_shared >= s_noise_min AND s.t1 > 0 AND s.t0 > 0 AND s.a + s.b > 0
     ),
     phi AS (
-        SELECT key, network_id,
+        SELECT id, network_id,
                GREATEST(1, sum((a - ab * p) ^ 2 / (ab * p * (1 - p))) / (count(*) - 1)) AS phi
         FROM fit GROUP BY 1, 2 HAVING count(*) > s_noise_strata
     )
-    UPDATE spy_r_key k SET noise = phi.phi FROM phi WHERE phi.key = k.key AND phi.network_id = k.network_id;
+    UPDATE spy_r_key k SET noise = phi.phi FROM phi WHERE phi.id = k.id AND phi.network_id = k.network_id;
     UPDATE spy_r_key k SET noise = d.phi
     FROM spy.dispersion d WHERE k.noise IS NULL AND d.kind = p_kind AND d.key = k.key;
     UPDATE spy_r_key SET noise = COALESCE(
@@ -535,9 +557,9 @@ BEGIN
         SELECT network_id, wk, sum(e) AS e, sum(n_all) AS n FROM spy_r_cov WHERE period = 'usual' GROUP BY 1, 2
     ),
     kusual AS (
-        SELECT k.key, k.network_id, sum(w.e) AS e_u, sum(w.n) AS n_u
+        SELECT k.id, k.network_id, sum(w.e) AS e_u, sum(w.n) AS n_u
         FROM spy_r_key k
-        JOIN spy_r_elig el ON el.key = k.key
+        JOIN spy_r_elig el ON el.id = k.id
         JOIN netwk w ON w.network_id = k.network_id AND w.wk = el.wk
         GROUP BY 1, 2
     ),
@@ -548,7 +570,7 @@ BEGIN
                CASE WHEN k.v > 0 THEN (k.num - k.den) / sqrt(k.noise * k.v) END AS zs
         FROM spy_r_key k
         LEFT JOIN net n USING (network_id)
-        LEFT JOIN kusual u USING (key, network_id)
+        LEFT JOIN kusual u USING (id, network_id)
     ),
     lh AS (
         SELECT m.*,

@@ -1,0 +1,24 @@
+# Keeps Spy's derived numbers: the last 24 hours, the read model, and Size
+# and Direction. Settings are in /etc/adhunters/spy-numbers.env. Migrations
+# run before each start.
+[Unit]
+Description=Spy numbers
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=spy
+Group=spy
+EnvironmentFile=/etc/adhunters/spy-numbers.env
+ExecStartPre=/opt/adhunters/bin/spy-numbers migrate
+ExecStart=/opt/adhunters/bin/spy-numbers run
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

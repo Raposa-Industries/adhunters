@@ -133,6 +133,7 @@ DECLARE
     new_for INTERVAL := make_interval(days => (spy.cfg()->>'new_days')::int);
     ended_after INTERVAL := make_interval(hours => (spy.cfg()->>'ended_hours')::int);
     last_days TIMESTAMPTZ;
+    redo DATE[];
     n INTEGER;
 BEGIN
     IF NOT pg_try_advisory_xact_lock(hashtext('spy.refresh_read_model')) THEN
@@ -456,15 +457,28 @@ BEGIN
 
     -- Each creative's days, for lifespan. The last 3 days every time, older
     -- days when an hour in them closed again, everything the first time.
+    -- The days are picked first: a filter on creative_day inside the insert
+    -- would read the rows the insert itself is writing.
     SELECT done_at INTO last_days FROM spy.direction_mark WHERE job = 'creative_day';
-    DELETE FROM spy.creative_day d
-    WHERE last_days IS NULL OR d.day >= today - 2 OR d.day IN (
-        SELECT DISTINCT (c.hour AT TIME ZONE 'UTC')::date FROM tracks_api.closed_hour_v1 c WHERE c.closed_at > last_days);
-    INSERT INTO spy.creative_day (creative_id, day, sightings, first_seen_at, last_seen_at)
-    SELECT d.creative_id, d.day, sum(d.sightings), min(d.first_seen_at), max(d.last_seen_at)
-    FROM tracks_api.ad_daily_v1 d
-    WHERE NOT EXISTS (SELECT 1 FROM spy.creative_day x WHERE x.day = d.day)
-    GROUP BY 1, 2;
+    IF last_days IS NULL THEN
+        DELETE FROM spy.creative_day;
+        INSERT INTO spy.creative_day (creative_id, day, sightings, first_seen_at, last_seen_at)
+        SELECT d.creative_id, d.day, sum(d.sightings), min(d.first_seen_at), max(d.last_seen_at)
+        FROM tracks_api.ad_daily_v1 d
+        GROUP BY 1, 2;
+        ANALYZE spy.creative_day;
+    ELSE
+        redo := ARRAY(
+            SELECT today - g FROM generate_series(0, 2) g
+            UNION
+            SELECT DISTINCT (c.hour AT TIME ZONE 'UTC')::date FROM tracks_api.closed_hour_v1 c WHERE c.closed_at > last_days);
+        DELETE FROM spy.creative_day WHERE day = ANY (redo);
+        INSERT INTO spy.creative_day (creative_id, day, sightings, first_seen_at, last_seen_at)
+        SELECT d.creative_id, d.day, sum(d.sightings), min(d.first_seen_at), max(d.last_seen_at)
+        FROM tracks_api.ad_daily_v1 d
+        WHERE d.day = ANY (redo)
+        GROUP BY 1, 2;
+    END IF;
     INSERT INTO spy.direction_mark (job, done_at) VALUES ('creative_day', clock_timestamp())
     ON CONFLICT (job) DO UPDATE SET done_at = EXCLUDED.done_at;
 

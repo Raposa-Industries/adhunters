@@ -10,11 +10,11 @@ The apps people use are AdHunters Spy, Create, Intel, Funnels and Raposa
 | Folder | What it does | Status |
 |---|---|---|
 | `kit/` | Shared plumbing for every Go binary: logging, stop handling, `/healthz` and `/metrics`, the Postgres pool, migrations. Nothing domain-specific. | started |
-| `contract/` | The data contract: the views each service publishes for others. | tracks_api v1 |
+| `contract/` | The data contract: the views each service publishes for others. | tracks_api v1 (scrape_coverage v2), raposa_api v1, spy_api v1 |
 | `platform/` | Servers as code (Terraform + HCP Terraform), box setup, deploys, secrets. | Terraform and box setup written, not applied |
 | `tracks/` | Collection: capture, shipper, loader, walker. Was adhunters-collector. Internal, no app. | capture in shadow; shipper and loader built |
 | `raposa/` | AdHunters Raposa: dark funnel forensics. Investigations, the browser runner, the keeper, watches and plain pages. Replaces the collector's Raposa. | built, not deployed |
-| `spy/` | AdHunters Spy: research app and its derived numbers. Was adhunters-v4. | later |
+| `spy/` | AdHunters Spy: research app and its derived numbers (any range, momentum, Size, Direction). Was adhunters-v4; the numbers move here from the collector. | numbers built, not deployed; app later |
 | `intel/` | AdHunters Intel: our campaigns' performance, briefs and alerts. | later |
 | `create/` | AdHunters Create: images and headlines. Was auto-creative. | later |
 | `funnels/` | AdHunters Funnels: landing pages, funnels and visitor behaviour. | later |
