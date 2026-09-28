@@ -46,6 +46,9 @@ start)
   ssh "$HOST" "mkdir -p $DIR/spool && ! systemctl is-active --quiet $UNIT" ||
     { echo "$UNIT is already running on $HOST; run stop first"; exit 1; }
   scp -q /tmp/tracks-capture "$HOST:$DIR/tracks-capture"
+  # scp keeps an existing file's mode, so set it, and prove the binary runs
+  # there before handing it to systemd.
+  ssh "$HOST" "chmod 0755 $DIR/tracks-capture && $DIR/tracks-capture version"
   echo "== starting $UNIT for $FOR ($WORKERS worker, $THROTTLE pause)"
   # Sandboxed: it can write only its own folder, and is capped well below
   # what the collector and Raposa use.
@@ -72,7 +75,7 @@ stats)
   # stats works on a run started from an older commit.
   build
   scp -q /tmp/tracks-capture "$HOST:$DIR/tracks-capture-stats"
-  ssh "$HOST" "nice -n 10 $DIR/tracks-capture-stats stats -rate 14000 $DIR/spool"
+  ssh "$HOST" "chmod 0755 $DIR/tracks-capture-stats && nice -n 10 $DIR/tracks-capture-stats stats -rate 14000 $DIR/spool"
   ;;
 stop)
   ssh "$HOST" "systemctl stop $UNIT"
