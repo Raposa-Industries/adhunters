@@ -8,6 +8,7 @@ After=network-online.target postgresql.service
 [Service]
 User=tracks
 Group=tracks
+EnvironmentFile=-/etc/adhunters/observe.env
 EnvironmentFile=/etc/adhunters/tracks-loader.env
 ExecStartPre=/opt/adhunters/bin/tracks-loader migrate
 ExecStart=/opt/adhunters/bin/tracks-loader run -archive ${ARCHIVE}

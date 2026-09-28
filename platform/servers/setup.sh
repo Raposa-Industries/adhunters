@@ -33,6 +33,7 @@ data_ip=10.20.1.20
 standby_ip=10.20.1.30
 
 todo=()
+observe_pw=""
 say() { echo "== $*"; }
 
 # ---- every box --------------------------------------------------------------
@@ -42,8 +43,22 @@ common() {
     timedatectl set-timezone UTC
     id tracks >/dev/null 2>&1 || useradd --system --home-dir /var/lib/tracks --shell /usr/sbin/nologin tracks
     install -d -m 0755 /etc/adhunters /opt/adhunters/bin
+    # Metrics files that scripts write for Alloy (pgBackRest on the data box).
+    install -d -m 0755 /var/lib/adhunters /var/lib/adhunters/textfile
     install -d -m 0750 -o tracks -g tracks /var/lib/tracks /var/lib/tracks/spool
+    # Settings every service reads (the units load it before their own file).
+    # An empty SENTRY_DSN leaves Sentry off, so it never holds a unit back.
+    if [ ! -f /etc/adhunters/observe.env ]; then
+        install -m 0600 /dev/null /etc/adhunters/observe.env
+        printf '%s\n' "$observe_env" >/etc/adhunters/observe.env
+        say "wrote /etc/adhunters/observe.env"
+    fi
 }
+
+observe_env='# Read by every AdHunters unit before its own settings (kit/errs).
+# The DSN of the Sentry project for the Go services; empty leaves Sentry off.
+SENTRY_DSN=
+SENTRY_ENVIRONMENT=production'
 
 # install_bin NAME: copies NAME from --bin, keeping the previous build as
 # NAME.prev for a quick rollback.
@@ -284,6 +299,9 @@ data_box() {
     local loader_pw shipper_pw
     loader_pw=$(login tracks_loader)
     shipper_pw=$(login tracks_shipper)
+    # Alloy's read-only login for Postgres metrics.
+    observe_pw=$(login observe)
+    psql_su -c "GRANT pg_monitor TO observe"
     # The loader owns the tracks schemas and runs their migrations.
     psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO tracks_loader"
     psql_su -d adhunters -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC"
@@ -328,6 +346,202 @@ OPS_ADDR=127.0.0.1:9104"
         todo+=("put this line in /etc/adhunters/raposa-engine.env and raposa-web.env on the worker box (shown once):
     DATABASE_URL=postgres://raposa:$raposa_pw@$data_ip:5432/adhunters?sslmode=require")
     fi
+
+    # The 08:00 digest and the Sentry relay (platform/observe).
+    install_bin observe-bot
+    install_unit observe-bot.service
+    systemctl daemon-reload
+    env_file observe-bot "$observe_bot_env"
+    start observe-bot observe-bot
+}
+
+observe_bot_env='# observe-bot settings (see platform/observe/README.md).
+TELEGRAM_BOT_TOKEN=FILL_ME
+TELEGRAM_CHAT_ID=FILL_ME
+# The stack'"'"'s Prometheus URL followed by /api/prom, its user number, and a
+# token with metrics:read.
+GRAFANA_QUERY_URL=FILL_ME
+GRAFANA_QUERY_USER=FILL_ME
+GRAFANA_QUERY_TOKEN=FILL_ME
+# Sentry, read-only (an internal integration token with Issue & Event: Read).
+# Leave SENTRY_API_TOKEN empty to keep the relay off.
+SENTRY_URL=https://sentry.io
+SENTRY_ORG=FILL_ME
+SENTRY_PROJECT=adhunters-go
+SENTRY_API_TOKEN=FILL_ME
+OPS_ADDR=127.0.0.1:9107'
+
+# ---- backups (data box) -------------------------------------------------------
+
+pgbackrest_conf='# pgBackRest (root:postgres 0640). Written once by setup.sh; the keys are
+# for the object storage bucket adhunters-backups.
+[global]
+repo1-type=s3
+repo1-s3-endpoint=fsn1.your-objectstorage.com
+repo1-s3-region=fsn1
+repo1-s3-bucket=adhunters-backups
+repo1-s3-uri-style=path
+repo1-s3-key=FILL_ME
+repo1-s3-key-secret=FILL_ME
+repo1-path=/pgbackrest
+repo1-retention-full=4
+repo1-bundle=y
+compress-type=zst
+process-max=2
+start-fast=y
+archive-async=y
+spool-path=/var/spool/pgbackrest
+log-level-console=warn
+
+[adhunters]
+pg1-path=/var/lib/postgresql/17/main'
+
+# backups: WAL archiving every 60 s and daily backups to object storage. WAL
+# archiving is only switched on once the keys are in: an archive command that
+# keeps failing makes Postgres keep every WAL file and fills the disk.
+backups() {
+    say "pgbackrest"
+    command -v pgbackrest >/dev/null || apt-get install -y -q pgbackrest
+    command -v jq >/dev/null || apt-get install -y -q jq
+    install -d -m 0750 -o postgres -g postgres /var/spool/pgbackrest /var/log/pgbackrest
+    local conf=/etc/pgbackrest/pgbackrest.conf
+    install -d -m 0755 /etc/pgbackrest
+    if [ ! -f "$conf" ] || ! grep -q '^\[adhunters\]' "$conf"; then
+        install -m 0640 -o root -g postgres /dev/null "$conf"
+        printf '%s\n' "$pgbackrest_conf" >"$conf"
+        say "wrote $conf"
+    fi
+    install -m 0755 "$here/pgbackrest-metrics.sh" /opt/adhunters/bin/pgbackrest-metrics
+    install_unit pgbackrest-backup@.service
+    install_unit pgbackrest-full.timer
+    install_unit pgbackrest-diff.timer
+    systemctl daemon-reload
+
+    local archive=/etc/postgresql/17/main/conf.d/archive.conf
+    if grep -q FILL_ME "$conf"; then
+        if [ -f "$archive" ]; then rm -f "$archive" && systemctl restart postgresql; fi
+        systemctl disable --now pgbackrest-full.timer pgbackrest-diff.timer >/dev/null 2>&1 || true
+        todo+=("fill in the object storage keys in $conf, then run setup.sh again to switch on WAL archiving and backups")
+        return
+    fi
+    if put "$archive" "# Written by platform/servers/setup.sh; edit there.
+archive_mode = on
+archive_command = 'pgbackrest --stanza=adhunters archive-push %p'
+archive_timeout = 60"; then
+        systemctl restart postgresql
+        say "WAL archiving on"
+    fi
+    sudo -u postgres pgbackrest --stanza=adhunters stanza-create
+    sudo -u postgres pgbackrest --stanza=adhunters check
+    systemctl enable --now pgbackrest-full.timer pgbackrest-diff.timer >/dev/null
+    # No full backup yet: take one now, in the background.
+    if ! sudo -u postgres pgbackrest --stanza=adhunters --output=json info | jq -e '.[0].backup | length > 0' >/dev/null; then
+        systemctl start --no-block pgbackrest-backup@full.service
+        say "first full backup started"
+    fi
+    /opt/adhunters/bin/pgbackrest-metrics
+}
+
+# ---- Grafana Alloy (every box) ----------------------------------------------
+
+# Every service's /metrics port (kit/ops, OPS_ADDR). A unit that is enabled on
+# this box is scraped; the others are left out so they never read as down.
+#   unit                    port  service         instance
+ops_ports='tracks-capture@a        9101  tracks-capture  a
+tracks-capture@b        9102  tracks-capture  b
+tracks-capture@standby  9101  tracks-capture  standby
+tracks-shipper          9103  tracks-shipper  -
+tracks-loader           9104  tracks-loader   -
+raposa-engine           9105  raposa-engine   -
+raposa-web              9106  raposa-web      -
+observe-bot             9107  observe-bot     -'
+
+alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
+GRAFANA_METRICS_URL=FILL_ME
+GRAFANA_METRICS_USER=FILL_ME
+GRAFANA_LOGS_URL=FILL_ME
+GRAFANA_LOGS_USER=FILL_ME
+GRAFANA_CLOUD_TOKEN=FILL_ME'
+
+# services_alloy: the scrape block for the units enabled on this box.
+services_alloy() {
+    local unit port svc inst targets=""
+    while read -r unit port svc inst; do
+        systemctl is-enabled --quiet "$unit" 2>/dev/null || continue
+        [ "$inst" = - ] && inst=$(hostname)
+        targets+="    {\"__address__\" = \"127.0.0.1:$port\", \"service\" = \"$svc\", \"instance\" = \"$inst\"},
+"
+    done <<<"$ops_ports"
+    cat <<ALLOY
+// Written by platform/servers/setup.sh from the units enabled on this box.
+prometheus.scrape "services" {
+  job_name        = "adhunters"
+  scrape_interval = "60s"
+  targets         = [
+${targets}  ]
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}
+ALLOY
+}
+
+# put FILE CONTENT: writes FILE when its content differs; says whether it did.
+put() {
+    if [ "$(cat "$1" 2>/dev/null)" != "$2" ]; then
+        printf '%s\n' "$2" >"$1"
+        return 0
+    fi
+    return 1
+}
+
+alloy_agent() {
+    say "grafana alloy"
+    if ! command -v alloy >/dev/null; then
+        install -d -m 0755 /etc/apt/keyrings
+        curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/grafana.gpg
+        echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" >/etc/apt/sources.list.d/grafana.list
+        apt-get update -q
+        apt-get install -y -q alloy
+    fi
+    # Journal access for the logs.
+    usermod -aG systemd-journal alloy
+
+    local dir=/etc/alloy/adhunters changed=0
+    install -d -m 0755 "$dir"
+    put "$dir/common.alloy" "$(cat "$here/../observe/alloy/common.alloy")" && changed=1
+    put "$dir/services.alloy" "$(services_alloy)" && changed=1
+    if [ "$role" = data ]; then
+        put "$dir/postgres.alloy" "$(cat "$here/../observe/alloy/postgres.alloy")" && changed=1
+    fi
+    # The package's own settings file: read the whole folder, keep the UI on
+    # localhost, no usage reports.
+    put /etc/default/alloy "# Written by platform/servers/setup.sh; edit there.
+CONFIG_FILE=$dir
+CUSTOM_ARGS=\"--server.http.listen-addr=127.0.0.1:12345 --disable-reporting\"
+RESTART_ON_UPGRADE=true" && changed=1
+    install -d -m 0755 /etc/systemd/system/alloy.service.d
+    put /etc/systemd/system/alloy.service.d/adhunters.conf "[Service]
+EnvironmentFile=/etc/adhunters/alloy.env
+Environment=ADHUNTERS_BOX=$role" && changed=1
+    systemctl daemon-reload
+
+    if [ ! -f /etc/adhunters/alloy.env ]; then
+        install -m 0600 /dev/null /etc/adhunters/alloy.env
+        printf '%s\n' "$alloy_env" >/etc/adhunters/alloy.env
+        [ "$role" = data ] && echo "POSTGRES_MONITOR_URL=FILL_ME" >>/etc/adhunters/alloy.env
+        say "wrote /etc/adhunters/alloy.env"
+    fi
+    if [ "$role" = data ] && [ -n "$observe_pw" ]; then
+        sed -i "s|^POSTGRES_MONITOR_URL=FILL_ME\$|POSTGRES_MONITOR_URL=postgres://observe:$observe_pw@localhost:5432/adhunters?sslmode=require|" /etc/adhunters/alloy.env
+    fi
+
+    systemctl enable alloy >/dev/null
+    if grep -q FILL_ME /etc/adhunters/alloy.env; then
+        systemctl stop alloy 2>/dev/null || true
+        todo+=("fill in /etc/adhunters/alloy.env (Grafana Cloud), then: systemctl restart alloy")
+    elif [ "$changed" = 1 ] || ! systemctl is-active --quiet alloy; then
+        systemctl restart alloy
+        say "restarted alloy"
+    fi
 }
 
 # ---- roles ------------------------------------------------------------------
@@ -339,8 +553,9 @@ worker)
     raposa_box
     ;;
 standby) capture_box standby:1:9101 ;;
-data) data_box ;;
+data) data_box && backups ;;
 esac
+alloy_agent
 
 say "done: $role"
 if [ ${#todo[@]} -gt 0 ]; then

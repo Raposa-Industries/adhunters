@@ -10,12 +10,25 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+
+	"github.com/Raposa-Industries/adhunters/kit/errs"
 )
 
 // New returns a JSON logger writing to stdout. The level comes from LOG_LEVEL
 // (debug, info, warn, error) and defaults to info.
+//
+// When SENTRY_DSN is set, New also turns on Sentry (kit/errs), and every line
+// at error level becomes a Sentry event as well.
 func New(service, version string) *slog.Logger {
-	return NewTo(os.Stdout, service, version, os.Getenv("LOG_LEVEL"))
+	log := NewTo(os.Stdout, service, version, os.Getenv("LOG_LEVEL"))
+	on, err := errs.Init(service, version)
+	switch {
+	case err != nil:
+		log.Warn("errors are not reaching Sentry", "err", err)
+	case on:
+		log = slog.New(errs.Handler(log.Handler()))
+	}
+	return log
 }
 
 // NewTo is New with an explicit writer and level, for tests.

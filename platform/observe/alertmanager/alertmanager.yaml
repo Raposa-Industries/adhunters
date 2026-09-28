@@ -1,0 +1,74 @@
+# Where alerts go (decision 0004). Loaded into Grafana Cloud's Alertmanager
+# by push.sh, which fills the @@NAME@@ values from observe.env.
+#
+#   tier=page       Telegram "AdHunters alerts", with sound, repeated every
+#                   5 minutes until it clears or someone silences it
+#   tier=chat       the same group, silent, grouped, 08:00 to 22:00 São Paulo
+#                   only; what fires at night shows up in the morning
+#   tier=heartbeat  Better Stack, every minute; when it stops, Better Stack
+#                   calls the owner
+route:
+  receiver: telegram-chat
+  group_by: [alertname, box]
+  group_wait: 1m
+  group_interval: 10m
+  repeat_interval: 6h
+  routes:
+    - matchers: ['tier="heartbeat"']
+      receiver: betterstack-heartbeat
+      group_by: [alertname]
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1m
+    - matchers: ['tier="page"']
+      receiver: telegram-page
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 5m
+    - matchers: ['tier="chat"']
+      receiver: telegram-chat
+      active_time_intervals: [daytime]
+
+# A page mutes the chat alerts it explains: while collection is stopped,
+# "capture instance quiet" and "loader lag" say nothing new.
+inhibit_rules:
+  - source_matchers: ['alertname="CaptureStopped"']
+    target_matchers: ['alertname=~"CaptureLow|CaptureInstanceQuiet|CaptureErrors|PublisherQuiet"']
+  - source_matchers: ['alertname="BoxGone"']
+    target_matchers: ['tier="chat"']
+    equal: [box]
+  - source_matchers: ['alertname="PostgresDown"']
+    target_matchers: ['alertname=~"LoaderLag|HourNotClosed|ServiceDown|ServiceRestarting|TaskLate"']
+
+receivers:
+  - name: telegram-page
+    telegram_configs:
+      - bot_token: '@@TELEGRAM_BOT_TOKEN@@'
+        chat_id: @@TELEGRAM_CHAT_ID@@
+        parse_mode: HTML
+        disable_notifications: false
+        send_resolved: true
+        message: '{{ template "adhunters.telegram" . }}'
+  - name: telegram-chat
+    telegram_configs:
+      - bot_token: '@@TELEGRAM_BOT_TOKEN@@'
+        chat_id: @@TELEGRAM_CHAT_ID@@
+        parse_mode: HTML
+        disable_notifications: true
+        send_resolved: true
+        message: '{{ template "adhunters.telegram" . }}'
+  - name: betterstack-heartbeat
+    webhook_configs:
+      - url: '@@BETTERSTACK_HEARTBEAT_URL@@'
+        send_resolved: false
+
+time_intervals:
+  - name: daytime
+    time_intervals:
+      - times:
+          - start_time: '08:00'
+            end_time: '22:00'
+        location: America/Sao_Paulo
+
+templates:
+  - telegram.tmpl

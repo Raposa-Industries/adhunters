@@ -11,7 +11,7 @@ sudo ./setup.sh --bin DIR [--role worker|data|standby]
 `DIR` holds the binaries, built on any machine from the repository root:
 
 ```
-GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" -o DIR/ ./tracks/cmd/... ./raposa/cmd/...
+GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" -o DIR/ ./tracks/cmd/... ./raposa/cmd/... ./platform/observe/cmd/...
 ```
 
 The script runs from a checkout of the repository: it takes the units in
@@ -27,10 +27,16 @@ with a list of what is still to do.
 |---|---|
 | worker | `tracks-capture@a` and `@b` (4 workers each), `tracks-shipper`; Raposa: `raposa-browser`, `raposa-engine`, `raposa-web` |
 | standby | `tracks-capture@standby` (1 worker), `tracks-shipper` |
-| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper` and `raposa` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts) |
+| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), `observe-bot` (the 08:00 digest and the Sentry relay), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in |
 
-Every box: timezone UTC, the `tracks` user, `/var/lib/tracks/spool`, and the
-binaries in `/opt/adhunters/bin`. The units are in `units/`: each runs as
+Every box: timezone UTC, the `tracks` user, `/var/lib/tracks/spool`, the
+binaries in `/opt/adhunters/bin`, and Grafana Alloy (from Grafana's apt
+repository) with the config in `platform/observe/alloy/`. Alloy scrapes the
+`/metrics` of every unit enabled on the box, the host, and on the data box
+Postgres through the read-only `observe` login; it starts once
+`/etc/adhunters/alloy.env` has no `FILL_ME` left. Every unit also reads
+`/etc/adhunters/observe.env` (`SENTRY_DSN`, empty leaves Sentry off). See
+`platform/observe/README.md`. The units are in `units/`: each runs as
 `tracks`, restarts on failure, gets 45 s to stop, and serves `/healthz` and
 `/metrics` on `127.0.0.1` (ports 9101 to 9104).
 
@@ -57,6 +63,6 @@ schemas, member of `tracks_api_read`), the `raposa_api_read` role, and a
 `pg_hba` line for it from the worker box. Set up the data box first.
 
 **Nothing has been run on a real box.** Not built yet: raising the standby's
-workers when the worker box goes quiet, pgBackRest backups, Grafana Alloy,
-and a home for secrets (still to be decided); until then the `.env` files are written
+workers when the worker box goes quiet, the monthly restore test, and a
+home for secrets (still to be decided); until then the `.env` files are written
 by hand on each box.
