@@ -1,0 +1,27 @@
+{{define "head"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.}} · Raposa</title>
+<style>
+body { font: 14px/1.4 system-ui, sans-serif; margin: 16px; color: #111; background: #fff; }
+nav a { margin-right: 12px; }
+table { border-collapse: collapse; margin: 8px 0 20px; }
+th, td { border-bottom: 1px solid #ddd; padding: 3px 8px; text-align: left; vertical-align: top; }
+td.url { max-width: 480px; overflow-wrap: anywhere; }
+.dark { color: #a00; font-weight: 600; }
+.error { color: #777; }
+.note { color: #555; }
+form.inline { display: inline; }
+fieldset { border: 1px solid #ccc; margin: 8px 0 20px; }
+.scroll { overflow-x: auto; }
+@media (prefers-color-scheme: dark) { body { color: #eee; background: #111; } th, td { border-color: #333; } a { color: #8ab4f8; } .dark { color: #f77; } }
+</style>
+</head>
+<body>
+<nav><a href="/">Investigations</a><a href="/burns">Burned lines</a></nav>
+{{end}}
+{{define "foot"}}</body>
+</html>
+{{end}}

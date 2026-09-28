@@ -1,0 +1,14 @@
+{
+  "name": "raposa-browser",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Raposa's browser runner: headless Chromium for one visit under one disguise, and the keeper.",
+  "main": "runner.js",
+  "scripts": {
+    "start": "node runner.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

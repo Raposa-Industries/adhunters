@@ -1,0 +1,17 @@
+{{template "head" (printf "Page %d" .ID)}}
+<h1>Page {{.ID}}{{with .Title}}: {{.}}{{end}}</h1>
+<p class="url">{{.URL}}</p>
+<p>{{if .Dark}}<span class="dark">dark</span>{{else}}not dark{{end}}, {{deref .Kind}}, {{.Words}} words.
+{{with .Checkout}}Checkout {{.}}{{end}} {{deref .Merchant}}</p>
+<p>Seen {{.Seen}} time(s), first {{when .First}}, last {{when .Last}}.</p>
+<p><a href="/p/{{.ID}}/html">The HTML a visit stored</a> ({{bytes .HTMLBytes}}){{if .HasKept}} · <a href="/p/{{.ID}}/kept">the kept copy, after its scripts ran</a>{{end}}.
+<span class="note">Both open without scripts and without loading anything from the operator's servers, so pictures and styles from elsewhere are missing.</span></p>
+<p>Kept whole: {{.State}}{{with .Note}} ({{.}}){{end}}{{if .KeptBytes}}, {{bytes .KeptBytes}} of line traffic{{end}}.</p>
+{{if .Files}}
+<h2>Files</h2>
+<div class="scroll"><table><tr><th>Role</th><th>Address</th><th>Type</th><th>Size</th></tr>
+{{range .Files}}<tr><td>{{.Role}}</td><td class="url">{{if .Stored}}<a href="/f/{{.Hash}}">{{.URL}}</a>{{else}}{{.URL}}{{end}}</td>
+<td>{{.MediaType}}</td><td>{{if .Stored}}{{bytes .Size}}{{else}}<span class="note">{{deref .Skipped}}</span>{{end}}</td></tr>{{end}}
+</table></div>
+{{end}}
+{{template "foot"}}
