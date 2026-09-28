@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Checks or uploads the alert rules and the Alertmanager config.
 #
-#   ./push.sh check   render with stand-in secrets and validate (promtool, amtool)
-#   ./push.sh push    render with observe.env and upload to Grafana Cloud (mimirtool)
+#   ./push.sh check   render with stand-in secrets and validate (promtool, amtool, jq)
+#   ./push.sh push    render with observe.env and upload rules, Alertmanager
+#                     config (mimirtool) and dashboards (Grafana's API) to Grafana Cloud
 #
 # Rules: rules/*.yaml, one namespace per file. Tests: tests/rules_test.yaml.
 # Every alert must carry a tier label and a runbook that exists.
@@ -42,8 +43,19 @@ runbooks() {
     return $fail
 }
 
+# dashboards_ok: each dashboard is JSON with a fixed uid and a title.
+dashboards_ok() {
+    local f
+    for f in "$here"/dashboards/*.json; do
+        jq -e '(.uid | type == "string" and length > 0) and (.title | length > 0) and (.panels | length > 0)' "$f" >/dev/null ||
+            { echo "bad dashboard $f" >&2; return 1; }
+    done
+    echo "dashboards ok"
+}
+
 case "$cmd" in
 check)
+    dashboards_ok
     runbooks
     promtool check rules "$here"/rules/*.yaml
     promtool test rules "$here"/tests/rules_test.yaml
@@ -72,7 +84,14 @@ push)
         --key="$GRAFANA_RULES_TOKEN" "$here"/rules/*.yaml
     (cd "$tmp" && mimirtool alertmanager load --address="$GRAFANA_ALERTMANAGER_URL" \
         --id="$GRAFANA_ALERTMANAGER_USER" --key="$GRAFANA_RULES_TOKEN" alertmanager.yaml telegram.tmpl)
-    echo "pushed: rules and Alertmanager config are live"
+    dashboards_ok
+    for f in "$here"/dashboards/*.json; do
+        jq '{dashboard: (. + {id: null}), overwrite: true, message: "platform/observe/push.sh"}' "$f" |
+            curl -fsS -X POST -H "Authorization: Bearer $GRAFANA_DASHBOARDS_TOKEN" -H "Content-Type: application/json" \
+                --data-binary @- "${GRAFANA_URL%/}/api/dashboards/db" >/dev/null
+        echo "dashboard $(jq -r .title "$f") uploaded"
+    done
+    echo "pushed: rules, Alertmanager config and dashboards are live"
     ;;
 *)
     echo "usage: $0 check|push" >&2

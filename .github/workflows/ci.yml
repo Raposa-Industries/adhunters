@@ -85,5 +85,5 @@ jobs:
           done
       - name: shell
         run: |
-          bash -n platform/servers/setup.sh platform/observe/push.sh
-          shellcheck -S warning -e SC2033 platform/servers/setup.sh platform/observe/push.sh
+          bash -n platform/servers/setup.sh platform/servers/pgbackrest-metrics.sh platform/observe/push.sh
+          shellcheck -S warning -e SC2033 platform/servers/setup.sh platform/servers/pgbackrest-metrics.sh platform/observe/push.sh

@@ -1,0 +1,11 @@
+# Differential backup the other six days, 03:30 UTC.
+[Unit]
+Description=Daily differential pgBackRest backup
+
+[Timer]
+OnCalendar=Mon..Sat *-*-* 03:30:00 UTC
+Persistent=true
+Unit=pgbackrest-backup@diff.service
+
+[Install]
+WantedBy=timers.target

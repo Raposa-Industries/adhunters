@@ -1,0 +1,460 @@
+{
+  "uid": "adhunters-boxes",
+  "title": "AdHunters · Boxes",
+  "description": "Hosts, services, Postgres, backups and Raposa.",
+  "tags": [
+    "adhunters"
+  ],
+  "timezone": "utc",
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "editable": true,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Metrics",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "box",
+        "label": "Box",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(node_boot_time_seconds, box)",
+          "refId": "box"
+        },
+        "definition": "label_values(node_boot_time_seconds, box)",
+        "includeAll": true,
+        "multi": true,
+        "current": {},
+        "refresh": 2,
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "CPU busy",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "1 - avg by (box) (rate(node_cpu_seconds_total{mode=\"idle\",box=~\"$box\"}[5m]))",
+          "legendFormat": "{{box}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Memory available",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "node_memory_MemAvailable_bytes{box=~\"$box\"} / node_memory_MemTotal_bytes{box=~\"$box\"}",
+          "legendFormat": "{{box}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Disk free",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "node_filesystem_avail_bytes{box=~\"$box\",fstype!~\"tmpfs|overlay|squashfs\"} / node_filesystem_size_bytes{box=~\"$box\",fstype!~\"tmpfs|overlay|squashfs\"}",
+          "legendFormat": "{{box}} {{mountpoint}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Disk writes",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (box) (rate(node_disk_written_bytes_total{box=~\"$box\"}[5m]))",
+          "legendFormat": "{{box}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Services answering /metrics",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "up{job=\"adhunters\",box=~\"$box\"}",
+          "legendFormat": "{{box}} {{service}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Service memory",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "process_resident_memory_bytes{job=\"adhunters\",box=~\"$box\"}",
+          "legendFormat": "{{service}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Postgres connections",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (state) (pg_stat_activity_count)",
+          "legendFormat": "{{state}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Postgres database size",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "pg_database_size_bytes{datname=\"adhunters\"}",
+          "legendFormat": "adhunters"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Age of the newest archived WAL",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "pg_stat_archiver_last_archive_age",
+          "legendFormat": "WAL"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Age of the newest backup",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "time() - max by (type) (pgbackrest_last_backup_timestamp_seconds)",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Raposa visits by outcome",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (outcome) (rate(raposa_visits_total[15m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Task freshness (share of the promise used)",
+      "description": "Over 100% means the task is late (TaskLate).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(time() - adhunters_task_last_success_timestamp_seconds) / adhunters_task_promise_seconds",
+          "legendFormat": "{{service}} {{task}}"
+        }
+      ]
+    }
+  ]
+}

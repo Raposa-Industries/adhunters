@@ -89,3 +89,21 @@ tests:
             exp_annotations:
               summary: tracks-loader task hour_close last succeeded 11m 0s ago, later than it promises.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/task-late.md
+
+  # The newest backup finished at time 0; the check runs 27 hours later.
+  - interval: 1h
+    input_series:
+      - series: 'pgbackrest_last_backup_timestamp_seconds{type="diff",box="data"}'
+        values: '0x30'
+    alert_rule_test:
+      - eval_time: 25h
+        alertname: BackupLate
+        exp_alerts: []
+      - eval_time: 27h
+        alertname: BackupLate
+        exp_alerts:
+          - exp_labels:
+              tier: page
+            exp_annotations:
+              summary: The newest database backup finished 1d 3h 0m 0s ago.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/backup-late.md

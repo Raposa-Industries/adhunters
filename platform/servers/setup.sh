@@ -42,6 +42,8 @@ common() {
     timedatectl set-timezone UTC
     id tracks >/dev/null 2>&1 || useradd --system --home-dir /var/lib/tracks --shell /usr/sbin/nologin tracks
     install -d -m 0755 /etc/adhunters /opt/adhunters/bin
+    # Metrics files that scripts write for Alloy (pgBackRest on the data box).
+    install -d -m 0755 /var/lib/adhunters /var/lib/adhunters/textfile
     install -d -m 0750 -o tracks -g tracks /var/lib/tracks /var/lib/tracks/spool
     # Settings every service reads (the units load it before their own file).
     # An empty SENTRY_DSN leaves Sentry off, so it never holds a unit back.
@@ -242,6 +244,100 @@ OPS_ADDR=127.0.0.1:9104"
     # The loader's start runs its migrations, which also grant the shipper
     # and tracks_api_read their rights.
     start tracks-loader tracks-loader
+
+    # The 08:00 digest and the Sentry relay (platform/observe).
+    install_bin observe-bot
+    install_unit observe-bot.service
+    systemctl daemon-reload
+    env_file observe-bot "$observe_bot_env"
+    start observe-bot observe-bot
+}
+
+observe_bot_env='# observe-bot settings (see platform/observe/README.md).
+TELEGRAM_BOT_TOKEN=FILL_ME
+TELEGRAM_CHAT_ID=FILL_ME
+# The stack'"'"'s Prometheus URL followed by /api/prom, its user number, and a
+# token with metrics:read.
+GRAFANA_QUERY_URL=FILL_ME
+GRAFANA_QUERY_USER=FILL_ME
+GRAFANA_QUERY_TOKEN=FILL_ME
+# Sentry, read-only (an internal integration token with Issue & Event: Read).
+# Leave SENTRY_API_TOKEN empty to keep the relay off.
+SENTRY_URL=https://sentry.io
+SENTRY_ORG=FILL_ME
+SENTRY_PROJECT=adhunters-go
+SENTRY_API_TOKEN=FILL_ME
+OPS_ADDR=127.0.0.1:9107'
+
+# ---- backups (data box) -------------------------------------------------------
+
+pgbackrest_conf='# pgBackRest (root:postgres 0640). Written once by setup.sh; the keys are
+# for the object storage bucket adhunters-backups.
+[global]
+repo1-type=s3
+repo1-s3-endpoint=fsn1.your-objectstorage.com
+repo1-s3-region=fsn1
+repo1-s3-bucket=adhunters-backups
+repo1-s3-uri-style=path
+repo1-s3-key=FILL_ME
+repo1-s3-key-secret=FILL_ME
+repo1-path=/pgbackrest
+repo1-retention-full=4
+repo1-bundle=y
+compress-type=zst
+process-max=2
+start-fast=y
+archive-async=y
+spool-path=/var/spool/pgbackrest
+log-level-console=warn
+
+[adhunters]
+pg1-path=/var/lib/postgresql/17/main'
+
+# backups: WAL archiving every 60 s and daily backups to object storage. WAL
+# archiving is only switched on once the keys are in: an archive command that
+# keeps failing makes Postgres keep every WAL file and fills the disk.
+backups() {
+    say "pgbackrest"
+    command -v pgbackrest >/dev/null || apt-get install -y -q pgbackrest
+    command -v jq >/dev/null || apt-get install -y -q jq
+    install -d -m 0750 -o postgres -g postgres /var/spool/pgbackrest /var/log/pgbackrest
+    local conf=/etc/pgbackrest/pgbackrest.conf
+    install -d -m 0755 /etc/pgbackrest
+    if [ ! -f "$conf" ] || ! grep -q '^\[adhunters\]' "$conf"; then
+        install -m 0640 -o root -g postgres /dev/null "$conf"
+        printf '%s\n' "$pgbackrest_conf" >"$conf"
+        say "wrote $conf"
+    fi
+    install -m 0755 "$here/pgbackrest-metrics.sh" /opt/adhunters/bin/pgbackrest-metrics
+    install_unit pgbackrest-backup@.service
+    install_unit pgbackrest-full.timer
+    install_unit pgbackrest-diff.timer
+    systemctl daemon-reload
+
+    local archive=/etc/postgresql/17/main/conf.d/archive.conf
+    if grep -q FILL_ME "$conf"; then
+        if [ -f "$archive" ]; then rm -f "$archive" && systemctl restart postgresql; fi
+        systemctl disable --now pgbackrest-full.timer pgbackrest-diff.timer >/dev/null 2>&1 || true
+        todo+=("fill in the object storage keys in $conf, then run setup.sh again to switch on WAL archiving and backups")
+        return
+    fi
+    if put "$archive" "# Written by platform/servers/setup.sh; edit there.
+archive_mode = on
+archive_command = 'pgbackrest --stanza=adhunters archive-push %p'
+archive_timeout = 60"; then
+        systemctl restart postgresql
+        say "WAL archiving on"
+    fi
+    sudo -u postgres pgbackrest --stanza=adhunters stanza-create
+    sudo -u postgres pgbackrest --stanza=adhunters check
+    systemctl enable --now pgbackrest-full.timer pgbackrest-diff.timer >/dev/null
+    # No full backup yet: take one now, in the background.
+    if ! sudo -u postgres pgbackrest --stanza=adhunters --output=json info | jq -e '.[0].backup | length > 0' >/dev/null; then
+        systemctl start --no-block pgbackrest-backup@full.service
+        say "first full backup started"
+    fi
+    /opt/adhunters/bin/pgbackrest-metrics
 }
 
 # ---- Grafana Alloy (every box) ----------------------------------------------
@@ -255,7 +351,8 @@ tracks-capture@standby  9101  tracks-capture  standby
 tracks-shipper          9103  tracks-shipper  -
 tracks-loader           9104  tracks-loader   -
 raposa-engine           9105  raposa-engine   -
-raposa-web              9106  raposa-web      -'
+raposa-web              9106  raposa-web      -
+observe-bot             9107  observe-bot     -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 GRAFANA_METRICS_URL=FILL_ME
@@ -351,7 +448,7 @@ common
 case "$role" in
 worker) capture_box a:4:9101 b:4:9102 ;;
 standby) capture_box standby:1:9101 ;;
-data) data_box ;;
+data) data_box && backups ;;
 esac
 alloy_agent
 

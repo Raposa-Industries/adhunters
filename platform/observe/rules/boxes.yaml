@@ -86,3 +86,36 @@ groups:
         annotations:
           summary: 'Postgres has {{ $value }} connections open, near its limit of 80.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/postgres-connections.md
+
+  - name: backups
+    interval: 1m
+    rules:
+      - alert: WalArchiveFailing
+        # Archiving is failing and the newest archived WAL file is over 15
+        # minutes old: a data box lost now would lose those minutes.
+        expr: |
+          increase(pg_stat_archiver_failed_count[15m]) > 0
+            and pg_stat_archiver_last_archive_age > 900
+        labels:
+          tier: page
+        annotations:
+          summary: WAL archiving is failing and the newest archived WAL file is over 15 minutes old. Recent changes exist only on the data box.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/wal-archive-failing.md
+
+      - alert: BackupLate
+        # Backups run daily at 03:30 UTC; 26 hours leaves room for a slow one.
+        expr: time() - max(pgbackrest_last_backup_timestamp_seconds) > 26 * 3600
+        labels:
+          tier: page
+        annotations:
+          summary: 'The newest database backup finished {{ $value | humanizeDuration }} ago.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/backup-late.md
+
+      - alert: BackupRepoUnreadable
+        expr: max(pgbackrest_info_ok) == 0
+        for: 30m
+        labels:
+          tier: chat
+        annotations:
+          summary: pgBackRest cannot read the backup repository, or reports the stanza unhealthy.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/backup-late.md

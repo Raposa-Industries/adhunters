@@ -49,6 +49,11 @@ prometheus.exporter.unix "host" {
   filesystem {
     mount_points_exclude = "^/(dev|proc|run|sys|snap)($|/)"
   }
+
+  // Metrics files our scripts write (pgBackRest's state on the data box).
+  textfile {
+    directory = "/var/lib/adhunters/textfile"
+  }
 }
 
 prometheus.scrape "host" {
