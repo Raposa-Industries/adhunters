@@ -1,0 +1,25 @@
+publishers:
+  - name: "Fox News"
+    domain: "foxnews.com"
+    taboola_account: "foxnews-foxnews"
+    path: "/lifestyle"
+    url: "https://www.foxnews.com/lifestyle"
+    placement: "rbox-t2m"
+    batch_size: 30
+    enabled: true
+
+  - name: "Switched off"
+    taboola_account: "off"
+    enabled: false
+
+  - name: "NewsBreak"
+    network: "newsbreak"
+    domain: "newsbreak.com"
+    url: "https://www.newsbreak.com/"
+    enabled: true
+    placement_groups:
+      - - "psm-pmi-nbcom-web-articleinside-prod"
+        - "psm-pmi-nbcom-web-articlebottom-prod"
+      - - "nbnlv-web-left-prod"
+        - "nbnlv-web-right-prod"
+        - "nbnlv-web-tier1-prod"

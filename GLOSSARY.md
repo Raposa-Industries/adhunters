@@ -15,3 +15,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | replay | Re-parsing raw files over a time range, into live or shadow tables. |
 | watch | Something a person follows in an app (an operator, an investigation). Watches notify through Pushcut. |
 | alert | A system or developer message. Alerts go to Telegram, never Pushcut. |
+| spool | Capture's local folder of raw files not yet archived. Capture writes there and nowhere else. |
+| sealed | A raw file whose minute has ended, compressed with zstd, ready to archive. |
+| shadow run | A new binary running beside the one in service on the same input, writing only its own output, to measure or compare. Nothing reads its output as real data. |
+| Direction | Which way an ad is moving: rising, steady, fading or stopped, judged against its usual value. |
