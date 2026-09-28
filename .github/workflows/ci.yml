@@ -71,7 +71,7 @@ jobs:
           curl -fsSL "https://github.com/prometheus/prometheus/releases/download/v$PROMETHEUS_VERSION/prometheus-$PROMETHEUS_VERSION.linux-amd64.tar.gz" | tar xz
           curl -fsSL "https://github.com/prometheus/alertmanager/releases/download/v$ALERTMANAGER_VERSION/alertmanager-$ALERTMANAGER_VERSION.linux-amd64.tar.gz" | tar xz
           curl -fsSLo alloy.zip "https://github.com/grafana/alloy/releases/download/v$ALLOY_VERSION/alloy-linux-amd64.zip" && unzip -q alloy.zip
-          mv prometheus-*/promtool alertmanager-*/amtool bin/ && mv alloy-linux-amd64 bin/alloy
+          mv prometheus-*/promtool alertmanager-*/amtool bin/ && install -m 0755 alloy-linux-amd64 bin/alloy
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: alert rules, rule tests, runbooks, alertmanager config
         run: platform/observe/push.sh check
