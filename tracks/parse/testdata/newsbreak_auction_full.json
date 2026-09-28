@@ -1,0 +1,52 @@
+{
+ "id": "x",
+ "seatbid": [
+  {
+   "seat": "msp_nova",
+   "bid": [
+    {
+     "id": "0",
+     "impid": "imp0",
+     "price": 1.782275,
+     "adm": "{\"abConfig\": {}, \"ad\": [{\"adAccountId\": \"2092376173513170946\", \"adId\": \"2101538553557016577\", \"adsetId\": \"2101537912278671362\", \"creative\": {\"adBundleId\": \"\", \"address\": \"\", \"adm\": \"\", \"advertiser\": \"Health\", \"appStoreCustomProductPageId\": \"\", \"appStoreId\": \"\", \"body\": \"2026\", \"callToAction\": \"Learn More\", \"campaignObjective\": \"WEB_CONVERSION\", \"carouselItems\": [], \"channelId\": \"\", \"clickableComponents\": [], \"closeCountDownTimeSecond\": 0, \"creativeId\": \"2101539148212854786\", \"creativeType\": \"IMAGE\", \"ctaStyle\": \"\", \"ctrUrl\": \"https://rd.newsbreak.com/r?p=CrwGaHR0cHM6Ly93d3cubHVuYXJ3b3Jrcy5sYXQvP29zPVdpbmRvd3MmYWRzZXRfaWQ9MjEwMTUzNzkxMjI3ODY3MTM2MiZhZHNldF9uYW1lPSU1QkJJRCU1RCslNUIwMSU1RCslNUJNZW0lQzMlQjNyaWElNUQrJTVCTGVhbmRybyU1RCslNUIyMCUyRjA5JTVEJmFkX2lkPTIxMDE1Mzg1NTM1NTcwMTY1NzcmYWRfbmFtZT1jb3B5KzIrb2YrMDAxJmNsaWNrX2lkPW52c3NfYmQxMmY5YzFkM2E2NDg0ZGFlNTY5NzkwNDQ5Y2U3NTNfMjEwMTUzODU1MzU1NzAxNjU3NyZoZWFkbGluZT1Ob2JlbCtQcml6ZSUyN3MrRG9jdG9ycytJZGVudGlmeSsxMStNZWRpY2F0aW9ucytOb3crTGlua2VkK3RvK01lbW9yeStEZWNsaW5lKyUyOFNlZSt0aGUrTGlzdCUyOSZzdWIxPTIxMDE1Mzc5MDgzNjk1ODAwMzMmc3ViMj0lNUJCSUQlNUQrJTVCMDElNUQrJTVCTWVtJUMzJUIzcmlhJTVEKyU1QkxlYW5kcm8lNUQrJTVCMjAlMkYwOSU1RCZzdWIzPTIxMDE1Mzc5MTIyNzg2NzEzNjImc3ViND0lNUJCSUQlNUQrJTVCMDElNUQrJTVCTWVtJUMzJUIzcmlhJTVEKyU1QkxlYW5kcm8lNUQrJTVCMjAlMkYwOSU1RCZzdWI1PTIxMDE1Mzg1NTM1NTcwMTY1Nzcmc3ViNj1jb3B5KzIrb2YrMDAxJnN1Yjc9V2luZG93cyZzdWI4PTAmcmVmX2lkPW52c3NfYmQxMmY5YzFkM2E2NDg0ZGFlNTY5NzkwNDQ5Y2U3NTNfMjEwMTUzODU1MzU1NzAxNjU3NyZpc19ub3ZhPXRydWUmdXRtX2NvbnRlbnQ9bnZzc19iZDEyZjljMWQzYTY0ODRkYWU1Njk3OTA0NDljZTc1M18yMTAxNTM4NTUzNTU3MDE2NTc3Jm5iX2NpZD1iZDEyZjljMWQzYTY0ODRkYWU1Njk3OTA0NDljZTc1M18yMTAxNTM4NTUzNTU3MDE2NTc3GKDBkbkRKgdXaW5kb3dz\", \"disclaimer\": \"\", \"headline\": \"Nobel Prize's Doctors Identify 11 Medications Now Linked to Memory Decline (See the List)\", \"htmlPageItems\": [], \"iabTier1ContentCode\": \"\", \"iabTier2ContentCode\": \"\", \"iconUrl\": \"https://static.particlenews.com/nova/assets/2092376173513170946/3a67552ddcbfa5396e1f3cf7943d9b203aa239ca.png\", \"image\": \"\", \"imageScaleMode\": \"\", \"imageUrl\": \"https://img.particlenews.com/image.php?type=webp_1200x000&limit=40&url=https%3A%2F%2Fstatic.particlenews.com%2Fnova%2Fassets%2F2092376173513170946%2Fbdbdc23716dc27a6b98aefc417b743a3071abd0a.png\", \"imageUrls\": [], \"isImageClickable\": true, \"isVerticalImage\": false, \"landingPageDomain\": \"\", \"launchOption\": \"LAUNCH_WEBVIEW\", \"mediaAspect\": \"horizontal\", \"mediaType\": \"IMAGE\", \"productItemList\": [], \"thirdPartyClickTrackingUrls\": [], \"thirdPartyImpressionTrackingUrls\": [], \"thirdPartyViewTrackingUrls\": []}, \"encryptedAdToken\": \"v2.1.trimmed\", \"expirationMs\": \"1790312561152\", \"highValue\": false, \"orgId\": \"2092376173483810818\", \"price\": 1.9164247080860068, \"requestId\": \"bd12f9c1-d3a6-484d-ae56-9790449ce753\", \"scriptInjectionConfig\": {\"inject\": false, \"scriptUrl\": \"\"}, \"secondPrice\": 1.8079726380118206, \"skipDedupe\": false, \"startTimeMs\": \"1789880657000\"}], \"code\": 0, \"extInfo\": {}, \"status\": \"success\", \"supported_web_format\": [\"native\"]}",
+     "crid": "2101538553557016577",
+     "w": 300,
+     "h": 250,
+     "ext": {
+      "nova": {
+       "ad_unit_id": "psm-pmi-nbcom-web-articleinside-native-prod",
+       "format": "native"
+      }
+     }
+    },
+    {
+     "id": "1",
+     "impid": "imp1",
+     "price": 0.000224,
+     "adm": "{\"abConfig\": {}, \"ad\": [{\"adAccountId\": \"1554262748643045377\", \"adId\": \"2060131769600962562\", \"adsetId\": \"2060131561492180993\", \"creative\": {\"adBundleId\": \"\", \"address\": \"\", \"adm\": \"\", \"advertiser\": \"NewsBreak App\", \"appStoreCustomProductPageId\": \"\", \"appStoreId\": \"\", \"body\": \"Support Local. Vote for your favorite\", \"callToAction\": \"Share now\", \"campaignObjective\": \"WEB_CONVERSION\", \"carouselItems\": [], \"channelId\": \"\", \"clickableComponents\": [], \"closeCountDownTimeSecond\": 0, \"creativeId\": \"2060131769596768257\", \"creativeType\": \"IMAGE\", \"ctaStyle\": \"\", \"ctrUrl\": \"https://rd.newsbreak.com/r?p=Cu4BaHR0cHM6Ly9sb2NhbGJ1c2luZXNzLm5ld3NicmVhay5jb20vbm9taW5hdGU_dXRtX3NvdXJjZT1uYiZ1dG1fbWVkaXVtPWhvdXNlYWQmdXRtX2NhbXBhaWduPXNidzEmaXNfbm92YT10cnVlJnV0bV9jb250ZW50PW52c3NfOWY2ZjllZjRkNzVhNDg1NTlhZWI1ZDYxODcyMjVmNmRfMjA2MDEzMTc2OTYwMDk2MjU2MiZuYl9jaWQ9OWY2ZjllZjRkNzVhNDg1NTlhZWI1ZDYxODcyMjVmNmRfMjA2MDEzMTc2OTYwMDk2MjU2MhjyvKDOECoHV2luZG93cw\", \"disclaimer\": \"\", \"headline\": \"NewsBreak is highlighting the best of Your City for Small Business Week\", \"htmlPageItems\": [], \"iabTier1ContentCode\": \"\", \"iabTier2ContentCode\": \"\", \"iconUrl\": \"https://static.particlenews.com/nova/assets/1554262748643045377/30a3fd808bf8d283a8445d38c6de954200d45f74.png\", \"image\": \"\", \"imageScaleMode\": \"\", \"imageUrl\": \"https://img.particlenews.com/image.php?type=webp_1200x000&limit=40&url=https%3A%2F%2Fstatic.particlenews.com%2Fnova%2Fassets%2F1554262748643045377%2Fc11740baa77945368f19e18291e7b2448da202e9.png\", \"imageUrls\": [], \"isImageClickable\": true, \"isVerticalImage\": false, \"landingPageDomain\": \"\", \"launchOption\": \"LAUNCH_WEBVIEW\", \"mediaAspect\": \"horizontal\", \"mediaType\": \"IMAGE\", \"productItemList\": [], \"thirdPartyClickTrackingUrls\": [], \"thirdPartyImpressionTrackingUrls\": [], \"thirdPartyViewTrackingUrls\": []}, \"encryptedAdToken\": \"v2.1.trimmed\", \"expirationMs\": \"1790312557243\", \"highValue\": false, \"orgId\": \"1532420654359240706\", \"price\": 0.0002409001136837419, \"requestId\": \"9f6f9ef4-d75a-4855-9aeb-5d6187225f6d\", \"scriptInjectionConfig\": {\"inject\": false, \"scriptUrl\": \"\"}, \"secondPrice\": 0.5, \"skipDedupe\": false, \"startTimeMs\": \"1780008614000\"}], \"code\": 0, \"extInfo\": {}, \"status\": \"success\", \"supported_web_format\": [\"native\"]}",
+     "crid": "2060131769600962562",
+     "w": 300,
+     "h": 250,
+     "ext": {
+      "nova": {
+       "ad_unit_id": "psm-pmi-nbcom-web-articlebottom-native-prod",
+       "format": "native"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "seat": "pubmatic",
+   "bid": [
+    {
+     "id": "9",
+     "impid": "imp4",
+     "price": 1,
+     "adm": "<div>banner</div>"
+    }
+   ]
+  }
+ ],
+ "cur": "USD"
+}

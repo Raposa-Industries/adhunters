@@ -1,0 +1,29 @@
+# One capture instance. The worker box runs @a and @b (4 workers each); the
+# standby box runs @standby with 1 worker, raised to 8 when the worker box
+# goes quiet. Its settings are in /etc/adhunters/tracks-capture@<instance>.env.
+[Unit]
+Description=Tracks capture, instance %i
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=tracks
+Group=tracks
+EnvironmentFile=/etc/adhunters/tracks-capture@%i.env
+ExecStart=/opt/adhunters/bin/tracks-capture run \
+    -targets /etc/adhunters/tracks-capture/targets.yaml \
+    -lines /etc/adhunters/tracks-capture/proxies.env \
+    -spool /var/lib/tracks/spool -instance %i -workers ${WORKERS}
+Restart=always
+RestartSec=2
+TimeoutStopSec=45
+# Capture keeps its memory when the box runs short (Raposa's browser shares it).
+MemoryLow=256M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/tracks
+
+[Install]
+WantedBy=multi-user.target

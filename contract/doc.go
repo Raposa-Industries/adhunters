@@ -6,5 +6,6 @@
 // in place; a new shape is a new version (tracks_api.ad_hourly_v2 beside _v1),
 // and CI fails when a published view changes without one.
 //
-// It is empty until Tracks publishes its first views.
+// sql/tracks holds tracks_api's views and functions, one file each. Tracks'
+// migrations create them word for word, and a test there checks it.
 package contract

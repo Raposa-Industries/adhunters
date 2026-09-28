@@ -1,7 +1,7 @@
 #cloud-config
 # First boot only: an admin user, Tailscale, automatic security updates.
-# Everything else comes from the setup script in platform/servers/ (next
-# step), run over Tailscale, so the same script rebuilds a replacement box.
+# Everything else comes from platform/servers/setup.sh,
+# run over Tailscale, so the same script sets up a replacement box.
 hostname: ${hostname}
 users:
   - name: admin

@@ -1,0 +1,23 @@
+# Copies sealed raw files from the spool to the archive and records them.
+# Settings and keys are in /etc/adhunters/tracks-shipper.env.
+[Unit]
+Description=Tracks shipper
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=tracks
+Group=tracks
+EnvironmentFile=/etc/adhunters/tracks-shipper.env
+ExecStart=/opt/adhunters/bin/tracks-shipper run -spool /var/lib/tracks/spool -archive ${ARCHIVE} -box %H
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/tracks
+
+[Install]
+WantedBy=multi-user.target
