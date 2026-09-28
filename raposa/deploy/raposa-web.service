@@ -1,0 +1,24 @@
+# Raposa's pages. Settings in /etc/adhunters/raposa-web.env. Listens on
+# localhost (RAPOSA_WEB_ADDR); reach it over Tailscale until Cloudflare
+# Access is in front.
+[Unit]
+Description=Raposa web
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=raposa
+Group=raposa
+EnvironmentFile=/etc/adhunters/raposa-web.env
+ExecStart=/opt/adhunters/bin/raposa-web
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadOnlyPaths=/var/lib/raposa
+
+[Install]
+WantedBy=multi-user.target

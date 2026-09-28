@@ -1,0 +1,29 @@
+# Headless Chromium for the browser rungs and the keeper, on 127.0.0.1:8086.
+# It exits by itself after 200 visits and keeps (Chromium grows over hours),
+# and systemd starts a fresh one. Settings in /etc/adhunters/raposa-browser.env.
+[Unit]
+Description=Raposa browser runner
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=raposa
+Group=raposa
+Environment=HOME=/var/lib/raposa
+EnvironmentFile=-/etc/adhunters/raposa-browser.env
+WorkingDirectory=/opt/adhunters/raposa-browser
+ExecStart=/usr/bin/node runner.js
+Restart=always
+RestartSec=2
+TimeoutStopSec=30
+# Two visits and one keep at once fit well inside this; past it the kernel
+# stops the runner rather than the box.
+MemoryMax=6G
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/raposa
+
+[Install]
+WantedBy=multi-user.target

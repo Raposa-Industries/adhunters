@@ -121,6 +121,12 @@ test('the runner', { skip: !haveChrome && `no Chromium at ${CHROME}` }, async (t
     for (const r of await Promise.all(first)) assert.equal(r.status, 200);
   });
 
+  await t.test('it serves its numbers', async () => {
+    const text = await (await fetch(addr + '/metrics')).text();
+    assert.match(text, /^raposa_browser_jobs_done_total [1-9]/m);
+    assert.match(text, /^raposa_browser_visits_running 0$/m);
+  });
+
   await t.test('a keep writes the files and names the video', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'raposa-keep-'));
     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));

@@ -825,6 +825,21 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && path === '/metrics') {
+    // The Prometheus text format, by hand: five numbers need no library.
+    const lines = [
+      ['raposa_browser_visits_running', 'gauge', 'Visits running now.', visitsRunning],
+      ['raposa_browser_keeps_running', 'gauge', 'Keeps running now.', keepsRunning],
+      ['raposa_browser_jobs_done_total', 'counter', 'Visits and keeps finished since this runner started.', done],
+      ['raposa_browser_browsers', 'gauge', 'Chromium processes open, one per line in use.', pool.size],
+      ['raposa_browser_draining', 'gauge', '1 while the runner finishes its work before restarting.', draining ? 1 : 0],
+    ];
+    const body = lines.map(([n, t, h, v]) => `# HELP ${n} ${h}\n# TYPE ${n} ${t}\n${n} ${v}\n`).join('');
+    res.writeHead(200, { 'content-type': 'text/plain; version=0.0.4' });
+    res.end(body);
+    return;
+  }
+
   if (req.method === 'POST' && path === '/keep') {
     let keepBody = null;
     try {

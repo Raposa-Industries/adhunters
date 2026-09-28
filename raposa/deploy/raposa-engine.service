@@ -1,0 +1,25 @@
+# Runs investigations, keeps pages whole and delivers watches. Settings and
+# keys are in /etc/adhunters/raposa-engine.env; proxy lines and targets in
+# /etc/adhunters/raposa/. Migrations run before each start.
+[Unit]
+Description=Raposa engine
+Wants=network-online.target raposa-browser.service
+After=network-online.target raposa-browser.service
+
+[Service]
+User=raposa
+Group=raposa
+EnvironmentFile=/etc/adhunters/raposa-engine.env
+ExecStartPre=/opt/adhunters/bin/raposa-engine migrate
+ExecStart=/opt/adhunters/bin/raposa-engine run -workers ${WORKERS}
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/raposa
+
+[Install]
+WantedBy=multi-user.target
