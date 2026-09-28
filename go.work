@@ -4,5 +4,6 @@ use (
 	./contract
 	./kit
 	./raposa
+	./spy
 	./tracks
 )
