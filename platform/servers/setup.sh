@@ -41,6 +41,13 @@ say() { echo "== $*"; }
 common() {
     say "base: timezone UTC, the tracks user, folders"
     timedatectl set-timezone UTC
+    # Hetzner gives root a random password that has expired, and sudo from
+    # root (sudo -u postgres, sudo -u raposa) then asks for a new one. Root
+    # still can't log in: SSH is off for it and the password stays unknown.
+    if LC_ALL=C chage -l root | grep -q 'password must be changed'; then
+        chage -d "$(date +%F)" -M -1 root
+        say "cleared the expired root password"
+    fi
     id tracks >/dev/null 2>&1 || useradd --system --home-dir /var/lib/tracks --shell /usr/sbin/nologin tracks
     install -d -m 0755 /etc/adhunters /opt/adhunters/bin
     # Metrics files that scripts write for Alloy (pgBackRest on the data box).

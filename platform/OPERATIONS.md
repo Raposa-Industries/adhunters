@@ -118,6 +118,11 @@ as `NAME.prev` and restarts only units whose settings are complete; the
 capture instances restart one at a time, so collection never stops. It ends
 with a list of what is still to fill in. Details: `platform/servers/README.md`.
 
+If a setup stops at `sudo: Account or password is expired` and asks for
+root's current password, press Ctrl+C (nothing is lost) and run
+`sudo chage -d "$(date +%F)" -M -1 root`, then the setup again. Hetzner
+expires root's random password at creation; the setup now clears it itself.
+
 Rolling back one binary on a box:
 `sudo cp /opt/adhunters/bin/NAME.prev /opt/adhunters/bin/NAME && sudo systemctl restart UNIT`.
 
