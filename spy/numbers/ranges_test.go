@@ -95,7 +95,8 @@ func TestMomentumByHand(t *testing.T) {
 	check("rounded", b.rangeRow("creative_range", 10, today.Add(3*time.Hour+50*time.Minute), today.Add(8*time.Hour+10*time.Minute)))
 }
 
-// New, too little data, steady and fading.
+// New, too little data, steady and fading, and a fall on one publisher
+// only (blocked on one site), which is not fading.
 func TestMomentumWords(t *testing.T) {
 	b := newBench(t)
 	today := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
@@ -104,15 +105,22 @@ func TestMomentumWords(t *testing.T) {
 	b.ad(11, 110, 0, "ck-11", "Fading")
 	b.ad(12, 120, 0, "ck-12", "Small")
 	b.ad(13, 130, 0, "ck-13", "New")
+	b.exec(`INSERT INTO tracks_api.publisher_v1 (id, name) VALUES (3, 'Yahoo')`)
+	b.ad(14, 140, 0, "ck-14", "Gone from one site")
+	b.ad(15, 150, 0, "ck-15", "Down everywhere")
 	b.exec(`UPDATE tracks_api.creative_v1 SET first_seen_at = $1 WHERE id = 13`, today.Add(-2*time.Hour))
 	for h := 0; h < 8; h++ {
 		at := today.Add(time.Duration(h) * time.Hour)
-		b.hour(at, 1, 1, 1000, true, map[int]int{100: 300, 110: 100, 120: 1, 130: 40})
+		b.hour(at, 1, 1, 1000, true, map[int]int{100: 300, 110: 100, 120: 1, 130: 40, 150: 50})
+		b.hour(at, 2, 1, 1000, true, map[int]int{140: 100, 150: 50})
+		b.hour(at, 3, 1, 1000, true, map[int]int{140: 100, 150: 50})
 		for w := 1; w <= 3; w++ {
-			b.hour(at.AddDate(0, 0, -7*w), 1, 1, 1000, true, map[int]int{100: 300, 110: 300, 120: 1})
+			b.hour(at.AddDate(0, 0, -7*w), 1, 1, 1000, true, map[int]int{100: 300, 110: 300, 120: 1, 140: 100, 150: 100})
+			b.hour(at.AddDate(0, 0, -7*w), 2, 1, 1000, true, map[int]int{140: 100, 150: 100})
+			b.hour(at.AddDate(0, 0, -7*w), 3, 1, 1000, true, map[int]int{140: 100, 150: 100})
 		}
 	}
-	for key, want := range map[int]string{10: "steady", 11: "fading", 12: "too_little", 13: "new"} {
+	for key, want := range map[int]string{10: "steady", 11: "fading", 12: "too_little", 13: "new", 14: "unclear", 15: "fading"} {
 		got := b.rangeRow("creative_range", key, today, today.Add(8*time.Hour))
 		if got.word != want {
 			t.Errorf("creative %d is %s, want %s (%+v)", key, got.word, want, got)
@@ -125,6 +133,17 @@ func TestMomentumWords(t *testing.T) {
 	}
 	if got := b.rangeRow("creative_range", 11, today, today.Add(8*time.Hour)); !close3(got.momentum, 1.0/3) || got.sure != "clear" {
 		t.Errorf("fading: %+v", got)
+	}
+	var one string
+	if err := b.db.QueryRow(b.ctx, `SELECT string_agg(creative_id || '=' || COALESCE(fall_on_one_publisher::text, '-'), ' ' ORDER BY creative_id)
+		FROM spy.creative_range($1, $2, NULL, NULL, $3) WHERE creative_id IN (11, 14, 15)`, today, today.Add(8*time.Hour), now).Scan(&one); err != nil {
+		t.Fatal(err)
+	}
+	if one != "11=false 14=true 15=false" {
+		t.Errorf("fall on one publisher: %s", one)
+	}
+	if got := b.rangeRow("creative_range", 14, today, today.Add(8*time.Hour)); !close3(got.momentum, 2.0/3) || got.sure != "likely" {
+		t.Errorf("gone from one site: %+v", got)
 	}
 }
 

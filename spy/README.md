@@ -26,7 +26,9 @@ spy-numbers status
 ```
 
 `/healthz` fails when the read model or Direction has not succeeded for 20
-minutes. `/metrics` has `spy_numbers_runs_total{job,outcome}`,
+minutes. Each job is also a kit task (`adhunters_task_*`), promising the
+last 24 hours every 90 minutes and the others every 20, so the TaskLate
+alert covers them. `/metrics` has `spy_numbers_runs_total{job,outcome}`,
 `spy_numbers_seconds{job}`, `spy_numbers_rows{job}`,
 `spy_numbers_last_success_timestamp_seconds{job}` and
 `spy_recent_window_end_timestamp_seconds`. The unit and example settings
@@ -57,8 +59,10 @@ is written to `direction_event` for alerts.
 
 The collector's `direction_fill_usual` took about 4 minutes per slot hour
 on a CX43 (tracks/measure/hourclose-direction). It now goes through
-analysed temporary tables; [measure/](measure/) has the timings at Tracks'
-volume.
+analysed temporary tables; [measure/](measure/results-20260928.md) has
+the timings at Tracks' volume (Direction every 5 minutes: 5 s; a creative
+list over a custom range: 10 to 15 s, so the app must run it with a
+longer timeout and keep the answer).
 
 ### Groupings
 
@@ -115,5 +119,7 @@ gets a new version: a new contract file and a new migration.
 
 - The app.
 - Screens to edit groupings; until then the collector stays their source.
+- Direction's fading guard for one site (ranges have it; Direction sums its
+  usual publishers).
 - The nightly checks METRICS.md asks for (stopped accuracy, predictive
   value) once Tracks has weeks of history.

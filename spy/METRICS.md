@@ -93,7 +93,7 @@ When one side is zero, the range is a one-sided Poisson bound.
 | Word | When | Sure |
 |---|---|---|
 | `rising` | the change passes Benjamini–Hochberg at 10 % across the list, and momentum ≥ 1.25 | `clear` |
-| `fading` | the same, and momentum ≤ 0.8 | `clear` |
+| `fading` | the same, momentum ≤ 0.8, and still ≤ 0.8 without the publisher where it fell most | `clear` |
 | `steady` | the likely range sits inside 0.8 to 1.25 | |
 | `unclear` ("can't tell yet") | anything else | `likely` when the range leaves out 1, else empty |
 | `new` | no usual period: the subject did not exist yet | |
@@ -101,6 +101,11 @@ When one side is zero, the range is a one-sided Poisson bound.
 
 No momentum number is shown for `too_little` and `new`: the columns are
 NULL.
+
+`fall_on_one_publisher` is true when the subject fell but, leaving out the
+publisher where it fell most, it did not: one site dropped it (a block, a
+site-level cap), and the ad itself is not fading. Such a fall is `unclear`
+(often `likely`), never `fading`.
 
 `momentum_rank` answers "who had more momentum": it orders by the
 **shrunk** log ratio, `ln M · τ² / (τ² + Var)` with `τ²` the spread of real
@@ -118,10 +123,12 @@ creatives) when the vertical has fewer than 20.
 
 ### Launch hit rate (operators)
 `launches`: the operator's creatives first seen in the range. A **hit**
-ran 7 days or more; a **miss** ended sooner (not seen for 48 hours);
+ran 15 days or more; a **miss** ended sooner (not seen for 48 hours);
 `testing` has no outcome yet. `hit_rate_pct` is hits ÷ (hits + misses),
 with a Wilson 90 % range (`hit_rate_low_pct`, `hit_rate_high_pct`), shown
-once 5 launches have an outcome.
+once 5 launches have an outcome. Taboola's A/B tests run 14 days, so a
+creative still running on day 15 won its test; 7 days would count every
+loser still inside its test as a hit.
 
 ### Direction (the live one)
 Direction is momentum for right now: the last 2 hours against the same
@@ -129,13 +136,30 @@ hours of the usual weeks, rerun every 5 minutes. Its gap is
 `z = (seen − expected) / √(noise · max(expected, 1))`, and entering rising
 or fading also needs Benjamini–Hochberg across the run. It keeps its old
 words (rising, steady, fading, stopped) and hysteresis; see
-[README](README.md#direction).
+[README](README.md#direction). Direction sums a subject's usual publishers
+together, so unlike ranges it cannot yet tell a block on one site from
+fading; check the range over the same hours before acting on it.
 
 ### Retired
 Stage, the conviction index, volatility and half-life are gone. Each was a
 blend of numbers with weights nobody could check, and the handbook's
 simulation showed they flag noise as signal. `is_new` (first seen in the
 last 3 days) and `running` replace Stage's useful parts.
+
+## What looks like fading and is not
+
+An ad can drop out for reasons that have nothing to do with how well it
+does. How each is kept from reading as fading:
+
+| Cause | Guard |
+|---|---|
+| A schedule that switches the ad off at some hours or days | Every hour is compared with the same hour of the week (and every day with the same weekday), so a weekly schedule is in the usual too. |
+| A daily cap, which resets on the account's clock, not UTC | Same hours of the week again: a cap that bites at the usual time cancels out. A cap that bites earlier than usual is a real drop in presence that day; judge trends on ranges of a day or more, and read Direction's 2-hour window as "right now". |
+| A monthly budget running out | A real stop. It reads as stopped or fading until the next budget. Nothing in the feed tells a budget from a decision. |
+| A 14-day A/B test ending | The losers stop: that is real, and the signal is the winner. Hits must run 15 days for the same reason. |
+| Blocked on one site | Fading needs the fall to hold without its biggest-falling publisher; otherwise `fall_on_one_publisher`. |
+| Targeting we do not scrape (tablets, places) | Presence is per check of what we scrape. An ad moving its budget to tablets looks like fading here; there is no way to see it. |
+| We scraped less (outages, a publisher dropped) | Sightings are divided by checks of the same publisher, device and hour, and hours without checks count for neither side. |
 
 ## Adding a number
 
@@ -171,4 +195,4 @@ With 10 % of ads truly rising, 1 to 2.6 % of the unchanged ads get a word
 too (the false discovery rate at work, across seeds): a word is a strong
 hint, not proof, and the likely range says how strong.
 
-Timings at Tracks' volume are in [`measure/`](measure/).
+Timings at Tracks' volume are in [`measure/`](measure/results-20260928.md).

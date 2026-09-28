@@ -65,7 +65,7 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | running | Seen in the last 48 hours (as of a range's end). A creative not running has ended. |
 | lifespan | First sighting to last, for a creative; compared with the others of its vertical as the share that ended younger. |
 | launch | An operator's creative first seen in a range. |
-| hit rate | The share of an operator's launches with an outcome that ran 7 days or more (a hit) rather than ending sooner (a miss). |
+| hit rate | The share of an operator's launches with an outcome that ran 15 days or more, past a Taboola A/B test's 14 (a hit), rather than ending sooner (a miss). |
 | Size | A subject's share and rank in its vertical over 24 hours and 7 days. Scaled: among the few creatives that make half their vertical. |
 | stage | Retired: the collector's blend of counts into test, scaling and winner. Use momentum, lifespan and new. |
 

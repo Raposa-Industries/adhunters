@@ -119,7 +119,7 @@ func runCmd() error {
 	defer db.Close()
 
 	srv := ops.New("spy-numbers", version)
-	r := numbers.New(db, log, numbers.Config{}, srv.Registry)
+	r := numbers.New(db, log, numbers.Config{Tasks: srv.Tasks()}, srv.Registry)
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 	srv.AddCheck("numbers", r.Healthy)
 

@@ -48,7 +48,8 @@ SELECT window_end, network_sightings_24h, refreshed_at FROM spy.recent_window;
 CREATE VIEW spy_api.creative_recent_v1 AS
 SELECT creative_id, network_id, sightings, sightings_usual, checks, checks_usual, presence, presence_usual,
        phone_presence, desktop_presence, share_pct, share_usual_pct, share_gain_pts, rank, momentum, momentum_low,
-       momentum_high, momentum_word, momentum_sure, momentum_rank, noise, usual_periods, publishers, first_seen_at, vertical,
+       momentum_high, momentum_word, momentum_sure, momentum_rank,
+       fall_on_one_publisher, noise, usual_periods, publishers, first_seen_at, vertical,
        vertical_share_pct, vertical_rank, scaled, last_seen_at, running, lifespan_days, lifespan_pct,
        lifespan_curve, operator_id, is_junk
 FROM spy.creative_recent;
@@ -57,7 +58,8 @@ FROM spy.creative_recent;
 CREATE VIEW spy_api.operator_recent_v1 AS
 SELECT operator_id, network_id, sightings, sightings_usual, checks, checks_usual, presence, presence_usual,
        phone_presence, desktop_presence, share_pct, share_usual_pct, share_gain_pts, rank, momentum, momentum_low,
-       momentum_high, momentum_word, momentum_sure, momentum_rank, noise, usual_periods, publishers, first_seen_at, launches, hits,
+       momentum_high, momentum_word, momentum_sure, momentum_rank,
+       fall_on_one_publisher, noise, usual_periods, publishers, first_seen_at, launches, hits,
        misses, testing, hit_rate_pct, hit_rate_low_pct, hit_rate_high_pct
 FROM spy.operator_recent;
 
@@ -98,7 +100,8 @@ RETURNS TABLE (creative_id INTEGER, network_id INTEGER, sightings BIGINT, sighti
                checks_usual BIGINT, presence NUMERIC, presence_usual NUMERIC, phone_presence NUMERIC,
                desktop_presence NUMERIC, share_pct NUMERIC, share_usual_pct NUMERIC, share_gain_pts NUMERIC,
                rank INTEGER, momentum NUMERIC, momentum_low NUMERIC, momentum_high NUMERIC, momentum_word TEXT,
-               momentum_sure TEXT, momentum_rank INTEGER, noise NUMERIC, usual_periods INTEGER, publishers INTEGER,
+               momentum_sure TEXT, momentum_rank INTEGER,
+               fall_on_one_publisher BOOLEAN, noise NUMERIC, usual_periods INTEGER, publishers INTEGER,
                first_seen_at TIMESTAMPTZ, vertical TEXT, vertical_share_pct NUMERIC,
                vertical_rank INTEGER, scaled BOOLEAN, last_seen_at TIMESTAMPTZ, running BOOLEAN,
                lifespan_days INTEGER, lifespan_pct NUMERIC, lifespan_curve TEXT, operator_id INTEGER,
@@ -114,7 +117,8 @@ RETURNS TABLE (operator_id INTEGER, network_id INTEGER, sightings BIGINT, sighti
                checks_usual BIGINT, presence NUMERIC, presence_usual NUMERIC, phone_presence NUMERIC,
                desktop_presence NUMERIC, share_pct NUMERIC, share_usual_pct NUMERIC, share_gain_pts NUMERIC,
                rank INTEGER, momentum NUMERIC, momentum_low NUMERIC, momentum_high NUMERIC, momentum_word TEXT,
-               momentum_sure TEXT, momentum_rank INTEGER, noise NUMERIC, usual_periods INTEGER, publishers INTEGER,
+               momentum_sure TEXT, momentum_rank INTEGER,
+               fall_on_one_publisher BOOLEAN, noise NUMERIC, usual_periods INTEGER, publishers INTEGER,
                first_seen_at TIMESTAMPTZ, launches INTEGER, hits INTEGER, misses INTEGER,
                testing INTEGER, hit_rate_pct NUMERIC, hit_rate_low_pct NUMERIC, hit_rate_high_pct NUMERIC)
 LANGUAGE sql
@@ -128,7 +132,8 @@ RETURNS TABLE (vertical TEXT, network_id INTEGER, sightings BIGINT, sightings_us
                checks_usual BIGINT, presence NUMERIC, presence_usual NUMERIC, phone_presence NUMERIC,
                desktop_presence NUMERIC, share_pct NUMERIC, share_usual_pct NUMERIC, share_gain_pts NUMERIC,
                rank INTEGER, momentum NUMERIC, momentum_low NUMERIC, momentum_high NUMERIC, momentum_word TEXT,
-               momentum_sure TEXT, momentum_rank INTEGER, noise NUMERIC, usual_periods INTEGER, publishers INTEGER,
+               momentum_sure TEXT, momentum_rank INTEGER,
+               fall_on_one_publisher BOOLEAN, noise NUMERIC, usual_periods INTEGER, publishers INTEGER,
                first_seen_at TIMESTAMPTZ)
 LANGUAGE sql
 AS $$ SELECT * FROM spy.subject_range('vertical', p_from, p_to, p_usual_from, p_usual_to, now()) $$;

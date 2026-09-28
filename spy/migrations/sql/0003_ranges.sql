@@ -42,7 +42,7 @@ INSERT INTO spy.setting (name, value, text_value, note) VALUES
     ('lifespan_days', 90, NULL, 'Lifespan: creatives first seen in these days make the curve a creative is compared with.'),
     ('ended_hours', 48, NULL, 'Lifespan: a creative not seen for this many hours has ended.'),
     ('lifespan_min_group', 20, NULL, 'Lifespan: a vertical needs this many creatives for its own curve; smaller ones use all creatives.'),
-    ('hit_days', 7, NULL, 'Hit rate: a launch that ran this many days is a hit.'),
+    ('hit_days', 15, NULL, 'Hit rate: a launch that ran this many days is a hit. Taboola A/B tests run 14 days, so a hit outlasted its test.'),
     ('hit_min_known', 5, NULL, 'Hit rate: shown once this many launches have an outcome.');
 
 -- How much each subject's counts vary beyond chance, measured once a day
@@ -253,6 +253,7 @@ CREATE TYPE spy.range_row AS (
     momentum_word TEXT,          -- rising, fading, steady, unclear, new, too_little
     momentum_sure TEXT,          -- clear (rising, fading); likely (unclear, but the range leaves out 1)
     momentum_rank INTEGER,       -- "who had more momentum": shrunk ratio, 1 = most
+    fall_on_one_publisher BOOLEAN, -- it fell, but without its biggest fall on one publisher it did not
     noise NUMERIC,               -- the dispersion used (phi)
     usual_periods INTEGER,       -- usual periods that count (the subject existed); 0 = new
     publishers INTEGER,          -- publishers it was seen on in the range
@@ -295,7 +296,9 @@ $$;
 --              with one side 0, a range that does not clear word_fall or
 --              word_rise. rising: M >= word_rise and the change passes
 --              Benjamini-Hochberg at fdr over the network's list. fading: M <=
---              word_fall and it passes. steady: the likely range inside
+--              word_fall, it passes, and it still falls below word_fall
+--              without the publisher where it fell most
+--              (fall_on_one_publisher otherwise). steady: the likely range inside
 --              word_fall..word_rise. unclear: anything else.
 --   Sure       clear: rising and fading (they passed the list's check).
 --              likely: unclear, but the likely range leaves out 1; the
@@ -502,7 +505,8 @@ BEGIN
     -- Per subject and network: the sums every number is made of.
     CREATE TEMP TABLE IF NOT EXISTS spy_r_key (id INTEGER, key TEXT, network_id INTEGER, a BIGINT, b BIGINT,
         ab_shared BIGINT, num FLOAT8, den FLOAT8, v FLOAT8, reach1 FLOAT8, reach0 FLOAT8, pubs INTEGER, a_phone BIGINT, a_desktop BIGINT,
-        periods INTEGER, first_seen TIMESTAMPTZ, noise FLOAT8, PRIMARY KEY (id, network_id)) ON COMMIT DROP;
+        periods INTEGER, first_seen TIMESTAMPTZ, noise FLOAT8, num_top FLOAT8, den_top FLOAT8,
+        PRIMARY KEY (id, network_id)) ON COMMIT DROP;
     TRUNCATE spy_r_key;
     INSERT INTO spy_r_key
     SELECT s.id, COALESCE(vn.name, s.id::text), s.network_id, sum(s.a), sum(s.b),
@@ -515,7 +519,7 @@ BEGIN
            COALESCE(max(pc.pubs), 0),
            COALESCE(sum(s.a) FILTER (WHERE s.device_id = phone), 0),
            COALESCE(sum(s.a) FILTER (WHERE s.device_id = desktop), 0),
-           sb.periods, sb.first_seen, NULL
+           sb.periods, sb.first_seen, NULL, NULL, NULL
     FROM spy_r_stratum s
     JOIN spy_r_subject sb ON sb.id = s.id
     LEFT JOIN spy_r_name vn ON vn.id = s.id
@@ -524,6 +528,21 @@ BEGIN
                GROUP BY 1, 2) pc ON pc.id = s.id AND pc.network_id = s.network_id
     GROUP BY s.id, vn.name, s.network_id, sb.periods, sb.first_seen;
     ANALYZE spy_r_key;
+
+    -- The publisher with the biggest fall (usual minus now, in the momentum's
+    -- own terms). A fall that is gone without it is one site dropping the ad
+    -- (a block, a site's own cap), not the ad fading, so it is not called
+    -- fading.
+    UPDATE spy_r_key k SET num_top = t.num_p, den_top = t.den_p
+    FROM (
+        SELECT DISTINCT ON (id, network_id) id, network_id, num_p, den_p
+        FROM (SELECT id, network_id, publisher_id,
+                     sum(a::float8 * t0 / (t1 + t0)) AS num_p, sum(b::float8 * t1 / (t1 + t0)) AS den_p
+              FROM spy_r_stratum WHERE t1 + t0 > 0
+              GROUP BY 1, 2, 3) x
+        ORDER BY id, network_id, den_p - num_p DESC
+    ) t
+    WHERE t.id = k.id AND t.network_id = k.network_id;
 
     -- Noise, measured on the strata for subjects with enough sightings.
     WITH fit AS (
@@ -623,10 +642,14 @@ BEGIN
         SELECT bh2.*,
                CASE WHEN bh2.state IS NULL AND bh2.var_ln > 0
                     THEN ln(bh2.mh) * bh2.tau2 / (bh2.tau2 + bh2.var_ln) END AS shrunk,
+               bh2.state IS NULL AND bh2.mh < 1 AND bh2.den - bh2.den_top > 0
+                   AND (bh2.num - bh2.num_top) / (bh2.den - bh2.den_top) > s_fall AS one_pub,
                CASE
                    WHEN bh2.state IS NOT NULL THEN bh2.state
                    WHEN bh2.p <= bh2.p_cut AND bh2.z > 0 AND (bh2.mh IS NULL OR bh2.mh >= s_rise) THEN 'rising'
-                   WHEN bh2.p <= bh2.p_cut AND bh2.z < 0 AND bh2.mh <= s_fall THEN 'fading'
+                   WHEN bh2.p <= bh2.p_cut AND bh2.z < 0 AND bh2.mh <= s_fall
+                        AND NOT (bh2.den - bh2.den_top > 0 AND (bh2.num - bh2.num_top) / (bh2.den - bh2.den_top) > s_fall)
+                   THEN 'fading'
                    WHEN bh2.lo >= s_fall AND bh2.hi <= s_rise THEN 'steady'
                    ELSE 'unclear'
                END AS word
@@ -651,6 +674,7 @@ BEGIN
            CASE WHEN f.state IS NULL THEN (row_number() OVER (
                PARTITION BY f.network_id, f.state IS NULL
                ORDER BY f.shrunk DESC NULLS LAST, f.z DESC NULLS LAST, f.a DESC))::int END,
+           CASE WHEN f.state IS NULL THEN f.one_pub END,
            round(f.noise::numeric, 2),
            f.periods::int,
            f.pubs::int,
@@ -682,6 +706,7 @@ CREATE TYPE spy.creative_range_row AS (
     momentum_word TEXT,
     momentum_sure TEXT,
     momentum_rank INTEGER,
+    fall_on_one_publisher BOOLEAN,
     noise NUMERIC,
     usual_periods INTEGER,
     publishers INTEGER,
@@ -815,7 +840,7 @@ BEGIN
     SELECT v.key::int, v.network_id, v.sightings, v.sightings_usual, v.checks, v.checks_usual, v.presence,
            v.presence_usual, v.phone_presence, v.desktop_presence, v.share_pct, v.share_usual_pct,
            v.share_gain_pts, v.rank, v.momentum, v.momentum_low, v.momentum_high, v.momentum_word,
-           v.momentum_sure, v.momentum_rank, v.noise, v.usual_periods, v.publishers, v.first_seen_at,
+           v.momentum_sure, v.momentum_rank, v.fall_on_one_publisher, v.noise, v.usual_periods, v.publishers, v.first_seen_at,
            v.vert,
            CASE WHEN v.vert IS NOT NULL THEN round(100.0 * v.sightings / NULLIF(v.vert_total, 0), 4) END,
            v.vrank,
@@ -859,6 +884,7 @@ CREATE TYPE spy.operator_range_row AS (
     momentum_word TEXT,
     momentum_sure TEXT,
     momentum_rank INTEGER,
+    fall_on_one_publisher BOOLEAN,
     noise NUMERIC,
     usual_periods INTEGER,
     publishers INTEGER,
@@ -912,7 +938,7 @@ BEGIN
     SELECT r.key::int, r.network_id, r.sightings, r.sightings_usual, r.checks, r.checks_usual, r.presence,
            r.presence_usual, r.phone_presence, r.desktop_presence, r.share_pct, r.share_usual_pct,
            r.share_gain_pts, r.rank, r.momentum, r.momentum_low, r.momentum_high, r.momentum_word,
-           r.momentum_sure, r.momentum_rank, r.noise, r.usual_periods, r.publishers, r.first_seen_at,
+           r.momentum_sure, r.momentum_rank, r.fall_on_one_publisher, r.noise, r.usual_periods, r.publishers, r.first_seen_at,
            COALESCE(w.n, 0)::int, COALESCE(w.hits, 0)::int, COALESCE(w.misses, 0)::int,
            COALESCE(w.n - w.hits - w.misses, 0)::int,
            CASE WHEN w.k >= s_known THEN round((100 * w.ph)::numeric, 1) END,

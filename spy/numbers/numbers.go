@@ -19,6 +19,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 
 // Jobs, in the order a 5-minute tick runs them.
@@ -34,6 +36,15 @@ type Config struct {
 	Every     int              // the read model and Direction run every this many ticks (5)
 	Now       func() time.Time // the clock, for tests
 	StaleWarn time.Duration    // health fails when a job has not succeeded for this long (20 minutes)
+	Tasks     *ops.Tasks       // when set, each job is reported as a task with its promise (Promises)
+}
+
+// Promises is how often each job must succeed before the TaskLate alert:
+// the last 24 hours follow Tracks' closed hours, which come hourly.
+var Promises = map[string]time.Duration{
+	JobRecent:    90 * time.Minute,
+	JobReadModel: 20 * time.Minute,
+	JobDirection: 20 * time.Minute,
 }
 
 // Runner runs the jobs.
@@ -94,6 +105,11 @@ func New(db *pgxpool.Pool, log *slog.Logger, cfg Config, reg prometheus.Register
 	if reg != nil {
 		reg.MustRegister(r.runs, r.seconds, r.rows, r.last, r.winEnd)
 	}
+	if cfg.Tasks != nil {
+		for job, every := range Promises {
+			cfg.Tasks.Promise(job, every)
+		}
+	}
 	return r
 }
 
@@ -137,6 +153,9 @@ func (r *Runner) job(ctx context.Context, name, query string, args ...any) (int6
 		if ctx.Err() != nil {
 			return 0, ctx.Err()
 		}
+		if r.cfg.Tasks != nil {
+			r.cfg.Tasks.Done(name, start, 0, err)
+		}
 		r.runs.WithLabelValues(name, "failed").Inc()
 		r.log.Error("numbers job failed", "job", name, "took_ms", took.Milliseconds(), "err", err)
 		return 0, fmt.Errorf("%s: %w", name, err)
@@ -148,6 +167,9 @@ func (r *Runner) job(ctx context.Context, name, query string, args ...any) (int6
 		outcome = "current"
 	}
 	r.runs.WithLabelValues(name, outcome).Inc()
+	if r.cfg.Tasks != nil {
+		r.cfg.Tasks.Done(name, start, n, nil)
+	}
 	r.rows.WithLabelValues(name).Set(float64(n))
 	r.last.WithLabelValues(name).SetToCurrentTime()
 	r.mu.Lock()

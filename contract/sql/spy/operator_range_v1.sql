@@ -6,7 +6,8 @@ RETURNS TABLE (operator_id INTEGER, network_id INTEGER, sightings BIGINT, sighti
                checks_usual BIGINT, presence NUMERIC, presence_usual NUMERIC, phone_presence NUMERIC,
                desktop_presence NUMERIC, share_pct NUMERIC, share_usual_pct NUMERIC, share_gain_pts NUMERIC,
                rank INTEGER, momentum NUMERIC, momentum_low NUMERIC, momentum_high NUMERIC, momentum_word TEXT,
-               momentum_sure TEXT, momentum_rank INTEGER, noise NUMERIC, usual_periods INTEGER, publishers INTEGER,
+               momentum_sure TEXT, momentum_rank INTEGER,
+               fall_on_one_publisher BOOLEAN, noise NUMERIC, usual_periods INTEGER, publishers INTEGER,
                first_seen_at TIMESTAMPTZ, launches INTEGER, hits INTEGER, misses INTEGER,
                testing INTEGER, hit_rate_pct NUMERIC, hit_rate_low_pct NUMERIC, hit_rate_high_pct NUMERIC)
 LANGUAGE sql
