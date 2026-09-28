@@ -1,0 +1,11 @@
+# HCP Terraform uploads the repository root (the workspace's working
+# directory is platform/terraform) so the servers' cloud-init template is
+# found. Everything else stays behind.
+.git/
+tracks/
+kit/
+contract/
+scripts/
+decisions/
+*.md
+!platform/**

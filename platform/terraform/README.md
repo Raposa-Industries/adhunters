@@ -6,7 +6,8 @@ private network and a firewall with no public TCP ports. The Cloudflare
 tunnel, DNS and Access apps are added when the first new app goes up.
 
 State and runs live in HCP Terraform (organization `adhunters`, workspace
-`platform`). Set these as workspace variables, marked sensitive where needed:
+`platform`, Terraform Working Directory `platform/terraform`, so a run also
+sees `platform/servers/`; `.terraformignore` at the root keeps the rest out). Set these as workspace variables, marked sensitive where needed:
 `hcloud_token`, `tailscale_auth_key`, `admin_ssh_keys`, and later
 `cloudflare_api_token`.
 
