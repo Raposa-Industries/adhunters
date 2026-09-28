@@ -72,6 +72,15 @@ var twoLevelSuffixes = map[string]bool{
 	"co.jp": true, "co.nz": true, "co.za": true, "co.in": true, "com.sg": true,
 }
 
+// SiteScope is the scope burned lines are kept in for an ad whose link goes
+// to host: "site:" and its registrable domain, or "" for no host.
+func SiteScope(host string) string {
+	if d := registrableDomain(bareHost(host)); d != "" {
+		return "site:" + d
+	}
+	return ""
+}
+
 // registrableDomain is the part of a host an operator buys: the last label,
 // or the last two when the suffix takes two.
 func registrableDomain(host string) string {

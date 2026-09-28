@@ -157,10 +157,7 @@ func (r *run) prepare(ctx context.Context) error {
 		r.logf("the ad ran on %s in the last day: the rungs that follow the campaign try each device", strings.Join(parts, " and "))
 	}
 
-	scope := ""
-	if d := registrableDomain(bareHost(ad.LandingHost)); d != "" {
-		scope = "site:" + d
-	}
+	scope := SiteScope(ad.LandingHost)
 	r.inv.BurnScope = scope
 	burned, err := r.e.store.BurnedLines(ctx, scope)
 	if err != nil {

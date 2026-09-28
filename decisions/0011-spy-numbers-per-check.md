@@ -1,4 +1,4 @@
-# 0009 · Spy: every number is sightings per check
+# 0011 · Spy: every number is sightings per check
 
 **Decided:** 28 Sep 2026. The owner asked for numbers that hold for any
 start and end and do not mislead; the Spy metrics handbook (the research

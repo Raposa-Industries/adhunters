@@ -1,0 +1,130 @@
+# Operating the platform
+
+How the servers are laid out, how to get onto them, and how to build and
+deploy. Keep this page true: a change to servers, access or deploys updates
+it in the same PR.
+
+## What exists
+
+| Box | Hetzner name | Type | Location | Private IP | Public IPv4 | Runs |
+|---|---|---|---|---|---|---|
+| worker | `adhunters-worker` | CX43 | Nuremberg (nbg1) | 10.20.1.10 | 2.28.193.220 (Primary IP, kept across rebuilds) | capture `@a` `@b`, shipper, Raposa |
+| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups |
+| standby | `adhunters-standby` | CX23 | Falkenstein (fsn1) | 10.20.1.30 | 2.28.138.34 (Primary IP) | capture `@standby`, shipper |
+
+All three are in one Hetzner project, created by Terraform
+(`platform/terraform`). The firewall has no open public TCP port: everything
+goes through Tailscale. Each box's role is in `/etc/adhunters/role`.
+
+Object Storage, same Hetzner project, Falkenstein, private, endpoint
+`fsn1.your-objectstorage.com`. One S3 key pair covers all of them.
+
+| Bucket | Holds |
+|---|---|
+| `adhunters-raw` | every raw file capture wrote (Tracks' archive) |
+| `adhunters-raposa` | Raposa's captured files |
+| `adhunters-backups` | Postgres WAL and base backups (pgBackRest) |
+
+Proxies log in with username and password; no provider has an IP allowlist
+for them (checked 28 Sep 2026), so the new boxes need no allowlist change.
+
+## Accounts
+
+| What | Where | Notes |
+|---|---|---|
+| Servers, buckets | Hetzner Console, the adhunters project | New accounts have a shared-vCPU limit; it was raised to 30 on 28 Sep 2026. Ask under Limits before adding servers. |
+| Terraform state and runs | app.terraform.io, organization `adhunters`, workspace `platform` | Workspace variables: `hcloud_token`, `tailscale_auth_key`, `admin_ssh_keys`. **Terraform Working Directory must be `platform/terraform`**, or runs can't see `platform/servers/`. |
+| Machine access | login.tailscale.com | Boxes join tagged `tag:server` with the reusable auth key. |
+| Metrics, logs, alerts | Grafana Cloud, Sentry, Better Stack, Telegram | See `platform/observe/README.md`. |
+
+Keys and passwords live in the owner's password manager and in the boxes'
+`/etc/adhunters/*.env` files (root and the service user only). Never in the
+repo, the project chat or WhatsApp.
+
+## Getting onto a box
+
+Tailscale on your computer, signed in to the same tailnet, then:
+
+```
+ssh admin@adhunters-data      # or adhunters-worker, adhunters-standby
+```
+
+Boxes use Tailscale SSH, so the tailnet policy (Access controls) needs this
+rule inside `"ssh": [ ]`, beside the default one:
+
+```
+{
+    "action": "accept",
+    "src":    ["autogroup:member"],
+    "dst":    ["tag:server"],
+    "users":  ["admin", "root"],
+},
+```
+
+Without it SSH fails with "tailnet policy does not permit you to SSH to this
+node". Run commands one at a time: lines pasted together with `ssh` run on
+your own computer after it.
+
+Useful on a box:
+
+```
+systemctl status 'tracks-*' 'raposa-*'     # what runs
+journalctl -u tracks-loader -f             # follow one service's log
+curl -s localhost:9104/healthz             # a service's health (ports in platform/servers/README.md)
+sudo -u tracks /opt/adhunters/bin/tracks-loader status -books   # needs its env: see below
+```
+
+For a command that needs a service's settings:
+`sudo bash -c 'set -a; . /etc/adhunters/tracks-loader.env; /opt/adhunters/bin/tracks-loader status'`.
+
+## Servers: create or change
+
+From a checkout of `main`:
+
+```
+cd platform/terraform
+terraform login      # once; a 30-day token is fine
+terraform plan       # read it: expect 0 to change, 0 to destroy unless you meant it
+terraform apply
+```
+
+The run happens in HCP Terraform (also startable from the website: workspace,
+New run, Plan and apply). A partial apply is safe to repeat: it only creates
+what is missing.
+
+## Build and deploy
+
+Build on your computer (Go 1.25), from the repository root:
+
+```
+git checkout main && git pull
+GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" \
+  -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./platform/observe/cmd/...
+```
+
+Copy the checkout with the binaries to a box and run the setup there:
+
+```
+rsync -az --exclude .git ./ admin@adhunters-data:adhunters/
+ssh admin@adhunters-data
+cd ~/adhunters/platform/servers
+sudo ./setup.sh --bin ~/adhunters/bin
+```
+
+Order: **data box first** (it creates the database logins and prints their
+passwords once), then worker, then standby. The setup can run again at any
+time; that is also how a new build is deployed. It keeps the previous build
+as `NAME.prev` and restarts only units whose settings are complete; the
+capture instances restart one at a time, so collection never stops. It ends
+with a list of what is still to fill in. Details: `platform/servers/README.md`.
+
+Rolling back one binary on a box:
+`sudo cp /opt/adhunters/bin/NAME.prev /opt/adhunters/bin/NAME && sudo systemctl restart UNIT`.
+
+## Not yet
+
+- Deploys from CI (build, migrate, copy over Tailscale, wait for healthy).
+  Until then, deploys are the commands above, run by hand.
+- A home for secrets (sops or similar): the `.env` files are written by hand.
+- The switch-over from the old collector (prodbox and bigworker keep running
+  until the owner says otherwise).

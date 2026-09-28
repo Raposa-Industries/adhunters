@@ -1,0 +1,11 @@
+# Weekly full backup, Sunday 03:30 UTC (00:30 in São Paulo).
+[Unit]
+Description=Weekly full pgBackRest backup
+
+[Timer]
+OnCalendar=Sun *-*-* 03:30:00 UTC
+Persistent=true
+Unit=pgbackrest-backup@full.service
+
+[Install]
+WantedBy=timers.target

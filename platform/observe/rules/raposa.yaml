@@ -1,0 +1,20 @@
+groups:
+  - name: raposa
+    interval: 1m
+    rules:
+      - alert: RaposaBrowserDown
+        expr: sum(rate(raposa_keeps_total{result="runner_down"}[15m])) > 0
+        for: 15m
+        labels:
+          tier: chat
+        annotations:
+          summary: Raposa's keeper has found the browser runner down for 15 minutes.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raposa-browser-down.md
+
+      - alert: WatchDeliveryFailing
+        expr: sum(increase(raposa_watch_deliveries_total{status="failed"}[30m])) > 0
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $value | humanize }} watch event(s) could not be sent to Pushcut in the last 30 minutes.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/watch-delivery-failing.md

@@ -1,0 +1,14 @@
+// Data box only: Postgres metrics (connections, locks, cache hits, dead rows,
+// database size, replication and WAL archiving) through the read-only
+// "observe" login (pg_monitor), created by platform/servers/setup.sh.
+
+prometheus.exporter.postgres "db" {
+  data_source_names = [sys.env("POSTGRES_MONITOR_URL")]
+}
+
+prometheus.scrape "postgres" {
+  job_name        = "postgres"
+  targets         = prometheus.exporter.postgres.db.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.cloud.receiver]
+}

@@ -14,19 +14,21 @@ and `browser/`), with the work held differently
 
 | Binary | Does | Listens |
 |---|---|---|
-| `raposa-engine run` | Claims due investigations one visit at a time (10 workers), keeps pages whole, delivers watches through Pushcut, refreshes burned lines every 5 minutes. | ops on `OPS_ADDR` (9105) |
+| `raposa-engine run` | Claims due investigations one visit at a time (10 workers), keeps pages whole, delivers watches through Pushcut, and every 5 minutes refreshes burned lines and queues automatic quick investigations. | ops on `OPS_ADDR` (9105) |
 | `raposa-web` | Plain pages: ask for an investigation, follow it, read its visits, variants and evidence, open stored pages, set watches, see burned lines. | `127.0.0.1:8090`, ops on 9106 |
 | `browser/runner.js` | Headless Chromium for the browser rungs and the keeper. See [browser/README.md](browser/README.md). | `127.0.0.1:8086` |
 
 `raposa-engine migrate` applies the migrations (the unit runs it before each
-start); `request`, `stop` and `status` do the same as the pages from a shell.
-Units and example settings are in [deploy/](deploy/).
+start); `request`, `stop` and `status` do the same as the pages from a shell;
+`import-old` copies the collector's investigations (below). Units and example
+settings are in [deploy/](deploy/); `platform/servers/setup.sh` installs them
+on the worker box ([its README](../platform/servers/README.md)).
 
 ## How an investigation moves
 
 1. **Asked for** through `raposa_api.request_investigation_v1` (the pages,
-   the command, or any other service). Asking again while one waits or runs
-   returns that one.
+   the command, or any other service), or **queued automatically** (below).
+   Asking again while one waits or runs returns that one.
 2. **Prepare**: read the ad from Tracks: its saved link, device, campaign,
    account and the publisher it ran on.
 3. **Baseline**: the reviewer rung loads the saved link to learn the white
@@ -53,12 +55,78 @@ waits (up to `live_link_wait_seconds`) without recording anything.
 Settings (`raposa.setting`) and the ladder (`raposa.disguise`) are read on
 every visit: changing them needs no deploy.
 
+## Automatic quick investigations
+
+Every 5 minutes the engine tops the queue of automatic quick investigations
+up to `quick_queue_depth` (30) with `raposa.queue_quick()`. It picks a
+creative when:
+
+- an ad of it on one of `quick_networks` (`taboola`) was seen in the last
+  hour, so a live link exists;
+- Tracks first saw the creative within `quick_new_days` (7);
+- no visit of any investigation of it landed on a usable page (40 words or
+  more, not a bot check or an error page);
+- none of its investigations waits or runs, and none was asked for within
+  `quick_repeat_hours` (24); a stopped one does not count.
+
+Newest creatives first. `quick_max_running` (6) still holds them back so a
+deep one someone asked for finds room. Setting `quick_queue_depth` to 0 turns
+this off, for example while the collector's Raposa still runs.
+
+The collector picked the ads whose landing page its funnel walker never read
+whole. The walker is not here yet (`tracks-walker`), so Raposa asks the same
+question of its own visits instead.
+
+## Copying the collector's investigations
+
+`raposa-engine import-old` copies every job of the collector's Raposa
+(`spy.raposa_job` and its visits, steps, variants, pages, page files and log)
+into the raposa schema. It only reads the collector's database. Each job is
+copied in one transaction together with its row in
+`raposa.imported_investigation` (the job's old id and uid), so a job is
+copied whole or not at all, and running it again copies only what is missing.
+
+```bash
+# On the worker box, with raposa-engine's settings. OLD_DATABASE_URL is the
+# collector's database (adplatform_v2 on prodbox, reached over Tailscale);
+# the BLOB_* lines are the collector's object storage settings (BLOB_ENDPOINT,
+# BLOB_BUCKET, BLOB_REGION, BLOB_KEY_ID, BLOB_KEY_SECRET) from its env file.
+sudo -u raposa bash -c 'set -a; . /etc/adhunters/raposa-engine.env; . ./collector-blob.env
+  export OLD_DATABASE_URL=postgres://USER:PASSWORD@prodbox:5432/adplatform_v2
+  /opt/adhunters/bin/raposa-engine import-old -dry-run'   # then again without -dry-run
+```
+
+Stop the collector's Raposa first: a job still waiting there is copied as
+waiting and runs here, and one running there is copied as stopped.
+
+- **Creatives** are matched on `creative_key`, which Tracks computes the same
+  way. A job whose creative Tracks has not seen yet waits for a later run;
+  the report counts them and names the first keys. Ads are matched on the
+  headline.
+- **Pages** are matched on their content hash: a page Raposa has already is
+  not copied twice. `page_key` and `text_digest` are filled when the
+  collector had none. A page waiting for the collector's keeper waits for
+  this one.
+- **Files**: small ones come from `spy.raposa_asset.bytes`, large ones from
+  the collector's object storage (`-old-files`, by default
+  `s3://$BLOB_BUCKET/raposa`), and each goes into the files store under its
+  md5 after its bytes are checked. A job whose file cannot be read is not
+  copied, and the command exits non-zero naming it.
+- **What changes**: the collector's `blocked` outcome becomes `error` with
+  the error `blocked`; disguises are matched on their code; `burn_scope` comes
+  from the click link's site; a paced retry keeps its release time.
+- **Not copied**: evidence (the collector wrote it into Spy's landing page
+  visits, which stay where they are), burned lines (rebuilt from the copied
+  visits), settings (the report lists the ones the collector had at another
+  value) and `spy.raposa_page.prices`, which this Raposa does not keep.
+
 ## What it reads and publishes
 
 Reads Tracks only through `tracks_api` (the login needs `tracks_api_read`):
 `ad_v1`, `ad_daily_v1`, `creative_link_daily_v1`, `link_v1`,
 `creative_campaign_daily_v1`, `campaign_v1`, `sighting_v1`, `publisher_v1`,
-`device_v1` and `take_live_link_v1`.
+`device_v1`, `creative_v1`, `network_ad_v1`, `network_v1` and
+`take_live_link_v1`.
 
 Publishes `raposa_api` (granted to `raposa_api_read`), with a copy of each
 definition in [contract/sql/raposa](../contract/sql/raposa):
@@ -110,11 +178,7 @@ database.
 ## Not in this yet
 
 - **Not deployed.** Nothing here has run on a real box, and the old Raposa in
-  the collector keeps running until this one is. The units in `deploy/` are
-  not wired into `platform/servers/setup.sh` yet (the `raposa` user and
-  login, `/var/lib/raposa`, the env files, pg_hba for the worker box).
-- **Old investigations are not copied** from `spy.raposa_*`. They stay in the
-  old database, untouched.
-- **Automatic quick investigations** (queued for new ads without anyone
-  asking) wait for Tracks to say which ads are new.
+  the collector keeps running until this one is. Moving over: set up the
+  boxes, stop the collector's Raposa, start `raposa-engine`, then run
+  `import-old`.
 - **No design.** The pages are plain until the app's design is ready.

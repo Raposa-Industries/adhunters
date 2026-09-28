@@ -63,7 +63,7 @@ func New(cfg Config, log *slog.Logger, store *Store, ls *lines.Set, targets []Ta
 }
 
 // Run works until ctx ends: the visit workers, the keeper, the notifier and
-// the burned lines refresh.
+// the housekeeping (burned lines, the automatic quick queue).
 func (e *Engine) Run(ctx context.Context) error {
 	if n, err := e.store.ReleaseNode(ctx, e.cfg.Node); err != nil {
 		return err
@@ -90,7 +90,7 @@ func (e *Engine) Run(ctx context.Context) error {
 	}
 	start(e.keep)
 	start(e.notify)
-	start(e.refreshBurns)
+	start(e.housekeep)
 	wg.Wait()
 	return ctx.Err()
 }
@@ -212,8 +212,9 @@ func (e *Engine) stepFailed(ctx context.Context, inv *Investigation, before []by
 	}
 }
 
-// refreshBurns rebuilds the burned lines every 5 minutes.
-func (e *Engine) refreshBurns(ctx context.Context) {
+// housekeep rebuilds the burned lines and tops up the automatic quick
+// queue every 5 minutes.
+func (e *Engine) housekeep(ctx context.Context) {
 	for {
 		if n, err := e.store.RefreshLineBurns(ctx); err != nil {
 			if ctx.Err() == nil {
@@ -221,6 +222,14 @@ func (e *Engine) refreshBurns(ctx context.Context) {
 			}
 		} else {
 			e.m.burns.Set(float64(n))
+		}
+		if n, err := e.store.QueueQuick(ctx); err != nil {
+			if ctx.Err() == nil {
+				e.log.Error("queue quick investigations", "err", err)
+			}
+		} else if n > 0 {
+			e.m.autoQueued.Add(float64(n))
+			e.log.Info("queued quick investigations for new ads", "count", n)
 		}
 		if !sleep(ctx, 5*time.Minute) {
 			return

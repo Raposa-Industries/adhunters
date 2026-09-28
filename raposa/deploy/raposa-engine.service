@@ -9,6 +9,7 @@ After=network-online.target raposa-browser.service
 [Service]
 User=raposa
 Group=raposa
+EnvironmentFile=-/etc/adhunters/observe.env
 EnvironmentFile=/etc/adhunters/raposa-engine.env
 ExecStartPre=/opt/adhunters/bin/raposa-engine migrate
 ExecStart=/opt/adhunters/bin/raposa-engine run -workers ${WORKERS}

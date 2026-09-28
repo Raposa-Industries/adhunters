@@ -1,0 +1,7 @@
+{{/* One Telegram message per alert group: what, where, and the runbook. */}}
+{{ define "adhunters.telegram" -}}
+{{ if eq .Status "resolved" }}✅ Cleared{{ else if eq .CommonLabels.tier "page" }}🔴 PAGE{{ else }}🟠{{ end }} <b>{{ .CommonLabels.alertname | html }}</b>
+{{ range .Alerts }}{{ if eq $.Status "resolved" }}{{ else }}• {{ end }}{{ .Annotations.summary | html }}
+{{ end -}}
+{{ with (index .Alerts 0).Annotations.runbook_url }}<a href="{{ . }}">Runbook</a>{{ end }}{{ with .ExternalURL }} · <a href="{{ . }}">Alertmanager</a>{{ end }}
+{{- end }}

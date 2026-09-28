@@ -6,8 +6,19 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 |---|---|
 | scrape | One request to an ad network's feed for one publisher and device. Errors count as scrapes. |
 | sighting | One ad seen in one scrape. |
-| creative | The image and headline pair an operator runs. Many ads can share one. |
-| operator | Who runs ads: accounts, sites and brands grouped as one business. |
+| creative | One image or video, found by its file name (`creative_key`). Many ads can share one. (Not the image and headline pair: that is an ad. See [decision 0010](decisions/0010-ad-network-words.md).) |
+| ad | One creative with one headline, wherever it runs. The same ad in several campaigns is several items. |
+| item | One ad inside one campaign, under the ad network's own id: Taboola's campaign item (`{campaign_item_id}`), NewsBreak's ad (`adId`). |
+| campaign | Where an account sets the budget, bid and targeting for its items. On Taboola a campaign; on NewsBreak an ad set. |
+| parent campaign | The level above a campaign: NewsBreak's campaign above the ad set. Taboola's campaign group plays that part but never shows in the feed. |
+| account | One advertiser account on an ad network, the one that pays: Taboola's alphabetic account id (`acme-sc`), NewsBreak's `adAccountId`. Taboola's feed names this field `publisher`; it is never a publisher. |
+| brand | The name shown on an ad ("Health Digest"). On Taboola it is a campaign setting (`branding_text`, 25 characters at most), so a campaign's items all show the same one. On NewsBreak it is the ad's `advertiser`. |
+| operator | Who runs ads: the accounts, brands and landing sites of one business, grouped as one. Ad networks never show this grouping, so Spy infers it. Taboola's network accounts, which hold many accounts, are invisible to us. |
+| publisher | A site that shows an ad network's ads. Taboola calls it a site (`{site}`, `{site_id}`). In Tracks, one scraped page of it, named as in the targets file. |
+| placement | One ad widget on a publisher's page ("Below Article", "Right Rail"), named by the feed answer. |
+| tracking code | The query string an account adds to every link in a campaign. The ad network fills its macros (`{campaign_id}`, `{campaign_item_id}`, `{site_id}`, `{cpc}` and so on) on each click, which is how links carry these ids. |
+| bid | What an account offers in an auction: `bval` on a Taboola card, `{cpc}` in a link, the bid `price` in a NewsBreak answer. |
+| clearing price | What the winning ad paid in one Taboola auction (`auctionPrice` on the card). Its unit is not confirmed yet. |
 | stopped | A creative not seen for 6 hours while its usual publishers were scraped. (Not "deactivated".) |
 | closed hour | An hour whose raw files are all loaded, 5 minutes after it ended. Counts are computed once per closed hour. |
 | open hour | The current hour, rewritten every 5 minutes. |
@@ -21,6 +32,12 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | books balance | The loaded facts add up: each raw file's scrapes equal its rows, and each closed hour's counts equal its sightings. |
 | watch | Something a person follows in an app (an operator, an investigation). Watches notify through Pushcut. |
 | alert | A system or developer message. Alerts go to Telegram, never Pushcut. |
+| page | An alert that needs someone now: Telegram with sound, repeated every 5 minutes until it clears or is silenced. |
+| chat alert | An alert that can wait for the day: Telegram, silent, grouped, 08:00 to 22:00 São Paulo. |
+| digest | The one Telegram message at 08:00 São Paulo with yesterday in numbers. |
+| heartbeat | The alert that always fires. Better Stack calls when it stops arriving, because then no other alert can be trusted. |
+| runbook | The file in `runbooks/` an alert links: what it means, what to check, how to fix it. |
+| task | Work a service does on a schedule (an hour close, a refresh, a pull). Each promises how often it succeeds; one past its promise is late. |
 | spool | Capture's local folder of raw files not yet archived. Capture writes there and nowhere else. |
 | sealed | A raw file whose minute has ended, compressed with zstd, ready to archive. |
 | shadow run | A new binary running beside the one in service on the same input, writing only its own output, to measure or compare. Nothing reads its output as real data. |
@@ -59,6 +76,9 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | investigation | Raposa's look at one creative (and, when given, one of its ads): visits under climbing disguises until one sees the dark page, then a sample of visits on that rung. |
 | deep investigation | The whole ladder, then the sample, retried while it finds no dark page. Its pages are kept whole. |
 | quick investigation | Only the rungs that cost nothing, the landing page's HTML only. No sample, no retry, nothing kept whole. |
+| automatic quick investigation | A quick investigation Raposa queues on its own (origin `auto`) for a new ad that runs now and whose landing page no visit has read whole. |
+| usable page | A page read whole: 40 words or more, and not a bot check or an error page (`raposa.usable_page`). |
+| imported investigation | An investigation copied from the collector's database by `raposa-engine import-old`, with its visits, pages and files. |
 | white page | What an operator shows an ad network reviewer: the page the saved link opens from a reviewer's line. |
 | dark page | A page a visit reached that is not the white page: another page on the same site, or another site. |
 | dark funnel | The dark page and the pages its calls to action lead to, up to checkout. |

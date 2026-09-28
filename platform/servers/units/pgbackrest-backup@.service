@@ -1,0 +1,14 @@
+# One pgBackRest backup of the adhunters database to object storage:
+# pgbackrest-backup@full (weekly) or @diff (daily). Afterwards, success or
+# not, its state is written for Alloy (pgbackrest-metrics).
+[Unit]
+Description=pgBackRest %i backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=postgres
+ExecStart=/usr/bin/pgbackrest --stanza=adhunters --type=%i backup
+ExecStopPost=+/opt/adhunters/bin/pgbackrest-metrics
+Nice=10
+IOSchedulingClass=idle
