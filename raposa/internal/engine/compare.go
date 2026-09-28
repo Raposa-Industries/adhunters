@@ -10,17 +10,17 @@ import (
 
 // landing is the part of a landing page the comparison looks at.
 type landing struct {
-	URL    string
-	Status int
-	Title  string
+	URL    string `json:"url"`
+	Status int    `json:"status"`
+	Title  string `json:"title"`
 	// Hash of the normalised HTML, so a different Cloudflare beacon token or
 	// cache buster does not make the same page look new.
-	Hash uuid.UUID
+	Hash uuid.UUID `json:"hash"`
 	// Which engine loaded it, fetch or browser. A plain fetch keeps the body
 	// the server sent; a browser hands back the DOM after its scripts ran, so
 	// the same page hashes differently on the two. The hash is only read when
 	// both sides came from the same engine.
-	Engine string
+	Engine string `json:"engine"`
 }
 
 // verdict is what one visit saw.

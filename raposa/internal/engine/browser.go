@@ -3,52 +3,49 @@ package engine
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
-	"adhunters/collector/internal/model"
+	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
 )
 
-// The browser runner drives headless Chromium on the other side of one HTTP
-// call. It answers in the step shape below, and the plain HTTP engine in
-// fetch.go builds the same one, so a single capture path stores both.
+// The browser runner (raposa-browser) drives headless Chromium on the other
+// side of one HTTP call. It answers in the step shape below, and the plain
+// HTTP engine in fetch.go builds the same one, so a single capture path
+// stores both.
 
 // visitPlan is one visit as the ladder decided it: what to load, from where,
 // as whom.
 type visitPlan struct {
-	URL           string
-	Referer       string
-	Line          *model.ProxyLine
-	Device        string // desktop or phone
-	Timezone      string
-	LoadAssets    bool
-	HumanDwell    bool
-	DwellMs       int
-	MaxSteps      int // how far past the first page to follow the funnel
-	MaxAssetBytes int
-	// Keep the files the page loaded. Off for a quick investigation, which
-	// keeps the landing page's HTML only.
-	CaptureAssets bool
+	URL        string
+	Referer    string
+	Line       *lines.Line
+	Device     string // desktop or phone
+	Timezone   string
+	LoadAssets bool
+	HumanDwell bool
+	DwellMs    int
+	MaxSteps   int // how far past the first page to follow the funnel
 }
 
-// VisitRequest is the body POSTed to the browser runner.
+// VisitRequest is the body POSTed to the runner's /visit.
 type VisitRequest struct {
-	URL           string       `json:"url"`
-	Referer       string       `json:"referer"`
-	Proxy         *ProxyConfig `json:"proxy"`
-	Device        string       `json:"device"`
-	Timezone      string       `json:"timezone"`
-	LoadAssets    bool         `json:"loadAssets"`
-	HumanDwell    bool         `json:"humanDwell"`
-	DwellMs       int          `json:"dwellMs"`
-	MaxSteps      int          `json:"maxSteps"`
-	CaptureAssets bool         `json:"captureAssets"`
-	MaxAssetBytes int          `json:"maxAssetBytes"`
+	URL        string       `json:"url"`
+	Referer    string       `json:"referer"`
+	Proxy      *ProxyConfig `json:"proxy"`
+	Device     string       `json:"device"`
+	Timezone   string       `json:"timezone"`
+	LoadAssets bool         `json:"loadAssets"`
+	HumanDwell bool         `json:"humanDwell"`
+	DwellMs    int          `json:"dwellMs"`
+	MaxSteps   int          `json:"maxSteps"`
 }
 
 // ProxyConfig is the line the runner sends the visit through.
@@ -70,17 +67,16 @@ type VisitResult struct {
 
 // VisitStep is one page of one visit, in order.
 type VisitStep struct {
-	StepNo      int          `json:"stepNo"`
-	ReachedBy   string       `json:"reachedBy"` // landing, redirect, cta
-	ClickedText string       `json:"clickedText"`
-	ClickedURL  string       `json:"clickedUrl"`
-	URL         string       `json:"url"` // where this step ended after redirects
-	Status      int          `json:"status"`
-	Title       string       `json:"title"`
-	HTML        string       `json:"html"`
-	Text        string       `json:"text"`
-	Hops        []VisitHop   `json:"hops"`
-	Assets      []VisitAsset `json:"assets"`
+	StepNo      int        `json:"stepNo"`
+	ReachedBy   string     `json:"reachedBy"` // landing, redirect, cta
+	ClickedText string     `json:"clickedText"`
+	ClickedURL  string     `json:"clickedUrl"`
+	URL         string     `json:"url"` // where this step ended after redirects
+	Status      int        `json:"status"`
+	Title       string     `json:"title"`
+	HTML        string     `json:"html"`
+	Text        string     `json:"text"`
+	Hops        []VisitHop `json:"hops"`
 }
 
 // VisitHop is one redirect on the way to a step.
@@ -89,154 +85,134 @@ type VisitHop struct {
 	Status int    `json:"status"`
 }
 
-// VisitAsset is one file a step loaded.
-type VisitAsset struct {
-	URL           string `json:"url"`
-	Role          string `json:"role"` // image, video, stylesheet, script, font, other
-	MediaType     string `json:"mediaType"`
-	Base64        string `json:"base64"`
-	SkippedReason string `json:"skippedReason"`
-	// Body is the decoded bytes. The runner sends base64; the fetch engine
-	// fills this one directly.
-	Body []byte `json:"-"`
-}
+// errRunnerBusy says the runner could not take the visit now: it is down,
+// restarting, or has no free slot. Nothing about the page was learnt, so the
+// visit is tried again later and not recorded.
+var errRunnerBusy = errors.New("the browser runner is busy or down")
 
-// BrowserClient talks to the browser runner.
+// BrowserClient talks to the runner.
 type BrowserClient struct {
 	addr string
 	http *http.Client
-	// One token per browser visit running at once, and one for the keeper.
-	// Ten investigations and the keeper each opening a Chromium got the runner
-	// killed for memory four times in an hour on 2026-09-27, and every visit
-	// in flight failed. The keeper has two slots of its own: sharing the
-	// visits' slots, it waited behind the quick investigations and kept
-	// nothing.
+	// One token per browser visit running at once, and for the keeper. Ten
+	// investigations and the keeper each opening a Chromium got the old
+	// runner killed for memory four times in an hour on 2026-09-27, and
+	// every visit in flight failed. The runner holds the same limits.
 	slots     chan struct{}
 	keepSlots chan struct{}
 }
 
-// browserSlots is how many browser visits run at once, besides two keeps.
-const browserSlots = 3
+// Slots the runner is sized for (raposa/browser/runner.js holds the same).
+const (
+	browserSlots = 2
+	keepSlots    = 1
+)
 
-// Acquire waits for a free browser visit slot. The wait does not count
-// toward a visit's own time budget, so the caller takes the slot before
-// starting it.
-func (b *BrowserClient) Acquire(ctx context.Context) (func(), error) {
-	return take(ctx, b.slots)
-}
-
-// AcquireKeep waits for one of the keeper's slots.
-func (b *BrowserClient) AcquireKeep(ctx context.Context) (func(), error) {
-	return take(ctx, b.keepSlots)
-}
-
-func take(ctx context.Context, slots chan struct{}) (func(), error) {
-	select {
-	case slots <- struct{}{}:
-		return func() { <-slots }, nil
-	case <-ctx.Done():
-		return func() {}, ctx.Err()
-	}
-}
-
-// NewBrowserClient points at the runner in config (raposa.browser_addr). A
-// browser visit loads a page, its scripts and sometimes its video, so the
-// timeout is generous.
+// NewBrowserClient points at the runner.
 func NewBrowserClient(addr string) *BrowserClient {
 	if addr == "" {
 		addr = "http://127.0.0.1:8086"
 	}
 	return &BrowserClient{
 		addr:      strings.TrimSuffix(addr, "/"),
-		http:      &http.Client{Timeout: 120 * time.Second},
+		http:      &http.Client{Timeout: 170 * time.Second},
 		slots:     make(chan struct{}, browserSlots),
-		keepSlots: make(chan struct{}, 2),
+		keepSlots: make(chan struct{}, keepSlots),
+	}
+}
+
+// TryAcquire takes a free visit slot, or reports false at once. A worker
+// holds its investigation for one visit only, so it does not queue behind
+// the browser: it puts the investigation back and comes again.
+func (b *BrowserClient) TryAcquire() (func(), bool) {
+	select {
+	case b.slots <- struct{}{}:
+		return func() { <-b.slots }, true
+	default:
+		return nil, false
+	}
+}
+
+// AcquireKeep waits for the keeper's slot.
+func (b *BrowserClient) AcquireKeep(ctx context.Context) (func(), error) {
+	select {
+	case b.keepSlots <- struct{}{}:
+		return func() { <-b.keepSlots }, nil
+	case <-ctx.Done():
+		return func() {}, ctx.Err()
 	}
 }
 
 // Visit asks the runner to load one page in a real browser and follow the
-// funnel. An unreachable runner comes back as an error, and the ladder records
-// the visit as outcome 'error' and moves on.
+// funnel. errRunnerBusy comes back when the runner could not take it.
 func (b *BrowserClient) Visit(ctx context.Context, p visitPlan) (*VisitResult, error) {
 	body, err := json.Marshal(VisitRequest{
-		URL:           p.URL,
-		Referer:       p.Referer,
-		Proxy:         proxyConfig(p.Line),
-		Device:        p.Device,
-		Timezone:      p.Timezone,
-		LoadAssets:    p.LoadAssets,
-		HumanDwell:    p.HumanDwell,
-		DwellMs:       p.DwellMs,
-		MaxSteps:      p.MaxSteps,
-		CaptureAssets: p.CaptureAssets,
-		MaxAssetBytes: p.MaxAssetBytes,
+		URL:        p.URL,
+		Referer:    p.Referer,
+		Proxy:      proxyConfig(p.Line),
+		Device:     p.Device,
+		Timezone:   p.Timezone,
+		LoadAssets: p.LoadAssets,
+		HumanDwell: p.HumanDwell,
+		DwellMs:    p.DwellMs,
+		MaxSteps:   p.MaxSteps,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("encode browser request: %w", err)
 	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, b.addr+"/visit", bytes.NewReader(body))
+	raw, err := b.post(ctx, "/visit", body, b.http)
 	if err != nil {
-		return nil, fmt.Errorf("create browser request: %w", err)
+		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := b.http.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("browser runner at %s is unreachable: %w", b.addr, err)
-	}
-	defer resp.Body.Close()
-
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 64*1024*1024))
-	if err != nil {
-		return nil, fmt.Errorf("read browser answer: %w", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("browser runner answered %d: %s", resp.StatusCode, firstLine(raw))
-	}
-
 	var res VisitResult
 	if err := json.Unmarshal(raw, &res); err != nil {
 		return nil, fmt.Errorf("decode browser answer: %w", err)
 	}
-	// Decode before the OK check, so a failed visit that still captured a
-	// step hands back usable bytes rather than base64 strings.
-	decodeAssets(&res)
 	if !res.OK {
 		return &res, fmt.Errorf("browser visit failed: %s", res.Error)
 	}
 	return &res, nil
 }
 
+// post sends one request to the runner and reads its answer. A refused
+// connection or a 503 is errRunnerBusy.
+func (b *BrowserClient) post(ctx context.Context, path string, body []byte, client *http.Client) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, b.addr+path, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("create browser request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		if errors.Is(err, syscall.ECONNREFUSED) {
+			return nil, fmt.Errorf("%w: %v", errRunnerBusy, err)
+		}
+		return nil, fmt.Errorf("browser runner at %s: %w", b.addr, err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 64*1024*1024))
+	if err != nil {
+		return nil, fmt.Errorf("read browser answer: %w", err)
+	}
+	if resp.StatusCode == http.StatusServiceUnavailable {
+		return nil, fmt.Errorf("%w: %s", errRunnerBusy, firstLine(raw))
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("browser runner answered %d: %s", resp.StatusCode, firstLine(raw))
+	}
+	return raw, nil
+}
+
 // proxyConfig is the line in the shape the runner takes. A visit with no line
 // goes out direct.
-func proxyConfig(line *model.ProxyLine) *ProxyConfig {
+func proxyConfig(line *lines.Line) *ProxyConfig {
 	if line == nil || line.Host == "" {
 		return nil
 	}
 	return &ProxyConfig{
-		Server:   fmt.Sprintf("http://%s:%d", line.Host, line.Port),
+		Server:   "http://" + line.Host + ":" + strconv.Itoa(line.Port),
 		Username: line.Username,
 		Password: line.Password,
-	}
-}
-
-// decodeAssets turns the runner's base64 into bytes the capture can hash.
-func decodeAssets(res *VisitResult) {
-	for i := range res.Steps {
-		for j := range res.Steps[i].Assets {
-			a := &res.Steps[i].Assets[j]
-			if a.Base64 == "" {
-				continue
-			}
-			raw, err := base64.StdEncoding.DecodeString(a.Base64)
-			if err != nil {
-				a.SkippedReason = "the runner sent bytes that are not base64"
-				continue
-			}
-			a.Body = raw
-			a.Base64 = ""
-		}
 	}
 }
 

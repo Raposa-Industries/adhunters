@@ -12,11 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"adhunters/collector/internal/funnel"
-	"adhunters/collector/internal/model"
-	"adhunters/collector/internal/proxy"
-	"adhunters/collector/internal/sweeper"
 	"golang.org/x/net/html"
+
+	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
+	"github.com/Raposa-Industries/adhunters/raposa/internal/page"
 )
 
 // Fetcher is the plain HTTP visit. It was enough on 5 of the 7 sites the tests
@@ -31,8 +30,8 @@ func NewFetcher() *Fetcher {
 	return &Fetcher{timeout: 15 * time.Second}
 }
 
-// maxFetchHops is the redirect budget of one step, the same one
-// funnel/tracer.go keeps.
+// maxFetchHops is the redirect budget of one step, the same one the
+// collector's funnel walker keeps.
 const maxFetchHops = 10
 
 // maxFetchBody is how much HTML one step reads.
@@ -49,14 +48,8 @@ func (f *Fetcher) Visit(ctx context.Context, p visitPlan) (*VisitResult, error) 
 		return nil, fmt.Errorf("no link to visit")
 	}
 
-	transport := proxy.CreateDirectTransport()
-	if p.Line != nil && p.Line.Host != "" {
-		tr, err := proxy.CreateTunnelTransport(*p.Line)
-		if err != nil {
-			return nil, fmt.Errorf("proxy line %s: %w", p.Line.Key, err)
-		}
-		transport = tr
-	}
+	transport := lines.Transport(p.Line)
+	defer transport.CloseIdleConnections()
 
 	jar, err := cookiejar.New(nil)
 	if err != nil {
@@ -90,11 +83,11 @@ func (f *Fetcher) Visit(ctx context.Context, p visitPlan) (*VisitResult, error) 
 	// set a cookie on the first page still recognises the visit.
 	current := *step
 	for n := 0; n < p.MaxSteps; n++ {
-		cta := funnel.FindCTA([]byte(current.HTML), current.URL)
+		cta := page.FindCTA([]byte(current.HTML), current.URL)
 		if cta == "" {
 			break
 		}
-		clicked := funnel.WithClickID(cta, []byte(current.HTML), current.URL)
+		clicked := page.WithClickID(cta, []byte(current.HTML), current.URL)
 		next, read, err := f.walk(ctx, client, p, clicked, current.URL)
 		res.Bytes += read
 		if err != nil {
@@ -117,7 +110,7 @@ func (f *Fetcher) Visit(ctx context.Context, p visitPlan) (*VisitResult, error) 
 func (f *Fetcher) walk(ctx context.Context, client *http.Client, p visitPlan, startURL, referer string) (*VisitStep, int, error) {
 	// Cleaned as a browser would: a link or a call to action can carry a line
 	// break, which a browser drops and Go's URL parser refuses.
-	currURL := sweeper.BrowserURL(startURL)
+	currURL := browserURL(startURL)
 	activeReferer := referer
 	read := 0
 	var hops []VisitHop
@@ -168,19 +161,17 @@ func (f *Fetcher) walk(ctx context.Context, client *http.Client, p visitPlan, st
 			continue
 		}
 
-		dom := funnel.ParseDOM(body, currURL)
+		dom := page.ParseDOM(body, currURL)
 		step := &VisitStep{
 			URL:    currURL,
 			Status: resp.StatusCode,
 			Title:  dom.Title,
-			HTML:   funnel.SanitizeUTF8(string(body)),
+			HTML:   page.SanitizeUTF8(string(body)),
 			Text:   dom.BodyText,
 			Hops:   hops,
 		}
 		if p.LoadAssets {
-			assets, assetBytes := f.loadAssets(ctx, client, p, step)
-			step.Assets = assets
-			read += assetBytes
+			read += f.loadAssets(ctx, client, p, step)
 		}
 		return step, read, nil
 	}
@@ -188,63 +179,35 @@ func (f *Fetcher) walk(ctx context.Context, client *http.Client, p visitPlan, st
 	return nil, read, fmt.Errorf("more than %d redirects from %s", maxFetchHops, startURL)
 }
 
-// loadAssets downloads the files a page references, up to maxFetchAssets. A
-// file over the limit keeps its row with no bytes and a skipped reason.
-func (f *Fetcher) loadAssets(ctx context.Context, client *http.Client, p visitPlan, step *VisitStep) ([]VisitAsset, int) {
+// loadAssets downloads the files a page references, up to maxFetchAssets,
+// as a reader's browser would, and keeps none of them: the keeper keeps the
+// files of each version once. It returns the bytes read.
+func (f *Fetcher) loadAssets(ctx context.Context, client *http.Client, p visitPlan, step *VisitStep) int {
 	refs := assetRefs([]byte(step.HTML), step.URL)
 	if len(refs) > maxFetchAssets {
 		refs = refs[:maxFetchAssets]
 	}
-
 	read := 0
-	out := make([]VisitAsset, 0, len(refs))
 	for _, ref := range refs {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, ref.URL, nil)
 		if err != nil {
 			continue
 		}
-		req.Header.Set("User-Agent", proxy.GetUserAgent(p.Device))
+		req.Header.Set("User-Agent", userAgent(p.Device))
 		req.Header.Set("Referer", step.URL)
-
 		resp, err := client.Do(req)
 		if err != nil {
-			out = append(out, VisitAsset{URL: ref.URL, Role: ref.Role, SkippedReason: err.Error()})
 			continue
 		}
-		limit := int64(p.MaxAssetBytes) + 1
-		raw, err := io.ReadAll(io.LimitReader(resp.Body, limit))
-		mediaType := resp.Header.Get("Content-Type")
+		n, _ := io.Copy(io.Discard, io.LimitReader(resp.Body, maxFetchAsset))
 		resp.Body.Close()
-		read += len(raw)
-		if err != nil {
-			out = append(out, VisitAsset{URL: ref.URL, Role: ref.Role, MediaType: mediaType, SkippedReason: err.Error()})
-			continue
-		}
-		if len(raw) > p.MaxAssetBytes {
-			out = append(out, VisitAsset{URL: ref.URL, Role: ref.Role, MediaType: mediaType,
-				SkippedReason: fmt.Sprintf("larger than the %d byte limit", p.MaxAssetBytes)})
-			continue
-		}
-		out = append(out, VisitAsset{URL: ref.URL, Role: ref.Role, MediaType: mediaType, Body: raw})
+		read += int(n)
 	}
-	return out, read
+	return read
 }
 
-// FetchAssets downloads the files one already captured page references,
-// through the given line, for the asset pass at the end of an investigation.
-func (f *Fetcher) FetchAssets(ctx context.Context, line *model.ProxyLine, device, pageURL, pageHTML string, maxAssetBytes int) ([]VisitAsset, int) {
-	transport := proxy.CreateDirectTransport()
-	if line != nil && line.Host != "" {
-		tr, err := proxy.CreateTunnelTransport(*line)
-		if err != nil {
-			return nil, 0
-		}
-		transport = tr
-	}
-	client := &http.Client{Transport: transport, Timeout: f.timeout}
-	p := visitPlan{Device: device, MaxAssetBytes: maxAssetBytes}
-	return f.loadAssets(ctx, client, p, &VisitStep{URL: pageURL, HTML: pageHTML})
-}
+// maxFetchAsset is how much of one file loadAssets reads.
+const maxFetchAsset = 5 * 1024 * 1024
 
 // assetRef is one file a page points at.
 type assetRef struct {
@@ -356,7 +319,7 @@ func linkText(body []byte, target string) string {
 			if name, _ := z.TagName(); string(name) == "a" && inLink {
 				inLink = false
 				if s := strings.Join(strings.Fields(text.String()), " "); s != "" {
-					return funnel.SanitizeUTF8(s)
+					return page.SanitizeUTF8(s)
 				}
 			}
 		}
@@ -377,6 +340,42 @@ const (
 	fetchDesktopUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
 	fetchPhoneUA   = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
 )
+
+// userAgent is the browser a fetch visit claims to be on device.
+func userAgent(device string) string {
+	if device == "phone" {
+		return fetchPhoneUA
+	}
+	return fetchDesktopUA
+}
+
+// browserURL cleans a link the way a browser does before it loads it: tabs
+// and line breaks anywhere are dropped, leading and trailing spaces and
+// control characters are cut, and any other space or control character left
+// inside is percent-encoded. Some operators end their tracking template with
+// a line break, and the ad network appends "&tblci=..." after it, so the feed
+// serves a link with a newline inside. A reader's browser never sees that
+// newline; Go's URL parser refuses the whole link.
+func browserURL(raw string) string {
+	s := strings.TrimFunc(raw, func(r rune) bool { return r <= 0x20 })
+	if !strings.ContainsFunc(s, func(r rune) bool { return r <= 0x20 || r == 0x7f }) {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c == '\t' || c == '\n' || c == '\r':
+			// dropped, as a browser does
+		case c <= 0x20 || c == 0x7f:
+			fmt.Fprintf(&b, "%%%02X", c)
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
+}
 
 // setBrowserHeaders sends what the browser the visit claims to be sends on a
 // page load: desktop Chrome with its client hints, or iPhone Safari without.

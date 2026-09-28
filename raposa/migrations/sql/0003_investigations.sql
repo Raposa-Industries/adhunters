@@ -75,6 +75,7 @@ CREATE TABLE raposa.investigation (
 CREATE INDEX investigation_due_idx ON raposa.investigation (next_visit_at) WHERE status IN ('waiting', 'running');
 CREATE INDEX investigation_creative_idx ON raposa.investigation (creative_id, requested_at DESC);
 CREATE INDEX investigation_requested_idx ON raposa.investigation (requested_at DESC);
+CREATE INDEX investigation_scope_idx ON raposa.investigation (burn_scope) WHERE burn_scope <> '';
 
 -- What an investigation did, line by line, for the screens and for anyone
 -- reading back why it decided what it did.

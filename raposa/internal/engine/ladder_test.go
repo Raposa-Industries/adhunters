@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"adhunters/collector/internal/model"
+	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
 )
 
-// The states and places as spy.raposa_setting seeds them.
+// The states and places as raposa.setting seeds them.
 var (
 	sampleStates = []string{"Ohio", "Iowa", "New York", "South Carolina"}
 	avoidPlaces  = []string{"New York", "New York City", "Los Angeles"}
@@ -78,7 +78,7 @@ func TestBasePasswordDropsEarlierOptions(t *testing.T) {
 }
 
 func TestProxyStatePinsOneStatePerVisit(t *testing.T) {
-	line := model.ProxyLine{
+	line := lines.Line{
 		Key: "res-1", Role: "residential", Host: "geo.iproyal.com", Port: 12321,
 		Username: "BWvhKby7WwPZtBfY",
 		Password: "f0Rvfpmb7PFdRhIo_country-us_session-WSY55KHY_lifetime-59m",
@@ -153,7 +153,7 @@ func TestTimezoneFor(t *testing.T) {
 // network office city is what a reviewer sees; every other rung stays off the
 // lines exiting in an avoided place.
 func TestChooseLine(t *testing.T) {
-	lines := []model.ProxyLine{
+	lines := []lines.Line{
 		{Key: "dc-us-1", Role: "dc"}, {Key: "dc-us-2", Role: "dc"}, {Key: "dc-us-3", Role: "dc"},
 		{Key: "isp-6", Role: "isp"}, {Key: "isp-7", Role: "isp"}, {Key: "isp-8", Role: "isp"},
 		{Key: "isp-10", Role: "isp"}, {Key: "res-1", Role: "residential"},
@@ -199,28 +199,41 @@ func TestChooseLine(t *testing.T) {
 }
 
 func TestClimbDeviceTakesTurnsOverTheAdsDevices(t *testing.T) {
-	r := &run{ad: model.RaposaAdContext{Device: "desktop", Devices: []string{"desktop", "phone"}}}
-	campaign := model.RaposaDisguise{DeviceRule: "campaign"}
+	r := &run{p: &Progress{Ad: &AdContext{Device: "desktop", Devices: []string{"desktop", "phone"}}}}
+	campaign := Disguise{DeviceRule: "campaign"}
 	if got := []string{r.climbDevice(campaign, 1), r.climbDevice(campaign, 2), r.climbDevice(campaign, 3)}; got[0] != "desktop" || got[1] != "phone" || got[2] != "desktop" {
 		t.Fatalf("campaign rule over two devices = %v", got)
 	}
-	if got := r.climbDevice(model.RaposaDisguise{DeviceRule: "other"}, 2); got != "phone" {
+	if got := r.climbDevice(Disguise{DeviceRule: "other"}, 2); got != "phone" {
 		t.Fatalf("other rule = %s, want phone", got)
 	}
-	one := &run{ad: model.RaposaAdContext{Device: "phone", Devices: []string{"phone"}}}
+	one := &run{p: &Progress{Ad: &AdContext{Device: "phone", Devices: []string{"phone"}}}}
 	if got := one.climbDevice(campaign, 2); got != "phone" {
 		t.Fatalf("one device = %s, want phone", got)
 	}
 }
 
 func TestTaboolaClickReferer(t *testing.T) {
-	pub := model.PublisherTarget{Name: "OK Magazine", TaboolaAccount: "mystifyent-okmagazine", Path: "/", Placement: "rbox-t2m"}
+	pub := Target{Name: "OK Magazine", TaboolaAccount: "mystifyent-okmagazine", Path: "/", Placement: "rbox-t2m"}
 	got := taboolaClickReferer(pub, "https://everviewjournal.com/?sub1=1&tblci=tblX")
 	want := "https://trc.taboola.com/mystifyent-okmagazine/log/3/click?pi=%2F&it=text&pt=text&li=rbox-t2m&redir=https%3A%2F%2Feverviewjournal.com%2F%3Fsub1%3D1%26tblci%3DtblX"
 	if got != want {
 		t.Fatalf("referer = %s", got)
 	}
-	if ref := taboolaClickReferer(model.PublisherTarget{Name: "nb", Network: "newsbreak", TaboolaAccount: "x"}, "https://a.com/"); ref != "" {
+	if ref := taboolaClickReferer(Target{Name: "nb", Network: "newsbreak", TaboolaAccount: "x"}, "https://a.com/"); ref != "" {
 		t.Fatalf("a NewsBreak publisher got a Taboola referer: %s", ref)
+	}
+}
+
+func TestBrowserURL(t *testing.T) {
+	cases := map[string]string{
+		"https://a.com/x?b=1":             "https://a.com/x?b=1",
+		" https://a.com/x?b=1\n&tblci=2 ": "https://a.com/x?b=1&tblci=2",
+		"https://a.com/a b":               "https://a.com/a%20b",
+	}
+	for in, want := range cases {
+		if got := browserURL(in); got != want {
+			t.Errorf("browserURL(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

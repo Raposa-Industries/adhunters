@@ -37,15 +37,17 @@ CREATE TABLE raposa.page (
     last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     times_seen INTEGER NOT NULL DEFAULT 1,
 
-    -- The keeper opens every version once in a real browser and keeps it
-    -- whole. html: only the HTML a visit saw, and nothing more is wanted.
-    -- queued: waits for the keeper. capturing: the keeper has it until
-    -- capture_claimed_until. complete: every file kept. failed: three
-    -- attempts, capture_note says why.
+    -- The keeper opens every version a deep investigation reached once in a
+    -- real browser and keeps it whole. html: only the HTML a visit saw, and
+    -- nothing more is wanted. queued: waits for the keeper. capturing: the
+    -- keeper on capture_claimed_by has it until capture_claimed_until.
+    -- complete: every file kept. failed: three attempts, capture_note says
+    -- why.
     capture_state TEXT NOT NULL DEFAULT 'html'
         CHECK (capture_state IN ('html', 'queued', 'capturing', 'complete', 'failed')),
     capture_note TEXT,
     capture_attempts SMALLINT NOT NULL DEFAULT 0,
+    capture_claimed_by TEXT,
     capture_claimed_until TIMESTAMPTZ,
     captured_at TIMESTAMPTZ,
     -- The page as the browser left it after its scripts ran.

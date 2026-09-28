@@ -5,12 +5,12 @@ import (
 	"math/big"
 	"strings"
 
-	"adhunters/collector/internal/model"
+	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
 )
 
 // A residential line exiting in New York City got the white page where the
 // same line in Ohio got the dark page: operators avoid serving the dark page
-// near an ad network office. spy.raposa_setting.avoid_places holds that list,
+// near an ad network office. raposa.setting avoid_places holds that list,
 // and every visit leaves from a state that is not on it.
 
 // proxyOptions are the suffixes a previous pinning appended to the password.
@@ -54,7 +54,7 @@ func placeAllowed(place string, avoidLists ...[]string) bool {
 // proxyState rewrites the residential line's password so the visit exits in
 // one state, under a session id of its own. The proxy reads the options
 // appended to the password: _country-us_state-<state>_session-<id>_lifetime-10m.
-func proxyState(line model.ProxyLine, state string) model.ProxyLine {
+func proxyState(line lines.Line, state string) lines.Line {
 	slug := stateSlug(state)
 	pinned := line
 	pinned.Password = basePassword(line.Password) + "_country-us"
@@ -190,9 +190,9 @@ func inAvoidedPlace(lineKey string, avoid []string) bool {
 // there gets the white page whatever else the disguise does. The residential
 // line is pinned per visit instead, so it is handed back as it is. n rotates
 // through the candidates so consecutive visits use different lines.
-func chooseLine(lines []model.ProxyLine, role string, avoid []string, baseline bool, n int) *model.ProxyLine {
+func chooseLine(all []lines.Line, role string, avoid []string, baseline bool, n int) *lines.Line {
 	if role == "residential" {
-		for _, l := range lines {
+		for _, l := range all {
 			if l.Role == role {
 				cpy := l
 				return &cpy
@@ -200,8 +200,8 @@ func chooseLine(lines []model.ProxyLine, role string, avoid []string, baseline b
 		}
 		return nil
 	}
-	var first, second, third []model.ProxyLine
-	for _, l := range lines {
+	var first, second, third []lines.Line
+	for _, l := range all {
 		if l.Role != "dc" && l.Role != "isp" {
 			continue
 		}
@@ -221,7 +221,7 @@ func chooseLine(lines []model.ProxyLine, role string, avoid []string, baseline b
 			third = append(third, l)
 		}
 	}
-	for _, group := range [][]model.ProxyLine{first, second, third} {
+	for _, group := range [][]lines.Line{first, second, third} {
 		if len(group) > 0 {
 			cpy := group[n%len(group)]
 			return &cpy

@@ -3,15 +3,14 @@ package engine
 import (
 	"bytes"
 	"crypto/md5"
-	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
 
-	"adhunters/collector/internal/funnel"
-	"adhunters/collector/internal/model"
 	"github.com/google/uuid"
 	"golang.org/x/net/html"
+
+	"github.com/Raposa-Industries/adhunters/raposa/internal/page"
 )
 
 var (
@@ -43,19 +42,18 @@ func normaliseHTML(raw string) string {
 }
 
 // contentHash is the md5 of the normalised HTML, as a uuid, which is what
-// spy.raposa_page.content_hash holds.
+// raposa.page.content_hash holds.
 func contentHash(raw string) uuid.UUID {
 	sum := md5.Sum([]byte(normaliseHTML(raw)))
 	return uuid.UUID(sum)
 }
 
-// pageKind maps the funnel walker's page type onto the words
-// spy.raposa_page.page_kind uses.
-func pageKind(status int, title, htmlContent, pageURL string, checkout funnel.CheckoutInfo) string {
+// pageKind maps the page type onto the words raposa.page.page_kind uses.
+func pageKind(status int, title, htmlContent, pageURL string, checkout page.CheckoutInfo) string {
 	if isErrorPage(status, title) {
 		return "error"
 	}
-	switch funnel.DetectPageType(htmlContent, pageURL, checkout) {
+	switch page.DetectPageType(htmlContent, pageURL, checkout) {
 	case "CHECKOUT":
 		return "checkout"
 	case "VSL":
@@ -75,12 +73,12 @@ func pageKind(status int, title, htmlContent, pageURL string, checkout funnel.Ch
 // step again later without storing a site map.
 const maxOutboundLinks = 200
 
-// capture turns one step of one visit into a spy.raposa_page row and the files
-// that page loads.
-func capture(step VisitStep, maxPageBytes, maxAssetBytes int) (model.RaposaPage, []model.RaposaAsset) {
+// capture turns one step of one visit into a raposa.page row. A visit keeps
+// the HTML only: the keeper opens each new version once and keeps its files.
+func capture(step VisitStep, maxPageBytes int) Page {
 	body := []byte(step.HTML)
-	dom := funnel.ParseDOM(body, step.URL)
-	checkout := funnel.DetectCheckout(step.HTML, step.URL)
+	dom := page.ParseDOM(body, step.URL)
+	checkout := page.DetectCheckout(step.HTML, step.URL)
 
 	title := step.Title
 	if title == "" {
@@ -99,7 +97,7 @@ func capture(step VisitStep, maxPageBytes, maxAssetBytes int) (model.RaposaPage,
 		}
 	}
 
-	page := model.RaposaPage{
+	return Page{
 		ContentHash:        contentHash(step.HTML),
 		URL:                step.URL,
 		Host:               host,
@@ -112,53 +110,14 @@ func capture(step VisitStep, maxPageBytes, maxAssetBytes int) (model.RaposaPage,
 		HTMLBytes:          len(step.HTML),
 		Headings:           dom.Headings,
 		MetaTags:           dom.MetaTags,
-		Pixels:             funnel.ExtractPixels(step.HTML),
+		Pixels:             page.ExtractPixels(step.HTML),
 		CheckoutPlatform:   checkout.Platform,
 		CheckoutMerchantID: checkout.MerchantID,
 		OutboundLinks:      outboundLinks(body, step.URL),
 	}
-
-	assets := make([]model.RaposaAsset, 0, len(step.Assets))
-	for _, a := range step.Assets {
-		assets = append(assets, captureAsset(a, maxAssetBytes))
-	}
-	return page, assets
 }
 
-// captureAsset turns one file the page loaded into a spy.raposa_asset row. A
-// file that was too large keeps its row with no bytes and a skipped reason.
-func captureAsset(a VisitAsset, maxAssetBytes int) model.RaposaAsset {
-	raw := a.Body
-	if maxAssetBytes > 0 && len(raw) > maxAssetBytes {
-		raw = nil
-		a.SkippedReason = fmt.Sprintf("larger than the %d byte limit", maxAssetBytes)
-	}
-	asset := model.RaposaAsset{
-		MediaType:     a.MediaType,
-		Role:          assetRole(a.Role, a.URL, a.MediaType),
-		SourceURL:     a.URL,
-		SkippedReason: a.SkippedReason,
-	}
-	if asset.MediaType == "" {
-		asset.MediaType = "application/octet-stream"
-	}
-	if asset.SkippedReason != "" || len(raw) == 0 {
-		// No bytes to hash, so the URL identifies the row.
-		sum := md5.Sum([]byte(a.URL))
-		asset.ContentHash = uuid.UUID(sum)
-		if asset.SkippedReason == "" {
-			asset.SkippedReason = "no bytes returned"
-		}
-		return asset
-	}
-	sum := md5.Sum(raw)
-	asset.ContentHash = uuid.UUID(sum)
-	asset.SizeBytes = len(raw)
-	asset.Bytes = raw
-	return asset
-}
-
-// assetRole settles on one of the words spy.raposa_page_asset.role takes.
+// assetRole settles on one of the words raposa.page_asset.role takes.
 func assetRole(role, rawURL, mediaType string) string {
 	switch role {
 	case "image", "video", "stylesheet", "script", "font":
