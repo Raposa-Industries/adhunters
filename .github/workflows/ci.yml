@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    # GitHub-hosted until the Blacksmith account is activated; then switch both
+    # jobs to blacksmith-4vcpu-ubuntu-2404 / blacksmith-2vcpu-ubuntu-2404.
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 2s --health-timeout 2s --health-retries 20
+    env:
+      PG_TEST_URL: postgres://postgres:test@localhost:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.work
+      - name: gofmt
+        run: |
+          out=$(gofmt -l $(go list -m -f '{{.Dir}}'))
+          if [ -n "$out" ]; then echo "run gofmt on:"; echo "$out"; exit 1; fi
+      - name: walls
+        run: ./scripts/check-walls.sh
+      - name: vet and test every module
+        run: |
+          for dir in $(go list -m -f '{{.Dir}}'); do
+            echo "::group::$dir"
+            (cd "$dir" && go vet ./... && go test -race -count=1 ./...)
+            echo "::endgroup::"
+          done
+
+  terraform:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: platform/terraform
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.3
+      - run: terraform fmt -check -recursive ..
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
