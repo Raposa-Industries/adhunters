@@ -196,22 +196,22 @@ func (s *Server) stop(w http.ResponseWriter, r *http.Request) {
 // Detail is one investigation's page.
 type Detail struct {
 	Row
-	TargetURL, Referer   string
-	Device, Scope        string
-	RungReached          int16
-	BytesUsed            int64
-	Attempt              int16
-	RetryOf              *int64
-	NextVisitAt          time.Time
-	ClaimedBy            *string
-	StopRequested        bool
-	WhitePageID          *int32
-	Variants             []Variant
-	Evidence             []Evidence
-	Visits               []Visit
-	Log                  []LogLine
-	Watches              []Watch
-	Running              bool
+	TargetURL, Referer string
+	Device, Scope      string
+	RungReached        int16
+	BytesUsed          int64
+	Attempt            int16
+	RetryOf            *int64
+	NextVisitAt        time.Time
+	ClaimedBy          *string
+	StopRequested      bool
+	WhitePageID        *int32
+	Variants           []Variant
+	Evidence           []Evidence
+	Visits             []Visit
+	Log                []LogLine
+	Watches            []Watch
+	Running            bool
 }
 
 // Variant is one dark funnel the sample met.
@@ -409,20 +409,20 @@ func (s *Server) endWatch(w http.ResponseWriter, r *http.Request) {
 
 // PageInfo is one stored version of a page.
 type PageInfo struct {
-	ID                   int32
-	URL, Host, Path      string
-	Title, Kind          *string
-	Words                int32
-	Dark                 bool
-	Checkout, Merchant   *string
-	State                string
-	Note                 *string
-	Seen                 int32
-	First, Last          time.Time
-	HTMLBytes            int32
-	HasKept              bool
-	KeptBytes            int64
-	Files                []File
+	ID                 int32
+	URL, Host, Path    string
+	Title, Kind        *string
+	Words              int32
+	Dark               bool
+	Checkout, Merchant *string
+	State              string
+	Note               *string
+	Seen               int32
+	First, Last        time.Time
+	HTMLBytes          int32
+	HasKept            bool
+	KeptBytes          int64
+	Files              []File
 }
 
 // File is one file of a kept page.
@@ -528,13 +528,13 @@ func stored(w http.ResponseWriter, mediaType string) {
 
 // Burn is one line one site shows the white page to.
 type Burn struct {
-	Scope, Line        string
-	Rung               int16
-	Visits, Dark       int32
-	OtherV, OtherD     int32
-	Detected, Checked  time.Time
-	Sites              int32
-	General            bool
+	Scope, Line       string
+	Rung              int16
+	Visits, Dark      int32
+	OtherV, OtherD    int32
+	Detected, Checked time.Time
+	Sites             int32
+	General           bool
 }
 
 func (s *Server) burns(w http.ResponseWriter, r *http.Request) {
