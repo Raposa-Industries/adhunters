@@ -1,0 +1,25 @@
+#cloud-config
+# First boot only: an admin user, Tailscale, automatic security updates.
+# Everything else comes from the setup script in platform/servers/ (next
+# step), run over Tailscale, so the same script rebuilds a replacement box.
+hostname: ${hostname}
+users:
+  - name: admin
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys:
+%{ for k in admin_ssh_keys ~}
+      - ${k}
+%{ endfor ~}
+disable_root: true
+ssh_pwauth: false
+package_update: true
+packages: [unattended-upgrades, curl, ca-certificates]
+write_files:
+  - path: /etc/adhunters/role
+    content: "${role}\n"
+runcmd:
+  - curl -fsSL https://tailscale.com/install.sh | sh
+  - tailscale up --auth-key='${tailscale_auth_key}' --hostname='${hostname}' --ssh
+  - systemctl enable --now unattended-upgrades

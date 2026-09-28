@@ -1,0 +1,15 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# Go
+/bin/
+*.test
+coverage.out
+
+# Local
+.env
+.DS_Store
