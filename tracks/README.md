@@ -6,8 +6,8 @@ adhunters-collector, one binary at a time. Internal: no app of its own.
 | Binary | What it does | Status |
 |---|---|---|
 | `tracks-capture` | Scrapes the feeds and writes every answer, as received, to the spool. No database. | shadow run |
-| `tracks-shipper` | Uploads sealed raw files to object storage and records them. | later |
-| `tracks-loader` | Parses raw files into sightings, closes each hour into counts, replays any range. | later |
+| `tracks-shipper` | Uploads sealed raw files to the archive and records them. | built, not deployed |
+| `tracks-loader` | Parses raw files into sightings, closes each hour into counts, replays any range. | built, not deployed |
 | `tracks-walker` | Follows ad links to landing pages. | later |
 
 ## tracks-capture
@@ -70,6 +70,105 @@ nothing is ever overwritten.
 zstd level 9 is asked for; the Go encoder (klauspost/compress) maps it to its
 "better compression" level, close to the zstd command's level 7 or 8.
 
+## tracks-shipper
+
+```
+tracks-shipper run -spool /var/lib/tracks/spool -archive s3://adhunters-raw [-box worker] [-every 10s] [-keep 48h]
+```
+
+Every 10 s it takes each sealed file in the spool, counts its scrapes, uploads
+it under the same key (the path under the spool) and checks the upload's
+checksum, records it in `tracks.raw_file`, then leaves a `.shipped` marker
+beside it. A shipped file is deleted 48 hours later. A key already in the
+archive with different bytes is never overwritten: the file stays in the
+spool and the error repeats until a person looks. When the archive or the
+database is down, the spool simply grows.
+
+`-archive` takes `s3://bucket[/prefix]` (Hetzner Object Storage, keys from
+`S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`) or `file:///path`
+for tests. The database login (`DATABASE_URL`) may only insert into
+`tracks.raw_file`. Health fails when no pass has succeeded, or a sealed file
+has waited, for 5 minutes.
+
+## tracks-loader
+
+```
+tracks-loader migrate
+tracks-loader run    -archive s3://adhunters-raw [-max-lag 10m]
+tracks-loader replay -from 2026-09-20T00:00:00Z -to 2026-09-21T00:00:00Z [-network taboola]
+tracks-loader status [-books]
+```
+
+`run` does, in a loop:
+
+1. **Load** the oldest pending raw file (`FOR UPDATE SKIP LOCKED`, so a
+   second loader could run beside it). It checks the file's sha256, parses
+   every record with the collector's parsers (`parse/`, ported from
+   `internal/sweeper` and `internal/openrtb` at `e20148c`), and in one
+   transaction removes whatever an earlier load of the same file stored,
+   writes the lookups, scrapes, sightings and Taboola auctions, and marks the
+   hours it touched dirty. Loading a file twice therefore gives the same
+   facts as loading it once.
+2. **Close** each dirty hour 5 minutes after it ends, once every raw file that
+   can hold its scrapes is loaded: one `INSERT … SELECT … GROUP BY` per hourly
+   table, then the day's daily tables are rebuilt from its sightings. Hours
+   with no files close too, so a gap reads as zero, not as missing. A file that
+   arrives late makes its hour dirty and it closes again.
+3. **Open hours**: every 5 minutes the hours not closed yet are rewritten into
+   `ad_hourly_open`. `tracks_api.ad_hourly_v1` shows both, with a `closed`
+   column; an hour is never in both.
+4. **Live links**: click links from files under 15 minutes old go into the
+   unlogged `live_link` table (40 per host at most). Raposa takes one with
+   `tracks_api.take_live_link_v1`, and each link is handed out once.
+5. **Keep times**: once an hour it makes partitions ahead and drops days past
+   their keep time, only once the day is final (every hour closed, no file
+   pending). Drops use `DETACH … CONCURRENTLY`.
+
+A file that fails to load is tried 3 times, then quarantined with an alert
+metric; a file that cannot load however often it is tried (a bad checksum, a
+day whose sightings were dropped) is quarantined at once. An archive or
+database outage does not count against the file. Records that no parser
+recognises load as scrapes with outcome `unparsed`, and
+`tracks_loader_scrapes_total{outcome="unparsed"}` is the format drift signal.
+
+`replay` marks the raw files of a range pending again; the running loader
+does the work, and the numbers stay whole while it runs. When a day in the
+range had its sightings dropped, the whole day loads again, because a day's
+counts come from all of its sightings. `status -books` checks that the books
+balance for the last day and exits non-zero when they don't.
+
+Sessions always run in UTC (`load.UTC`): days and hours are UTC days and hours.
+The publisher's domain comes from the request itself (Taboola's `u`, the
+NewsBreak auction's `site.page`), so a replay does not depend on today's
+targets file.
+
+### Tables and keep times
+
+| Table | Kept in the database |
+|---|---|
+| `raw_file` | forever (one row per archived minute file) |
+| `scrape` | 35 days, daily partitions |
+| `sighting` | 3 days, daily partitions, BRIN on `seen_at` (the CX43 run's suggestion) |
+| `auction` | 14 days, daily partitions |
+| `ad_hourly`, `ad_account_brand_hourly`, `publisher_hourly` | monthly partitions, all kept for now |
+| `ad_hourly_open` | the hours not closed yet |
+| `ad_daily`, `ad_account_daily`, `placement_daily`, `campaign_daily`, `creative_link_daily`, `creative_campaign_daily` | forever |
+| lookups (`publisher`, `placement`, `brand`, `account`, `campaign`, `creative`, `ad`, `link`, `network_ad`, `proxy_line`) | forever |
+| `live_link` (unlogged) | 15 minutes |
+
+Anything dropped comes back by replay from the archive ([decision
+0007](../decisions/0007-keep-times.md)). What other services may read is
+published in `tracks_api` and listed in [`contract/sql/tracks/`](../contract/sql/tracks/).
+
+### Not built yet
+
+- `tracks-walker`, with its queue in Postgres, and the landing page tables.
+- Replaying into a shadow schema (`replay --into`) to compare a parser change
+  before switching.
+- Moving hourly counts older than 35 days to Parquet in the archive.
+- A small copy of each ad image the first time it is seen. Nothing here rules
+  it out: the loader knows when a creative is new.
+
 ## Measuring before committing
 
 `measure/` holds the two measurements the design asks for before buying
@@ -79,4 +178,7 @@ servers. Neither touches prodbox or the running collector. See
 ## Working here
 
 `go test ./...` from this folder. Tests use recorded answers and a local
-server; nothing reaches the ad networks.
+server; nothing reaches the ad networks. The database tests need
+`PG_TEST_URL` (any Postgres 16+ the test may create databases on, for example
+`postgres://postgres:test@localhost:5432/postgres?sslmode=disable`) and are
+skipped without it. The box setup is in [`platform/servers/`](../platform/servers/).

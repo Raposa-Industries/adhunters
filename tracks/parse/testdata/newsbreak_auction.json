@@ -1,0 +1,46 @@
+{
+ "id": "x",
+ "seatbid": [
+  {
+   "seat": "msp_nova",
+   "bid": [
+    {
+     "id": "1",
+     "impid": "imp0",
+     "price": 2.198868264103177,
+     "adm": "{\"ad\": [{\"adAccountId\": \"2053906549512589314\", \"adId\": \"2100412029291245569\", \"adsetId\": \"2100412018608353282\", \"creative\": {\"advertiser\": \"Sarah\", \"headline\": \"Doctors Identify 10 Prescriptions Now Adding to Memory Decline (See the List)\", \"body\": \"Check This Out Before It's Too Late!\", \"callToAction\": \"Learn More\", \"creativeId\": \"2100412029282856961\", \"creativeType\": \"IMAGE\", \"ctrUrl\": \"https://rd.newsbreak.com/r?p=CrwEaHR0cHM6Ly9vbmxpbmUudXN0b2RheXJlcG9ydC5jb20vYmxvZy8_c3JjPSttbSswMS1wLmUyJnV0bV9tZWRpdW09V2luZG93cyZ1dG1fY29udGVudD1jb3B5KzErb2YrY29weSsxK29mK2NvcHkrMStvZitjb3B5KzErb2YrQlAwMyZ1dG1fdGVybT1jb3B5KzErb2YrbW0rYWRzZXQwMSt2MyZuYmNsaWQ9bnZzc18wOGEzYjUzMDNjMDM0NmY1OTA3OWE4MTBmZTEwMzVlNl8yMTAwNDEyMDI5MjkxMjQ1NTY5JnN1YjE9MjEwMDQxMTk5MjAyNDMxMzg1OCZzdWIyPSttbSswMS1wLmUyJnN1YjM9MjEwMDQxMjAxODYwODM1MzI4MiZzdWI0PWNvcHkrMStvZittbSthZHNldDAxK3YzJnN1YjU9MjEwMDQxMjAyOTI5MTI0NTU2OSZzdWI2PWNvcHkrMStvZitjb3B5KzErb2YrY29weSsxK29mK2NvcHkrMStvZitCUDAzJnN1Yjc9V2luZG93cyZzdWI4PTAmc3ViOT1OZXdzYnJlYWsmcmVmX2lkPW52c3NfMDhhM2I1MzAzYzAzNDZmNTkwNzlhODEwZmUxMDM1ZTZfMjEwMDQxMjAyOTI5MTI0NTU2OSZpc19ub3ZhPXRydWUmbmJfY2lkPTA4YTNiNTMwM2MwMzQ2ZjU5MDc5YTgxMGZlMTAzNWU2XzIxMDA0MTIwMjkyOTEyNDU1NjkgASoHV2luZG93cw\", \"imageUrl\": \"https://img.particlenews.com/image.php?type=webp_1200x000&limit=40&url=https%3A%2F%2Fstatic.particlenews.com%2Fnova%2Fassets%2F2053906549512589314%2Fcfe1650dde76c912ce7b207f3d6718273cbd6cba.jpg\", \"iconUrl\": \"https://static.particlenews.com/nova/assets/2053906549512589314/d3949484ede269a891a4640ea593ae47acab863e.png\"}, \"price\": 2.198868264103177, \"requestId\": \"08a3b530-3c03-46f5-9079-a810fe1035e6\"}], \"code\": 0, \"status\": \"success\", \"supported_web_format\": [\"native\"]}",
+     "ext": {
+      "nova": {
+       "ad_unit_id": "psm-pmi-nbcom-web-articlebottom-native-prod",
+       "format": "native"
+      }
+     }
+    },
+    {
+     "id": "1",
+     "impid": "imp1",
+     "price": 2.198868264103177,
+     "adm": "{\"ad\": [{\"adAccountId\": \"2053906549512589314\", \"adId\": \"2100412029291245569\", \"adsetId\": \"2100412018608353282\", \"creative\": {\"advertiser\": \"Sarah\", \"headline\": \"Doctors Identify 10 Prescriptions Now Adding to Memory Decline (See the List)\", \"body\": \"Check This Out Before It's Too Late!\", \"callToAction\": \"Learn More\", \"creativeId\": \"2100412029282856961\", \"creativeType\": \"IMAGE\", \"ctrUrl\": \"https://rd.newsbreak.com/r?p=CrwEaHR0cHM6Ly9vbmxpbmUudXN0b2RheXJlcG9ydC5jb20vYmxvZy8_c3JjPSttbSswMS1wLmUyJnV0bV9tZWRpdW09V2luZG93cyZ1dG1fY29udGVudD1jb3B5KzErb2YrY29weSsxK29mK2NvcHkrMStvZitjb3B5KzErb2YrQlAwMyZ1dG1fdGVybT1jb3B5KzErb2YrbW0rYWRzZXQwMSt2MyZuYmNsaWQ9bnZzc18wOGEzYjUzMDNjMDM0NmY1OTA3OWE4MTBmZTEwMzVlNl8yMTAwNDEyMDI5MjkxMjQ1NTY5JnN1YjE9MjEwMDQxMTk5MjAyNDMxMzg1OCZzdWIyPSttbSswMS1wLmUyJnN1YjM9MjEwMDQxMjAxODYwODM1MzI4MiZzdWI0PWNvcHkrMStvZittbSthZHNldDAxK3YzJnN1YjU9MjEwMDQxMjAyOTI5MTI0NTU2OSZzdWI2PWNvcHkrMStvZitjb3B5KzErb2YrY29weSsxK29mK2NvcHkrMStvZitCUDAzJnN1Yjc9V2luZG93cyZzdWI4PTAmc3ViOT1OZXdzYnJlYWsmcmVmX2lkPW52c3NfMDhhM2I1MzAzYzAzNDZmNTkwNzlhODEwZmUxMDM1ZTZfMjEwMDQxMjAyOTI5MTI0NTU2OSZpc19ub3ZhPXRydWUmbmJfY2lkPTA4YTNiNTMwM2MwMzQ2ZjU5MDc5YTgxMGZlMTAzNWU2XzIxMDA0MTIwMjkyOTEyNDU1NjkgASoHV2luZG93cw\", \"imageUrl\": \"https://img.particlenews.com/image.php?type=webp_1200x000&limit=40&url=https%3A%2F%2Fstatic.particlenews.com%2Fnova%2Fassets%2F2053906549512589314%2Fcfe1650dde76c912ce7b207f3d6718273cbd6cba.jpg\", \"iconUrl\": \"https://static.particlenews.com/nova/assets/2053906549512589314/d3949484ede269a891a4640ea593ae47acab863e.png\"}, \"price\": 2.198868264103177, \"requestId\": \"08a3b530-3c03-46f5-9079-a810fe1035e6\"}], \"code\": 0, \"status\": \"success\", \"supported_web_format\": [\"native\"]}",
+     "ext": {
+      "nova": {
+       "ad_unit_id": "psm-pmi-nbcom-web-foryoularge-native-prod",
+       "format": "native"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "seat": "pubmatic",
+   "bid": [
+    {
+     "id": "2",
+     "impid": "imp2",
+     "price": 1,
+     "adm": "<div>banner</div>"
+    }
+   ]
+  }
+ ],
+ "cur": "USD"
+}

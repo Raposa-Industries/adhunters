@@ -1,0 +1,23 @@
+# Loads archived raw files, closes hours and keeps the tables to their keep
+# times. Settings and keys are in /etc/adhunters/tracks-loader.env.
+[Unit]
+Description=Tracks loader
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+User=tracks
+Group=tracks
+EnvironmentFile=/etc/adhunters/tracks-loader.env
+ExecStartPre=/opt/adhunters/bin/tracks-loader migrate
+ExecStart=/opt/adhunters/bin/tracks-loader run -archive ${ARCHIVE}
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
