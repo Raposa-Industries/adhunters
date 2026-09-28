@@ -15,8 +15,10 @@
 # does not stop, restart or reconfigure the collector, and uses no database.
 #
 # It shares the collector's proxy lines, so it runs gently by default: one
-# worker and a 1 s pause, about 15% on top of the collector's rate. Bytes per
-# scrape do not depend on the rate. WORKERS, THROTTLE and FOR override.
+# worker and a 10 s pause, about 360 scrapes an hour, a few percent on top of
+# the collector's rate. Bytes per scrape do not depend on the rate, and stats
+# recompresses each hour as one file, which is about what one minute's file
+# holds at the full rate. WORKERS, THROTTLE and FOR override.
 set -euo pipefail
 
 HOST=${HOST:-bigworker}
@@ -24,18 +26,22 @@ DIR=/opt/tracks-shadow
 UNIT=tracks-capture-shadow
 FOR=${FOR:-24h}
 WORKERS=${WORKERS:-1}
-THROTTLE=${THROTTLE:-1s}
+THROTTLE=${THROTTLE:-10s}
 COLLECTOR=/opt/adhunters-collector
 
 cd "$(dirname "$0")/.."
 [[ $FOR =~ ^[0-9]+h$ ]] || { echo "FOR must be whole hours, like 24h"; exit 2; }
 
-case ${1:-} in
-start)
+build() {
   version=$(git rev-parse --short HEAD)
   echo "== building tracks-capture $version for linux/amd64"
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w -X main.version=$version" \
     -o /tmp/tracks-capture ./cmd/tracks-capture
+}
+
+case ${1:-} in
+start)
+  build
   echo "== copying to $HOST:$DIR"
   ssh "$HOST" "mkdir -p $DIR/spool && ! systemctl is-active --quiet $UNIT" ||
     { echo "$UNIT is already running on $HOST; run stop first"; exit 1; }
@@ -62,7 +68,11 @@ status)
   ssh "$HOST" "systemctl status $UNIT --no-pager -n 0 || true; journalctl -u $UNIT -n 5 --no-pager -o cat; du -sh $DIR/spool"
   ;;
 stats)
-  ssh "$HOST" "$DIR/tracks-capture stats -rate 14000 $DIR/spool"
+  # Built fresh from this checkout, beside the running binary, so a newer
+  # stats works on a run started from an older commit.
+  build
+  scp -q /tmp/tracks-capture "$HOST:$DIR/tracks-capture-stats"
+  ssh "$HOST" "nice -n 10 $DIR/tracks-capture-stats stats -rate 14000 $DIR/spool"
   ;;
 stop)
   ssh "$HOST" "systemctl stop $UNIT"

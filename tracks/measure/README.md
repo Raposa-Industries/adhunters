@@ -19,15 +19,20 @@ tracks/measure/shadow-capture.sh clean     # stop and delete /opt/tracks-shadow
 
 It reads the collector's `publishers.yaml` and `proxies.env` and changes
 neither. It shares the collector's proxy lines, so by default it runs one
-worker with a 1 s pause, about 15% on top of the collector's rate; bytes per
-scrape do not depend on the rate. `WORKERS`, `THROTTLE` and `FOR` change that.
+worker with a 10 s pause, about 360 scrapes an hour, a few percent on top of
+the collector's rate; bytes per scrape do not depend on the rate. `WORKERS`, `THROTTLE` and `FOR` change that.
 It is sandboxed (read-only system, 512 MB, one core at most, low priority) and
 stops by itself after `FOR`.
 
 `stats` prints, per network and day: scrapes, errors, empty answers, answer
 KB per scrape, spool KB per scrape before and after zstd, the compression
-ratio, and what the archive and the spool would grow by per day at the live
-collector's 14,000 scrapes an hour.
+ratio, the same records recompressed one hour per file, and what the archive
+and the spool would grow by per day at the live collector's 14,000 scrapes an
+hour. A slow run puts only a few scrapes in each minute's file, and zstd
+shrinks a file of many similar answers much better, so the projection uses the
+hour column: an hour of this run holds about as many scrapes as one minute's
+file at the full rate. `stats` builds the binary from your checkout first, so
+`git pull` before running it.
 
 ## 2. Hour close and Direction speed: one archived day on a CX43
 

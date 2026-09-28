@@ -42,7 +42,9 @@ tracks-capture stats [-rate 14000] spool
 - Logs one line per sealed file (rows, raw and compressed bytes), not one per
   scrape.
 - `stats` decompresses every sealed file and prints bytes per scrape per
-  network and day, and what the archive would grow by at the live rate.
+  network and day, both as sealed and recompressed one hour per file, and
+  what the archive would grow by at the live rate (from the hour column,
+  which matches a minute's file at the full rate).
 
 ### Raw files
 

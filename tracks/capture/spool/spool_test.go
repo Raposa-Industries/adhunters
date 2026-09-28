@@ -99,6 +99,11 @@ func TestWriterSealsEachMinutePerNetwork(t *testing.T) {
 	if len(totals) != 2 || totals[0].Network != "newsbreak" || totals[1].Scrapes != 3 || totals[1].Day != "2026-09-28" {
 		t.Fatalf("totals %+v", totals)
 	}
+	// Both taboola minutes share one hour, so they pack into one stream,
+	// smaller than the two sealed files together.
+	if tb := totals[1]; tb.HourZstBytes == 0 || tb.HourZstBytes >= tb.ZstBytes {
+		t.Fatalf("hour packing %+v", tb)
+	}
 	var out strings.Builder
 	Report(&out, totals, 14000)
 	if !strings.Contains(out.String(), "GB a day") {
