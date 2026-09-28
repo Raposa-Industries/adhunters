@@ -6,8 +6,19 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 |---|---|
 | scrape | One request to an ad network's feed for one publisher and device. Errors count as scrapes. |
 | sighting | One ad seen in one scrape. |
-| creative | The image and headline pair an operator runs. Many ads can share one. |
-| operator | Who runs ads: accounts, sites and brands grouped as one business. |
+| creative | One image or video, found by its file name (`creative_key`). Many ads can share one. (Not the image and headline pair: that is an ad. See [decision 0010](decisions/0010-ad-network-words.md).) |
+| ad | One creative with one headline, wherever it runs. The same ad in several campaigns is several items. |
+| item | One ad inside one campaign, under the ad network's own id: Taboola's campaign item (`{campaign_item_id}`), NewsBreak's ad (`adId`). |
+| campaign | Where an account sets the budget, bid and targeting for its items. On Taboola a campaign; on NewsBreak an ad set. |
+| parent campaign | The level above a campaign: NewsBreak's campaign above the ad set. Taboola's campaign group plays that part but never shows in the feed. |
+| account | One advertiser account on an ad network, the one that pays: Taboola's alphabetic account id (`acme-sc`), NewsBreak's `adAccountId`. Taboola's feed names this field `publisher`; it is never a publisher. |
+| brand | The name shown on an ad ("Health Digest"). On Taboola it is a campaign setting (`branding_text`, 25 characters at most), so a campaign's items all show the same one. On NewsBreak it is the ad's `advertiser`. |
+| operator | Who runs ads: the accounts, brands and landing sites of one business, grouped as one. Ad networks never show this grouping, so Spy infers it. Taboola's network accounts, which hold many accounts, are invisible to us. |
+| publisher | A site that shows an ad network's ads. Taboola calls it a site (`{site}`, `{site_id}`). In Tracks, one scraped page of it, named as in the targets file. |
+| placement | One ad widget on a publisher's page ("Below Article", "Right Rail"), named by the feed answer. |
+| tracking code | The query string an account adds to every link in a campaign. The ad network fills its macros (`{campaign_id}`, `{campaign_item_id}`, `{site_id}`, `{cpc}` and so on) on each click, which is how links carry these ids. |
+| bid | What an account offers in an auction: `bval` on a Taboola card, `{cpc}` in a link, the bid `price` in a NewsBreak answer. |
+| clearing price | What the winning ad paid in one Taboola auction (`auctionPrice` on the card). Its unit is not confirmed yet. |
 | stopped | A creative not seen for 6 hours while its usual publishers were scraped. (Not "deactivated".) |
 | closed hour | An hour whose raw files are all loaded, 5 minutes after it ended. Counts are computed once per closed hour. |
 | open hour | The current hour, rewritten every 5 minutes. |
