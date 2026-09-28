@@ -20,6 +20,8 @@ The apps people use are AdHunters Spy, Create, Intel, Funnels and Raposa
 | `create/` | AdHunters Create: images and headlines. Was auto-creative. | later |
 | `funnels/` | AdHunters Funnels: landing pages, funnels and visitor behaviour. | later |
 
+How to reach, build and deploy the servers: [platform/OPERATIONS.md](platform/OPERATIONS.md).
+
 The full design lives at the platform design page, and every rule has a file
 in [`decisions/`](decisions/) saying what, why and when.
 

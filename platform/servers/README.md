@@ -8,6 +8,8 @@ Tailscale, security updates, and `/etc/adhunters/role`. Everything else is
 sudo ./setup.sh --bin DIR [--role worker|data|standby]
 ```
 
+How to get onto a box and copy the build there: [../OPERATIONS.md](../OPERATIONS.md).
+
 `DIR` holds the binaries, built on any machine from the repository root:
 
 ```
@@ -41,8 +43,7 @@ Postgres through the read-only `observe` login; it starts once
 `/metrics` on `127.0.0.1` (ports 9101 to 9104).
 
 Capture needs `targets.yaml` (the collector's `config/publishers.yaml`) and
-`proxies.env` (its `secrets/proxies.env`) in `/etc/adhunters/tracks-capture/`,
-and the box's Primary IP on the proxy provider's allowlist.
+`proxies.env` (its `secrets/proxies.env`) in `/etc/adhunters/tracks-capture/` (the proxies log in with a password; no IP allowlist).
 
 ### Raposa on the worker box
 
