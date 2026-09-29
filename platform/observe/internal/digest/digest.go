@@ -40,8 +40,10 @@ const (
 	qAlerts   = `sum by (alertname) (count_over_time(ALERTS{alertstate="firing",alertname!="Heartbeat"}[24h]))`
 	qRestarts = `sum by (service) (changes(process_start_time_seconds{job="adhunters"}[24h])) > 0`
 	qDisk     = `min by (box) (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})`
-	// What is left on each prepaid service (observe-bot's own credit checks).
-	qCredits = `adhunters_credit_remaining`
+	// What is left on each prepaid service (observe-bot's own credit checks),
+	// with how="estimated" on the ones worked out from our own spending.
+	qCredits = `label_replace(adhunters_credit_remaining unless on (credit) adhunters_credit_estimated, "how", "read", "", "")` +
+		` or label_replace(adhunters_credit_remaining and on (credit) adhunters_credit_estimated, "how", "estimated", "", "")`
 )
 
 // Write returns the digest for the 24 hours ending at t, in Telegram HTML.
@@ -185,8 +187,9 @@ func (r *reader) many(q, label string) []keyed {
 	return out
 }
 
-// credits reads what is left on each prepaid service, "iproyal 4.2 GB",
-// sorted by name; nil when there are none or the query failed.
+// credits reads what is left on each prepaid service, "iproyal 4.2 GB", or
+// "openai ~17.5 USD" for an estimate, sorted by name; nil when there are none
+// or the query failed.
 func (r *reader) credits() []string {
 	s, err := r.m.Query(r.ctx, qCredits, r.t)
 	if err != nil {
@@ -195,7 +198,11 @@ func (r *reader) credits() []string {
 	}
 	var out []string
 	for _, x := range s {
-		out = append(out, fmt.Sprintf("%s %s %s", html.EscapeString(x.Labels["credit"]),
+		about := ""
+		if x.Labels["how"] == "estimated" {
+			about = "~"
+		}
+		out = append(out, fmt.Sprintf("%s %s%s %s", html.EscapeString(x.Labels["credit"]), about,
 			strconv.FormatFloat(math.Round(x.Value*10)/10, 'f', -1, 64), html.EscapeString(x.Labels["unit"])))
 	}
 	sort.Strings(out)

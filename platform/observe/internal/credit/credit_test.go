@@ -70,6 +70,11 @@ func TestParseRefuses(t *testing.T) {
 		"bad due":       "[renewal a]\ndue = 1/1/2026",
 		"twice":         "[renewal a]\ndue = 2026-01-01\n[renewal a]\ndue = 2026-01-01",
 		"header no ':'": "[credit a]\nurl = x\nfield = f\nunit = GB\nwarn = 1\nheader = nope",
+		"estimate GB":   "[estimate a]\nbalance = 1\nas_of = 2026-09-29\nwarn = 1\nunit = GB",
+		"estimate date": "[estimate a]\nbalance = 1\nas_of = 29/09/2026\nwarn = 1",
+		"no balance":    "[estimate a]\nas_of = 2026-09-29\nwarn = 1",
+		"credit and estimate": "[credit a]\nurl = x\nfield = f\nunit = USD\nwarn = 1\n" +
+			"[estimate a]\nbalance = 1\nas_of = 2026-09-29\nwarn = 1",
 	} {
 		if _, err := Parse(strings.NewReader(text), env(nil)); err == nil {
 			t.Errorf("%s: parsed", name)
@@ -138,5 +143,63 @@ func TestRead(t *testing.T) {
 	_, err = Check{URL: "http://127.0.0.1:1/x?key=secret", Field: "a", Scale: 1}.Read(ctx, srv.Client())
 	if err == nil || strings.Contains(err.Error(), "secret") {
 		t.Fatalf("unreachable: %v", err)
+	}
+}
+
+func TestEstimate(t *testing.T) {
+	c, err := Parse(strings.NewReader(`
+[estimate openai]
+balance = 19
+as_of   = 2026-09-29 13:35
+warn    = 5
+
+[estimate anthropic]
+provider = claude
+balance = FILL_ME
+as_of   = FILL_ME
+warn    = 10
+`), env(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Estimate{
+		{Name: "openai", Provider: "openai", Balance: 19, AsOf: time.Date(2026, 9, 29, 13, 35, 0, 0, time.UTC), Warn: 5},
+		{Name: "anthropic", Provider: "claude", Warn: 10, Off: "balance or as_of not set"},
+	}
+	if len(c.Estimates) != len(want) {
+		t.Fatalf("got %+v", c.Estimates)
+	}
+	for i := range want {
+		if c.Estimates[i] != want[i] {
+			t.Errorf("got %+v, want %+v", c.Estimates[i], want[i])
+		}
+	}
+}
+
+func TestLedger(t *testing.T) {
+	es := Estimate{Name: "openai", Balance: 19, AsOf: time.Date(2026, 9, 29, 13, 35, 0, 0, time.UTC)}
+	path := LedgerPath(t.TempDir(), "openai")
+	l, err := ReadLedger(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	l = l.Start(es)
+	if l.Remaining() != 19 || !l.Through.Equal(es.AsOf) {
+		t.Fatalf("fresh ledger: %+v", l)
+	}
+	l.Spent, l.Through = 2.5, es.AsOf.Add(time.Hour)
+	if err := WriteLedger(path, l); err != nil {
+		t.Fatal(err)
+	}
+	back, err := ReadLedger(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if back.Start(es) != l {
+		t.Fatalf("read back %+v, want %+v", back.Start(es), l)
+	}
+	es.Balance = 30 // the owner read the billing page again
+	if got := back.Start(es); got.Spent != 0 || got.Remaining() != 30 {
+		t.Fatalf("a new balance should start over: %+v", got)
 	}
 }

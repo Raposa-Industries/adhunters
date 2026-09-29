@@ -19,3 +19,21 @@ func (s *Server) OutOfCredit(provider string) {
 	})
 	s.outOfCredit.WithLabelValues(provider).Inc()
 }
+
+// Spent counts money one call cost on a prepaid service with no balance API,
+// in USD, worked out from the vendor's reply (OpenAI's usage tokens times the
+// price). observe-bot subtracts it from the balance the owner last entered
+// in credits.conf ([estimate]), so the estimate is only as good as what every
+// service reports: count every paid call, once, where its cost is known.
+func (s *Server) Spent(provider string, usd float64) {
+	s.spendOnce.Do(func() {
+		s.spend = prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "adhunters_spend_usd_total",
+			Help: "Money spent on a prepaid service, in USD, as our services work it out per call.",
+		}, []string{"provider"})
+		s.Registry.MustRegister(s.spend)
+	})
+	if usd > 0 {
+		s.spend.WithLabelValues(provider).Add(usd)
+	}
+}

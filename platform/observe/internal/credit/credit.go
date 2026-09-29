@@ -14,10 +14,20 @@
 //	every  = month
 //	remind = 7d
 //
+//	[estimate openai]
+//	balance = 19
+//	as_of   = 2026-09-29 13:35
+//	warn    = 5
+//
+// An estimate is for a prepaid service with no balance API: the balance the
+// owner read off its billing page at as_of (UTC), minus what our services
+// report spending with it since (kit/ops Spent). The owner puts in the real
+// balance whenever they like, which starts the count again.
+//
 // ${NAME} is read from the environment. A check whose URL or headers name an
-// unset or FILL_ME variable, or a renewal whose due date is FILL_ME, is off:
-// the example file lists every service, and each starts working once its key
-// is filled in.
+// unset or FILL_ME variable, a renewal whose due date is FILL_ME, or an
+// estimate whose balance or as_of is FILL_ME, is off: the example file lists
+// every service, and each starts working once it is filled in.
 package credit
 
 import (
@@ -56,10 +66,21 @@ type Renewal struct {
 	Off    string
 }
 
+// Estimate is a balance worked out from our own spending, in USD.
+type Estimate struct {
+	Name     string
+	Provider string // the provider label services report spending under; default Name
+	Balance  float64
+	AsOf     time.Time
+	Warn     float64
+	Off      string
+}
+
 // Config is the whole file.
 type Config struct {
-	Checks   []Check
-	Renewals []Renewal
+	Checks    []Check
+	Renewals  []Renewal
+	Estimates []Estimate
 }
 
 // Load reads a credits file; getenv resolves ${NAME}.
@@ -91,6 +112,10 @@ func Parse(r io.Reader, getenv func(string) string) (*Config, error) {
 			var rn Renewal
 			rn, err = renewal(name, keys)
 			c.Renewals = append(c.Renewals, rn)
+		case "estimate":
+			var es Estimate
+			es, err = estimate(name, keys)
+			c.Estimates = append(c.Estimates, es)
 		}
 		if err != nil {
 			return fmt.Errorf("[%s %s]: %w", kind, name, err)
@@ -110,8 +135,8 @@ func Parse(r io.Reader, getenv func(string) string) (*Config, error) {
 				return nil, err
 			}
 			f := strings.Fields(strings.Trim(line, "[]"))
-			if len(f) != 2 || (f[0] != "credit" && f[0] != "renewal") {
-				return nil, fmt.Errorf("line %d: want [credit NAME] or [renewal NAME]", n)
+			if len(f) != 2 || (f[0] != "credit" && f[0] != "renewal" && f[0] != "estimate") {
+				return nil, fmt.Errorf("line %d: want [credit NAME], [renewal NAME] or [estimate NAME]", n)
 			}
 			kind, name, keys = f[0], f[1], map[string][]string{}
 			continue
@@ -129,12 +154,20 @@ func Parse(r io.Reader, getenv func(string) string) (*Config, error) {
 	if err := flush(); err != nil {
 		return nil, err
 	}
+	// A credit and an estimate share the credit label, so one name is one of
+	// them.
 	seen := map[string]bool{}
 	for _, ch := range c.Checks {
 		if seen["credit "+ch.Name] {
 			return nil, fmt.Errorf("[credit %s] twice", ch.Name)
 		}
 		seen["credit "+ch.Name] = true
+	}
+	for _, es := range c.Estimates {
+		if seen["credit "+es.Name] {
+			return nil, fmt.Errorf("%s is both a credit and an estimate, or an estimate twice", es.Name)
+		}
+		seen["credit "+es.Name] = true
 	}
 	for _, rn := range c.Renewals {
 		if seen["renewal "+rn.Name] {
@@ -223,6 +256,46 @@ func renewal(name string, keys map[string][]string) (Renewal, error) {
 	}
 	rn.Due = t
 	return rn, nil
+}
+
+func estimate(name string, keys map[string][]string) (Estimate, error) {
+	es := Estimate{Name: name, Provider: one(keys, "provider")}
+	if es.Provider == "" {
+		es.Provider = name
+	}
+	if u := one(keys, "unit"); u != "" && u != "USD" {
+		return es, fmt.Errorf("unit %q: estimates are in USD, as services report spending", u)
+	}
+	for _, k := range []string{"balance", "as_of", "warn"} {
+		if one(keys, k) == "" {
+			return es, fmt.Errorf("%s is missing", k)
+		}
+	}
+	var err error
+	if es.Warn, err = strconv.ParseFloat(one(keys, "warn"), 64); err != nil {
+		return es, fmt.Errorf("warn: %w", err)
+	}
+	if one(keys, "balance") == "FILL_ME" || one(keys, "as_of") == "FILL_ME" {
+		es.Off = "balance or as_of not set"
+		return es, nil
+	}
+	if es.Balance, err = strconv.ParseFloat(one(keys, "balance"), 64); err != nil {
+		return es, fmt.Errorf("balance: %w", err)
+	}
+	if es.AsOf, err = moment(one(keys, "as_of")); err != nil {
+		return es, fmt.Errorf("as_of: %w", err)
+	}
+	return es, nil
+}
+
+// moment reads "2026-09-29 13:35" or "2026-09-29" (both UTC), or RFC 3339.
+func moment(s string) (time.Time, error) {
+	for _, layout := range []string{"2006-01-02 15:04", "2006-01-02", time.RFC3339} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.UTC(), nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("%q: want YYYY-MM-DD HH:MM (UTC)", s)
 }
 
 // days reads "7d" or a Go duration ("36h").
