@@ -41,18 +41,23 @@ type result struct {
 	Limits     map[string]string
 }
 
-// reports are the report splits read for the account.
-var reports = []struct{ report, dimension string }{
-	{"campaign-summary", "day"},
-	{"campaign-summary", "campaign_breakdown"},
-	{"campaign-summary", "campaign_day_breakdown"},
-	{"campaign-summary", "site_breakdown"},
-	{"campaign-summary", "campaign_site_day_breakdown"},
-	{"campaign-summary", "country_breakdown"},
-	{"campaign-summary", "platform_breakdown"},
-	{"campaign-summary", "by_hour_of_day"},
-	{"campaign-summary", "campaign_hour_breakdown"},
-	{"top-campaign-content", "item_breakdown"},
+// reports are the report splits read for the account. maxDays caps a
+// split's range where Backstage refuses longer ones: by campaign and hour it
+// allows 48 hours at most.
+var reports = []struct {
+	report, dimension string
+	maxDays           int
+}{
+	{"campaign-summary", "day", 0},
+	{"campaign-summary", "campaign_breakdown", 0},
+	{"campaign-summary", "campaign_day_breakdown", 0},
+	{"campaign-summary", "site_breakdown", 0},
+	{"campaign-summary", "campaign_site_day_breakdown", 0},
+	{"campaign-summary", "country_breakdown", 0},
+	{"campaign-summary", "platform_breakdown", 0},
+	{"campaign-summary", "by_hour_of_day", 0},
+	{"campaign-summary", "campaign_hour_breakdown", 2},
+	{"top-campaign-content", "item_breakdown", 0},
 }
 
 // summed are the report numbers the summary adds up, when present.
@@ -78,22 +83,30 @@ func (p *probe) run(ctx context.Context) error {
 		p.write()
 		return errors.New("probe: no account id in users/current/account; pass -account")
 	}
-	p.read(ctx, "allowed-accounts", "users/current/allowed-accounts", func() (*taboola.Response, error) {
+	allowed, _ := p.read(ctx, "allowed-accounts", "users/current/allowed-accounts", func() (*taboola.Response, error) {
 		return p.c.AllowedAccounts(ctx)
 	})
 
-	camps, _ := p.read(ctx, "campaigns", p.account+"/campaigns", func() (*taboola.Response, error) {
-		return p.c.Campaigns(ctx, p.account)
-	})
-	for _, id := range pickCampaigns(camps, p.items) {
-		p.read(ctx, "items-"+id, p.account+"/campaigns/"+id+"/items/", func() (*taboola.Response, error) {
-			return p.c.Items(ctx, p.account, id)
+	// A network account lists no campaigns of its own; they live in the
+	// advertiser accounts under it, so read those too.
+	for _, acct := range campaignAccounts(p.account, allowed) {
+		camps, _ := p.read(ctx, "campaigns-"+acct, acct+"/campaigns", func() (*taboola.Response, error) {
+			return p.c.Campaigns(ctx, acct)
 		})
+		for _, id := range pickCampaigns(camps, p.items) {
+			p.read(ctx, "items-"+acct+"-"+id, acct+"/campaigns/"+id+"/items/", func() (*taboola.Response, error) {
+				return p.c.Items(ctx, acct, id)
+			})
+		}
 	}
 
 	to := p.now
-	from := to.AddDate(0, 0, -(p.days - 1))
 	for _, r := range reports {
+		days := p.days
+		if r.maxDays > 0 && days > r.maxDays {
+			days = r.maxDays
+		}
+		from := to.AddDate(0, 0, -(days - 1))
 		path := fmt.Sprintf("%s/reports/%s/dimensions/%s", p.account, r.report, r.dimension)
 		p.read(ctx, r.report+"-"+r.dimension, path, func() (*taboola.Response, error) {
 			return p.c.Report(ctx, p.account, r.report, r.dimension, from, to, nil)
@@ -200,6 +213,18 @@ func (p *probe) write() error {
 		fmt.Fprintf(&b, "\n%s\n", "`"+strings.Join(r.Fields, "`, `")+"`")
 	}
 	return os.WriteFile(filepath.Join(p.dir, "summary.md"), []byte(b.String()), 0o640)
+}
+
+// campaignAccounts is the probed account, then every other allowed account
+// with an id.
+func campaignAccounts(main string, allowed taboola.Rows) []string {
+	out := []string{main}
+	for _, row := range allowed {
+		if id, _ := row["account_id"].(string); id != "" && id != main {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 // pickCampaigns prefers running campaigns, then the rest, up to n ids.

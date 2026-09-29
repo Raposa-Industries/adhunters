@@ -26,10 +26,16 @@ comes later, in its own client, once the owner says so.
   token is never written.
 - The host `backstage.taboola.com` must be reachable. Cloud sessions need it
   on the environment's allowed domains.
-- Without `-account` the probe reads the credentials' own account.
+- Without `-account` the probe reads the credentials' own account. A
+  network account lists no campaigns itself, so campaigns and items are also
+  read from every advertiser account the credentials may read.
 - Reports cover the last `-days` days in the account's time zone. The splits
   read: day, campaign, campaign by day, site, campaign by site by day,
-  country, platform, hour of day, campaign by hour, and item.
+  country, platform, hour of day, campaign by hour (the last 2 days only:
+  Backstage allows 48 hours for it), and item.
+- Backstage allows 84 requests a minute per client (`Ratelimit-Policy`).
+  Its reports refresh about hourly. Campaign by site by day is big (43 MB
+  for 30 days of one busy network account).
 - A failed read is recorded in the summary and the probe carries on.
 
 Tests: `go test ./...` (against a stand-in server; no network).

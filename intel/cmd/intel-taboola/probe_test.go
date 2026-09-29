@@ -21,10 +21,23 @@ func TestProbeSavesRawAndSummarises(t *testing.T) {
 	mux.HandleFunc("GET /backstage/api/1.0/users/current/account", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"account_id":"acme-sc","currency":"USD","time_zone_name":"US/Eastern"}`))
 	})
+	mux.HandleFunc("GET /backstage/api/1.0/users/current/allowed-accounts", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"results":[{"account_id":"acme-sc","type":"NETWORK"},{"account_id":"acme-1-sc","type":"PARTNER"}]}`))
+	})
+	// A network account has no campaigns of its own.
 	mux.HandleFunc("GET /backstage/api/1.0/acme-sc/campaigns", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"results":[]}`))
+	})
+	mux.HandleFunc("GET /backstage/api/1.0/acme-1-sc/campaigns", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"results":[{"id":"11","status":"PAUSED"},{"id":"22","status":"RUNNING"}]}`))
 	})
-	mux.HandleFunc("GET /backstage/api/1.0/acme-sc/campaigns/22/items/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /backstage/api/1.0/acme-sc/reports/campaign-summary/dimensions/campaign_hour_breakdown", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("start_date") != "2026-09-28" {
+			t.Errorf("hour range %s", r.URL.RawQuery)
+		}
+		w.Write([]byte(`{"results":[]}`))
+	})
+	mux.HandleFunc("GET /backstage/api/1.0/acme-1-sc/campaigns/22/items/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"results":[{"id":"9","title":"Doctors stunned"}]}`))
 	})
 	mux.HandleFunc("GET /backstage/api/1.0/acme-sc/reports/campaign-summary/dimensions/day", func(w http.ResponseWriter, r *http.Request) {
@@ -46,14 +59,14 @@ func TestProbeSavesRawAndSummarises(t *testing.T) {
 	}
 	sum, _ := os.ReadFile(filepath.Join(dir, "summary.md"))
 	for _, want := range []string{
-		"Account `acme-sc`", "| items-22 | 200 | 1 |", "totals: clicks 15.00, spent 4.00",
+		"Account `acme-sc`", "| campaigns-acme-sc | 200 | 0 |", "| campaigns-acme-1-sc | 200 | 2 |", "| items-acme-1-sc-22 | 200 | 1 |", "totals: clicks 15.00, spent 4.00",
 		"`X-Ratelimit-Remaining`: 99", "timezone: EST", "| campaign-summary-site_breakdown | 404 |",
 	} {
 		if !strings.Contains(string(sum), want) {
 			t.Errorf("summary lacks %q:\n%s", want, sum)
 		}
 	}
-	raw, err := os.ReadFile(filepath.Join(dir, "raw", "campaigns.json"))
+	raw, err := os.ReadFile(filepath.Join(dir, "raw", "campaigns-acme-1-sc.json"))
 	if err != nil || !strings.Contains(string(raw), `"RUNNING"`) {
 		t.Fatalf("raw campaigns: %s %v", raw, err)
 	}
