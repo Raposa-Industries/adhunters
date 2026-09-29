@@ -11,14 +11,17 @@ import (
 // The team's own material, kept as they wrote it (rules/): the headlines that
 // ran for each vertical, and the words they have seen Taboola block.
 //
-//go:embed rules/blocked.txt rules/headlines/*.txt
+//go:embed rules/blocked.txt rules/synonyms.txt rules/headlines/*.txt
 var rulesFS embed.FS
 
 // Blocked is one word or phrase Taboola has blocked for the team. Description
 // is true when it was blocked in descriptions as well as titles.
+// Alternatives are other words the page offers in its place
+// (rules/synonyms.txt); the person may keep theirs.
 type Blocked struct {
-	Text        string `json:"text"`
-	Description bool   `json:"description"`
+	Text         string   `json:"text"`
+	Description  bool     `json:"description"`
+	Alternatives []string `json:"alternatives,omitempty"`
 }
 
 // BlockedWords is the team's list, in the file's order.
@@ -29,7 +32,42 @@ func mustBlocked() []Blocked {
 	if err != nil {
 		panic(err)
 	}
-	return parseBlocked(string(raw))
+	syn, err := rulesFS.ReadFile("rules/synonyms.txt")
+	if err != nil {
+		panic(err)
+	}
+	return withSynonyms(parseBlocked(string(raw)), parseSynonyms(string(syn)))
+}
+
+// parseSynonyms reads rules/synonyms.txt: a blocked word, a tab, then its
+// options separated by " | ". Keys are lower case.
+func parseSynonyms(s string) map[string][]string {
+	out := map[string][]string{}
+	sc := bufio.NewScanner(strings.NewReader(s))
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		word, opts, ok := strings.Cut(line, "\t")
+		if !ok {
+			continue
+		}
+		for _, o := range strings.Split(opts, "|") {
+			if o = strings.TrimSpace(o); o != "" {
+				k := strings.ToLower(strings.TrimSpace(word))
+				out[k] = append(out[k], o)
+			}
+		}
+	}
+	return out
+}
+
+func withSynonyms(list []Blocked, syn map[string][]string) []Blocked {
+	for i := range list {
+		list[i].Alternatives = syn[strings.ToLower(list[i].Text)]
+	}
+	return list
 }
 
 func parseBlocked(s string) []Blocked {

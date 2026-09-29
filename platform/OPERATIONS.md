@@ -180,8 +180,8 @@ The Taboola keys go in the same file (`TABOOLA_CLIENT_ID`,
 `TABOOLA_CLIENT_SECRET`, `TABOOLA_ACCOUNTS`; the full list is in
 create/README.md). The only keys we hold are the lent ZoltaGroup login's,
 allowed for paused tests only, so with them the file must also carry
-`TABOOLA_ONLY_OWN=1` and `TABOOLA_NAME_PREFIX=AH-TEST`, and what the test
-made is deleted afterwards. Without Taboola keys the page still makes the
+`TABOOLA_ONLY_OWN=1`, and what the test made (the ids in
+`/var/lib/create-web/kept/taboola-state.json`) is deleted afterwards. Without Taboola keys the page still makes the
 bulk sheet.
 
 ## Not yet

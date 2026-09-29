@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { mixed, every, uses, seeded, mixedN, everyN, usesN } from "../launcher/pairing.js";
-import { clean, hasHidden, headlineWarnings, blockedWords, blockedWarnings, imageWarnings, urlWarnings, looksAIMade } from "../launcher/checks.js";
+import { clean, hasHidden, headlineWarnings, blockedWords, blockedWarnings, blockedHits, swapBlocked, imageWarnings, urlWarnings, looksAIMade } from "../launcher/checks.js";
 import { zip, concat, crc32, unzip, inflate } from "../launcher/zip.js";
 import { AD_COLUMNS, CTAS, adRows, campaignIds, ctaType, safeName, uniqueNames, adId, tsv } from "../launcher/sheet.js";
 import { readTemplate, fillTemplate } from "../launcher/template.js";
@@ -122,6 +122,31 @@ test("the team's blocked words are found, with their endings, and named once", (
   assert.deepEqual(blockedWords("Neurologists and doctors agree", BLOCKED, "description"), ["neurologists"]);
   assert.equal(blockedWarnings("Tinnitus?", BLOCKED).length, 1);
   assert.deepEqual(blockedWarnings("Tinnitus?", undefined), []);
+});
+
+// The replacements offered on the page, read the way the server reads them.
+const SYNONYMS = new Map(readFileSync(new URL("../../internal/openai/rules/synonyms.txt", import.meta.url), "utf8")
+  .split("\n").filter((l) => l.trim() && !l.startsWith("#"))
+  .map((l) => { const [word, opts] = l.split("\t"); return [word.trim().toLowerCase(), opts.split("|").map((o) => o.trim())]; }));
+const WITH_SYNONYMS = BLOCKED.map((b) => ({ ...b, alternatives: SYNONYMS.get(b.text.toLowerCase()) || [] }));
+
+test("every suggested replacement is itself clean", () => {
+  for (const [word, opts] of SYNONYMS) {
+    for (const o of opts) {
+      assert.deepEqual(blockedWords(`Seniors Try This ${o} Trick`, BLOCKED), [], `${word} -> ${o}`);
+      assert.deepEqual(headlineWarnings(`Seniors Try This ${o} Trick`), [], `${word} -> ${o}`);
+    }
+  }
+});
+
+test("a blocked word is swapped in place, in its own case", () => {
+  assert.deepEqual(blockedHits("Memory Loss? Try This", WITH_SYNONYMS), [{ text: "memory loss", alternatives: ["fading focus", "senior moments", "slipping recall"] }]);
+  assert.equal(swapBlocked("Memory Loss? Try This Before Bed", "memory loss", "fading focus"), "Fading Focus? Try This Before Bed");
+  assert.equal(swapBlocked("what doctors and Doctors say", "doctors", "experts"), "what experts and Experts say");
+  assert.equal(swapBlocked("WINE O'CLOCK", "wine", "red grape"), "RED GRAPE O'CLOCK");
+  assert.equal(swapBlocked("memorycard stays", "memory", "focus"), "memorycard stays");
+  // The person's extra instructions are checked against every word.
+  assert.deepEqual(blockedWords("mulheres tomando um drink de manhã", BLOCKED, "prompt"), ["drink"]);
 });
 
 test("image and link warnings", () => {

@@ -1,0 +1,47 @@
+# Other words for the team's blocked words (blocked.txt), offered on the page
+# as one-tap swaps. One per line: the blocked word or phrase exactly as in
+# blocked.txt, a tab, then the options separated by " | ". Every option is
+# checked against blocked.txt and Taboola's rules by the page's tests. They
+# are suggestions only: the person picks one or keeps their word.
+
+neuropathy	tingling | numbness | pins and needles
+feet	toes | soles | legs
+sciatica	leg discomfort | hip discomfort | stiff lower back
+nerve pain	tingling | pins and needles | numbness
+back pain	stiff back | sore back | back discomfort
+Burning, Tingling & Numbness	pins and needles | that tingling feeling
+weight	belly fat | waistline | body shape
+keto	low-carb
+dropping weight	slimming down | trimming down | getting leaner
+stop losing weight	hit a plateau | stall
+blood sugar	glucose levels | sugar levels
+The Greatest Enemy of Blood Sugar	the worst thing for glucose levels
+memory	focus | recall | mental sharpness
+memory loss	fading focus | senior moments | slipping recall
+neurologists	brain experts | specialists | researchers
+brain fog	mental fatigue | cloudy thinking | low focus
+cognitive decline	mental slowdown | slipping focus
+forget	misplace | lose track of | blank on
+cognitive	mental | thinking
+tinnitus	ear buzzing | humming in the ears | ear noise
+Ringing In The Ears	buzzing in the ears | ear noise
+gelatin	collagen
+Gelatin Trick	collagen trick
+wrinkles	fine lines | creases | aging skin
+plastic surgeon	skin expert | beauty expert
+prostate	men's health | nighttime bathroom trips
+doctors	experts | researchers | specialists
+cardiologists	heart experts | specialists | researchers
+doctor	expert | researcher | specialist
+MDs	experts | specialists
+apnea	snoring | restless sleep
+pill	capsule | formula
+medication	formula | routine
+mineral	nutrient
+vitamin	nutrient | supplement
+drink	sip | beverage | tonic
+poison	toxin | worst ingredient
+soda	pop | cola | soft beverage
+food	snack | meal | ingredient
+wine	red grape | beverage
+enemy	worst foe | threat | rival

@@ -35,8 +35,8 @@
 //	                              most 30 of them
 //	TABOOLA_ONLY_OWN        unset; 1 for a lent account: only campaigns and
 //	                        groups made here are listed or touched
-//	TABOOLA_NAME_PREFIX     with TABOOLA_ONLY_OWN, what every new campaign
-//	                        and group is named with ("AH-TEST")
+//	TABOOLA_NAME_PREFIX     optional, with TABOOLA_ONLY_OWN: what every new
+//	                        campaign and group must be named with ("AH-TEST")
 //	TABOOLA_STATE_FILE      <keep folder>/taboola-state.json: with
 //	                        TABOOLA_ONLY_OWN, the ids made here
 //
@@ -219,8 +219,7 @@ func settings() (openai.Settings, error) {
 }
 
 // taboolaSettings reads the Taboola login. Unset credentials leave Taboola
-// off; a network account, a bad ceiling or TABOOLA_ONLY_OWN without a name
-// prefix stops the boot.
+// off; a network account or a bad ceiling stops the boot.
 func taboolaSettings(keepDir string) (taboola.Settings, error) {
 	s := taboola.Settings{
 		Base:         envOr("TABOOLA_BASE_URL", taboola.DefaultBase),
@@ -233,9 +232,6 @@ func taboolaSettings(keepDir string) (taboola.Settings, error) {
 	case "", "0", "false":
 	case "1", "true":
 		s.OnlyOwn = true
-		if s.NamePrefix == "" {
-			return s, errors.New("TABOOLA_ONLY_OWN needs TABOOLA_NAME_PREFIX (for example AH-TEST)")
-		}
 	default:
 		return s, fmt.Errorf("TABOOLA_ONLY_OWN must be 1 or 0, not %q", v)
 	}

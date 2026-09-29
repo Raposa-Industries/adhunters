@@ -5,7 +5,7 @@
 // browser.
 
 import { mixedN, everyN, usesN, seeded } from "./pairing.js";
-import { clean, hasHidden, headlineWarnings, blockedWarnings, imageWarnings, urlWarnings, looksAIMade } from "./checks.js";
+import { clean, hasHidden, headlineWarnings, blockedWarnings, blockedHits, swapBlocked, imageWarnings, urlWarnings, looksAIMade } from "./checks.js";
 import { zip } from "./zip.js";
 import { AD_COLUMNS, CTAS, MAX_ADS, adRows, campaignIds, ctaType, uniqueNames, fingerprint, adId, tsv } from "./sheet.js";
 import { readTemplate, fillTemplate } from "./template.js";
@@ -233,6 +233,80 @@ function progress(text, done, total) {
   if (total !== undefined) $("gen-bar").firstElementChild.style.width = `${total ? Math.round((100 * done) / total) : 0}%`;
 }
 
+// ---- activity: what generation is doing right now ------------------------------------------
+// One line says what is happening now, with a running clock (like a terminal
+// running a command); under it every step and every image, each with its
+// own state and time.
+
+const activity = { steps: [], start: 0, timer: 0, now: "" };
+
+function secs(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
+}
+
+function step(label, detail = "") {
+  const st = { label, detail, state: "wait", t0: 0, t1: 0 };
+  activity.steps.push(st);
+  return st;
+}
+
+function run(st, detail) {
+  st.state = "run";
+  st.t0 = Date.now();
+  if (detail !== undefined) st.detail = detail;
+  activity.now = st.label;
+  renderActivity();
+}
+
+function finish(st, ok, detail) {
+  st.state = ok ? "ok" : "fail";
+  st.t1 = Date.now();
+  if (detail !== undefined) st.detail = detail;
+  renderActivity();
+}
+
+function startActivity() {
+  activity.steps = [];
+  activity.start = Date.now();
+  activity.now = "Começando";
+  clearInterval(activity.timer);
+  activity.timer = setInterval(renderActivity, 1000);
+  $("activity").hidden = false;
+}
+
+function stopActivity(summary) {
+  clearInterval(activity.timer);
+  activity.timer = 0;
+  activity.now = summary;
+  renderActivity();
+}
+
+function renderActivity() {
+  const live = !!activity.timer;
+  const images = activity.steps.filter((s) => s.image);
+  const doneImages = images.filter((s) => s.state === "ok" || s.state === "fail").length;
+  const running = activity.steps.filter((s) => s.state === "run");
+  const now = live && running.length
+    ? running.length > 1 ? `Gerando ${running.length} imagens ao mesmo tempo` : running[0].label
+    : activity.now;
+  const icon = { wait: "○", run: "", ok: "✓", fail: "!" };
+  const row = (s) => {
+    const t = s.state === "run" ? secs(Date.now() - s.t0) : s.t1 ? secs(s.t1 - s.t0) : "";
+    return `<li class="act-${s.state}"><span class="act-icon">${s.state === "run" ? `<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>` : icon[s.state]}</span>
+      <span class="act-label">${esc(s.label)}${s.detail ? `<span class="act-detail">${esc(s.detail)}</span>` : ""}</span>
+      <span class="act-time">${s.state === "wait" ? "na fila" : t}</span></li>`;
+  };
+  $("activity").innerHTML = `<div class="act-now${live ? " live" : ""}">
+      ${live ? `<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>` : ""}
+      <span class="act-what">${esc(now)}</span>
+      <span class="act-clock">${secs((live ? Date.now() : activity.end || Date.now()) - activity.start)}</span>
+    </div>
+    ${images.length ? `<div class="bar"><div style="width:${Math.round((100 * doneImages) / images.length)}%"></div></div>` : ""}
+    <ol class="act-steps">${activity.steps.map(row).join("")}</ol>
+    <div class="act-foot">${images.length ? `${doneImages} de ${plural(images.length, "imagem", "imagens")} · ` : ""}gasto nesta rodada ${money(state.spent - (activity.spentAtStart || 0))}</div>`;
+}
+
 async function generate() {
   if (!state.vertical) {
     progress("Escolha a vertical na etapa 1.");
@@ -246,11 +320,29 @@ async function generate() {
     return;
   }
   $("generate").disabled = true;
-  progress(state.refs.length ? "Analisando as referências e escrevendo…" : "Escrevendo headlines e ideias de imagem…", 0, nImages + 1);
+  progress("");
+  startActivity();
+  activity.end = 0;
+  activity.spentAtStart = state.spent;
+  const text = state.status?.text_model || "modelo de texto";
+  const img = state.status?.image_model || "modelo de imagem";
+  const prep = state.refs.length ? step("Preparando as referências", `${plural(state.refs.length, "imagem reduzida", "imagens reduzidas")} para enviar`) : null;
+  const plan = step(
+    state.refs.length ? "Analisando as referências e escrevendo" : "Escrevendo headlines e ideias de imagem",
+    `${text}: ${plural(nHeadlines, "headline", "headlines")} e ${plural(nImages, "ideia de imagem", "ideias de imagem")}, vertical ${state.vertical}`);
+  let current = prep || plan;
   try {
-    const keep = await Promise.all(state.refs.filter((r) => r.send).map((r) => downscale(r.blob)));
-    const winners = await Promise.all(state.refs.map(async (r) => dataURL(await downscale(r.blob, 1024))));
-    const plan = await postJSON("api/plan", {
+    let keep = [];
+    let winners = [];
+    if (prep) {
+      run(prep);
+      keep = await Promise.all(state.refs.filter((r) => r.send).map((r) => downscale(r.blob)));
+      winners = await Promise.all(state.refs.map(async (r) => dataURL(await downscale(r.blob, 1024))));
+      finish(prep, true, `${plural(winners.length, "referência analisada", "referências analisadas")}${keep.length ? `, ${plural(keep.length, "vai", "vão")} junto ao gerador de imagem` : ""}`);
+    }
+    current = plan;
+    run(plan);
+    const out = await postJSON("api/plan", {
       prompt: $("prompt").value.trim(),
       headline_examples: lines($("examples").value),
       language: "en",
@@ -262,37 +354,50 @@ async function generate() {
       winners,
       avoid: [...state.headlines.map((h) => h.text), ...state.creatives.filter((c) => c.brief).map((c) => c.brief)],
     });
-    state.spent += plan.cost_usd || 0;
-    if (plan.analysis?.length) renderAnalysis(plan.analysis);
+    state.spent += out.cost_usd || 0;
+    if (out.analysis?.length) renderAnalysis(out.analysis);
     const known = new Set(state.headlines.map((h) => clean(h.text).toLowerCase()));
-    for (const text of plan.headlines || []) {
+    let added = 0;
+    for (const text of out.headlines || []) {
       if (known.has(clean(text).toLowerCase())) continue;
       state.headlines.push({ id: nextId++, text, source: "generated", chosen: false });
+      added++;
     }
+    finish(plan, true, `${plural(added, "headline nova", "headlines novas")}, ${plural((out.briefs || []).length, "ideia de imagem", "ideias de imagem")}${out.analysis?.length ? ", padrão das referências na tabela abaixo" : ""}`);
     renderHeadlines();
-    const cards = (plan.briefs || []).map(({ brief, angle }) => {
+    const cards = (out.briefs || []).map(({ brief, angle }) => {
       const c = { id: nextId++, source: "generated", brief, angle, pending: true, chosen: false, ai: true };
       state.creatives.push(c);
+      c.step = step(`Imagem ${generatedNumber(c)} · ${angle || "ideia"}`, brief);
+      c.step.image = true;
       return c;
     });
     renderCreatives();
     update();
-    let done = 0;
-    progress(`Gerando imagens: 0 de ${cards.length}…`, 1, cards.length + 1);
+    renderActivity();
     await runQueue(cards, 3, async (c) => {
+      current = c.step;
+      run(c.step, `${img}: ${c.brief}`);
+      const before = state.spent;
       await makeImage(c, keep);
-      done++;
-      progress(`Gerando imagens: ${done} de ${cards.length}…`, done + 1, cards.length + 1);
+      finish(c.step, !c.error, c.error ? `Erro: ${c.error}` : `Pronta${state.spent > before ? `, ${money(state.spent - before)}` : ""}. ${c.brief}`);
     });
     const failed = cards.filter((c) => c.error).length;
-    progress(`Pronto${failed ? `, ${plural(failed, "imagem com erro", "imagens com erro")}` : ""}. Escolha abaixo.`);
+    activity.end = Date.now();
+    stopActivity(`Pronto${failed ? `, ${plural(failed, "imagem com erro", "imagens com erro")}` : ""}. Escolha abaixo.`);
     $("s-creatives").scrollIntoView();
   } catch (err) {
-    progress(`Não deu: ${err.message}`);
+    if (current.state === "run") finish(current, false, `Erro: ${err.message}`);
+    activity.end = Date.now();
+    stopActivity(`Não deu: ${err.message}`);
   } finally {
     $("generate").disabled = !state.status?.generation;
     renderSpent();
   }
+}
+
+function generatedNumber(c) {
+  return state.creatives.filter((x) => x.source === "generated").indexOf(c) + 1;
 }
 
 function renderAnalysis(rows) {
@@ -423,6 +528,47 @@ function titleWarnings(text) {
   return [...headlineWarnings(text), ...blockedWarnings(text, state.status?.blocked)];
 }
 
+// swapsHTML shows each of the team's blocked words found in a text with its
+// suggested replacements as buttons. Only a warning: the person may keep the
+// word. field names the input the swap goes to ("" for a headline row).
+function swapsHTML(text, kind, field = "") {
+  const hits = blockedHits(text, state.status?.blocked, kind);
+  return hits.map((b) => {
+    const opts = b.alternatives.map((a) =>
+      `<button type="button" class="swap-opt" data-swap-from="${esc(b.text)}" data-swap-to="${esc(a)}"${field ? ` data-swap-field="${field}"` : ""}>${esc(a)}</button>`).join("");
+    return `<span class="swap"><span class="swap-say">“${esc(b.text)}” já foi bloqueada pelo Taboola.${opts ? " Trocar por:" : " Sem sugestão pronta: reescreva ou mantenha."}</span>${opts}</span>`;
+  }).join("");
+}
+
+// The fields a person types for the AI, and the description, show their
+// blocked words with swaps under them.
+const SWAP_FIELDS = { prompt: "prompt", examples: "title", description: "description" };
+
+const shownSwaps = new Map();
+
+function renderSwaps() {
+  for (const [id, kind] of Object.entries(SWAP_FIELDS)) {
+    const html = swapsHTML($(id).value, kind, id);
+    if (shownSwaps.get(id) === html) continue;
+    shownSwaps.set(id, html);
+    $(`${id}-swaps`).innerHTML = html;
+  }
+}
+
+// Pressing a swap keeps the focus where it is: moving it would fire the
+// field's change, which redraws the swaps and drops the button being pressed.
+document.addEventListener("mousedown", (e) => {
+  if (e.target.closest(".swap-opt")) e.preventDefault();
+});
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-swap-field]");
+  if (!b) return;
+  const el = $(b.dataset.swapField);
+  el.value = swapBlocked(el.value, b.dataset.swapFrom, b.dataset.swapTo);
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+});
+
 function chosenHeadlines() {
   return state.headlines.filter((h) => h.chosen && clean(h.text));
 }
@@ -437,7 +583,7 @@ function renderHeadlines() {
       <span class="tick">✓</span>
       <span class="num">${n >= 0 ? `H${n + 1}` : ""}</span>
       <div>
-        <input type="text" data-act="edit" value="${esc(h.text)}">
+        <textarea data-act="edit" rows="2" spellcheck="true">${esc(h.text)}</textarea>
         <div class="hint">${headlineHint(h)}</div>
       </div>
       <div class="side">${hasHidden(h.text) ? `<button data-act="clean">Tirar invisíveis</button>` : ""}<button data-act="remove" class="ghost">Remover</button></div>
@@ -446,16 +592,20 @@ function renderHeadlines() {
 }
 
 function headlineHint(h) {
-  const warnings = titleWarnings(h.text);
+  const warnings = headlineWarnings(h.text);
   const tag = h.source === "generated" ? "gerada com IA · " : "";
+  const swaps = swapsHTML(h.text, "title");
   return `${tag}${clean(h.text).length} caracteres` +
-    (warnings.length ? `<ul class="warn">${warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : "");
+    (warnings.length ? `<ul class="warn">${warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : "") +
+    (swaps ? `<span class="swaps">${swaps}</span>` : "");
 }
 
 $("headlines").addEventListener("input", (e) => {
   if (e.target.dataset?.act !== "edit") return;
   const row = e.target.closest(".hl");
   const h = state.headlines.find((x) => x.id === +row.dataset.id);
+  // A headline is one line: a pasted or typed line break becomes a space.
+  if (/[\r\n]/.test(e.target.value)) e.target.value = e.target.value.replace(/[\r\n]+/g, " ");
   h.text = e.target.value;
   row.querySelector(".hint").innerHTML = headlineHint(h);
   update();
@@ -469,6 +619,13 @@ $("headlines").addEventListener("click", (e) => {
   const row = e.target.closest(".hl");
   if (!row || e.target.dataset?.act === "edit") return;
   const h = state.headlines.find((x) => x.id === +row.dataset.id);
+  const swap = e.target.closest("button.swap-opt");
+  if (swap) {
+    h.text = swapBlocked(h.text, swap.dataset.swapFrom, swap.dataset.swapTo);
+    renderHeadlines();
+    update();
+    return;
+  }
   const act = e.target.closest("button")?.dataset.act;
   if (act === "clean") h.text = clean(h.text);
   else if (act === "remove") state.headlines = state.headlines.filter((x) => x !== h);
@@ -548,6 +705,7 @@ function renderPairing(list) {
   if (!C.length || !H.length || !T.length) {
     note.textContent = "Escolha pelo menos uma imagem, uma headline e um botão.";
     $("grid").innerHTML = "";
+    $("grid-hint").textContent = "";
     return;
   }
   const idx = (arr) => new Map(arr.map((x, i) => [x, i]));
@@ -558,22 +716,26 @@ function renderPairing(list) {
   const unused = [...uC, ...uH, ...uT].filter((n) => n === 0).length;
   note.textContent = `${plural(C.length, "imagem", "imagens")} × ${plural(H.length, "headline", "headlines")} × ${plural(T.length, "botão", "botões")} → ${plural(list.length, "anúncio", "anúncios")}. ` +
     `Cada imagem ${range(uC)}, cada headline ${range(uH)}, cada botão ${range(uT)}.` + (unused ? ` ${unused} sem uso.` : "");
-  if (state.mode !== "manual") {
-    $("grid").innerHTML = "";
-    return;
-  }
-  const on = new Set(list.map(([c, h]) => `${c.id}:${h.id}`));
+  // The grid shows the pairs in every mode; changing a cell outside "Um a um"
+  // turns the current pairs into a hand-picked set and switches to it.
+  const on = new Map();
+  for (const [c, h] of list) on.set(`${c.id}:${h.id}`, (on.get(`${c.id}:${h.id}`) || 0) + 1);
+  $("grid-hint").textContent = state.mode === "manual"
+    ? "Toque numa célula para ligar ou desligar o par."
+    : "Estes são os pares de agora. Toque numa célula para ajustar: a combinação vira Um a um, com estes pares.";
   const head = `<tr><th></th>${H.map((h, i) => `<th title="${esc(h.text)}">H${i + 1}</th>`).join("")}</tr>`;
   const rows = C.map((c) => `<tr><th class="row-head"><img src="${c.url}" alt=""></th>${H.map((h) => {
     const key = `${c.id}:${h.id}`;
-    return `<td class="${on.has(key) ? "on" : ""}"><button data-key="${key}" title="${esc(h.text)}">${on.has(key) ? "✓" : ""}</button></td>`;
+    const n = on.get(key) || 0;
+    return `<td class="${n ? "on" : ""}"><button data-key="${key}" title="${esc(h.text)}" aria-pressed="${n > 0}">${n > 1 ? `${n}×` : n ? "✓" : ""}</button></td>`;
   }).join("")}</tr>`).join("");
   $("grid").innerHTML = head + rows;
 }
 
 $("grid").addEventListener("click", (e) => {
-  const key = e.target.dataset?.key;
+  const key = e.target.closest("button")?.dataset?.key;
   if (!key) return;
+  if (state.mode !== "manual") setMode("manual");
   if (state.manual.has(key)) state.manual.delete(key);
   else state.manual.add(key);
   update();
@@ -609,7 +771,7 @@ function renderTaboola() {
     $("tb-reason").textContent = "";
   }
   $("tb-own").textContent = state.tb.status.only_own
-    ? `Conta de testes: só aparecem e só recebem anúncios as campanhas criadas por esta página, com nome começando em "${state.tb.status.name_prefix}".`
+    ? `Conta de testes: só aparecem e só recebem anúncios as campanhas criadas por esta página.${state.tb.status.name_prefix ? ` Os nomes começam com "${state.tb.status.name_prefix}".` : ""}`
     : "";
   $("tb-existing").hidden = state.tb.mode !== "existing";
   $("tb-new").hidden = state.tb.mode !== "new";
@@ -750,29 +912,113 @@ function newGroup() {
   };
 }
 
+// newCampaignProblems lists what keeps the new campaign from being created,
+// each with the fixes that would clear it: {text, fix: [{label, set}]}, where
+// set maps a field id to the value a button puts there.
 function newCampaignProblems() {
   const n = newCampaign();
   const max = state.tb.status || {};
   const out = [];
+  const add = (text, fix = []) => out.push({ text, fix });
+  const usd = (v) => Math.round(v * 100) / 100;
   const prefix = state.tb.status?.only_own ? state.tb.status.name_prefix || "" : "";
-  if (!n.name) out.push("Dê um nome para a campanha.");
-  else if (prefix && !n.name.startsWith(prefix)) out.push(`Nesta conta de testes o nome começa com "${prefix}".`);
+  const today = new Date();
+  const suggested = `${state.vertical || "Campanha"} ${n.countries[0] || "US"} - ${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}`;
+  if (!n.name) add("Dê um nome para a campanha.", [{ label: `Usar "${prefix}${suggested}"`, set: { "nc-name": prefix + suggested } }]);
+  else if (prefix && !n.name.startsWith(prefix)) add(`Nesta conta de testes o nome começa com "${prefix}".`, [{ label: `Usar "${prefix}${n.name}"`, set: { "nc-name": prefix + n.name } }]);
   if ($("nc-group").value === "new") {
     const g = newGroup();
-    if (!g.name) out.push("Dê um nome para o grupo novo.");
-    else if (prefix && !g.name.startsWith(prefix)) out.push(`O nome do grupo também começa com "${prefix}".`);
-    if (!(g.spending_limit > 0)) out.push("Falta a verba do grupo.");
+    if (!g.name) add("Dê um nome para o grupo novo.", [{ label: `Usar "${prefix}${suggested}"`, set: { "ng-name": prefix + suggested } }]);
+    else if (prefix && !g.name.startsWith(prefix)) add(`O nome do grupo também começa com "${prefix}".`, [{ label: `Usar "${prefix}${g.name}"`, set: { "ng-name": prefix + g.name } }]);
+    if (!(g.spending_limit > 0)) add("Falta a verba do grupo.", [{ label: "US$ 300 por mês", set: { "ng-limit": 300, "ng-model": "MONTHLY" } }]);
   }
-  if (n.start_date && n.end_date && n.end_date < n.start_date) out.push("A data de fim vem antes do começo.");
-  if (!n.brand) out.push("Falta a marca (etapa 8): ela vai na campanha.");
-  if (!(n.cpc > 0)) out.push("Falta o lance por clique.");
-  else if (max.max_cpc && n.cpc > max.max_cpc) out.push(`O lance passa do limite deste servidor (${money(max.max_cpc)}).`);
-  if (!(n.daily_cap > 0)) out.push("Falta o limite por dia.");
-  else if (max.max_daily_cap && n.daily_cap > max.max_daily_cap) out.push(`O limite por dia passa do máximo deste servidor (${money(max.max_daily_cap)}).`);
-  if (!n.countries.length) out.push("Escolha pelo menos um país.");
-  if (!n.platforms.length) out.push("Escolha pelo menos um aparelho.");
+  if (n.start_date && n.end_date && n.end_date < n.start_date) add("A data de fim vem antes do começo.", [
+    { label: "Sem data de fim", set: { "nc-end": "" } },
+    { label: `Terminar em ${n.start_date.split("-").reverse().join("/")}`, set: { "nc-end": n.start_date } },
+  ]);
+  if (!n.brand) add("Falta a marca (etapa 8): ela vai na campanha.", [{ label: "Ir para a etapa 8", go: "s-brand" }]);
+  if (!(n.cpc > 0)) add("Falta o lance por clique.", [{ label: "US$ 0,30", set: { "nc-cpc": 0.3 } }]);
+  else if (max.max_cpc && n.cpc > max.max_cpc) add(`O lance passa do limite deste servidor (${money(max.max_cpc)}).`, [{ label: `Usar ${money(max.max_cpc)}`, set: { "nc-cpc": max.max_cpc } }]);
+  const minDaily = state.tb.minDaily?.[state.tb.account] || 0;
+  if (!(n.daily_cap > 0)) add("Falta o limite por dia.", [{ label: `US$ ${Math.max(50, minDaily)}`, set: { "nc-daily": Math.max(50, minDaily) } }]);
+  else if (max.max_daily_cap && n.daily_cap > max.max_daily_cap) add(`O limite por dia passa do máximo deste servidor (${money(max.max_daily_cap)}).`, [{ label: `Usar ${money(max.max_daily_cap)}`, set: { "nc-daily": max.max_daily_cap } }]);
+  else if (n.daily_cap < minDaily) add(`O Taboola pediu pelo menos ${money(minDaily)} por dia nesta campanha.`, [{ label: `Usar ${money(minDaily)} por dia`, set: { "nc-daily": minDaily } }]);
+  if (n.spending_limit > 0 && n.daily_cap > n.spending_limit) {
+    const fix = [
+      { label: `Limite total = ${money(n.daily_cap)}`, set: { "nc-total": usd(n.daily_cap) } },
+      { label: "Sem limite total", set: { "nc-total": "" } },
+    ];
+    if (n.spending_limit >= minDaily) fix.splice(1, 0, { label: `Limite por dia = ${money(n.spending_limit)}`, set: { "nc-daily": usd(n.spending_limit) } });
+    add(`O limite por dia (${money(n.daily_cap)}) passa do limite total (${money(n.spending_limit)}): o Taboola recusa.`, fix);
+  }
+  if (!n.countries.length) add("Escolha pelo menos um país.", [{ label: "Só US", set: { "nc-countries": "US" } }]);
+  if (!n.platforms.length) add("Escolha pelo menos um aparelho.", [{ label: "Computador e celular", set: { platforms: ["DESK", "PHON"] } }]);
 
   return out;
+}
+
+// renderCampaignFixes lists the new campaign's problems under its fields,
+// redrawn only when they change so a button is never swapped under a finger.
+let shownFixes = "";
+function renderCampaignFixes() {
+  const html = tbOn() && state.tb.mode === "new" ? newCampaignProblems().map(fixesHTML).join("") : "";
+  if (html === shownFixes) return;
+  shownFixes = html;
+  $("nc-warnings").innerHTML = html;
+}
+
+// fixesHTML draws a problem with its fix buttons.
+function fixesHTML(p) {
+  return `<span class="fix">${esc(p.text)}${p.fix?.length ? ` <span class="fix-opts">${p.fix.map((f) =>
+    `<button type="button" class="fix-opt" data-fix="${esc(JSON.stringify(f))}">${esc(f.label)}</button>`).join("")}</span>` : ""}</span>`;
+}
+
+// applyFix puts a fix's values in their fields, or jumps to its step.
+function applyFix(f) {
+  if (f.go) {
+    $(f.go).scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  for (const [id, v] of Object.entries(f.set || {})) {
+    if (id === "platforms") {
+      for (const box of $("nc-platforms").querySelectorAll("input")) box.checked = v.includes(box.value);
+      continue;
+    }
+    $(id).value = v;
+    $(id).dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  update();
+}
+
+document.addEventListener("mousedown", (e) => {
+  if (e.target.closest(".fix-opt")) e.preventDefault();
+});
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button.fix-opt");
+  if (!b) return;
+  applyFix(JSON.parse(b.dataset.fix));
+  // A fix on a failed create clears that failure, since it no longer holds.
+  b.closest(".result.fail")?.remove();
+});
+
+// taboolaFixes reads a refusal from Taboola and returns the fixes it names.
+// The minimum daily cap is remembered for the account, so the step warns
+// before the next try.
+function taboolaFixes(message) {
+  const m = /daily cap[^.]*must be at least\s*\$?\s*([\d.,]+)\s*USD/i.exec(message);
+  if (m) {
+    const min = Math.ceil(parseFloat(m[1].replace(",", "")));
+    state.tb.minDaily = { ...state.tb.minDaily, [state.tb.account]: min };
+    return [{ label: `Usar ${money(min)} por dia`, set: { "nc-daily": min } }];
+  }
+  if (/daily cap cannot be higher than the spending limit|limite por dia .* passa do limite total/i.test(message)) {
+    const d = +$("nc-daily").value || 0;
+    return [
+      { label: `Limite total = ${money(d)}`, set: { "nc-total": d } },
+      { label: "Sem limite total", set: { "nc-total": "" } },
+    ];
+  }
+  return [];
 }
 
 // ---- ads, review and create --------------------------------------------------------------------------
@@ -858,8 +1104,7 @@ async function renderAds(list) {
     ? `<div class="summary-box warnings"><b>Avisos</b> <span>(não impedem: a decisão é sua)</span><ul>${problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>`
     : "";
   $("url-warnings").textContent = $("url").value ? urlWarnings(s.url).join(" ") : "";
-  $("description-warnings").textContent = blockedWarnings(s.description, state.status?.blocked, "description").join(" ");
-  $("nc-warnings").innerHTML = tbOn() && state.tb.mode === "new" ? newCampaignProblems().map((p) => esc(p)).join("<br>") : "";
+  renderCampaignFixes();
 
   // What still blocks CREATE (missing, not warnings).
   const missing = [];
@@ -923,26 +1168,115 @@ function renderDock(nAds, nTargets) {
     (nTargets > 1 ? ` <span class="muted">× ${nTargets} campanhas</span>` : "");
 }
 
+// Each step opens once the steps before it that it needs are done; until
+// then it is dimmed with a line saying what is missing. Policy warnings never
+// hold a step: they are the person's call.
+const NEEDS = {
+  "s-refs": "s-vertical",
+  "s-generate": "s-vertical",
+  "s-creatives": "s-vertical",
+  "s-headlines": "s-creatives",
+  "s-ctas": "s-headlines",
+  "s-pairing": "s-ctas",
+  "s-brand": "s-pairing",
+  "s-ai": "s-brand",
+  "s-campaign": "s-ai",
+  "s-review": "s-campaign",
+};
+
+function campaignMissing() {
+  if (!tbOn()) return $("url").value.trim() ? "" : "falta o link de cada anúncio";
+  if (state.tb.mode === "new") {
+    const p = newCampaignProblems();
+    if (p.length) return p[0].text.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase());
+  } else if (!state.tb.chosen.size) return "escolha pelo menos uma campanha";
+  return $("url").value.trim() ? "" : "falta o link de cada anúncio";
+}
+
+// holdFixes is what a button can do about the step holding another one.
+function holdFixes(id) {
+  if (id === "s-campaign" && tbOn() && state.tb.mode === "new") return newCampaignProblems()[0]?.fix || [];
+  return [];
+}
+
 function renderRail() {
+  const missing = {
+    "s-vertical": state.vertical ? "" : "escolha a vertical",
+    "s-creatives": chosenCreatives().length ? "" : "marque pelo menos uma imagem",
+    "s-headlines": chosenHeadlines().length ? "" : "marque pelo menos uma headline",
+    "s-ctas": chosenCTAs().length ? "" : "escolha pelo menos um botão",
+    "s-pairing": currentAds.length ? "" : "a combinação precisa formar pelo menos um anúncio",
+    "s-brand": $("brand").value.trim() ? "" : "escreva a marca",
+    "s-ai": aiAnswer() ? "" : "responda se foi feito com IA",
+    "s-campaign": campaignMissing(),
+  };
   const done = {
-    "s-vertical": !!state.vertical,
+    ...Object.fromEntries(Object.entries(missing).map(([k, v]) => [k, !v])),
     "s-refs": state.refs.length > 0 || lines($("examples").value).length > 0,
     "s-generate": state.creatives.some((c) => c.source === "generated") || state.headlines.some((h) => h.source === "generated"),
-    "s-creatives": chosenCreatives().length > 0,
-    "s-headlines": chosenHeadlines().length > 0,
-    "s-ctas": chosenCTAs().length > 0,
-    "s-pairing": currentAds.length > 0,
-    "s-brand": !!$("brand").value.trim(),
-    "s-ai": !!aiAnswer(),
-    "s-campaign": tbOn() ? (state.tb.mode === "new" ? !newCampaignProblems().length : state.tb.chosen.size > 0) && !!$("url").value.trim() : !!$("url").value.trim(),
     "s-review": false,
   };
-  $("rail").innerHTML = [...document.querySelectorAll("section.step")].map((s, i) =>
-    `<li class="${done[s.id] ? "done" : ""}"><a href="#${s.id}"><span class="dot">${done[s.id] ? "✓" : i + 1}</span>${esc(s.dataset.title)}</a></li>`).join("");
+  const sections = [...document.querySelectorAll("section.step")];
+  const number = Object.fromEntries(sections.map((s, i) => [s.id, i + 1]));
+  const title = Object.fromEntries(sections.map((s) => [s.id, s.dataset.title]));
+  // What holds a step: the first unfinished step in its chain of needs.
+  const holder = (id) => {
+    let hold = "";
+    for (let n = NEEDS[id]; n; n = NEEDS[n]) if (!done[n]) hold = n;
+    return hold;
+  };
+  let next = "";
+  for (const s of sections) {
+    const hold = holder(s.id);
+    s.classList.toggle("locked", !!hold);
+    // The create box stays live, so a refusal's fix button can be pressed
+    // (the create button itself stays disabled while something is missing).
+    for (const c of s.children) c.inert = !!hold && !c.matches("h2, .locked-note, .create-box");
+    let note = s.querySelector(":scope > .locked-note");
+    if (hold) {
+      if (!note) {
+        note = document.createElement("p");
+        note.className = "locked-note";
+        s.querySelector("h2").after(note);
+      }
+      const html = fixesHTML({ text: `Libera depois da etapa ${number[hold]} (${title[hold]}): ${missing[hold]}.`, fix: holdFixes(hold) });
+      if (note.innerHTML !== html) note.innerHTML = html;
+    } else if (note) note.remove();
+    if (!next && !hold && missing[s.id]) next = s.id;
+  }
+  $("rail").innerHTML = sections.map((s, i) => {
+    const locked = s.classList.contains("locked");
+    const ok = done[s.id] && !locked;
+    return `<li class="${ok ? "done" : ""}${locked ? " locked" : ""}"><a href="#${s.id}"><span class="dot">${ok ? "✓" : i + 1}</span>${esc(s.dataset.title)}</a></li>`;
+  }).join("");
+  // The dock's button goes to the next thing to do, or to the review.
+  const go = $("dock-go");
+  go.setAttribute("href", `#${next || "s-review"}`);
+  go.textContent = next ? `Próximo: ${title[next]}` : "Revisar e criar";
 }
+
+// Links to a step scroll there in the page itself. Some in-app phone
+// browsers load a "#step" link as a new page, which threw away everything
+// generated so far.
+document.addEventListener("click", (e) => {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  const target = document.getElementById(a.getAttribute("href").slice(1));
+  if (!target) return;
+  e.preventDefault();
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+// Generated options live only in this page: leaving it asks first.
+window.addEventListener("beforeunload", (e) => {
+  if (!state.creatives.length && !state.headlines.length) return;
+  e.preventDefault();
+  e.returnValue = "";
+});
 
 function update() {
   renderTracking();
+  renderSwaps();
   const list = combos();
   renderPairing(list);
   renderAI(list);
@@ -1003,7 +1337,8 @@ $("create").addEventListener("click", async () => {
       : `<div class="result ok"><b>${esc(byId.get(String(r.campaign_id)) || r.campaign_id)}</b>: ${plural(r.created.length, "anúncio criado", "anúncios criados")}, pausados e em revisão. Ligue no painel do Taboola quando quiser.</div>`).join("");
     $("create-note").textContent = "";
   } catch (err) {
-    box.innerHTML += `<div class="result fail">Não deu: ${esc(err.message)}</div>`;
+    box.innerHTML += `<div class="result fail">${fixesHTML({ text: `Não deu: ${err.message}`, fix: taboolaFixes(err.message) })}</div>`;
+    box.lastElementChild.scrollIntoView({ behavior: "smooth", block: "center" });
     $("create-note").textContent = "";
   } finally {
     state.creating = false;
@@ -1215,3 +1550,4 @@ renderTrackers();
 update();
 loadStatus();
 loadTemplate();
+window.launcherReady = true;

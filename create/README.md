@@ -6,8 +6,17 @@ stays as it is; this folder is the new Create.
 ## What runs today: the campaign launcher (`create-web`)
 
 One page, in Portuguese, for the team that puts ads on Taboola by hand. The
-ads themselves (headlines, descriptions, CTAs) are always in English. Eleven
-steps, in the order the team works:
+ads themselves (headlines, descriptions, CTAs) are always in English. It is
+drawn in AdHunters Ember (dark, one orange accent, Archivo, IBM Plex Sans and
+Mono; the fonts are served from `web/launcher/fonts/`), and works on a phone:
+the steps become a strip under the header. Eleven steps, in the order the
+team works. Each step opens once the steps it needs are done (a dimmed step
+says what is missing), and the button at the bottom goes to the next thing to
+do; Taboola's rules only warn and never hold a step. What holds the new
+campaign comes with buttons that set the values that would clear it (the
+daily cap over the total, a missing country, a bid over the ceiling), and so
+does a refusal from Taboola the page can read: when Taboola names a minimum
+daily cap, the page offers it and remembers it for that account:
 
 1. **Vertical.** Required: it picks the team's headlines the model learns from.
 2. **References** (optional). Ads that are performing (their pictures) and
@@ -17,7 +26,9 @@ steps, in the order the team works:
 3. **Generate.** Optional extra instructions (for the images, the headlines or
    both), the age of the people in the pictures, how many images and
    headlines. Create asks OpenAI for headlines and one idea per image, then
-   makes each image. Nothing made is used until a person ticks it.
+   makes each image, three at a time. While it runs, a panel shows what is
+   happening now with a clock, and every step and image with its own state,
+   time and cost. Nothing made is used until a person ticks it.
 4. **Images** and 5. **Headlines.** Tick the options worth using, add your own
    images or headlines, edit any headline in place.
 6. **CTAs.** One or more of Taboola's buttons (Read More, Learn More, ...).
@@ -27,6 +38,9 @@ steps, in the order the team works:
      Reshuffle picks another order.
    - *Um a um* (one to one): a grid where each tick is one ad.
    - *Todas as combinações* (every combination).
+
+   The grid of images by headlines shows the pairs in every mode. Changing a
+   cell outside *Um a um* switches to it, starting from the pairs shown.
 8. **Brand and description.** The brand is the campaign's branding text.
 9. **AI disclosure.** The person's answer, with a warning when AI-made
    content is marked "no".
@@ -90,8 +104,10 @@ Nothing is sent to RedTrack from here.
   and weigh the most.
 - *Blocked words*: the team's list of words Taboola has blocked for them
   (`rules/blocked.txt`). The model is told never to use them, and the page
-  warns when a headline (or the description, for the words blocked there
-  too) has one. The team's own examples use many of these words; the model
+  warns when a headline, the extra instructions, the reference headlines or
+  the description (for the words blocked there too) has one. Under each
+  warning are other words to put in its place (`rules/synonyms.txt`), one
+  tap each; the person may keep theirs. The team's own examples use many of these words; the model
   keeps their structure and says it another way.
 
 **Warnings, never blocks.** Headlines and images are checked against
@@ -183,8 +199,8 @@ the full list in `cmd/create-web/main.go`):
 | `TABOOLA_CLIENT_ID`, `TABOOLA_CLIENT_SECRET` | unset | One Taboola login's Backstage API keys. Unset: Taboola is off and the bulk sheet is the way out. |
 | `TABOOLA_ACCOUNTS` | unset | That login's advertiser accounts the page may use, comma separated. A `-network` account is refused at boot. |
 | `TABOOLA_MAX_CPC`, `TABOOLA_MAX_DAILY_CAP` | `1.00`, `100` | Ceilings for a new campaign, in USD; a total budget is at most 30 daily caps. |
-| `TABOOLA_ONLY_OWN` | off | A lent account: only groups and campaigns this server made are listed or touched. |
-| `TABOOLA_NAME_PREFIX` | unset | With only-own, every group and campaign name must start with it. |
+| `TABOOLA_ONLY_OWN` | off | A lent account: only groups and campaigns this server made (recorded in the state file) are listed or touched. |
+| `TABOOLA_NAME_PREFIX` | unset | Optional, with only-own: every group and campaign name must start with it. |
 | `TABOOLA_STATE_FILE` | `<keep dir>/taboola-state.json` | What this server made, for only-own. |
 | `TABOOLA_BASE_URL` | the real API | A local fake. |
 
@@ -192,8 +208,9 @@ OpenAI is the only generator (the clients require it for images).
 
 The only Taboola keys we hold today are the lent ZoltaGroup login's. The
 owner allowed paused tests there (2026-09-29), so on that login create-web
-runs with `TABOOLA_ONLY_OWN=1` and a test prefix, and whatever it made is
-deleted after the test.
+runs with `TABOOLA_ONLY_OWN=1`, and whatever it made (the ids in the state
+file) is deleted after the test. Names are free: the owner dropped the test
+prefix on 2026-09-29.
 
 ## Run it
 

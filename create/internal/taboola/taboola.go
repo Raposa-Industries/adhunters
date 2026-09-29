@@ -77,9 +77,10 @@ type Settings struct {
 	// at most 30 daily caps.
 	MaxCPC, MaxDailyCap float64
 
-	// OnlyOwn limits the client to what it created itself: new campaigns and
-	// groups must be named with NamePrefix, each is recorded in StateFile,
-	// and nothing else in the account is listed or touched. For an account
+	// OnlyOwn limits the client to what it created itself: each new campaign
+	// and group is recorded in StateFile, and nothing else in the account is
+	// listed or touched. NamePrefix, when set, is a name every new one must
+	// start with. For an account
 	// that is lent, where everything else is someone else's.
 	OnlyOwn    bool
 	NamePrefix string
@@ -131,7 +132,7 @@ type Client struct {
 }
 
 // New returns a client. Accounts are trimmed and empty ones dropped. With
-// OnlyOwn it needs NamePrefix and StateFile, and reads the state file when
+// OnlyOwn it needs StateFile (NamePrefix is optional), and reads the state file when
 // there is one.
 func New(s Settings, kept *keep.Folder, log *slog.Logger) (*Client, error) {
 	if s.Base == "" {

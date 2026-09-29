@@ -191,6 +191,9 @@ func (n NewCampaign) body(maxCPC, maxDailyCap float64, full bool) (obj, error) {
 		return nil, refuse("o limite diário deve ficar entre 0 e %s", usd(maxDailyCap))
 	case n.SpendingLimit < 0 || n.SpendingLimit > 30*maxDailyCap:
 		return nil, refuse("o orçamento total deve ficar entre 0 (sem limite) e %s", usd(30*maxDailyCap))
+	case n.SpendingLimit > 0 && n.DailyCap > n.SpendingLimit:
+		// Taboola: "Daily Cap cannot be higher than the Spending Limit".
+		return nil, refuse("o limite por dia (%s) passa do limite total (%s): aumente o total ou deixe sem limite", usd(n.DailyCap), usd(n.SpendingLimit))
 	}
 	b := obj{"name": name, "is_active": false}
 	if brand != "" {

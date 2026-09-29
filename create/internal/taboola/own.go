@@ -18,8 +18,8 @@ type ownState struct {
 }
 
 func (c *Client) loadOwn() error {
-	if strings.TrimSpace(c.s.NamePrefix) == "" || c.s.StateFile == "" {
-		return errors.New("taboola: only-own needs a name prefix and a state file")
+	if c.s.StateFile == "" {
+		return errors.New("taboola: only-own needs a state file")
 	}
 	c.own = ownState{Campaigns: map[string]string{}, Groups: map[string]string{}}
 	b, err := os.ReadFile(c.s.StateFile)
@@ -69,9 +69,11 @@ func (c *Client) checkOwnCampaign(account, id string) error {
 	return nil
 }
 
-// checkOwnName refuses a name without the prefix.
+// checkOwnName refuses a name without the prefix, when one is set. The
+// prefix is optional: what keeps a lent account safe is the state file,
+// since only what is recorded there can be read or changed.
 func (c *Client) checkOwnName(name, what string) error {
-	if c.s.OnlyOwn && !strings.HasPrefix(strings.TrimSpace(name), c.s.NamePrefix) {
+	if c.s.OnlyOwn && c.s.NamePrefix != "" && !strings.HasPrefix(strings.TrimSpace(name), c.s.NamePrefix) {
 		return refuse("conta de testes: o nome %s deve começar com %q", what, c.s.NamePrefix)
 	}
 	return nil
