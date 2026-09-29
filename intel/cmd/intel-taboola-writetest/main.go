@@ -8,7 +8,7 @@
 //	intel-taboola-writetest live-cut   -account X -out DIR            # T12: pause one of its two items
 //	intel-taboola-writetest live-end   -account X -out DIR            # T12: pause, read reports, delete
 //	intel-taboola-writetest cleanup    -account X -out DIR            # delete everything the tests made
-//	intel-taboola-writetest purge      -account X -out DIR            # delete items left under our deleted campaigns
+//	intel-taboola-writetest purge      -account X -out DIR [-groups a,b] # delete items and AutoGen groups left by our deleted campaigns
 //
 // Every request and answer is saved under DIR/raw before it is read, and
 // what each test showed goes to DIR/results.md. DIR/state.json lists what
@@ -64,6 +64,7 @@ func main() {
 	aiImage := fs.Bool("ai", false, "live-start: the photo is AI-made, so the ads carry Taboola's AI label")
 	titles := fs.String("titles", "", "live-start: the two headlines, separated by |, matching the landing page")
 	tracking := fs.String("tracking", "", "campaign tracking code (query string with Taboola macros such as {campaign_id}) that Taboola appends to every item URL")
+	groups := fs.String("groups", "", "cleanup, purge: more AutoGen campaign group ids to delete, comma-separated (for campaigns made before groups were recorded)")
 	fs.Parse(os.Args[2:])
 	if *account == "" || *out == "" {
 		usage()
@@ -83,7 +84,7 @@ func main() {
 		fail(err)
 	}
 	t := &tester{c: c, dir: *out, account: *account, url: *landing, tracking: *tracking, sites: splitList(*sites),
-		brand: *brand, imagePath: *imagePath, aiImage: *aiImage, titles: splitBar(*titles), wait: 10 * time.Second}
+		brand: *brand, imagePath: *imagePath, aiImage: *aiImage, titles: splitBar(*titles), groups: splitList(*groups), wait: 10 * time.Second}
 	// Carry on the raw file numbers of earlier runs sharing -out.
 	if old, err := os.ReadDir(filepath.Join(*out, "raw")); err == nil {
 		t.n = len(old)
@@ -139,6 +140,7 @@ type tester struct {
 	imagePath string
 	aiImage   bool
 	titles    []string
+	groups    []string // AutoGen group ids named on the command line
 	wait      time.Duration
 	n         int
 	lines     []string
@@ -384,11 +386,43 @@ func (t *tester) cleanup(ctx context.Context) error {
 		}
 		t.note("T11", "deleted campaign %s: status %s; %s", id, s(got["status"]), after)
 	}
+	errs = append(errs, t.deleteGroups(ctx))
 	return errors.Join(errs...)
 }
 
-// purgeDeleted deletes the leftover items of our already deleted campaigns
-// only, leaving a live test alone.
+// deleteGroups deletes the "AutoGen" campaign groups Taboola made for our
+// campaigns, which it keeps after the campaigns are deleted. Groups go last,
+// after their campaigns; the guard refuses any group a campaign still uses.
+func (t *tester) deleteGroups(ctx context.Context) error {
+	st := t.c.State()
+	ids := map[string]bool{}
+	for cid, g := range st.Groups {
+		if st.Deleted[cid] {
+			ids[g] = true
+		}
+	}
+	for _, g := range t.groups {
+		ids[g] = true
+	}
+	var errs []error
+	for g := range ids {
+		if st.Deleted["group:"+g] {
+			continue
+		}
+		if _, err := t.c.DeleteCampaignGroup(ctx, g); err != nil {
+			t.note("T11", "delete campaign group %s: %v", g, err)
+			if !errors.Is(err, act.ErrRefused) {
+				errs = append(errs, err)
+			}
+			continue
+		}
+		t.note("T11", "deleted campaign group %s", g)
+	}
+	return errors.Join(errs...)
+}
+
+// purgeDeleted deletes the leftover items and AutoGen groups of our already
+// deleted campaigns only, leaving a live test alone.
 func (t *tester) purgeDeleted(ctx context.Context) error {
 	st := t.c.State()
 	var errs []error
@@ -399,6 +433,7 @@ func (t *tester) purgeDeleted(ctx context.Context) error {
 			}
 		}
 	}
+	errs = append(errs, t.deleteGroups(ctx))
 	return errors.Join(errs...)
 }
 
