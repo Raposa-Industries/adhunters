@@ -41,9 +41,16 @@ as_of   = 2026-09-29 13:35
 warn    = 5
 
 [renewal proxies-datacenter]
-# The datacenter and ISP lines (dc-us-*, isp-* in proxies.env): the day the
-# plan renews. The provider has no balance API; when the plan lapses, capture
-# stops.
+# IPRoyal's datacenter and ISP lines (dc-us-*, isp-* in proxies.env) are
+# monthly subscriptions on auto-renew, with no balance to read; when one
+# lapses, capture stops. One reminder per renewal day (IPRoyal dashboard,
+# Renews/expires). This one: datacenter order 81628046, 1 IP.
+due    = FILL_ME
+every  = month
+remind = 7d
+
+[renewal proxies-isp]
+# ISP order 82490385 and datacenter order 82462291, 5 IPs each.
 due    = FILL_ME
 every  = month
 remind = 7d
