@@ -278,10 +278,13 @@
       </div>
       <details id="bundle" class="bundle">
         <summary>Baixar para o Bulk Upload em vez disso</summary>
-        <label class="field">Modelo do Taboola (.xlsx)
-          <input id="template-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-        </label>
         <p id="template-status" class="hint">No Realize: <b>Create › Bulk Upload › Download Template</b>, na conta onde estão as campanhas. O Taboola só aceita a planilha no formato do modelo dele. Fica guardado neste navegador.</p>
+        <div id="template-pick">
+          <label class="field">Modelo do Taboola (.xlsx)
+            <input id="template-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          </label>
+          <p><button id="template-reset" class="ghost" type="button" hidden>Voltar ao modelo da página</button></p>
+        </div>
         <p>
           <button id="download-sheet">Baixar planilha (.xlsx)</button>
           <button id="download-zip">Baixar imagens (.zip)</button>

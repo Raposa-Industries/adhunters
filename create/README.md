@@ -72,9 +72,13 @@ bulk sheet is the way out.
 **The sheet is always Realize's own template.** Realize rejects a workbook
 that is not in its template's shape (a home-made one got "Invalid number of
 library creatives"): the template carries hidden METADATA tabs naming the
-account and the field behind each column. So the person picks the template
-once (Create › Bulk Upload › Download Template, in the account that owns the
-campaigns; the page keeps it in the browser), and the page writes one row
+account and the field behind each column. When the launcher folder carries
+`realize-template.xlsx`, the page uses it and asks for nothing; the person
+can still pick another (Create › Bulk Upload › Download Template, in the
+account that owns the campaigns; the page keeps it in the browser), for a
+login where Realize refuses the built-in one. Only the team's own template
+goes there, never one from a lent account: a template carries its account's
+audiences, conversion events and group names. The page writes one row
 per ad into its Ads tab from row 3, finding columns by their header in row
 2 and leaving every other file in the workbook as Realize wrote it
 (`launcher/template.js`). "Campaign ID" takes several ids as `123; 456`.
