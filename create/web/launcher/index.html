@@ -99,9 +99,6 @@
     <p id="url-warnings" class="warn"></p>
     <div class="row inline">
       <label>Botão (CTA) <select id="cta"></select></label>
-      <label>Status
-        <select id="status"><option value="Active">Ativo (roda quando aprovado)</option><option value="Paused">Pausado</option></select>
-      </label>
       <label>Marca (só para a prévia) <input id="brand" maxlength="25" placeholder="Nome da marca"></label>
     </div>
     <label>Descrição (opcional, até 250 caracteres)
@@ -123,6 +120,10 @@
 
   <section id="download-section">
     <h2>7. Baixar e subir</h2>
+    <label>Modelo do Taboola (.xlsx)
+      <input id="template-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    </label>
+    <p id="template-status" class="muted">No Realize: <b>Create › Bulk Upload › Download Template</b>, na conta onde estão as campanhas. O Taboola só aceita a planilha no formato do modelo dele, então os anúncios são escritos dentro desse arquivo. Fica guardado neste navegador.</p>
     <p>
       <button id="download-sheet" class="primary">Baixar planilha (.xlsx)</button>
       <button id="download-zip" class="primary">Baixar imagens (.zip)</button>
@@ -130,11 +131,9 @@
       <span id="download-note" class="muted"></span>
     </p>
     <ol class="steps">
-      <li>No Taboola (Realize): <b>Create › Bulk Upload</b>.</li>
-      <li>Envie a planilha (os anúncios ficam na aba <b>Ads</b>; a aba Campaigns fica vazia de propósito, porque eles entram em campanhas que já existem). Quando pedir, envie o .zip das imagens: os nomes batem com a coluna Image File Name.</li>
-      <li>Confira o relatório de processamento. Os anúncios entram na revisão do Taboola.</li>
-      <li id="ai-step" hidden>Marque “AI content” nesses anúncios no Realize se a planilha não tiver essa opção.</li>
-      <li>Se o Taboola recusar a planilha, baixe o modelo dele (Download Template), clique em <b>Copiar linhas</b> e cole na aba Ads, abaixo do cabeçalho.</li>
+      <li>No Realize: <b>Create › Bulk Upload</b>. Envie a planilha (os anúncios estão na aba <b>Ads</b>) e depois o .zip das imagens: os nomes batem com a coluna Image File Name.</li>
+      <li>Confira o relatório de processamento. Os anúncios entram ativos na revisão do Taboola; pause pela campanha se precisar.</li>
+      <li>Sem o modelo? <b>Copiar linhas</b> e cole na aba Ads do modelo, na primeira linha vazia abaixo do cabeçalho (linha 3).</li>
     </ol>
   </section>
 </main>

@@ -22,12 +22,23 @@ takes the typing out of Taboola's Bulk Upload:
    - *Um a um* (one to one): a grid where each tick is one ad.
    - *Todas as combinações* (every combination).
 4. **Campaign.** The Taboola campaign ids the ads go into (each ad goes into
-   each), the landing page link, CTA, status, and whether the ads are marked
-   as AI-made.
-5. **Download** the bulk sheet (`.xlsx`, Campaigns and Ads tabs, one Ads row
-   per item) and a `.zip` of the images named as in "Image File Name", then
-   upload both in Realize › Create › Bulk Upload. "Copiar linhas" copies the
-   Ads rows to paste into Taboola's own template if Realize refuses ours.
+   all of them), the landing page link, CTA, and whether the ads are marked
+   as AI-made (the template's "AI Content" column).
+5. **Download** the bulk sheet and a `.zip` of the images named as in "Image
+   File Name", then upload both in Realize › Create › Bulk Upload.
+
+**The sheet is always Realize's own template.** Realize rejects a workbook
+that is not in its template's shape (a home-made one got "Invalid number of
+library creatives"): the template carries hidden METADATA tabs naming the
+account and the field behind each column. So the person picks the template
+once (Create › Bulk Upload › Download Template, in the account that owns the
+campaigns; the page keeps it in the browser), and the page writes one row
+per ad into its Ads tab from row 3, finding columns by their header in row
+2 and leaving every other file in the workbook as Realize wrote it
+(`launcher/template.js`). "Campaign ID" takes several ids as `123; 456`.
+Status stays empty: new ads start Active. The Ads tab runs to row 500, so
+one sheet holds 498 ads. "Copiar linhas" copies the same rows to paste at A3
+by hand.
 
 Nothing is sent to Taboola or RedTrack from here.
 
@@ -43,19 +54,16 @@ marked "no".
 headline's>` in Taboola's Custom ID, so results can be joined back to the ad
 later (Intel).
 
-### What is not confirmed about Taboola's sheet
+### What is not confirmed yet
 
-From research/taboola-bulk-upload/findings.md (project files), read
-2026-09-29 from the help center, not from a real template:
-
-- The column names and order are the help article's; the tab and header row
-  of a real template are not seen yet. Someone on the team downloading
-  Create › Bulk Upload › Download Template settles it.
-- An Ads row can only join an *existing* campaign (numeric Campaign ID), so a
-  new campaign is made (or duplicated) first, in Realize.
-- The classic Ads tab has no AI column: the "AI content" box is ticked in
-  Realize after the upload. The page reminds them when they chose "Sim".
-- Title over 60 characters is Taboola's guideline, not a hard cap.
+- The first upload of a filled template: the template layout is Realize's
+  (a real one, 2026-09-29, is in the project files at
+  research/taboola-bulk-upload/realize-template-2026-09-29.xlsx), but no
+  filled one has gone through Realize yet. Cells are written as inline
+  text, which Excel reads the same as its own shared strings.
+- An ad can only join an *existing* campaign, so a new campaign is made (or
+  duplicated) first, in Realize.
+- Title over 60 characters is Taboola's guideline; the template says under 100.
 
 ## API (for the page)
 

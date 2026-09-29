@@ -5,7 +5,8 @@
 import { mixed, every, uses, seeded } from "./pairing.js";
 import { clean, hasHidden, headlineWarnings, imageWarnings, urlWarnings, looksAIMade } from "./checks.js";
 import { zip } from "./zip.js";
-import { CTAS, adRows, bulkSheet, campaignIds, uniqueNames, fingerprint, adId, tsv } from "./sheet.js";
+import { AD_COLUMNS, CTAS, MAX_ADS, adRows, campaignIds, uniqueNames, fingerprint, adId, tsv } from "./sheet.js";
+import { readTemplate, fillTemplate } from "./template.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -21,11 +22,12 @@ const state = {
   manual: new Set(), // "creativeId:headlineId"
   status: null,
   spent: 0,
+  template: null, // {name, bytes, account}
 };
 
 // ---- saved fields (per browser, only text) ---------------------------------
 
-const FIELDS = ["prompt", "examples", "language", "vertical", "n-images", "n-headlines", "campaigns", "url", "cta", "status", "brand", "description"];
+const FIELDS = ["prompt", "examples", "language", "vertical", "n-images", "n-headlines", "campaigns", "url", "cta", "brand", "description"];
 const STORE = "adhunters-create-launcher";
 
 function loadFields() {
@@ -434,8 +436,8 @@ function settings() {
     campaigns: campaignIds($("campaigns").value),
     url: $("url").value.trim(),
     cta: $("cta").value,
-    status: $("status").value,
     description: $("description").value.trim(),
+    ai: { yes: "Yes", no: "No" }[aiAnswer()] || "",
   };
 }
 
@@ -451,7 +453,7 @@ async function renderAds(list) {
   const s = settings();
   const brand = $("brand").value.trim() || "Sua marca";
   $("ads-count").textContent = ads.length
-    ? `${ads.length} anúncios${s.campaigns.length > 1 ? ` × ${s.campaigns.length} campanhas = ${ads.length * s.campaigns.length} linhas` : ""}`
+    ? `${ads.length} anúncios${s.campaigns.length > 1 ? `, cada um nas ${s.campaigns.length} campanhas` : ""}`
     : "";
   $("ads").innerHTML = ads.map((a, i) => `<div class="card">
       <img class="pic" src="${a.creative.url}" alt="">
@@ -468,12 +470,17 @@ async function renderAds(list) {
   if (!s.campaigns.length) problems.push("Sem ID de campanha: a coluna Campaign ID vai vazia.");
   for (const w of urlWarnings(s.url)) problems.push(w);
   if (!aiAnswer()) problems.push("Responda se os anúncios serão marcados como feitos com IA.");
+  if (ads.length > MAX_ADS) problems.push(`${ads.length} anúncios: o modelo do Taboola tem espaço para ${MAX_ADS}. Divida em mais de uma planilha.`);
   $("warnings-summary").innerHTML = problems.length ? `<ul class="warn">${problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : "";
   $("url-warnings").textContent = $("url").value ? urlWarnings(s.url).join(" ") : "";
 
   const ready = ads.length > 0 && !!aiAnswer();
-  for (const id of ["download-sheet", "download-zip", "copy-rows"]) $(id).disabled = !ready;
-  $("download-note").textContent = !ads.length ? "Monte pelo menos um anúncio." : !aiAnswer() ? "Responda a pergunta sobre IA na seção 5." : "Os avisos não impedem: a decisão é sua.";
+  for (const id of ["download-zip", "copy-rows"]) $(id).disabled = !ready;
+  $("download-sheet").disabled = !ready || !state.template;
+  $("download-note").textContent = !ads.length ? "Monte pelo menos um anúncio."
+    : !aiAnswer() ? "Responda a pergunta sobre IA na seção 5."
+    : !state.template ? "Escolha o modelo do Taboola acima para baixar a planilha."
+    : "Os avisos não impedem: a decisão é sua.";
 }
 
 function renderAI(list) {
@@ -488,7 +495,6 @@ function renderAI(list) {
     warning = `Há ${parts.join(" e ")}. O Taboola pede para declarar conteúdo de IA e pode rejeitar anúncios ou advertir a conta. A escolha é sua.`;
   }
   $("ai-warning").textContent = warning;
-  $("ai-step").hidden = answer !== "yes";
 }
 
 function update() {
@@ -519,9 +525,58 @@ function rows() {
   return adRows(currentAds, settings());
 }
 
-$("download-sheet").addEventListener("click", () => {
-  save(new Blob([bulkSheet(rows())], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `taboola-anuncios-${stamp()}.xlsx`);
+$("download-sheet").addEventListener("click", async () => {
+  try {
+    const out = await fillTemplate(state.template.bytes, AD_COLUMNS, rows());
+    save(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `taboola-anuncios-${stamp()}.xlsx`);
+  } catch (err) {
+    $("download-note").textContent = `Não deu para montar a planilha: ${err.message}`;
+  }
 });
+
+// ---- Realize's template (kept in this browser) ----------------------------
+
+const DB = "adhunters-create";
+
+function idb(mode, work) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("files");
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const tx = req.result.transaction("files", mode);
+      const r = work(tx.objectStore("files"));
+      tx.oncomplete = () => resolve(r.result);
+      tx.onerror = () => reject(tx.error);
+    };
+  });
+}
+
+async function useTemplate(name, bytes, keep) {
+  try {
+    const t = await readTemplate(bytes);
+    state.template = { name, bytes, account: t.account };
+    $("template-status").textContent = `Modelo: ${name}${t.account ? ` (conta ${t.account})` : ""}. As campanhas precisam ser dessa conta.`;
+    if (keep) await idb("readwrite", (s) => s.put({ name, bytes }, "template")).catch(() => {});
+  } catch (err) {
+    state.template = null;
+    $("template-status").textContent = err.message;
+  }
+  update();
+}
+
+$("template-input").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if (f) await useTemplate(f.name, new Uint8Array(await f.arrayBuffer()), true);
+  e.target.value = "";
+});
+
+async function loadTemplate() {
+  try {
+    const saved = await idb("readonly", (s) => s.get("template"));
+    if (saved?.bytes) await useTemplate(saved.name, new Uint8Array(saved.bytes), false);
+  } catch { /* no storage here: the person picks the file again */ }
+}
 
 $("download-zip").addEventListener("click", async () => {
   const seen = new Map();
@@ -543,7 +598,7 @@ $("copy-rows").addEventListener("click", async () => {
     document.execCommand("copy");
     t.remove();
   }
-  $("download-note").textContent = `${currentAds.length ? rows().length : 0} linhas copiadas: cole na aba Ads do modelo do Taboola, abaixo do cabeçalho.`;
+  $("download-note").textContent = `${currentAds.length ? rows().length : 0} linhas copiadas: cole na aba Ads do modelo do Taboola, na célula A3.`;
 });
 
 // ---- wiring --------------------------------------------------------------------------------
@@ -617,7 +672,7 @@ $("headlines-all").addEventListener("click", setAll(() => state.headlines, true)
 $("headlines-none").addEventListener("click", setAll(() => state.headlines, false));
 
 $("generate").addEventListener("click", generate);
-for (const id of ["campaigns", "url", "cta", "status", "brand", "description", "prompt", "examples", "language", "vertical", "n-images", "n-headlines"]) {
+for (const id of ["campaigns", "url", "cta", "brand", "description", "prompt", "examples", "language", "vertical", "n-images", "n-headlines"]) {
   $(id).addEventListener("input", update);
   $(id).addEventListener("change", update);
 }
@@ -629,3 +684,4 @@ renderCreatives();
 renderHeadlines();
 update();
 loadStatus();
+loadTemplate();

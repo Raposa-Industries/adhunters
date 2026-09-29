@@ -58,7 +58,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | option | An image or headline Create made from a brief. Nothing is used until a person chooses it. |
 | pairing | How the chosen creatives and headlines become ads. Mixed: the longer list once each, the shorter repeated in turn until the longer runs out (10 images and 5 headlines make 10 ads). One to one: the person picks each pair. Every combination: each creative with each headline. |
 | ad id | Our own id for an ad: `ah-`, then the first 10 hex characters of the creative's SHA-256, a dash, and the first 10 of the headline's. It goes in Taboola's Custom ID (30 characters at most), so results can come back to the ad. |
-| bulk sheet | The Excel file Taboola's Realize takes in Create › Bulk Upload: a Campaigns tab, then an Ads tab with one row per item, plus a ZIP of the images named in "Image File Name". |
+| bulk sheet | Realize's own template for Create › Bulk Upload, with our ads written into its Ads tab (one row per ad, its campaign ids together in one cell), plus a ZIP of the images named in "Image File Name". |
 
 ## Intel
 
