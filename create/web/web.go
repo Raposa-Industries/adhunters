@@ -33,6 +33,7 @@ var types = map[string]string{
 	".jpg":   "image/jpeg",
 	".ico":   "image/x-icon",
 	".woff2": "font/woff2",
+	".xlsx":  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 }
 
 // Handler serves the launcher folder at "/", index.html at "/".
