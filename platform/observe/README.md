@@ -12,7 +12,7 @@ itself works (decision 0009).
 | Sentry | hosted (free tier), `kit/errs` | Every log line at error level and every panic becomes a Sentry event, grouped by service and message, tied to the build. |
 | Telegram | the "AdHunters alerts" group | Pages (with sound, every 5 minutes until cleared) and chat alerts (silent, 08:00 to 22:00 São Paulo). Each message links its runbook in `runbooks/`. |
 | Better Stack | hosted (free tier) | Receives the always-firing `Heartbeat` every minute and calls the owner when it stops. Later: outside checks of the apps. |
-| `observe-bot` | data box, `cmd/observe-bot` here | Sends the 08:00 digest (the last 24 hours in numbers; three lines on a quiet day) and posts each new Sentry issue to Telegram, silently, as it first appears. Reads what is left on each prepaid service every 15 minutes and knows when subscriptions renew (see Credits below). |
+| `observe-bot` | data box, `cmd/observe-bot` here | Sends the 08:00 digest (the last 24 hours in numbers; three lines on a quiet day) and posts each new Sentry issue to Telegram, silently, as it first appears. Reads what is left on each prepaid service every 15 minutes and knows when subscriptions renew (see Credits below). Crawls Taboola's policy pages every 6 hours and posts what changed (see Taboola policy watch below). |
 | Dashboards | `dashboards/`, uploaded by `push.sh` | "AdHunters · Collection" (capture, shipper, loader) and "AdHunters · Boxes" (hosts, services, Postgres, backups, Raposa, task freshness). |
 | Backups | data box, pgBackRest (`platform/servers/setup.sh`) | WAL archived every 60 s, a full backup on Sundays and a differential on other days, all to object storage; alerts when archiving fails or a backup is late. |
 
@@ -144,6 +144,45 @@ To add a service: a `[credit]` section when it has a balance API, an
 `[estimate]` when it is prepaid with no API, a `[renewal]` when it has a plan
 date, then `observe-bot credits` to
 try it and `systemctl restart observe-bot`.
+
+## Taboola policy watch
+
+Taboola rejects ads that break its advertiser policies, and those policies
+change. observe-bot reads every policy page in the Realize help center's
+[Policy & Content Review](https://realize.com/help/en/collections/11915686-policy-content-review)
+collection every 6 hours: the collection, the sections it lists and every
+article they list (never the links inside an article). It posts each policy
+change to "AdHunters alerts", silently:
+
+- **Taboola policy changed**: the article's link, then the lines removed (➖)
+  and added (➕), each paragraph or list item one line.
+- **New Taboola policy article** or **section**: its text.
+- **Taboola policy article removed**: it is no longer listed.
+
+The first crawl only sets the baseline and says how many articles it
+watches. Every page is saved raw (gzip) in
+`/var/lib/observe-bot/policy/raw/<UTC time>/` before it is read, about 1 MB a
+crawl, kept for good; the last good crawl is `policy/current.json`.
+
+Guards against false alarms: text that changes without the policy changing
+(relative dates, authors, article counts, the feedback widget) is dropped;
+a page that cannot be read, a page with no text (a bot check) or a crawl with
+under half the articles of the last one fails the run instead of reporting
+removals. Failed runs are the `policy_watch` task: `TaskLate` fires after
+25 hours without a good crawl. A change whose message fails to send is sent
+again next time.
+
+```
+sudo /opt/adhunters/bin/observe-bot policy          # crawl now and print the changes; sends and keeps nothing
+sudo STATE_DIRECTORY=/var/lib/private/observe-bot /opt/adhunters/bin/observe-bot policy -list
+sudo STATE_DIRECTORY=/var/lib/private/observe-bot /opt/adhunters/bin/observe-bot policy -from 20261001T000000Z -to 20261008T000000Z   # read two saved crawls again and compare
+```
+
+`POLICY_URLS` in `observe-bot.env` (space separated collection URLs) widens
+or changes what is watched; `-policy-poll 0` on `observe-bot run` turns it
+off. The help center blocks cloud sessions, so the parser was written against
+Intercom's usual markup and has not read the real pages yet: the first
+`observe-bot policy` on the data box shows whether it reads them.
 
 ## Changing alerts
 
