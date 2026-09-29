@@ -8,6 +8,7 @@
 //	intel-taboola-writetest live-cut   -account X -out DIR            # T12: pause one of its two items
 //	intel-taboola-writetest live-pause -account X -out DIR            # T12: pause the campaign, keep everything
 //	intel-taboola-writetest live-resume -account X -out DIR           # T12: turn a paused campaign back on
+//	intel-taboola-writetest live-bid   -account X -out DIR -cpc 0.3   # T12: change its fixed bid
 //	intel-taboola-writetest live-end   -account X -out DIR            # T12: pause, read reports, delete
 //	intel-taboola-writetest cleanup    -account X -out DIR            # delete everything the tests made
 //	intel-taboola-writetest purge      -account X -out DIR [-groups a,b] # delete items and AutoGen groups left by our deleted campaigns
@@ -66,6 +67,7 @@ func main() {
 	aiImage := fs.Bool("ai", false, "live-start: the photo is AI-made, so the ads carry Taboola's AI label")
 	titles := fs.String("titles", "", "live-start: the two headlines, separated by |, matching the landing page")
 	tracking := fs.String("tracking", "", "campaign tracking code (query string with Taboola macros such as {campaign_id}) that Taboola appends to every item URL")
+	cpc := fs.Float64("cpc", 0, "live-bid: the new fixed bid (the guard caps it)")
 	groups := fs.String("groups", "", "cleanup, purge: more AutoGen campaign group ids to delete, comma-separated (for campaigns made before groups were recorded)")
 	fs.Parse(os.Args[2:])
 	if *account == "" || *out == "" {
@@ -86,7 +88,7 @@ func main() {
 		fail(err)
 	}
 	t := &tester{c: c, dir: *out, account: *account, url: *landing, tracking: *tracking, sites: splitList(*sites),
-		brand: *brand, imagePath: *imagePath, aiImage: *aiImage, titles: splitBar(*titles), groups: splitList(*groups), wait: 10 * time.Second}
+		brand: *brand, imagePath: *imagePath, aiImage: *aiImage, titles: splitBar(*titles), groups: splitList(*groups), cpc: *cpc, wait: 10 * time.Second}
 	// Carry on the raw file numbers of earlier runs sharing -out.
 	if old, err := os.ReadDir(filepath.Join(*out, "raw")); err == nil {
 		t.n = len(old)
@@ -108,6 +110,8 @@ func main() {
 			return t.livePause(ctx)
 		case "live-resume":
 			return t.liveResume(ctx)
+		case "live-bid":
+			return t.liveBid(ctx)
 		case "live-end":
 			return t.liveEnd(ctx)
 		case "cleanup":
@@ -124,7 +128,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: intel-taboola-writetest paused|live-start|live-on|live-cut|live-pause|live-resume|live-end|cleanup|purge -account X -out DIR [-url URL] [-sites a,b]")
+	fmt.Fprintln(os.Stderr, "usage: intel-taboola-writetest paused|live-start|live-on|live-cut|live-pause|live-resume|live-bid|live-end|cleanup|purge -account X -out DIR [-url URL] [-sites a,b]")
 	os.Exit(2)
 }
 
@@ -147,6 +151,7 @@ type tester struct {
 	aiImage   bool
 	titles    []string
 	groups    []string // AutoGen group ids named on the command line
+	cpc       float64  // live-bid: the new bid
 	wait      time.Duration
 	n         int
 	lines     []string
@@ -619,6 +624,24 @@ func (t *tester) liveResume(ctx context.Context) error {
 		return err
 	}
 	t.note("T12", "campaign %s resumed at %s: status %s, spent %v, total cap %v", cid, time.Now().UTC().Format(time.RFC3339), s(got["status"]), got["spent"], got["spending_limit"])
+	return nil
+}
+
+// liveBid changes the live campaign's fixed bid, within the guard's ceiling.
+func (t *tester) liveBid(ctx context.Context) error {
+	cid, _, err := t.live()
+	if err != nil {
+		return err
+	}
+	if t.cpc <= 0 {
+		return errors.New("live-bid needs -cpc")
+	}
+	got, err := t.c.UpdateCampaign(ctx, cid, act.Obj{"cpc": t.cpc})
+	if err != nil {
+		t.note("T12", "bid change refused: %v", err)
+		return err
+	}
+	t.note("T12", "campaign %s bid now %v at %s: status %s, spent %v", cid, got["cpc"], time.Now().UTC().Format(time.RFC3339), s(got["status"]), got["spent"])
 	return nil
 }
 
