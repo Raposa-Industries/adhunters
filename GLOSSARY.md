@@ -109,6 +109,7 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | line | One proxy exit (datacenter, ISP or residential), named by its key in proxies.env. |
 | saved link | The ad's click link as Tracks stored it. Cloakers show the white page to it; only the reviewer baseline uses it. |
 | click id | The value an ad network adds to each click link (Taboola's tblci). A live link carries a fresh one. |
+| report | Numbers an ad network or tracker gives about our own accounts over a range of days, split one way (by day, campaign, site, item and so on). Taboola's Backstage reports are one. Saved raw before they are read. |
 | tracker | The redirect service between the ad and the landing page (RedTrack, Voluum and the like). |
 | avoided place | A city or state an ad network has an office in. A visit that must see the dark page never exits there. |
 | burned line | A line a site shows the white page to while other lines on the same rung see its dark page. Investigations of that site skip it. |

@@ -12,13 +12,15 @@ app has something tested to stand on. Words are in
 | Path | Does |
 |---|---|
 | `redtrack/` | Thin client for the RedTrack API: spacing and retries, paging, the key kept out of every answer, error and log line, rows kept as raw JSON fields. |
+| `taboola/` | Read-only client for Taboola's Backstage API: token handling, retries on 429 and 5xx (honouring `Retry-After`), and the reads (account, campaigns, items, reports). Answers come back raw so they are saved before they are read. |
+| `cmd/intel-taboola` | Developer tool: `probe` calls every Taboola read once for one account and writes the raw answers plus `summary.md`. Not a service. |
 | `cmd/redtrack-probe` | Developer tool: reads an account end to end and saves every raw answer, plus `summary.md`. Also sends single raw calls, including writes. Not a service. |
 
 Nothing here runs on a server yet, so there is no `/healthz` and no schema.
 When Intel collects for real, it saves each raw answer before parsing, as
 every outside source does, and the reports become re-runnable over any range.
 
-## Running the probe
+## Running the RedTrack probe
 
 ```sh
 export REDTRACK_API_KEY=…            # from your RedTrack account settings
@@ -30,6 +32,47 @@ go run ./cmd/redtrack-probe post /sources source.json   # writes: only on an acc
 
 Output goes to `redtrack-probe-<time>/` (`-out` to change). Cloud sessions
 need `api.redtrack.io` in the environment's allowed domains.
+
+## Taboola: read-only, on purpose
+
+The client's transport refuses every request except GETs under
+`/backstage/api/1.0/` and the token POST, before it leaves the process. No
+code here can create, change, pause or delete anything on Taboola. Writing
+comes later, in its own client, once the owner says so.
+
+## Running the Taboola probe
+
+    export TABOOLA_CLIENT_ID=… TABOOLA_CLIENT_SECRET=…
+    go run ./intel/cmd/intel-taboola probe -out /tmp/taboola-probe [-account acme-sc] [-days 30] [-items 5]
+
+- The credentials come from Taboola (Backstage API client id and secret). They
+  live in environment variables, never in files in the repo or in chat. The
+  token is never written.
+- The host `backstage.taboola.com` must be reachable. Cloud sessions need it
+  on the environment's allowed domains.
+- Without `-account` the probe reads the credentials' own account. A
+  network account lists no campaigns itself, so campaigns and items are also
+  read from every advertiser account the credentials may read.
+- Reports cover the last `-days` days in the account's time zone. The splits
+  read: day, campaign, campaign by day, site, campaign by site by day,
+  country, platform, hour of day, campaign by hour (the last 2 days only:
+  Backstage allows 48 hours for it), and item.
+- Backstage allows 84 requests a minute per client (`Ratelimit-Policy`).
+  Its reports refresh about hourly. Campaign by site by day is big (43 MB
+  for 30 days of one busy network account).
+- A failed read is recorded in the summary and the probe carries on.
+
+Tests: `go test ./...` (against a stand-in server; no network).
+
+## Before building more here
+
+What the first read test found, and what is still unknown, is in the
+project's shared files (`research/taboola-api/findings.md`). Anything in
+Intel beyond this client and probe waits for the Intel replan the owner
+asked for on 2026-09-29, which reads those findings first. Two facts that
+shape it: Taboola has everything before the click and the real cost,
+RedTrack everything after it; joining them needs the campaign, item and
+site ids on both sides.
 
 ## RedTrack: what the API gives
 
