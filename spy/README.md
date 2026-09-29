@@ -74,6 +74,25 @@ seen yet are skipped and counted in `import_mark`. It refuses to copy an
 empty grouping. Operator ids are kept, so OP123 means the same operator
 everywhere.
 
+### Verticals
+
+[verticals/verticals.yaml](verticals/verticals.yaml) is our own fixed list
+of verticals: 56 of them in 16 categories, so a list can be filtered by
+category first, then vertical. A classifier may only answer with one of its
+ids, or with nothing; it never makes up a name. Each vertical has a short
+name (20 characters at most), what it covers, the near neighbours that go
+elsewhere, and the keywords and hints the old rules used. The
+`verticals` package loads it, and its test keeps ids and names unique, each
+keyword in one vertical only, every "goes elsewhere" pointing at a real
+vertical, and the must-haves (Blood Pressure, Memory Loss, Weight Loss,
+Tinnitus, Diabetes, Neuropathy, Prostate Health, Joint Pain, Vision)
+present.
+
+Nothing reads it yet. `spy.creative_vertical` still holds the collector's
+labels (its `vertical` is the broad market, `subvertical` the old long
+name) until Spy classifies creatives itself; switching those columns to
+category and vertical ids is that change's work.
+
 ## What it reads and publishes
 
 Reads Tracks only through `tracks_api` (the login needs `tracks_api_read`):

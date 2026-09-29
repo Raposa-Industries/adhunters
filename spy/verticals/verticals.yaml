@@ -1,0 +1,477 @@
+# The verticals Spy sorts creatives into, grouped by category.
+#
+# This is the whole list: a classifier (keyword rules or a model) may only
+# answer with an id from this file, or with nothing. It never makes up a name.
+#
+# Fields:
+#   id        never changes once used; stored with each creative.
+#   name      what people see. Short and plain: two words or so, 20 characters at most.
+#   covers    what belongs here, in a line. Read by people and by a model.
+#   not       near neighbours that do NOT belong here: what, and the vertical
+#             it goes to instead (goes), when there is one.
+#   keywords  name the vertical on their own.
+#   hints     only help when something else points the same way.
+#   catch_all used only when no other vertical of its category matches.
+#
+# Keywords and hints are lowercase words or phrases of up to 4 words, matched
+# as whole words. A trailing * matches any ending ("diabet*" = diabetes,
+# diabetic); plurals in s/es always match. Each one appears once in the file.
+#
+# Most keywords come from the old Spy's rules (collector migrations 023 and 030).
+
+categories:
+  - id: heart
+    name: Heart
+    verticals:
+      - id: blood-pressure
+        name: Blood Pressure
+        covers: High blood pressure and hypertension offers.
+        not:
+          - {what: "Cholesterol or clogged arteries with no blood pressure claim", goes: cholesterol}
+          - {what: "Swollen legs, varicose veins, compression socks", goes: circulation}
+        keywords: [blood pressure, hypertension, high bp, bp support]
+        hints: [heart attack, stroke]
+      - id: cholesterol
+        name: Cholesterol
+        covers: Cholesterol, clogged arteries and general heart health.
+        not:
+          - {what: "Blood pressure claims, even with cholesterol beside them", goes: blood-pressure}
+        keywords: [cholesterol, clogged arteries, artery, arteries, heart health, cardiovascular, plaque buildup]
+        hints: [heart, ldl]
+      - id: circulation
+        name: Circulation
+        covers: Poor circulation in the legs and feet, swelling, varicose veins, compression socks.
+        not:
+          - {what: "Burning or tingling feet from nerve damage", goes: neuropathy}
+          - {what: "Foot or heel pain, orthopedic shoes", goes: foot-pain}
+        keywords: [poor circulation, compression sock*, swollen leg*, leg swelling, puffy leg*, heavy legs, varicose vein*, blood flow]
+        hints: [circulation, swelling]
+
+  - id: metabolism
+    name: Metabolism
+    verticals:
+      - id: weight-loss
+        name: Weight Loss
+        covers: Losing weight with supplements, diets and programs (not prescription drugs).
+        not:
+          - {what: "GLP-1 drugs, semaglutide, weight loss shots", goes: glp-1}
+          - {what: "Blood sugar claims with weight as a side effect", goes: diabetes}
+        keywords: [weight loss, lose weight, losing weight, belly fat, fat burn*, slimming, obesity, keto, ketogenic, metabolism]
+        hints: [appetite, cravings, diet, dieting, waistline, lbs, overweight]
+      - id: glp-1
+        name: GLP-1
+        covers: Prescription weight loss drugs and the telehealth offers selling them, and "natural GLP-1" supplements.
+        not:
+          - {what: "Weight loss supplements that never mention GLP-1 or a drug", goes: weight-loss}
+        keywords: [glp-1, glp1, semaglutide, tirzepatide, ozempic, wegovy, mounjaro, zepbound, compounded semaglutide]
+        hints: [prescription weight loss, weight loss injection*, weight loss shot*]
+      - id: diabetes
+        name: Diabetes
+        covers: Blood sugar, type 2 diabetes, prediabetes and insulin resistance.
+        not:
+          - {what: "Nerve pain in diabetics' feet", goes: neuropathy}
+          - {what: "Eye damage from diabetes, retinopathy", goes: vision}
+        keywords: [blood sugar, blood glucose, diabet*, a1c, insulin resistance, type 2]
+        hints: [glucose, insulin, prediabet*]
+
+  - id: brain
+    name: Brain & Sleep
+    verticals:
+      - id: memory-loss
+        name: Memory Loss
+        covers: Memory, brain fog, focus, dementia and Alzheimer's worries.
+        not:
+          - {what: "Memory games and quizzes", goes: games}
+          - {what: "Memory foam products", goes: gadgets}
+        keywords: [memory loss, brain fog, cognitive, cognition, alzheimer*, dementia, brain health, forgetful*]
+        hints: [memory, brain, mental clarity]
+      - id: sleep
+        name: Sleep
+        covers: Insomnia, falling and staying asleep, snoring and sleep apnea.
+        not:
+          - {what: "Night sweats from menopause", goes: menopause}
+        keywords: [insomnia, sleep apnea, sleepless*, fall asleep, deep sleep, melatonin, snoring, cpap]
+        hints: [sleep, sleeping, restless]
+      - id: anxiety-mood
+        name: Anxiety & Mood
+        covers: Stress, anxiety, low mood and cortisol.
+        not:
+          - {what: "Sleep offers that mention stress in passing", goes: sleep}
+          - {what: "Cortisol belly or weight claims", goes: weight-loss}
+        keywords: [anxiety, depression, cortisol, mood support, panic attack*, stress relief]
+        hints: [stress, mood, anxious]
+
+  - id: senses
+    name: Ears & Eyes
+    verticals:
+      - id: tinnitus
+        name: Tinnitus
+        covers: Ringing, buzzing or hissing in the ears.
+        not:
+          - {what: "Hearing aids and hearing loss with no ringing", goes: hearing-loss}
+        keywords: [tinnitus, ringing ears, ringing in your ears, ringing in the ears, ear ringing, buzzing ears]
+        hints: [ear health, ears]
+      - id: hearing-loss
+        name: Hearing Loss
+        covers: Hearing loss and hearing aids.
+        not:
+          - {what: "Ringing in the ears", goes: tinnitus}
+        keywords: [hearing loss, hearing aid*]
+        hints: [hearing]
+      - id: vision
+        name: Vision
+        covers: Eyesight and eye health, glasses, macular degeneration, cataracts.
+        not:
+          - {what: "Eye creams, lashes, dark circles", goes: skin-care}
+        keywords: [eyesight, vision loss, macular, cataract*, glaucoma, eye health, blurry vision, reading glasses, eyeglasses, bifocal*, trifocal*, progressive lens*, presbyopia, optometrist*, ophthalmologist*, eye doctor*, eye drops, dry eye*, floaters, contact lens*, lasik, retina, retinal, retinopathy, eye strain, farsighted, nearsighted]
+        hints: [vision, eyes, glasses, lenses, see clearly]
+
+  - id: pain
+    name: Pain
+    verticals:
+      - id: joint-pain
+        name: Joint Pain
+        covers: Joint pain and arthritis, stiff knees and hips, cartilage, and weak bones (osteoporosis).
+        not:
+          - {what: "Burning, tingling or numb hands and feet", goes: neuropathy}
+          - {what: "Back, neck and sciatic pain", goes: back-pain}
+          - {what: "Heel and foot pain, orthopedic shoes", goes: foot-pain}
+        keywords: [joint pain, arthritis, osteoarthritis, rheumatoid, cartilage, knee pain, hip pain, stiff joint*, osteoporosis, bone density]
+        hints: [joint, knee, mobility, bone health, inflammation]
+      - id: back-pain
+        name: Back Pain
+        covers: Back, neck and sciatic pain, discs and spinal stenosis.
+        not:
+          - {what: "Nerve damage in the feet or hands", goes: neuropathy}
+        keywords: [back pain, sciatica, lower back, neck pain, spinal stenosis, herniated disc*, slipped disc*]
+        hints: [spine, posture]
+      - id: neuropathy
+        name: Neuropathy
+        covers: Nerve pain and damage, burning, tingling or numb feet and hands.
+        not:
+          - {what: "Joint pain or arthritis", goes: joint-pain}
+          - {what: "Sciatica and back pain", goes: back-pain}
+          - {what: "Swollen legs or poor circulation", goes: circulation}
+        keywords: [neuropathy, nerve pain, nerve damage, neuralgia, burning feet, tingling feet, numb feet, pins and needles]
+        hints: [tingling, numbness, nerve]
+      - id: foot-pain
+        name: Foot Pain
+        covers: Heel and foot pain, plantar fasciitis, bunions, orthopedic shoes and insoles.
+        not:
+          - {what: "Burning or tingling feet from nerves", goes: neuropathy}
+          - {what: "Toenail fungus", goes: nail-fungus}
+        keywords: [plantar fasciitis, heel pain, foot pain, bunion*, orthopedic shoe*, insole*]
+        hints: [feet]
+      - id: pain-relief
+        name: Pain Relief
+        covers: General or chronic pain relief that names no body part.
+        catch_all: true
+        not:
+          - {what: "Any pain with a body part named: the vertical for that part"}
+        keywords: [chronic pain, pain relief]
+        hints: [pain, aches]
+
+  - id: mens-health
+    name: Men's Health
+    verticals:
+      - id: prostate-health
+        name: Prostate Health
+        covers: Enlarged prostate (BPH) and men's frequent or night-time urination.
+        not:
+          - {what: "Women's bladder leaks", goes: bladder-control}
+          - {what: "Erections and libido", goes: sexual-health}
+        keywords: [prostate, bph, frequent urination, weak stream, nighttime urination]
+        hints: [urination, bathroom trips, pee]
+      - id: testosterone
+        name: Testosterone
+        covers: Low testosterone, energy and vitality in older men.
+        not:
+          - {what: "Erections and libido", goes: sexual-health}
+        keywords: [testosterone, low t, andropause]
+        hints: [men's health, mens health, male health, male vitality, men over 40, men over 50]
+      - id: sexual-health
+        name: Sexual Health
+        covers: Erections, libido and performance, for men and women.
+        not:
+          - {what: "Testosterone with no sexual claim", goes: testosterone}
+        keywords: [erectile, erection*, impotence, libido, sexual health, sexual wellness, sex drive, blue pill, viagra, cialis, sildenafil, tadalafil, ed pill*, ed treatment, ed meds]
+        hints: [intimacy, bedroom, stamina, performance in bed]
+
+  - id: womens-health
+    name: Women's Health
+    verticals:
+      - id: menopause
+        name: Menopause
+        covers: Menopause and perimenopause, hot flashes, night sweats, women's hormones, PCOS.
+        not:
+          - {what: "Women's libido", goes: sexual-health}
+          - {what: "Bladder leaks", goes: bladder-control}
+        keywords: [menopause, perimenopause, hot flash*, night sweats, pcos, hormonal balance, estrogen]
+        hints: [hormone*, women's health, womens health]
+
+  - id: gut-organs
+    name: Gut & Organs
+    verticals:
+      - id: gut-health
+        name: Gut Health
+        covers: Digestion, bloating, constipation, reflux, probiotics.
+        not:
+          - {what: "Liver or detox cleanses", goes: liver-health}
+          - {what: "Flat belly or weight loss claims", goes: weight-loss}
+        keywords: [gut health, digestive, digestion, bloating, constipation, probiotic*, microbiome, acid reflux, ibs, leaky gut, heartburn]
+        hints: [gut, stomach, bowel, reflux]
+      - id: liver-health
+        name: Liver Health
+        covers: Liver and kidney health, fatty liver, detox.
+        not:
+          - {what: "Digestion and bloating", goes: gut-health}
+        keywords: [liver, fatty liver, liver health, liver detox, kidney health]
+        hints: [detox, cleanse, toxins, kidney]
+      - id: bladder-control
+        name: Bladder Control
+        covers: Bladder leaks, incontinence and overactive bladder, mostly women.
+        not:
+          - {what: "Men's urination linked to the prostate", goes: prostate-health}
+        keywords: [incontinence, bladder leak*, overactive bladder, bladder control]
+        hints: [bladder, urinary, leaks]
+
+  - id: skin-hair
+    name: Skin & Hair
+    verticals:
+      - id: skin-care
+        name: Skin Care
+        covers: Wrinkles, sagging skin, dark spots, collagen, eye creams, skin conditions.
+        not:
+          - {what: "Eyesight", goes: vision}
+          - {what: "Hair and scalp", goes: hair-loss}
+        keywords: [wrinkle*, anti-wrinkle, collagen, dark spots, skincare, skin care, crepey, sagging skin, eczema, psoriasis, acne, eye cream*, face cream*, night cream*, mascara, eyelash*, lashes]
+        hints: [skin, serum, complexion, fine lines, moisturizer]
+      - id: hair-loss
+        name: Hair Loss
+        covers: Hair loss, thinning hair and regrowth.
+        not:
+          - {what: "Skin and wrinkles", goes: skin-care}
+        keywords: [hair loss, hair growth, balding, thinning hair, hair thinning, alopecia, bald spot*, regrow hair]
+        hints: [hair, scalp]
+      - id: nail-fungus
+        name: Nail Fungus
+        covers: Toenail and foot fungus.
+        not:
+          - {what: "Foot pain", goes: foot-pain}
+        keywords: [nail fungus, toenail fungus, toenail*, foot fungus, athlete's foot]
+        hints: [fungus, fungal]
+
+  - id: immune-lungs
+    name: Immune & Lungs
+    verticals:
+      - id: immune-support
+        name: Immune Support
+        covers: Immunity, colds and flu, allergies.
+        not:
+          - {what: "Lungs, COPD, asthma", goes: lung-health}
+        keywords: [immune system, immunity, cold and flu, allergy, allergies]
+        hints: [immune, sinus*]
+      - id: lung-health
+        name: Lung Health
+        covers: Breathing, lungs, COPD and asthma.
+        not:
+          - {what: "Snoring and sleep apnea", goes: sleep}
+        keywords: [respiratory, lung health, copd, asthma, lung]
+        hints: [breathing]
+
+  - id: general-health
+    name: General Health
+    verticals:
+      - id: dental-health
+        name: Dental Health
+        covers: Teeth, gums, bad breath, dentures.
+        not: []
+        keywords: [dental, teeth, tooth, gum disease, oral health, cavities, cavity, dentures]
+        hints: [gums, bad breath]
+      - id: longevity
+        name: Longevity
+        covers: Anti-aging from the inside, cellular health, NAD, living longer.
+        not:
+          - {what: "Anti-aging skin creams", goes: skin-care}
+        keywords: [anti-aging, anti aging, longevity, healthy aging, cellular health, telomere*, nad]
+        hints: [aging, age well]
+      - id: other-health
+        name: Other Health
+        covers: Health offers that fit no vertical above (multivitamins, superfoods, a doctor's secret with no condition named).
+        catch_all: true
+        not: []
+        keywords: []
+        hints: [wellness, supplement*, vitamin*, nutrition*, nutra, doctor*, healthy, superfood*, natural remedy, remedies, health benefits]
+
+  - id: finance
+    name: Finance
+    verticals:
+      - id: loans
+        name: Loans
+        covers: Personal loans, payday loans, cash advances, credit repair.
+        not:
+          - {what: "Paying off debt", goes: debt-relief}
+          - {what: "Home loans", goes: mortgage}
+        keywords: [personal loan*, payday, cash advance, bad credit, credit score, loan approval]
+        hints: [loan, borrow, lender*]
+      - id: debt-relief
+        name: Debt Relief
+        covers: Debt consolidation, settlement and forgiveness.
+        not: []
+        keywords: [debt relief, debt consolidation, credit card debt, debt free, loan forgiveness]
+        hints: [debt]
+      - id: mortgage
+        name: Mortgage
+        covers: Mortgages, refinancing, reverse mortgages, home equity.
+        not: []
+        keywords: [mortgage*, reverse mortgage, home equity, heloc, refinanc*]
+        hints: [home loan*, interest rate*]
+      - id: investing
+        name: Investing
+        covers: Stocks, retirement savings, gold IRAs and precious metals.
+        not:
+          - {what: "Crypto", goes: crypto}
+        keywords: [gold ira, precious metals, dividend*, stock market, retirement savings, 401k, annuit*, invest*]
+        hints: [retirement, stocks, portfolio, gold, silver]
+      - id: crypto
+        name: Crypto
+        covers: Crypto trading and coins.
+        not: []
+        keywords: [crypto*, bitcoin, ethereum, blockchain]
+        hints: []
+      - id: credit-cards
+        name: Credit Cards
+        covers: Credit cards, bank and savings accounts.
+        not:
+          - {what: "Card debt", goes: debt-relief}
+        keywords: [credit card*, savings account, high-yield, checking account, cash back, cashback]
+        hints: [bank, banking, apr]
+
+  - id: insurance
+    name: Insurance
+    verticals:
+      - id: auto-insurance
+        name: Auto Insurance
+        covers: Car insurance.
+        not: []
+        keywords: [car insurance, auto insurance, insurance rates for drivers]
+        hints: [drivers, driving record]
+      - id: medicare
+        name: Medicare
+        covers: Medicare, Medicaid, ACA and other health plans, OTC and flex cards.
+        not: []
+        keywords: [medicare, medicaid, health insurance, obamacare, health plan*, otc card, flex card]
+        hints: [aca, enrollment]
+      - id: life-insurance
+        name: Life Insurance
+        covers: Life, final expense and burial insurance.
+        not: []
+        keywords: [life insurance, final expense, burial insurance, term life]
+        hints: [funeral]
+      - id: home-insurance
+        name: Home Insurance
+        covers: Home and renters insurance.
+        not: []
+        keywords: [home insurance, homeowners insurance, renters insurance]
+        hints: []
+      - id: other-insurance
+        name: Other Insurance
+        covers: Insurance of any other kind.
+        catch_all: true
+        not: []
+        keywords: []
+        hints: [insurance, insurer*, coverage, premium*]
+
+  - id: home
+    name: Home
+    verticals:
+      - id: solar
+        name: Solar
+        covers: Solar panels, energy bills, heat pumps.
+        not: []
+        keywords: [solar, solar panel*, energy bill*, electric bill*, heat pump*]
+        hints: [electricity]
+      - id: home-improvement
+        name: Home Improvement
+        covers: Roofing, gutters, windows, walk-in tubs, remodels, HVAC.
+        not: []
+        keywords: [roofing, new roof, gutter*, walk-in tub*, walk-in shower*, bathroom remodel, home improvement, siding, replacement windows, hvac]
+        hints: [remodel*, contractor*, renovat*, roof]
+      - id: home-services
+        name: Home Services
+        covers: Home security, pest control, home warranties.
+        not: []
+        keywords: [home security, security camera*, pest control, home warranty]
+        hints: []
+
+  - id: shopping
+    name: Shopping
+    verticals:
+      - id: gadgets
+        name: Gadgets
+        covers: Products and gadgets, cookware, memory foam.
+        not:
+          - {what: "Health devices sold for a condition: that condition's vertical"}
+        keywords: [gadget*, free shipping, shop now, cookware, non-stick, nonstick, frying pan*, skillet*, pots and pans, cast iron, memory foam]
+        hints: [deal, discount*, sale, order now, pan]
+      - id: fashion
+        name: Fashion
+        covers: Clothes, shoes, jewelry.
+        not:
+          - {what: "Orthopedic shoes", goes: foot-pain}
+        keywords: [jewelry, jewellery, sneakers, fashion, handbag*, dresses, apparel, denim, bra]
+        hints: [shoes, outfit*]
+
+  - id: other
+    name: Other
+    verticals:
+      - id: lawsuits
+        name: Lawsuits
+        covers: Class actions, settlements, lawyers, timeshare exits.
+        not: []
+        keywords: [lawsuit*, class action, mesothelioma, settlement*, attorney*, lawyer*, timeshare*]
+        hints: [claim, compensation, legal]
+      - id: education
+        name: Education
+        covers: Degrees, courses and scholarships.
+        not: []
+        keywords: [online degree*, online course*, scholarship*, bachelor's degree, certificate program*]
+        hints: [degree, university, college, course]
+      - id: jobs
+        name: Jobs
+        covers: Job offers and work from home.
+        not: []
+        keywords: [now hiring, work from home, job openings, remote jobs]
+        hints: [jobs, hiring, salary]
+      - id: dating
+        name: Dating
+        covers: Dating sites and apps.
+        not: []
+        keywords: [dating, singles, meet women, meet men, find love]
+        hints: []
+      - id: travel
+        name: Travel
+        covers: Cruises, vacations, hotels and flights.
+        not: []
+        keywords: [cruise*, vacation*, all-inclusive, cheap flights, hotel deals]
+        hints: [travel*, hotel*, flights]
+      - id: cars
+        name: Cars
+        covers: Buying cars, SUVs and trucks.
+        not:
+          - {what: "Car insurance", goes: auto-insurance}
+        keywords: [new cars, used cars, car deals, suv, pickup truck*, electric vehicle*]
+        hints: [car, vehicle*, truck*]
+      - id: games
+        name: Games
+        covers: Games, casino, quizzes and puzzles.
+        not:
+          - {what: "Memory supplements", goes: memory-loss}
+        keywords: [casino, slots, solitaire, mahjong, play free, free to play, trivia, test your memory, jackpot*, slot machine*, online slot*, crossword*, sudoku, word game*]
+        hints: [game, puzzle*, quiz, quizzes]
+      - id: pets
+        name: Pets
+        covers: Dog and cat food, health and products.
+        not: []
+        keywords: [dog food, cat food, puppy, puppies, kitten*, pet owner*]
+        hints: [dog, cat, pet]
