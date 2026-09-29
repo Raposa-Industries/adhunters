@@ -522,6 +522,21 @@ func TestTeamRules(t *testing.T) {
 	if fmt.Sprint(both) != "[neurologists wine]" {
 		t.Errorf("title+description: %v", both)
 	}
+	syn := parseSynonyms(mustRead(t, "rules/synonyms.txt"))
+	known := map[string]bool{}
+	for _, b := range BlockedWords {
+		known[strings.ToLower(b.Text)] = true
+	}
+	for k := range syn {
+		if !known[k] {
+			t.Errorf("synonyms.txt names %q, which is not in blocked.txt", k)
+		}
+	}
+	for _, b := range BlockedWords {
+		if b.Text == "memory" && fmt.Sprint(b.Alternatives) != "[focus recall mental sharpness]" {
+			t.Errorf("memory: %v", b.Alternatives)
+		}
+	}
 	if !strings.Contains(planSystem, `"blood sugar"`) {
 		t.Error("blocked words not in the system message")
 	}
@@ -645,4 +660,13 @@ func TestRetryAfterHeader(t *testing.T) {
 	if d := retryDelay(&Error{transient: true}, time.Second, 2); d != 2*time.Second {
 		t.Errorf("backoff: %v", d)
 	}
+}
+
+func mustRead(t *testing.T, name string) string {
+	t.Helper()
+	b, err := rulesFS.ReadFile(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
 }

@@ -71,10 +71,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/taboola/groups", s.taboolaGroups)
 	mux.HandleFunc("POST /api/taboola/groups", s.taboolaCreateGroup)
 	mux.HandleFunc("POST /api/taboola/ads", s.taboolaAds)
+	mux.HandleFunc("GET /api/taboola/workbook", s.taboolaWorkbook)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/status", "/api/plan", "/api/image",
-			"/api/taboola/status", "/api/taboola/campaigns", "/api/taboola/groups", "/api/taboola/ads":
+			"/api/taboola/status", "/api/taboola/campaigns", "/api/taboola/groups", "/api/taboola/ads",
+			"/api/taboola/workbook":
 			writeError(w, http.StatusMethodNotAllowed, "método não permitido")
 		default:
 			writeError(w, http.StatusNotFound, "rota não encontrada")

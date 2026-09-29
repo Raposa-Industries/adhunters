@@ -331,24 +331,25 @@ func TestCampaignBody(t *testing.T) {
 
 	before := len(f.seen())
 	for name, in := range map[string]NewCampaign{
-		"no name":       {Brand: "b", CPC: 0.1, DailyCap: 10},
-		"no brand":      {Name: "x", CPC: 0.1, DailyCap: 10},
-		"long brand":    {Name: "x", Brand: strings.Repeat("b", 26), CPC: 0.1, DailyCap: 10},
-		"zero cpc":      {Name: "x", Brand: "b", DailyCap: 10},
-		"cpc over":      {Name: "x", Brand: "b", CPC: 1.01, DailyCap: 10},
-		"cap over":      {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 100.5},
-		"zero cap":      {Name: "x", Brand: "b", CPC: 0.1},
-		"budget over":   {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, SpendingLimit: 3000.01},
-		"budget minus":  {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, SpendingLimit: -1},
-		"country":       {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, Countries: []string{"USA"}},
-		"platform":      {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, Platforms: []string{"TV"}},
-		"tracking code": {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, TrackingCode: "a b"},
-		"objective":     {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, MarketingObjective: "APP_INSTALLS"},
-		"bid":           {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "MAX_CONVERSIONS"},
-		"smart over":    {Name: "x", Brand: "b", CPC: 1.5, DailyCap: 10, BidStrategy: "SMART"},
-		"bad date":      {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "01/10/2026"},
-		"end first":     {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "2026-10-02", EndDate: "2026-10-01"},
-		"group":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, GroupID: "12a"},
+		"no name":          {Brand: "b", CPC: 0.1, DailyCap: 10},
+		"no brand":         {Name: "x", CPC: 0.1, DailyCap: 10},
+		"long brand":       {Name: "x", Brand: strings.Repeat("b", 26), CPC: 0.1, DailyCap: 10},
+		"zero cpc":         {Name: "x", Brand: "b", DailyCap: 10},
+		"cpc over":         {Name: "x", Brand: "b", CPC: 1.01, DailyCap: 10},
+		"daily over total": {Name: "x", Brand: "b", CPC: 0.5, DailyCap: 50, SpendingLimit: 20},
+		"cap over":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 100.5},
+		"zero cap":         {Name: "x", Brand: "b", CPC: 0.1},
+		"budget over":      {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, SpendingLimit: 3000.01},
+		"budget minus":     {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, SpendingLimit: -1},
+		"country":          {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, Countries: []string{"USA"}},
+		"platform":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, Platforms: []string{"TV"}},
+		"tracking code":    {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, TrackingCode: "a b"},
+		"objective":        {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, MarketingObjective: "APP_INSTALLS"},
+		"bid":              {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "MAX_CONVERSIONS"},
+		"smart over":       {Name: "x", Brand: "b", CPC: 1.5, DailyCap: 10, BidStrategy: "SMART"},
+		"bad date":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "01/10/2026"},
+		"end first":        {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "2026-10-02", EndDate: "2026-10-01"},
+		"group":            {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, GroupID: "12a"},
 	} {
 		var r *Refused
 		if _, err := c.CreateCampaign(ctx, "acme-sc", in); !errors.As(err, &r) {
@@ -857,14 +858,21 @@ func TestOnlyOwn(t *testing.T) {
 	}
 }
 
-func TestOnlyOwnNeedsPrefixAndState(t *testing.T) {
-	for _, s := range []Settings{
-		{OnlyOwn: true, StateFile: "x"},
-		{OnlyOwn: true, NamePrefix: "AH"},
-	} {
-		if _, err := New(s, nil, quiet); err == nil {
-			t.Errorf("%+v accepted", s)
-		}
+func TestOnlyOwnNeedsState(t *testing.T) {
+	if _, err := New(Settings{OnlyOwn: true, NamePrefix: "AH"}, nil, quiet); err == nil {
+		t.Errorf("only-own without a state file accepted")
+	}
+	// The prefix is optional: without one, any name goes, and the state
+	// file still keeps the client to what it made.
+	c, err := New(Settings{OnlyOwn: true, StateFile: filepath.Join(t.TempDir(), "s.json")}, nil, quiet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.checkOwnName("Tinnitus launch", "da campanha"); err != nil {
+		t.Errorf("no prefix set, name refused: %v", err)
+	}
+	if err := c.checkOwnCampaign("acme-sc", "123"); err == nil {
+		t.Errorf("a campaign not made here was allowed")
 	}
 	bad := filepath.Join(t.TempDir(), "state.json")
 	_ = os.WriteFile(bad, []byte("{"), 0o640)

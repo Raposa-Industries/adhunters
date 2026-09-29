@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Subir anúncios · Create</title>
 <link rel="icon" href="data:,">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#060608">
 <link rel="stylesheet" href="style.css">
+<script src="boot.js"></script>
 <script type="module" src="app.js"></script>
 </head>
 <body>
@@ -49,6 +52,7 @@
         <label class="field">Headlines de referência <span class="muted">uma por linha</span>
           <textarea id="examples" rows="7" placeholder="Headlines que funcionaram ou que você viu no Spy"></textarea>
           <span id="examples-note" class="hint"></span>
+          <span id="examples-swaps" class="swaps"></span>
         </label>
       </div>
     </section>
@@ -58,6 +62,7 @@
       <h2><span class="n">3</span> Gerar opções</h2>
       <label class="field">Instruções adicionais <span class="muted">opcional, valem para imagens e headlines</span>
         <textarea id="prompt" rows="3" placeholder="Ex.: produto em pó misturado na água, mulheres de cabelo branco, headlines em forma de pergunta"></textarea>
+        <span id="prompt-swaps" class="swaps"></span>
       </label>
       <div class="fields">
         <label class="field">Idade das pessoas <input id="ages" placeholder="Ex.: 70-85"></label>
@@ -70,6 +75,7 @@
       </div>
       <div id="gen-bar" class="bar" hidden><div></div></div>
       <p id="gen-progress" class="muted"></p>
+      <div id="activity" class="activity" aria-live="polite" hidden></div>
       <div id="analysis"></div>
     </section>
 
@@ -119,6 +125,7 @@
       </div>
       <p id="pairing-note" class="note"></p>
       <p><button id="reshuffle" class="ghost">Sortear de novo</button></p>
+      <p id="grid-hint" class="hint"></p>
       <div id="grid-wrap"><table id="grid"></table></div>
     </section>
 
@@ -133,7 +140,7 @@
       <label class="field">Descrição <span class="muted">opcional, até 250 caracteres, igual em todos os anúncios</span>
         <input id="description" maxlength="250">
       </label>
-      <p id="description-warnings" class="warn"></p>
+      <div id="description-swaps" class="swaps"></div>
     </section>
 
     <!-- 9 -->
@@ -231,7 +238,7 @@
               <label class="field">Termina em <input id="nc-end" type="date"></label>
             </div>
           </div>
-          <p id="nc-warnings" class="warn"></p>
+          <div id="nc-warnings" class="warn fixes"></div>
         </div>
       </div>
       <div id="tb-off">
@@ -271,10 +278,13 @@
       </div>
       <details id="bundle" class="bundle">
         <summary>Baixar para o Bulk Upload em vez disso</summary>
-        <label class="field">Modelo do Taboola (.xlsx)
-          <input id="template-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-        </label>
         <p id="template-status" class="hint">No Realize: <b>Create › Bulk Upload › Download Template</b>, na conta onde estão as campanhas. O Taboola só aceita a planilha no formato do modelo dele. Fica guardado neste navegador.</p>
+        <div id="template-pick">
+          <label class="field">Modelo do Taboola (.xlsx)
+            <input id="template-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          </label>
+          <p><button id="template-reset" class="ghost" type="button" hidden>Voltar ao modelo da página</button></p>
+        </div>
         <p>
           <button id="download-sheet">Baixar planilha (.xlsx)</button>
           <button id="download-zip">Baixar imagens (.zip)</button>

@@ -75,8 +75,10 @@ export function headlineWarnings(text) {
 
 // The team's list of words Taboola has blocked for them comes from the server
 // (/api/status, create/internal/openai/rules/blocked.txt) as {text,
-// description}. A single word also matches its common endings (drinks,
-// drinking); "…" inside a phrase stands for anything.
+// description, alternatives}. A single word also matches its common endings
+// (drinks, drinking); "…" inside a phrase stands for anything. The pattern
+// captures what comes before the word instead of looking behind, which older
+// iPhones cannot read.
 const patterns = new Map();
 
 function blockedPattern(text) {
@@ -84,25 +86,53 @@ function blockedPattern(text) {
     const esc = (s) => s.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
     const body = text.split(/…|\.\.\./).filter((p) => p.trim()).map(esc).join(".*");
     const ending = /\s/.test(text.trim()) ? "" : "(?:s|es|ing|ed|ting|ful)?";
-    patterns.set(text, new RegExp(`(?<![\\p{L}\\p{N}])${body}${ending}(?![\\p{L}\\p{N}])`, "iu"));
+    patterns.set(text, new RegExp(`(^|[^\\p{L}\\p{N}])(${body}${ending})(?![\\p{L}\\p{N}])`, "giu"));
   }
-  return patterns.get(text);
+  const re = patterns.get(text);
+  re.lastIndex = 0;
+  return re;
 }
 
-// blockedWords lists the team's blocked words found in a text. field is
-// "title" or "description"; a description is only checked against the words
-// blocked there too. When a phrase is found, the words inside it are not
-// named again ("memory loss", not also "memory").
+function blockedFound(t, b) {
+  return blockedPattern(b.text).test(t);
+}
+
+// blockedHits lists the team's blocked words found in a text, each with the
+// words offered in its place. field is "title" or "description"; a
+// description is only checked against the words blocked there too, and
+// "prompt" (what a person types for the AI) against all of them. When a
+// phrase is found, the words inside it are not named again ("memory loss",
+// not also "memory").
+export function blockedHits(text, list, field = "title") {
+  const t = clean(text || "");
+  const found = (list || []).filter((b) => (field !== "description" || b.description) && blockedFound(t, b));
+  return found
+    .filter((b) => !found.some((g) => g !== b && g.text.toLowerCase().includes(b.text.toLowerCase())))
+    .map((b) => ({ text: b.text, alternatives: b.alternatives || [] }));
+}
+
 export function blockedWords(text, list, field = "title") {
-  const t = clean(text);
-  const found = (list || []).filter((b) => (field === "title" || b.description) && blockedPattern(b.text).test(t)).map((b) => b.text);
-  return found.filter((f) => !found.some((g) => g !== f && g.toLowerCase().includes(f.toLowerCase())));
+  return blockedHits(text, list, field).map((b) => b.text);
 }
 
 export function blockedWarnings(text, list, field = "title") {
   const words = blockedWords(text, list, field);
   if (!words.length) return [];
   return [`Tem ${words.map((w) => `“${w}”`).join(", ")}: está na lista de palavras que o Taboola já bloqueou para o time.`];
+}
+
+// swapBlocked puts alt in place of every occurrence of the blocked word or
+// phrase in text, in the same case as what it replaces: "Memory" becomes
+// "Focus", "MEMORY" becomes "FOCUS", "memory" stays lower case.
+export function swapBlocked(text, blocked, alt) {
+  return text.replace(blockedPattern(blocked), (_, before, word) => before + inCase(alt, word));
+}
+
+function inCase(alt, like) {
+  const letters = like.replace(/[^\p{L}]/gu, "");
+  if (letters.length > 1 && letters === letters.toUpperCase()) return alt.toUpperCase();
+  if (/^\p{Lu}/u.test(like)) return alt.replace(/(^|\s)(\p{Ll})/gu, (_, s, c) => s + c.toUpperCase());
+  return alt;
 }
 
 const TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp"]);

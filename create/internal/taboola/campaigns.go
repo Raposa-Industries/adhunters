@@ -55,15 +55,40 @@ func (c *Client) accountNames(ctx context.Context) map[string]string {
 		return nil
 	}
 	names := map[string]string{}
+	var listed []Account
+	network := ""
 	for _, r := range results(out) {
-		if id := str(r["account_id"]); id != "" {
-			names[id] = oneLine(str(r["name"]), 100)
+		id := str(r["account_id"])
+		if id == "" {
+			continue
+		}
+		names[id] = oneLine(str(r["name"]), 100)
+		if str(r["type"]) == "NETWORK" {
+			network = id
+		} else {
+			listed = append(listed, Account{ID: id, Name: names[id]})
 		}
 	}
 	c.mu.Lock()
-	c.names, c.namesAt = names, time.Now()
+	c.names, c.listed, c.network, c.namesAt = names, listed, network, time.Now()
 	c.mu.Unlock()
 	return names
+}
+
+// Directory is what Realize's own bulk template says about the login: its
+// network account id (METADATA's accountName; "" when the login is one
+// account) and every account under it (the Accounts tab). It only reads
+// allowed-accounts, so it works on a lent account too.
+func (c *Client) Directory(ctx context.Context) (network string, accounts []Account, err error) {
+	if !c.Available() {
+		return "", nil, ErrNotConfigured
+	}
+	if c.accountNames(ctx) == nil {
+		return "", nil, &Error{Message: "não consegui ler as contas da Taboola"}
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.network, append([]Account(nil), c.listed...), nil
 }
 
 // Campaign is one campaign as the page shows it. A daily cap or total
@@ -191,6 +216,9 @@ func (n NewCampaign) body(maxCPC, maxDailyCap float64, full bool) (obj, error) {
 		return nil, refuse("o limite diário deve ficar entre 0 e %s", usd(maxDailyCap))
 	case n.SpendingLimit < 0 || n.SpendingLimit > 30*maxDailyCap:
 		return nil, refuse("o orçamento total deve ficar entre 0 (sem limite) e %s", usd(30*maxDailyCap))
+	case n.SpendingLimit > 0 && n.DailyCap > n.SpendingLimit:
+		// Taboola: "Daily Cap cannot be higher than the Spending Limit".
+		return nil, refuse("o limite por dia (%s) passa do limite total (%s): aumente o total ou deixe sem limite", usd(n.DailyCap), usd(n.SpendingLimit))
 	}
 	b := obj{"name": name, "is_active": false}
 	if brand != "" {
