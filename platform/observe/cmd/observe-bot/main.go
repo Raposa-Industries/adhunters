@@ -15,9 +15,10 @@
 // GRAFANA_QUERY_TOKEN (metrics:read); SENTRY_URL (default https://sentry.io),
 // SENTRY_ORG, SENTRY_PROJECT and SENTRY_API_TOKEN (read-only; empty leaves
 // the relay off). It keeps the relay's place in STATE_DIRECTORY, so a restart
-// neither repeats nor skips an issue. The credit checks and renewals come
-// from CREDITS_FILE (default /etc/adhunters/credits.conf), with their keys in
-// the same environment. It stops cleanly on SIGTERM.
+// neither repeats nor skips an issue. The credit checks, estimates and
+// renewals come from CREDITS_FILE (default /etc/adhunters/credits.conf), with
+// their keys in the same environment; each estimate's ledger is kept in
+// STATE_DIRECTORY too. It stops cleanly on SIGTERM.
 package main
 
 import (
@@ -182,10 +183,10 @@ func runCmd(args []string) error {
 		log.Warn("SENTRY_API_TOKEN is not set: new Sentry issues are not relayed")
 	}
 
-	cr := newCredits(srv.Registry, tasks, cfg)
+	cr := newCredits(srv.Registry, tasks, cfg, c.metric, c.state)
 
 	log.Info("observe-bot starting", "digest_at", fmtClock(c.at), "zone", c.loc.String(),
-		"credit_checks", len(cfg.Checks), "renewals", len(cfg.Renewals))
+		"credit_checks", len(cfg.Checks), "estimates", len(cfg.Estimates), "renewals", len(cfg.Renewals))
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)
 		go func() { opsDone <- srv.Serve(ctx, log, ops.Addr()) }()

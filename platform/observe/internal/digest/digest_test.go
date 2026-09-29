@@ -81,10 +81,10 @@ func TestCreditLeft(t *testing.T) {
 	m := quietDay()
 	m[qCredits] = []prom.Sample{
 		{Labels: map[string]string{"credit": "iproyal", "unit": "GB"}, Value: 4.237},
-		{Labels: map[string]string{"credit": "fal", "unit": "USD"}, Value: 31},
+		{Labels: map[string]string{"credit": "openai", "unit": "USD", "how": "estimated"}, Value: 17.46},
 	}
 	got := Write(context.Background(), m, fakeErrors(nil), time.Date(2026, 9, 29, 11, 0, 0, 0, time.UTC), sp)
-	if !strings.HasSuffix(got, "Disk free: data 62%, worker 81%\nCredit left: fal 31 USD, iproyal 4.2 GB") {
+	if !strings.HasSuffix(got, "Disk free: data 62%, worker 81%\nCredit left: iproyal 4.2 GB, openai ~17.5 USD") {
 		t.Fatalf("got:\n%s", got)
 	}
 }

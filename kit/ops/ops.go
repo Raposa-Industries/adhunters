@@ -38,6 +38,8 @@ type Server struct {
 
 	creditOnce  sync.Once
 	outOfCredit *prometheus.CounterVec
+	spendOnce   sync.Once
+	spend       *prometheus.CounterVec
 }
 
 // New returns a Server whose registry already carries Go runtime and process

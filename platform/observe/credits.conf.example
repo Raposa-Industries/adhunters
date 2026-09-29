@@ -13,6 +13,13 @@
 # [renewal NAME]: a subscription that must be renewed or paid on a date.
 #   due (YYYY-MM-DD, any one renewal day), every (week, month, year or none),
 #   remind (how long before, default 7d). due = FILL_ME keeps it off.
+# [estimate NAME]: a balance worked out from our own spending, for a service
+#   with no balance API. balance (USD, as the billing page shows it), as_of
+#   (when you read it, YYYY-MM-DD HH:MM in UTC), warn, and provider (the name
+#   our services report spending under, default NAME). What is left is
+#   balance less what our services report spending since as_of (kit/ops
+#   Spent). Put in a new balance and as_of whenever you read the real one;
+#   the count starts again from it. balance = FILL_ME keeps it off.
 
 [credit iproyal]
 # Residential traffic left, for Raposa's res-1 line. Token: IPRoyal dashboard,
@@ -23,6 +30,15 @@ header = Authorization: Bearer ${IPROYAL_API_TOKEN}
 field  = available_traffic
 unit   = GB
 warn   = 2
+
+[estimate openai]
+# OpenAI credit, for Create's images and headlines. OpenAI has no balance
+# API, so this is the 19 USD the owner reported at 13:35 UTC on 29 Sep 2026,
+# less what our services report spending since. Correct it from
+# platform.openai.com, Settings, Billing whenever you look.
+balance = 19
+as_of   = 2026-09-29 13:35
+warn    = 5
 
 [renewal proxies-datacenter]
 # The datacenter and ISP lines (dc-us-*, isp-* in proxies.env): the day the
