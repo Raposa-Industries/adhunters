@@ -44,19 +44,22 @@ runs only what the user approved on 2026-09-29: tests that leave running
 campaigns alone and spend $20 at most, in total.
 
     go run ./intel/cmd/intel-taboola-writetest paused     -account X-sc -url URL -out DIR   # T1 to T11, $0
-    go run ./intel/cmd/intel-taboola-writetest live-start -account X-sc -url URL -tracking QUERY -out DIR   # T12, created paused
+    go run ./intel/cmd/intel-taboola-writetest live-start -account X-sc -url URL -tracking 'sub1={campaign_id}&…' -brand NAME -image PHOTO -titles 'one|two' -out DIR   # T12, created paused
     go run ./intel/cmd/intel-taboola-writetest live-on    -account X-sc -out DIR            # once approved
     go run ./intel/cmd/intel-taboola-writetest live-cut   -account X-sc -out DIR
     go run ./intel/cmd/intel-taboola-writetest live-end   -account X-sc -out DIR            # pause, reports, delete
 
 Use one `-out` for all of them: its `state.json` is how the guard knows what
-is ours and what was turned on.
+is ours and what was turned on. Put Taboola's macros (`{campaign_id}`,
+`{campaign_item_id}`, `{site_id}`…) in `-tracking`, the campaign's tracking
+code, never in `-url`: Taboola escapes the braces in an item URL, so they
+would reach RedTrack unfilled (seen 2026-09-29). `live-start` serves real
+ads, so it refuses to start without a real brand, a photo the owner has
+rights to and two headlines that match the landing page: placeholders could
+be rejected and count against the account.
 
-Put Taboola's macros in `-tracking` (the campaign's `tracking_code`, for
-example `sub1={campaign_id}&sub4={campaign_item_id}&sub8={site_id}`), never in
-`-url`: Taboola escapes the braces in an item URL (`%7Bcampaign_id%7D`), so
-they would reach RedTrack unfilled. Images must go up with an image content
-type; Taboola refuses `application/octet-stream`.
+Images must go up with an image content type; Taboola refuses
+`application/octet-stream`.
 
 ## Running the Taboola probe
 

@@ -58,6 +58,9 @@ func main() {
 	landing := fs.String("url", "", "landing page for the test items")
 	out := fs.String("out", "", "directory for raw answers, state.json and results.md")
 	sites := fs.String("sites", "", "two site names to block and unblock in T8, comma-separated")
+	brand := fs.String("brand", "", "live-start: the brand shown on the ads (a real advertiser name)")
+	imagePath := fs.String("image", "", "live-start: photo for the ads (JPEG or PNG the owner has rights to)")
+	titles := fs.String("titles", "", "live-start: the two headlines, separated by |, matching the landing page")
 	tracking := fs.String("tracking", "", "campaign tracking code (query string with Taboola macros such as {campaign_id}) that Taboola appends to every item URL")
 	fs.Parse(os.Args[2:])
 	if *account == "" || *out == "" {
@@ -77,7 +80,8 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	t := &tester{c: c, dir: *out, account: *account, url: *landing, tracking: *tracking, sites: splitList(*sites), wait: 10 * time.Second}
+	t := &tester{c: c, dir: *out, account: *account, url: *landing, tracking: *tracking, sites: splitList(*sites),
+		brand: *brand, imagePath: *imagePath, titles: splitBar(*titles), wait: 10 * time.Second}
 	// Carry on the raw file numbers of earlier runs sharing -out.
 	if old, err := os.ReadDir(filepath.Join(*out, "raw")); err == nil {
 		t.n = len(old)
@@ -125,9 +129,14 @@ type tester struct {
 	url      string
 	tracking string
 	sites    []string
-	wait     time.Duration
-	n        int
-	lines    []string
+	// live-start only: a served ad must pass Taboola's review, so it gets
+	// real content, never the placeholders the paused tests use.
+	brand     string
+	imagePath string
+	titles    []string
+	wait      time.Duration
+	n         int
+	lines     []string
 }
 
 // note records one finding for results.md.
@@ -376,11 +385,19 @@ func (t *tester) liveStart(ctx context.Context) error {
 	if t.url == "" {
 		return errors.New("-url is required")
 	}
+	if t.brand == "" || t.imagePath == "" || len(t.titles) != 2 {
+		return errors.New("live-start needs -brand, -image and two -titles: served ads get real content, not placeholders")
+	}
+	photo, err := os.ReadFile(t.imagePath)
+	if err != nil {
+		return err
+	}
 	if err := t.noOtherRunning(ctx); err != nil {
 		t.note("T12", "not started: %v", err)
 		return err
 	}
 	body := t.campaignBody("T12 live " + time.Now().UTC().Format("2006-01-02 15:04"))
+	body["branding_text"] = t.brand
 	body["traffic_allocation_mode"] = "EVEN"
 	body["end_date"] = time.Now().UTC().AddDate(0, 0, 2).Format(time.DateOnly)
 	camp, err := t.c.CreateCampaign(ctx, body)
@@ -389,13 +406,14 @@ func (t *tester) liveStart(ctx context.Context) error {
 		return err
 	}
 	cid := s(camp["id"])
-	img, err := t.c.UploadImage(ctx, "ah-test.png", testImage())
+	img, err := t.c.UploadImage(ctx, filepath.Base(t.imagePath), photo)
 	if err != nil {
-		return err
+		t.note("T12", "image upload failed: %v", err)
+		return errors.Join(err, t.cleanup(ctx))
 	}
 	if _, err := t.c.MassCreateItems(ctx, cid, []act.Obj{
-		{"url": t.url, "title": "A plain test headline one", "thumbnail_url": img, "custom_data": act.Obj{"custom_id": "AH-T12-1"}},
-		{"url": t.url, "title": "A plain test headline two", "thumbnail_url": img, "custom_data": act.Obj{"custom_id": "AH-T12-2"}},
+		{"url": t.url, "title": t.titles[0], "thumbnail_url": img, "custom_data": act.Obj{"custom_id": "AH-T12-1"}},
+		{"url": t.url, "title": t.titles[1], "thumbnail_url": img, "custom_data": act.Obj{"custom_id": "AH-T12-2"}},
 	}); err != nil {
 		t.note("T12", "items failed: %v", err)
 		return err
@@ -623,6 +641,16 @@ func rawOrString(b []byte) any {
 		return json.RawMessage(b)
 	}
 	return string(b)
+}
+
+func splitBar(v string) []string {
+	var out []string
+	for _, p := range strings.Split(v, "|") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func splitList(v string) []string {

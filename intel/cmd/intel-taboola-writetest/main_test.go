@@ -144,7 +144,12 @@ func TestAllStepsTouchOnlyTheirOwnObjects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tt := &tester{c: c, dir: dir, account: "acme-1-sc", url: "https://example.com", sites: []string{"site-a", "site-b"}, wait: time.Millisecond}
+	photo := filepath.Join(dir, "photo.png")
+	if err := os.WriteFile(photo, testImage(), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	tt := &tester{c: c, dir: dir, account: "acme-1-sc", url: "https://example.com", sites: []string{"site-a", "site-b"}, wait: time.Millisecond,
+		brand: "Acme", imagePath: photo, titles: []string{"Headline one", "Headline two"}}
 	c.Record = tt.save
 	ctx := context.Background()
 	for _, step := range []func(context.Context) error{tt.paused, tt.liveStart, tt.liveOn, tt.liveCut, tt.liveEnd} {
@@ -175,5 +180,12 @@ func TestAllStepsTouchOnlyTheirOwnObjects(t *testing.T) {
 	raws, _ := os.ReadDir(filepath.Join(dir, "raw"))
 	if len(raws) < 20 {
 		t.Fatalf("only %d raw files", len(raws))
+	}
+}
+
+func TestLiveStartRefusesPlaceholders(t *testing.T) {
+	tt := &tester{url: "https://example.com"}
+	if err := tt.liveStart(context.Background()); err == nil || !strings.Contains(err.Error(), "-brand") {
+		t.Fatalf("want a refusal before any request, got %v", err)
 	}
 }
