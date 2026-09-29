@@ -1,19 +1,18 @@
 package taboola
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"mime/multipart"
 	"net/http"
-	"net/textproto"
 	"net/url"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	api "github.com/Raposa-Industries/adhunters/shared/taboola"
 )
 
 // UploadImage puts an image on Taboola's CDN and returns its URL. It touches
@@ -32,25 +31,12 @@ func (c *Client) UploadImage(ctx context.Context, name string, data []byte) (str
 	if name == "" || name == "." || name == "/" {
 		name = "image"
 	}
-	var buf bytes.Buffer
-	w := multipart.NewWriter(&buf)
-	h := textproto.MIMEHeader{}
-	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename=%q`, name))
-	// Taboola refuses a part sent as application/octet-stream ("unsupported
-	// type of image"), so name the image's own type.
-	h.Set("Content-Type", http.DetectContentType(data))
-	part, err := w.CreatePart(h)
+	form, ctype, err := api.ImageForm(name, data)
 	if err != nil {
 		return "", err
 	}
-	if _, err := part.Write(data); err != nil {
-		return "", err
-	}
-	if err := w.Close(); err != nil {
-		return "", err
-	}
 	b, err := c.do(ctx, call{
-		method: http.MethodPost, path: uploadPath, body: buf.Bytes(), ctype: w.FormDataContentType(),
+		method: http.MethodPost, path: uploadPath, body: form, ctype: ctype,
 		kept:     fmt.Sprintf("(image %s, %d bytes)", name, len(data)),
 		retry5xx: true,
 	})

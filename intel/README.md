@@ -12,9 +12,9 @@ app has something tested to stand on. Words are in
 | Path | Does |
 |---|---|
 | `redtrack/` | Thin client for the RedTrack API: spacing and retries, paging, the key kept out of every answer, error and log line, rows kept as raw JSON fields. |
-| `taboola/` | Read-only client for Taboola's Backstage API: token handling, retries on 429 and 5xx (honouring `Retry-After`), and the reads (account, campaigns, items, reports). Answers come back raw so they are saved before they are read. |
+| `taboola/` | Read-only client for Taboola's Backstage API, on `shared/taboola` (token handling, retries on 429 and 5xx honouring `Retry-After`): a transport that refuses anything but reads, and the reads (account, campaigns, items, reports). Answers come back raw so they are saved before they are read. |
 | `cmd/intel-taboola` | Developer tool: `probe` calls every Taboola read once for one account and writes the raw answers plus `summary.md`. Not a service. |
-| `taboola/act` | The Taboola write client, for intel-act and its tests only. A guard checked before every request: one advertiser account, only campaigns and items it created (kept in a state file), new campaigns paused with a fixed bid and a total budget, and a money ceiling on everything it ever turns on. |
+| `taboola/act` | The Taboola write client, for intel-act and its tests only, on `shared/taboola` (it repeats nothing but a request answered 401, once, with a new token). A guard checked before every request: one advertiser account, only campaigns and items it created (kept in a state file), new campaigns paused with a fixed bid and a total budget, and a money ceiling on everything it ever turns on. |
 | `cmd/intel-taboola-writetest` | Developer tool: runs the approved write tests (T1 to T12 of `research/taboola-api/write-test-plan.md`) through `taboola/act`, saving every request and answer raw. |
 | `cmd/redtrack-probe` | Developer tool: reads an account end to end and saves every raw answer, plus `summary.md`. Also sends single raw calls, including writes. Not a service. |
 
