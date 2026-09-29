@@ -3,30 +3,57 @@
 Images and headlines for our ads. Was auto-creative (images only), which
 stays as it is; this folder is the new Create.
 
-## What runs today: the bulk upload page (`create-web`)
+## What runs today: the campaign launcher (`create-web`)
 
-One page, in Portuguese, for the team that puts ads on Taboola by hand. It
-takes the typing out of Taboola's Bulk Upload:
+One page, in Portuguese, for the team that puts ads on Taboola by hand. The
+ads themselves (headlines, descriptions, CTAs) are always in English. Eleven
+steps, in the order the team works:
 
-1. **Brief.** What the ad is about, optional ads that are performing well,
-   an optional product photo, optional headlines, the headline language, the
-   vertical, the age of the people in the pictures, how many images and
-   headlines to make. Create asks OpenAI for headlines and an idea per image,
-   then makes each image (with the product photo when there is one).
-   Everything made is an option: nothing is used until a person ticks it.
-2. **Creatives and headlines.** Tick the options worth using, upload your own
-   images, paste your own headlines, edit any headline in place.
-3. **Pairing** (GLOSSARY.md):
-   - *Sortido* (mixed): the longer list once each, the shorter repeated in turn.
-     10 images and 5 headlines make 10 ads, each headline twice; 10 and 8
-     make 10, two headlines twice. Reshuffle picks another order.
+1. **Vertical.** Required: it picks the team's headlines the model learns from.
+2. **References** (optional). Ads that are performing (their pictures) and
+   headlines of the person's own. When given they weigh the most: about two
+   in three image ideas are close variations of the reference pictures, and
+   the headlines follow the person's before the team library.
+3. **Generate.** Optional extra instructions (for the images, the headlines or
+   both), the age of the people in the pictures, how many images and
+   headlines. Create asks OpenAI for headlines and one idea per image, then
+   makes each image. Nothing made is used until a person ticks it.
+4. **Images** and 5. **Headlines.** Tick the options worth using, add your own
+   images or headlines, edit any headline in place.
+6. **CTAs.** One or more of Taboola's buttons (Read More, Learn More, ...).
+7. **Combination** (GLOSSARY.md), over images, headlines and CTAs:
+   - *Sortido* (mixed): the longest list once each, the shorter ones repeated
+     in turn. 10 images, 5 headlines and 2 CTAs make 10 ads.
+     Reshuffle picks another order.
    - *Um a um* (one to one): a grid where each tick is one ad.
    - *Todas as combinações* (every combination).
-4. **Campaign.** The Taboola campaign ids the ads go into (each ad goes into
-   all of them), the landing page link, CTA, and whether the ads are marked
-   as AI-made (the template's "AI Content" column).
-5. **Download** the bulk sheet and a `.zip` of the images named as in "Image
-   File Name", then upload both in Realize › Create › Bulk Upload.
+8. **Brand and description.** The brand is the campaign's branding text.
+9. **AI disclosure.** The person's answer, with a warning when AI-made
+   content is marked "no".
+10. **Campaign.** Pick one or more of the account's campaigns loaded from
+    Taboola, or set up a new one: start from scratch or copy an existing one
+    (without its ads); objective; campaign group (automatic, an existing one,
+    or a new group with its own budget); countries and devices; bid, daily
+    cap and total budget; start and end dates. Then **tracking and landing
+    page**: pick the tracker (RedTrack, Voluum, other, none) and paste its
+    link; the page splits it into the address that goes in every ad and the
+    parameters with `{macros}`, which go in the campaign's tracking code
+    (Taboola escapes macros inside an ad's link).
+11. **Review and CREATE.** Every ad with its warnings, then **CRIAR NO
+    TABOOLA**: the group, the campaign, the image uploads and the ads, in
+    that order. The same ads cannot be sent twice by accident. The bulk sheet
+    (below) stays as the fallback, under "Baixar para o Bulk Upload".
+
+**Everything is created paused.** Campaign groups, campaigns and ads are made
+paused; they run only when a person turns them on in Taboola's own dashboard.
+Taboola's mass create answers `is_active: true` even when asked for false
+(seen 2026-09-29), so every ad is paused again right after it is made, and
+the result says which ones could not be.
+
+Without Taboola keys the campaign step says Taboola is not connected and the
+bulk sheet is the way out.
+
+### The bulk sheet (fallback)
 
 **The sheet is always Realize's own template.** Realize rejects a workbook
 that is not in its template's shape (a home-made one got "Invalid number of
@@ -41,7 +68,7 @@ Status stays empty: new ads start Active. The Ads tab runs to row 500, so
 one sheet holds 498 ads. "Copiar linhas" copies the same rows to paste at A3
 by hand.
 
-Nothing is sent to Taboola or RedTrack from here.
+Nothing is sent to RedTrack from here.
 
 **The team's own prompts are built in** (their material, 2026-09-29, is in
 `internal/openai/rules/` and the project files at research/create-prompts/):
@@ -59,7 +86,8 @@ Nothing is sent to Taboola or RedTrack from here.
   suggests eye contact and plain backgrounds) the team's win.
 - *Headlines* learn from the team's headlines for the vertical (Blood
   Pressure, Memory Loss, Neuropathy, Tinnitus, Weight Loss): a random 40 per
-  plan, after any the person typed.
+  plan, or 10 when the person gave headlines of their own, which come first
+  and weigh the most.
 - *Blocked words*: the team's list of words Taboola has blocked for them
   (`rules/blocked.txt`). The model is told never to use them, and the page
   warns when a headline (or the description, for the words blocked there
@@ -86,8 +114,15 @@ later (Intel).
   research/taboola-bulk-upload/realize-template-2026-09-29.xlsx), but no
   filled one has gone through Realize yet. Cells are written as inline
   text, which Excel reads the same as its own shared strings.
-- An ad can only join an *existing* campaign, so a new campaign is made (or
-  duplicated) first, in Realize.
+- The bulk sheet can only add ads to an *existing* campaign; CREATE makes
+  the campaign too.
+- CREATE was tried for real on 2026-09-29, paused, on the lent ZoltaGroup
+  test account (research/taboola-api/create-web-paused-test-2026-09-29/ in
+  the project files): a new group, a campaign in it, a copy of a campaign
+  with a new name, brand, bid and cap, one image and two ads. A copy stays
+  in its original's campaign group, so the page does not offer a group when
+  copying. Not tried yet: start and end dates, SMART bidding, several
+  campaigns in one send.
 - Title over 60 characters is Taboola's guideline; the template says under 100.
 
 ## API (for the page)
@@ -108,9 +143,27 @@ requests are accepted.
   JPEG or PNG files): one picture, base64. With references it goes to
   OpenAI's edits endpoint. At most 4 pictures are made at once.
 
+Taboola (without keys, status says `{"connected": false, "reason"}` and the
+rest answer 503; 400 for anything the server refuses before calling Taboola,
+502 when Taboola refuses, 504 when it does not answer in time):
+
+- `GET /api/taboola/status`: the accounts, the bid and daily cap ceilings,
+  and whether this is a lent account (only-own, with its name prefix).
+- `GET /api/taboola/campaigns?account=` and `GET /api/taboola/groups?account=`.
+- `POST /api/taboola/groups` (JSON: account, name, spending_limit,
+  spending_limit_model MONTHLY or ENTIRE, marketing_objective): a paused group.
+- `POST /api/taboola/campaigns` (JSON: account, name, brand, cpc, daily_cap,
+  spending_limit, countries, platforms, tracking_code, marketing_objective,
+  bid_strategy FIXED or SMART, start_date, end_date, group_id, or copy_from
+  instead of group_id): a paused campaign.
+- `POST /api/taboola/ads` (multipart: account, `campaigns` JSON, `ads` JSON of
+  `{image, title, description, cta, url, custom_id, ai}`, and the `image`
+  files): uploads each image once, creates the ads in every campaign, then
+  pauses them. Answers per campaign what was made and any error.
+
 Every reply is saved raw under `CREATE_KEEP_DIR/<UTC date>/` before it is
 read, with a `.json` beside each picture saying what was asked and what it
-cost. Spend is counted in `/metrics` (`ops.Spent`).
+cost. Every Taboola request and answer is kept there too. Spend is counted in `/metrics` (`ops.Spent`).
 
 ## Settings
 
@@ -127,8 +180,20 @@ the full list in `cmd/create-web/main.go`):
 | `CREATE_TEXT_MODEL`, `CREATE_TEXT_REASONING` | `gpt-5-mini`, `low` | |
 | `CREATE_*_PRICE_IN/OUT` | see main.go | USD per million tokens, for the spend shown on the page and `ops.Spent`. |
 | `OPENAI_BASE_URL` | the real API | A local fake, to try the page without spending. |
+| `TABOOLA_CLIENT_ID`, `TABOOLA_CLIENT_SECRET` | unset | One Taboola login's Backstage API keys. Unset: Taboola is off and the bulk sheet is the way out. |
+| `TABOOLA_ACCOUNTS` | unset | That login's advertiser accounts the page may use, comma separated. A `-network` account is refused at boot. |
+| `TABOOLA_MAX_CPC`, `TABOOLA_MAX_DAILY_CAP` | `1.00`, `100` | Ceilings for a new campaign, in USD; a total budget is at most 30 daily caps. |
+| `TABOOLA_ONLY_OWN` | off | A lent account: only groups and campaigns this server made are listed or touched. |
+| `TABOOLA_NAME_PREFIX` | unset | With only-own, every group and campaign name must start with it. |
+| `TABOOLA_STATE_FILE` | `<keep dir>/taboola-state.json` | What this server made, for only-own. |
+| `TABOOLA_BASE_URL` | the real API | A local fake. |
 
 OpenAI is the only generator (the clients require it for images).
+
+The only Taboola keys we hold today are the lent ZoltaGroup login's. The
+owner allowed paused tests there (2026-09-29), so on that login create-web
+runs with `TABOOLA_ONLY_OWN=1` and a test prefix, and whatever it made is
+deleted after the test.
 
 ## Run it
 
@@ -155,15 +220,16 @@ sudo cloudflared service install TOKEN
 ## Tests
 
 ```
-node --test create/web/test/*.test.js     # pairing, checks, zip, xlsx (needs python3)
+node --test create/web/test/*.test.js     # pairing, checks, tracking, zip, xlsx (needs python3)
 cd create && go test ./...
 ```
 
 ## Next (release order)
 
-1. This page: from a brief to Taboola's bulk sheet.
-2. Whole campaigns: presets for the campaign tab, drafts saved on the server.
+1. This page: from a vertical to ads on Taboola (bulk sheet as the fallback).
+2. Whole campaigns: presets for the campaign step, drafts saved on the server.
 3. Create proper: saved briefs, image variations, the angle list.
 4. Results per ad: Intel reads RedTrack by Custom ID and shows which ads win.
-5. Straight to Taboola through the Backstage API, once the team has keys.
+5. Straight to Taboola through the Backstage API: built (CREATE); waiting
+   on keys for the team's own logins.
 6. Desk: ask for all of this in a conversation.

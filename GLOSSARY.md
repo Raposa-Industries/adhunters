@@ -54,14 +54,18 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 
 | Word | Means |
 |---|---|
-| brief | The starting point a person gives Create: what the ad is about, optional reference images and headlines, the language and the vertical. Also the one-line idea Create writes for each image it will make. |
+| brief | The starting point a person gives Create: the vertical, optional reference images and headlines, and optional extra instructions. Ads are always in English. Also the one-line idea Create writes for each image it will make. |
 | performing ads | Ads a person gives Create because they are doing well. Create reads them for their pattern (what is fixed, what can vary) and makes new images in it; they are never sent to the image model. |
 | angle | The kind of image an idea is: a close variation of what works, or a new way of showing the product ("Colher", "Canudo", "Reação depois de tomar"). Options are grouped by it. |
 | blocked words | The team's list of words and phrases Taboola has blocked for them in titles (a few in descriptions too). Create avoids them and warns about them; it never refuses them. |
 | option | An image or headline Create made from a brief. Nothing is used until a person chooses it. |
-| pairing | How the chosen creatives and headlines become ads. Mixed: the longer list once each, the shorter repeated in turn until the longer runs out (10 images and 5 headlines make 10 ads). One to one: the person picks each pair. Every combination: each creative with each headline. |
+| pairing | How the chosen creatives, headlines and CTAs become ads. Mixed: the longest list once each, the shorter ones repeated in turn until it runs out (10 images, 5 headlines and 2 CTAs make 10 ads). One to one: the person picks each pair. Every combination: each creative with each headline and each CTA. |
+| CTA | The button on an ad ("Read More", "Learn More"). Taboola takes one per item, from its own list; a person may pick several and pairing spreads them. |
 | ad id | Our own id for an ad: `ah-`, then the first 10 hex characters of the creative's SHA-256, a dash, and the first 10 of the headline's. It goes in Taboola's Custom ID (30 characters at most), so results can come back to the ad. |
 | bulk sheet | Realize's own template for Create › Bulk Upload, with our ads written into its Ads tab (one row per ad, its campaign ids together in one cell), plus a ZIP of the images named in "Image File Name". |
+| campaign group | Taboola's level above a campaign, which can hold a budget shared by its campaigns. Taboola makes an "AutoGen" one for a campaign made without a group, and a campaign's group is set only when it is made. |
+| paused | Made but not running: a group, campaign or item with Taboola's `is_active` false. Everything Create makes on Taboola is paused; only a person turns it on, in Taboola's own dashboard. (Not "stopped", which is Spy's word for a creative no longer seen.) |
+| lent account | A Taboola login someone else owns that we may use for tests (ZoltaGroup). create-web runs it only-own: it lists and touches only the groups and campaigns it made, named with a test prefix. |
 
 ## Intel
 

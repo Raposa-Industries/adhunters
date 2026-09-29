@@ -30,14 +30,14 @@ type PlanRequest struct {
 	HeadlineExamples []string `json:"headline_examples,omitempty"`
 	// Library is the slice of the team's headlines for the vertical this plan
 	// was shown; Plan fills it.
-	Library []string `json:"library,omitempty"`
-	Language         string   `json:"language"`
-	Vertical         string   `json:"vertical,omitempty"`
-	Headlines        int      `json:"headlines"`
-	Images           int      `json:"images"`
-	Ages             string   `json:"ages,omitempty"`
-	HasReferences    bool     `json:"has_references"`
-	Avoid            []string `json:"avoid,omitempty"`
+	Library       []string `json:"library,omitempty"`
+	Language      string   `json:"language"`
+	Vertical      string   `json:"vertical,omitempty"`
+	Headlines     int      `json:"headlines"`
+	Images        int      `json:"images"`
+	Ages          string   `json:"ages,omitempty"`
+	HasReferences bool     `json:"has_references"`
+	Avoid         []string `json:"avoid,omitempty"`
 	// Winners are pictures of ads performing well, read for the analysis.
 	// They are not kept with the request (the person has them already); the
 	// kept record says how many there were.

@@ -677,6 +677,17 @@ function renderNewCampaignLists() {
   $("nc-group").innerHTML = `<option value="">Automático (o Taboola cria um só para ela)</option>` +
     state.tb.groups.map((g) => `<option value="${esc(g.id)}" ${String(g.id) === group ? "selected" : ""}>${esc(g.name)}</option>`).join("") +
     `<option value="new" ${group === "new" ? "selected" : ""}>Novo grupo…</option>`;
+  lockCopyGroup();
+}
+
+// A copy stays in its original's campaign group (Taboola sets the group only
+// when a campaign is made, and the copy is made inside the original's), so
+// the group is not a choice while copying.
+function lockCopyGroup() {
+  const copying = Boolean($("nc-copy").value);
+  if (copying) $("nc-group").value = "";
+  $("nc-group").disabled = copying;
+  $("nc-group-copy").hidden = !copying;
   $("nc-group-new").hidden = $("nc-group").value !== "new";
 }
 
@@ -735,6 +746,7 @@ function newGroup() {
     name: $("ng-name").value.trim(),
     spending_limit: +$("ng-limit").value || 0,
     spending_limit_model: $("ng-model").value,
+    marketing_objective: $("nc-objective").value,
   };
 }
 
@@ -859,11 +871,14 @@ async function renderAds(list) {
     if (state.tb.mode === "new" && newCampaignProblems().length) missing.push("complete a nova campanha (etapa 10)");
   }
   if (ads.length > 500) missing.push("no máximo 500 anúncios por vez");
-  $("create").disabled = state.creating || missing.length > 0;
+  const sent = state.sent === sentKey(ads);
+  $("create").disabled = state.creating || sent || missing.length > 0;
   $("create").textContent = state.tb.mode === "new" && tbOn()
     ? `CRIAR CAMPANHA E ${plural(ads.length, "ANÚNCIO", "ANÚNCIOS")}`
     : `CRIAR ${plural(ads.length * Math.max(1, targets.length), "ANÚNCIO", "ANÚNCIOS")} NO TABOOLA`;
-  $("create-note").textContent = state.creating ? "" : missing.length ? `Falta: ${missing.join("; ")}.` : "Tudo é criado pausado. Nada roda até você ligar no painel do Taboola.";
+  $("create-note").textContent = state.creating ? "" : missing.length ? `Falta: ${missing.join("; ")}.`
+    : sent ? "Estes anúncios já foram criados. Mude algo para criar de novo."
+    : "Tudo é criado pausado. Nada roda até você ligar no painel do Taboola.";
 
   const readyBundle = ads.length > 0 && !!aiAnswer();
   for (const id of ["download-zip", "copy-rows"]) $(id).disabled = !readyBundle;
@@ -879,6 +894,12 @@ $("ads-more").addEventListener("click", () => {
   state.showAll = !state.showAll;
   update();
 });
+
+// sentKey names one CREATE: the same ads into the same campaigns, so a
+// second press does not make them twice.
+function sentKey(ads) {
+  return `${state.tb.account}|${[...state.tb.chosen].sort().join(",")}|${ads.map((a) => a.customId).join(",")}`;
+}
 
 function renderAI(list) {
   const answer = aiAnswer();
@@ -975,6 +996,7 @@ $("create").addEventListener("click", async () => {
     }))));
     ads.length && used.forEach((c, i) => form.append("image", c.blob, uniqueNames(used.map((x) => x.name || "imagem.jpg"))[i]));
     const out = await postForm("api/taboola/ads", form);
+    if ((out.results || []).every((r) => !r.error)) state.sent = sentKey(ads);
     const byId = new Map(state.tb.campaigns.map((c) => [String(c.id), c.name]));
     box.innerHTML += (out.results || []).map((r) => r.error
       ? `<div class="result fail"><b>${esc(byId.get(String(r.campaign_id)) || r.campaign_id)}</b>: ${esc(r.error)}${r.created?.length ? ` (${r.created.length} criados antes do erro)` : ""}</div>`
@@ -1123,6 +1145,7 @@ $("nc-group").addEventListener("change", () => {
   update();
 });
 $("nc-copy").addEventListener("change", () => {
+  lockCopyGroup();
   const from = state.tb.campaigns.find((c) => String(c.id) === $("nc-copy").value);
   if (from) {
     if (from.tracking_code && !$("tracking").value.trim()) $("tracking").value = from.tracking_code;

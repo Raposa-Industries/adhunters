@@ -1,5 +1,6 @@
 // Package api is create-web's JSON API: whether generation is on, a plan
-// (headlines and image briefs), and one picture at a time. Errors are
+// (headlines and image briefs), one picture at a time, and the Taboola
+// routes (accounts, campaigns, a new campaign, ads sent in bulk). Errors are
 // {"error": "<one short pt-BR line>"}.
 package api
 
@@ -17,6 +18,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
+	"github.com/Raposa-Industries/adhunters/create/internal/taboola"
 )
 
 // Limits of one request.
@@ -48,6 +50,8 @@ type Server struct {
 	// across every browser, so one page asking for twelve pictures does not
 	// meet OpenAI's per-minute limit on its own.
 	slots chan struct{}
+	// tb is the Taboola client; nil means Taboola is off (WithTaboola).
+	tb *taboola.Client
 }
 
 // New returns the API over client.
@@ -61,9 +65,16 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/status", s.status)
 	mux.HandleFunc("POST /api/plan", s.plan)
 	mux.HandleFunc("POST /api/image", s.image)
+	mux.HandleFunc("GET /api/taboola/status", s.taboolaStatus)
+	mux.HandleFunc("GET /api/taboola/campaigns", s.taboolaCampaigns)
+	mux.HandleFunc("POST /api/taboola/campaigns", s.taboolaCreateCampaign)
+	mux.HandleFunc("GET /api/taboola/groups", s.taboolaGroups)
+	mux.HandleFunc("POST /api/taboola/groups", s.taboolaCreateGroup)
+	mux.HandleFunc("POST /api/taboola/ads", s.taboolaAds)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/status", "/api/plan", "/api/image":
+		case "/api/status", "/api/plan", "/api/image",
+			"/api/taboola/status", "/api/taboola/campaigns", "/api/taboola/groups", "/api/taboola/ads":
 			writeError(w, http.StatusMethodNotAllowed, "método não permitido")
 		default:
 			writeError(w, http.StatusNotFound, "rota não encontrada")
@@ -159,11 +170,13 @@ func checkPlan(b planBody) (openai.PlanRequest, string) {
 		Images:        6,
 		HasReferences: b.HasReferences,
 	}
-	if req.Prompt == "" {
-		return req, "escreva o prompt"
+	// The prompt is the person's optional extra instructions; the vertical
+	// alone is enough to start from.
+	if req.Prompt == "" && req.Vertical == "" {
+		return req, "escolha a vertical"
 	}
 	if utf8.RuneCountInString(req.Prompt) > maxPromptRunes {
-		return req, "prompt longo demais (máximo 8000 caracteres)"
+		return req, "instruções longas demais (máximo 8000 caracteres)"
 	}
 	if req.Language == "" {
 		req.Language = "en"
