@@ -31,7 +31,7 @@ func quietDay() fakeMetrics {
 	return fakeMetrics{
 		qScrapes: one(336000), qScrapesOK: one(330000), qGaps: one(0),
 		qSightings: one(7680000), qLagMax: one(95), qVisits: nil, qKept: nil,
-		qAlerts: nil, qRestarts: nil,
+		qAlerts: nil, qRestarts: nil, qCredits: nil,
 		qDisk: {{Labels: map[string]string{"box": "worker"}, Value: 0.81}, {Labels: map[string]string{"box": "data"}, Value: 0.62}},
 	}
 }
@@ -74,5 +74,17 @@ func TestBusyDay(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in:\n%s", want, got)
 		}
+	}
+}
+
+func TestCreditLeft(t *testing.T) {
+	m := quietDay()
+	m[qCredits] = []prom.Sample{
+		{Labels: map[string]string{"credit": "iproyal", "unit": "GB"}, Value: 4.237},
+		{Labels: map[string]string{"credit": "fal", "unit": "USD"}, Value: 31},
+	}
+	got := Write(context.Background(), m, fakeErrors(nil), time.Date(2026, 9, 29, 11, 0, 0, 0, time.UTC), sp)
+	if !strings.HasSuffix(got, "Disk free: data 62%, worker 81%\nCredit left: fal 31 USD, iproyal 4.2 GB") {
+		t.Fatalf("got:\n%s", got)
 	}
 }

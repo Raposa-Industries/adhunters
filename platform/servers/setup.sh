@@ -381,11 +381,17 @@ OPS_ADDR=127.0.0.1:9108"
     DATABASE_URL=postgres://raposa:$raposa_pw@$data_ip:5432/adhunters?sslmode=require")
     fi
 
-    # The 08:00 digest and the Sentry relay (platform/observe).
+    # The 08:00 digest, the Sentry relay and the credit checks (platform/observe).
     install_bin observe-bot
     install_unit observe-bot.service
     systemctl daemon-reload
     env_file observe-bot "$observe_bot_env"
+    # Written once: the owner fills in keys and dates. No secrets in it (the
+    # keys are in observe-bot.env), and observe-bot runs as a dynamic user.
+    if [ ! -f /etc/adhunters/credits.conf ]; then
+        install -m 0644 "$here/../observe/credits.conf.example" /etc/adhunters/credits.conf
+        say "wrote /etc/adhunters/credits.conf"
+    fi
     start observe-bot observe-bot
 }
 
@@ -403,6 +409,9 @@ SENTRY_URL=https://sentry.io
 SENTRY_ORG=FILL_ME
 SENTRY_PROJECT=adhunters-go
 SENTRY_API_TOKEN=FILL_ME
+# Keys for the balance checks in /etc/adhunters/credits.conf. A check whose
+# key is FILL_ME is off.
+IPROYAL_API_TOKEN=FILL_ME
 OPS_ADDR=127.0.0.1:9107'
 
 # ---- backups (data box) -------------------------------------------------------

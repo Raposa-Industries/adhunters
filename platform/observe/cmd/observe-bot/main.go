@@ -1,9 +1,12 @@
 // Command observe-bot posts the platform's own messages to the Telegram group
 // "AdHunters alerts" that Alertmanager cannot: the 08:00 digest, and each new
-// Sentry issue as it first appears.
+// Sentry issue as it first appears. It also exports what is left on each
+// prepaid service and when subscriptions renew, for the credit alerts.
 //
-//	observe-bot run                 the digest at DIGEST_AT (default 08:00 São Paulo) and the Sentry relay
+//	observe-bot run                 the digest at DIGEST_AT (default 08:00 São Paulo), the Sentry relay
+//	                                and the credit checks
 //	observe-bot digest [-send]      write the digest for the last 24 hours now; print it, or send it
+//	observe-bot credits             read every balance and renewal in credits.conf once and print them
 //	observe-bot version
 //
 // Settings come from the environment (/etc/adhunters/observe-bot.env):
@@ -12,7 +15,9 @@
 // GRAFANA_QUERY_TOKEN (metrics:read); SENTRY_URL (default https://sentry.io),
 // SENTRY_ORG, SENTRY_PROJECT and SENTRY_API_TOKEN (read-only; empty leaves
 // the relay off). It keeps the relay's place in STATE_DIRECTORY, so a restart
-// neither repeats nor skips an issue. It stops cleanly on SIGTERM.
+// neither repeats nor skips an issue. The credit checks and renewals come
+// from CREDITS_FILE (default /etc/adhunters/credits.conf), with their keys in
+// the same environment. It stops cleanly on SIGTERM.
 package main
 
 import (
@@ -49,6 +54,8 @@ func main() {
 		err = runCmd(os.Args[2:])
 	case "digest":
 		err = digestCmd(os.Args[2:])
+	case "credits":
+		err = creditsCmd(os.Args[2:])
 	case "version":
 		fmt.Println(version)
 	default:
@@ -61,7 +68,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: observe-bot run|digest|version [flags]")
+	fmt.Fprintln(os.Stderr, "usage: observe-bot run|digest|credits|version [flags]")
 	os.Exit(2)
 }
 
@@ -154,10 +161,15 @@ func digestCmd(args []string) error {
 func runCmd(args []string) error {
 	fs := flag.NewFlagSet("run", flag.ExitOnError)
 	every := fs.Duration("poll", time.Minute, "how often to ask Sentry for new issues")
+	creditEvery := fs.Duration("credit-poll", 15*time.Minute, "how often to read the balances")
 	_ = fs.Parse(args)
 
 	log := logx.New("observe-bot", version)
 	c, err := load()
+	if err != nil {
+		return err
+	}
+	cfg, err := loadCredits()
 	if err != nil {
 		return err
 	}
@@ -170,7 +182,10 @@ func runCmd(args []string) error {
 		log.Warn("SENTRY_API_TOKEN is not set: new Sentry issues are not relayed")
 	}
 
-	log.Info("observe-bot starting", "digest_at", fmtClock(c.at), "zone", c.loc.String())
+	cr := newCredits(srv.Registry, tasks, cfg)
+
+	log.Info("observe-bot starting", "digest_at", fmtClock(c.at), "zone", c.loc.String(),
+		"credit_checks", len(cfg.Checks), "renewals", len(cfg.Renewals))
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)
 		go func() { opsDone <- srv.Serve(ctx, log, ops.Addr()) }()
@@ -181,8 +196,14 @@ func runCmd(args []string) error {
 				relay(ctx, log, c, tasks, *every)
 			}
 		}()
+		creditsDone := make(chan struct{})
+		go func() {
+			defer close(creditsDone)
+			cr.run(ctx, log, *creditEvery)
+		}()
 		digests(ctx, log, c, tasks)
 		<-relayDone
+		<-creditsDone
 		return <-opsDone
 	})
 }

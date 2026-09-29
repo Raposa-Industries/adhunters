@@ -1,7 +1,8 @@
 # Posts the 08:00 digest and new Sentry issues to the Telegram group
-# "AdHunters alerts". Settings and tokens are in /etc/adhunters/observe-bot.env.
+# "AdHunters alerts", and reads the balances in /etc/adhunters/credits.conf for
+# the credit alerts. Settings and tokens are in /etc/adhunters/observe-bot.env.
 [Unit]
-Description=Observe bot (digest and Sentry relay)
+Description=Observe bot (digest, Sentry relay and credit checks)
 Wants=network-online.target
 After=network-online.target
 

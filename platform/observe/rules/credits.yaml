@@ -1,0 +1,48 @@
+# Paid services running out: prepaid balances observe-bot reads from their
+# APIs (credits.conf), subscriptions coming up for renewal, and any service
+# telling one of ours it is out of credit (kit/ops OutOfCredit).
+groups:
+  - name: credits
+    interval: 1m
+    rules:
+      - alert: CreditLow
+        expr: adhunters_credit_remaining < adhunters_credit_warn
+        for: 15m
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.credit }} is down to {{ $value | printf "%.1f" }} {{ $labels.unit }}, under its warning level. Top it up.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
+
+      # At the rate of the last 6 hours it is gone within a day (or it is
+      # gone already): the work that needs it is about to stop.
+      - alert: CreditRunningOut
+        expr: |
+          (adhunters_credit_remaining < adhunters_credit_warn and predict_linear(adhunters_credit_remaining[6h], 86400) <= 0)
+          or adhunters_credit_remaining <= 0
+        for: 15m
+        labels:
+          tier: page
+        annotations:
+          summary: '{{ $labels.credit }} runs out within a day at the current rate ({{ $value | printf "%.1f" }} {{ $labels.unit }} left). Top it up now.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
+
+      - alert: RenewalDue
+        expr: adhunters_renewal_due_timestamp_seconds - time() < adhunters_renewal_remind_seconds
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.renewal }} renews or must be paid in {{ $value | humanizeDuration }}. Check the card or the balance behind it.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/renewal-due.md
+
+      # The second half catches the very first refusal: the counter is
+      # created at 1, and increase() needs two samples to see it.
+      - alert: OutOfCredit
+        expr: |
+          increase(adhunters_out_of_credit_total[10m]) > 0
+          or (adhunters_out_of_credit_total unless adhunters_out_of_credit_total offset 10m)
+        labels:
+          tier: page
+        annotations:
+          summary: '{{ $labels.provider }} refused {{ $labels.service }} for lack of credit ({{ $value | printf "%.0f" }} calls in 10 minutes). Work that needs it has stopped.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/out-of-credit.md
