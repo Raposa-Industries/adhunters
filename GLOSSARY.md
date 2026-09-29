@@ -43,6 +43,32 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | shadow run | A new binary running beside the one in service on the same input, writing only its own output, to measure or compare. Nothing reads its output as real data. |
 | Direction | Which way an ad is moving: rising, steady, fading or stopped, judged against its usual value. |
 
+## Spy
+
+Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
+
+| Word | Means |
+|---|---|
+| check | One scrape, seen from Spy: one look at one publisher on one device. Rates are per check. |
+| presence | Sightings per 100 checks of the network. How often you would see the ad if you looked now. |
+| share of voice | A subject's share of all the network's sightings (or its vertical's) in a range. |
+| range | Any start and end a number is asked for. Read to the hour when recent, in whole UTC days when older. |
+| usual | What a range is compared with: the same hours 1 to 3 weeks before, the weeks just before, or a period the person chooses. Direction's usual value is the same idea for right now. |
+| momentum | How presence moved against usual, as a ratio: 1 no change, 2 twice as present. Each publisher and device is compared only with itself. |
+| likely range | Where the true value lies 90% of the time. Every change carries one. |
+| noise | How much more a subject's counts vary than pure chance (budgets are paced, so ads come in clumps). Ranges and Direction widen by it. |
+| clear | A rise or fall big enough and sure enough to name: at most 1 in 10 of a list's clear words is wrong. |
+| likely | A change whose likely range leaves out "no change", but not clear enough to name rising or fading. |
+| unclear | "Can't tell yet": neither a clear change nor clearly steady. |
+| too little data | Not enough sightings to say anything; no number is shown. |
+| new | First seen in the last 3 days, or with no usual period to compare with. |
+| running | Seen in the last 48 hours (as of a range's end). A creative not running has ended. |
+| lifespan | First sighting to last, for a creative; compared with the others of its vertical as the share that ended younger. |
+| launch | An operator's creative first seen in a range. |
+| hit rate | The share of an operator's launches with an outcome that ran 15 days or more, past a Taboola A/B test's 14 (a hit), rather than ending sooner (a miss). |
+| Size | A subject's share and rank in its vertical over 24 hours and 7 days. Scaled: among the few creatives that make half their vertical. |
+| stage | Retired: the collector's blend of counts into test, scaling and winner. Use momentum, lifespan and new. |
+
 ## Raposa
 
 | Word | Means |

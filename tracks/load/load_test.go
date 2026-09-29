@@ -141,6 +141,9 @@ func TestLoadCloseAndReplay(t *testing.T) {
 	if got := b.int(`SELECT sum(sightings) FROM tracks_api.ad_hourly_v1 WHERE NOT closed`); got != 5 {
 		t.Fatalf("open hour has %d sightings, want 5", got)
 	}
+	if got := b.int(`SELECT sum(scrapes) FROM tracks_api.scrape_coverage_v2 WHERE NOT closed`); got != 4 {
+		t.Fatalf("open hour has %d scrapes, want 4 (the failed one too)", got)
+	}
 
 	b.now = h14.Add(65 * time.Minute)
 	closed, err := b.loader.CloseReady(b.ctx)
@@ -152,6 +155,9 @@ func TestLoadCloseAndReplay(t *testing.T) {
 	}
 	if got := b.int(`SELECT count(*) FROM tracks.ad_hourly_open`); got != 0 {
 		t.Fatalf("the open copy of a closed hour stayed: %d rows", got)
+	}
+	if got := b.int(`SELECT sum(scrapes) FROM tracks_api.scrape_coverage_v2 WHERE hour = $1`, h14); got != 4 {
+		t.Fatalf("closed hour has %d scrapes, want 4 (and never the open copy too)", got)
 	}
 	if got := b.int(`SELECT scrapes FROM tracks.publisher_hourly p JOIN tracks.publisher u ON u.id = p.publisher_id
 		WHERE u.name = 'Fox News' AND p.device_id = (SELECT id FROM tracks.device WHERE code = 'phone')`); got != 2 {

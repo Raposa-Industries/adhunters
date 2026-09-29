@@ -115,8 +115,10 @@ tracks-loader status [-books]
    with no files close too, so a gap reads as zero, not as missing. A file that
    arrives late makes its hour dirty and it closes again.
 3. **Open hours**: every 5 minutes the hours not closed yet are rewritten into
-   `ad_hourly_open`. `tracks_api.ad_hourly_v1` shows both, with a `closed`
-   column; an hour is never in both.
+   `ad_hourly_open`, and their scrapes into `publisher_hourly_open`.
+   `tracks_api.ad_hourly_v1` and `tracks_api.scrape_coverage_v2` show both,
+   with a `closed` column; an hour is never in both. (Spy's Direction reads
+   the open hours' sightings and needs their scrapes beside them.)
 4. **Live links**: click links from files under 15 minutes old go into the
    unlogged `live_link` table (40 per host at most). Raposa takes one with
    `tracks_api.take_live_link_v1`, and each link is handed out once.
@@ -151,7 +153,7 @@ targets file.
 | `sighting` | 3 days, daily partitions, BRIN on `seen_at` (the CX43 run's suggestion) |
 | `auction` | 14 days, daily partitions |
 | `ad_hourly`, `ad_account_brand_hourly`, `publisher_hourly` | monthly partitions, all kept for now |
-| `ad_hourly_open` | the hours not closed yet |
+| `ad_hourly_open`, `publisher_hourly_open` | the hours not closed yet |
 | `ad_daily`, `ad_account_daily`, `placement_daily`, `campaign_daily`, `creative_link_daily`, `creative_campaign_daily` | forever |
 | lookups (`publisher`, `placement`, `brand`, `account`, `campaign`, `creative`, `ad`, `link`, `network_ad`, `proxy_line`) | forever |
 | `live_link` (unlogged) | 15 minutes |
