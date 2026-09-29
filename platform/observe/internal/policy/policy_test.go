@@ -33,7 +33,7 @@ func articleHTML(extra string) string {
  <p>Ads must not promote   weapons.</p>
  <ul><li><p>No tobacco</p></li><li>No&nbsp;gambling</li></ul>` + extra + `
  <script>var x = 1</script>
- <a href="/help/en/articles/1-unrelated">Related</a>
+ <section><h2>Related Articles</h2><a href="/help/en/articles/1-unrelated">Related</a></section>
 </article><footer>Did this answer your question?</footer></body></html>`
 }
 
@@ -45,7 +45,7 @@ func TestParseArticle(t *testing.T) {
 	if p.Key != "articles/3878202" || p.Kind != Article || p.Title != "Prohibited Content" {
 		t.Fatalf("got %+v", p)
 	}
-	want := []string{"## Prohibited Content", "Ads must not promote weapons.", "No tobacco", "• No gambling", "Related"}
+	want := []string{"## Prohibited Content", "Ads must not promote weapons.", "No tobacco", "• No gambling"}
 	if !reflect.DeepEqual(p.Lines, want) {
 		t.Errorf("lines = %q, want %q", p.Lines, want)
 	}

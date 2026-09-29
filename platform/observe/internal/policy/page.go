@@ -90,6 +90,9 @@ func Parse(base string, raw []byte) (Page, error) {
 	var w lineWriter
 	w.walk(root)
 	for _, l := range w.done() {
+		if l == "Related Articles" || l == "## Related Articles" {
+			break // the help center picks these itself; they are not policy
+		}
 		if !noise.MatchString(l) {
 			p.Lines = append(p.Lines, l)
 		}
