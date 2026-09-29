@@ -39,3 +39,13 @@ comes later, in its own client, once the owner says so.
 - A failed read is recorded in the summary and the probe carries on.
 
 Tests: `go test ./...` (against a stand-in server; no network).
+
+## Before building more here
+
+What the first read test found, and what is still unknown, is in the
+project's shared files (`research/taboola-api/findings.md`). Anything in
+Intel beyond this client and probe waits for the Intel replan the owner
+asked for on 2026-09-29, which reads those findings first. Two facts that
+shape it: Taboola has everything before the click and the real cost,
+RedTrack everything after it; joining them needs the campaign, item and
+site ids on both sides.
