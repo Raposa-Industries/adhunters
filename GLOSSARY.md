@@ -37,7 +37,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | digest | The one Telegram message at 08:00 São Paulo with yesterday in numbers. |
 | heartbeat | The alert that always fires. Better Stack calls when it stops arriving, because then no other alert can be trusted. |
 | runbook | The file in `runbooks/` an alert links: what it means, what to check, how to fix it. |
-| credit | What is left on a prepaid service we pay for: proxy traffic, AI credit. observe-bot reads it where the service has an API (`credits.conf`). |
+| credit | What is left on a prepaid service we pay for: proxy traffic, AI credit. observe-bot reads it where the service has an API, or estimates it from our own spending where it has none (`credits.conf`). |
 | policy page | An article or section of Taboola's advertiser help center (realize.com/help) under Policy & Content Review. observe-bot reads them every 6 hours. |
 | policy change | A policy page that appeared, went away or whose text changed between two crawls. Each one is posted to "AdHunters alerts". |
 | renewal | The day a subscription we depend on renews or must be paid, for services with no balance to read (the datacenter and ISP lines). |

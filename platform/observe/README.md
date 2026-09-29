@@ -82,16 +82,26 @@ while no box scrapes, which is true until then.
 ## Credits
 
 Every paid service the suite runs on can stop our work when it runs out, so
-each one is watched in one of three ways:
+each one is watched in one of four ways:
 
 1. **A balance check**, where the service has a balance API. observe-bot reads
    it every 15 minutes (`[credit NAME]` in `credits.conf`). `CreditLow`
    (chat) fires under the section's `warn` level. `CreditRunningOut` (page)
    fires when the last 6 hours say it is gone within a day. The digest lists
    what is left.
-2. **A renewal reminder**, where there is no balance to read but a plan that
+2. **An estimate**, where there is a prepaid balance but no API to read it
+   (`[estimate NAME]`). The owner puts in the balance from the billing page
+   and when they read it; observe-bot subtracts what our services report
+   spending since (`srv.Spent("provider", usd)` in `kit/ops`, the counter
+   `adhunters_spend_usd_total`), every 15 minutes, and exports the result as
+   the same `adhunters_credit_remaining`, so `CreditLow` and
+   `CreditRunningOut` work on it unchanged. The digest marks it with "~".
+   Where the count stands is kept in observe-bot's state directory
+   (`estimate-NAME.json`), so a restart neither counts twice nor skips.
+   Putting in a new balance or time starts the count again from it.
+3. **A renewal reminder**, where there is no balance to read but a plan that
    lapses (`[renewal NAME]`). `RenewalDue` (chat) fires `remind` days before.
-3. **The refusal itself**. A service that is refused for lack of credit
+4. **The refusal itself**. A service that is refused for lack of credit
    calls `srv.OutOfCredit("provider")` (`kit/ops`), and `OutOfCredit` pages on
    the first one. This is the last line for services with no balance API. It
    is also why each provider's own auto-recharge or low-balance email should
@@ -104,7 +114,7 @@ adhunters-collector, adhunters-v4 and auto-creative):
 |---|---|---|---|
 | IPRoyal residential | Raposa (`res-1`) | GB of traffic | balance check `iproyal` (`GET resi-api.iproyal.com/v1/me`, `available_traffic`) |
 | Datacenter and ISP lines | capture, Raposa (`dc-us-*`, `isp-*`) | a monthly plan | renewal `proxies-datacenter` (no balance API); capture's own alerts when lines are refused |
-| OpenAI | Create (images and headlines, the only provider: the owner's decision of 29 Sep), today's Spy (embeddings) | prepaid credit | no balance API: its auto-recharge, then `OutOfCredit` |
+| OpenAI | Create (images and headlines, the only provider: the owner's decision of 29 Sep), today's Spy (embeddings) | prepaid credit (19 USD on 29 Sep) | estimate `openai`, then `OutOfCredit` |
 | OpenCode Zen | today's Spy (the model) | prepaid credit | no balance API yet (an open request upstream): auto-reload, then `OutOfCredit` |
 | Anthropic | old collector (vertical tagging), Intel briefs later | prepaid credit | no balance API: auto-reload, then `OutOfCredit` |
 | Hetzner (servers, Object Storage) | everything | a monthly invoice | nothing to run out; the card on file |
@@ -119,11 +129,20 @@ The IPRoyal check was written from its documentation and has not been tried
 with a real key. The first `observe-bot credits` after filling
 in a key shows whether the path and unit are right; a wrong `field` prints the
 keys the answer has instead. The Create and Spy code that calls the AI
-services is not in this repo yet, so `OutOfCredit` starts counting when it
-moves here.
+services is not in this repo yet, so `Spent` and `OutOfCredit` start
+counting when it moves here. Until then the `openai` estimate stays at the
+balance entered: correct it by hand from OpenAI's billing page. An estimate
+is only as good as what is reported, so every call that costs money reports
+its cost once, where the vendor's answer gives it (OpenAI's usage tokens
+times the price).
 
-To add a service: a `[credit]` section when it has a balance API, a
-`[renewal]` when it has a plan date, or both, then `observe-bot credits` to
+A data box set up before estimates existed has a `credits.conf` without the
+`[estimate openai]` section, because setup.sh never overwrites it: copy the
+section from `credits.conf.example`.
+
+To add a service: a `[credit]` section when it has a balance API, an
+`[estimate]` when it is prepaid with no API, a `[renewal]` when it has a plan
+date, then `observe-bot credits` to
 try it and `systemctl restart observe-bot`.
 
 ## Taboola policy watch
