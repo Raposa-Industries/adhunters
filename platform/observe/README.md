@@ -113,7 +113,7 @@ adhunters-collector, adhunters-v4 and auto-creative):
 | Service | Used by | Runs out as | Watched by |
 |---|---|---|---|
 | IPRoyal residential | Raposa (`res-1`) | GB of traffic | balance check `iproyal` (`GET resi-api.iproyal.com/v1/me`, `available_traffic`) |
-| Datacenter and ISP lines | capture, Raposa (`dc-us-*`, `isp-*`) | a monthly plan | renewal `proxies-datacenter` (no balance API); capture's own alerts when lines are refused |
+| IPRoyal datacenter and ISP lines | capture, Raposa (`dc-us-*`, `isp-*`) | monthly subscriptions on auto-renew (one renews on the 5th, the others on the 14th) | renewals `proxies-datacenter` and `proxies-isp`; capture's own alerts when lines are refused |
 | OpenAI | Create (images and headlines, the only provider: the owner's decision of 29 Sep), today's Spy (embeddings) | prepaid credit (19 USD on 29 Sep) | estimate `openai`, then `OutOfCredit` |
 | OpenCode Zen | today's Spy (the model) | prepaid credit | no balance API yet (an open request upstream): auto-reload, then `OutOfCredit` |
 | Anthropic | old collector (vertical tagging), Intel briefs later | prepaid credit | no balance API: auto-reload, then `OutOfCredit` |
