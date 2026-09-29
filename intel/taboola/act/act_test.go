@@ -215,3 +215,46 @@ func TestDeleteLeftoverItemOnlyOurCampaigns(t *testing.T) {
 		t.Fatalf("got %v, want ErrRefused", err)
 	}
 }
+
+func TestDeleteCampaignGroupOnlyEmptyAutoGenGroups(t *testing.T) {
+	var deleted []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := strings.TrimPrefix(r.URL.Path, apiPrefix+"acme-1-sc/")
+		switch {
+		case r.URL.Path == tokenPath:
+			w.Write([]byte(`{"access_token":"tok","expires_in":43200}`))
+		case r.Method == http.MethodDelete:
+			deleted = append(deleted, p)
+			w.Write([]byte(`{}`))
+		case p == "campaigns/":
+			w.Write([]byte(`{"results":[{"id":"7","campaign_group_id":"30"},{"id":"8","campaign_group_id":"40"}]}`))
+		case p == "campaigns_group/10/":
+			w.Write([]byte(`{"id":"10","name":"Group 1"}`))
+		case p == "campaigns_group/30/":
+			w.Write([]byte(`{"id":"30","name":"AutoGen - AH-TEST still used"}`))
+		case p == "campaigns_group/40/":
+			w.Write([]byte(`{"id":"40","name":"AutoGen - AH-TEST ours, running"}`))
+		case p == "campaigns_group/50/":
+			w.Write([]byte(`{"id":"50","name":"AutoGen - AH-TEST T1"}`))
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv.Close()
+	c, _ := New(srv.URL, "id", "s", guard(t))
+	ctx := context.Background()
+	for _, g := range []string{"10", "30", "40"} {
+		if _, err := c.DeleteCampaignGroup(ctx, g); !errors.Is(err, ErrRefused) {
+			t.Errorf("group %s: got %v, want ErrRefused", g, err)
+		}
+	}
+	if _, err := c.DeleteCampaignGroup(ctx, "50"); err != nil {
+		t.Fatal(err)
+	}
+	if len(deleted) != 1 || deleted[0] != "campaigns_group/50" {
+		t.Fatalf("deleted %v, want only group 50", deleted)
+	}
+	if !c.State().Deleted["group:50"] {
+		t.Fatal("state lacks the deleted group")
+	}
+}

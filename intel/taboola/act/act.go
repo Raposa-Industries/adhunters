@@ -10,7 +10,9 @@
 //   - new campaigns are created paused, named with the guard's prefix, bid
 //     FIXED under a CPC ceiling, with a total (ENTIRE) budget;
 //   - turning campaigns on is refused once their budgets together would pass
-//     the guard's money ceiling.
+//     the guard's money ceiling;
+//   - the only campaign groups it deletes are the "AutoGen" ones Taboola made
+//     for our campaigns, once no campaign in them is left.
 //
 // Each request and answer is handed to Record before anything reads it, so
 // callers save it raw (decision 0003).
@@ -37,6 +39,7 @@ const (
 	tokenPath = "/backstage/oauth/token"
 	apiPrefix = "/backstage/api/1.0/"
 	uploadAPI = "operations/upload-image"
+	autoGroup = "AutoGen - " // Taboola's name for the group it makes per campaign
 )
 
 // ErrRefused means the guard stopped a request before it was sent.
@@ -57,7 +60,8 @@ type State struct {
 	Campaigns map[string]float64 `json:"campaigns"` // id -> total budget
 	Items     map[string]string  `json:"items"`     // item id -> campaign id
 	Activated map[string]float64 `json:"activated"` // campaign id -> total budget when turned on
-	Deleted   map[string]bool    `json:"deleted"`   // campaign or item ids
+	Deleted   map[string]bool    `json:"deleted"`   // campaign or item ids, "group:<id>" for groups
+	Groups    map[string]string  `json:"groups"`    // campaign id -> the group Taboola made for it
 }
 
 // Exchange is one request and its answer, for saving raw. The token is never
@@ -94,10 +98,13 @@ func New(base, clientID, clientSecret string, g Guard) (*Client, error) {
 	}
 	c := &Client{base: strings.TrimRight(base, "/"), id: clientID, secret: clientSecret, g: g,
 		http: &http.Client{Timeout: 2 * time.Minute}, Record: func(Exchange) {}}
-	c.st = State{Campaigns: map[string]float64{}, Items: map[string]string{}, Activated: map[string]float64{}, Deleted: map[string]bool{}}
+	c.st = State{Campaigns: map[string]float64{}, Items: map[string]string{}, Activated: map[string]float64{}, Deleted: map[string]bool{}, Groups: map[string]string{}}
 	if b, err := os.ReadFile(g.StateFile); err == nil {
 		if err := json.Unmarshal(b, &c.st); err != nil {
 			return nil, fmt.Errorf("taboola act: state file: %w", err)
+		}
+		if c.st.Groups == nil {
+			c.st.Groups = map[string]string{}
 		}
 	} else if !os.IsNotExist(err) {
 		return nil, err
@@ -129,7 +136,7 @@ func (c *Client) CreateCampaign(ctx context.Context, body Obj) (Obj, error) {
 	if err != nil {
 		return out, err
 	}
-	return out, c.remember(func(s *State) { s.Campaigns[str(out["id"])] = num(out["spending_limit"]) }, out)
+	return out, c.remember(func(s *State) { c.noteCampaign(s, out) }, out)
 }
 
 // UpdateCampaign changes one of our campaigns. Turning it on (is_active
@@ -195,7 +202,7 @@ func (c *Client) DuplicateCampaign(ctx context.Context, id string, body Obj) (Ob
 	if err != nil {
 		return out, err
 	}
-	return out, c.remember(func(s *State) { s.Campaigns[str(out["id"])] = num(out["spending_limit"]) }, out)
+	return out, c.remember(func(s *State) { c.noteCampaign(s, out) }, out)
 }
 
 // DeleteCampaign deletes (terminates) one of our campaigns.
@@ -293,6 +300,41 @@ func (c *Client) DeleteLeftoverItem(ctx context.Context, campaignID, itemID stri
 	}, out)
 }
 
+// DeleteCampaignGroup deletes a campaign group Taboola made for one of our
+// campaigns. Taboola creates an "AutoGen - <campaign name>" group for every
+// new campaign and keeps it after the campaign is deleted (seen 2026-09-29).
+// It refuses a group whose name is not "AutoGen - " plus the guard's prefix,
+// and a group any campaign still in the account links to, ours or not.
+func (c *Client) DeleteCampaignGroup(ctx context.Context, groupID string) (Obj, error) {
+	path := c.acct("campaigns_group/" + url.PathEscape(groupID))
+	g, err := c.do(ctx, http.MethodGet, path+"/", nil, "", nil)
+	if err != nil {
+		return nil, err
+	}
+	if name := str(g["name"]); !strings.HasPrefix(name, autoGroup+c.g.NamePrefix) {
+		return nil, fmt.Errorf("%w: group %s is %q, not one Taboola made for our campaigns", ErrRefused, groupID, name)
+	}
+	list, err := c.do(ctx, http.MethodGet, c.acct("campaigns/"), nil, "", nil)
+	if err != nil {
+		return nil, err
+	}
+	rows, ok := list["results"].([]any)
+	if !ok {
+		return nil, fmt.Errorf("%w: could not list the account's campaigns", ErrRefused)
+	}
+	for _, r := range rows {
+		o, _ := r.(Obj)
+		if str(o["campaign_group_id"]) == groupID {
+			return nil, fmt.Errorf("%w: campaign %s is still in group %s", ErrRefused, str(o["id"]), groupID)
+		}
+	}
+	out, err := c.send(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return out, err
+	}
+	return out, c.remember(func(s *State) { s.Deleted["group:"+groupID] = true }, out)
+}
+
 // UploadImage puts an image on Taboola's CDN and returns its URL. It touches
 // no campaign.
 func (c *Client) UploadImage(ctx context.Context, name string, data []byte) (string, error) {
@@ -327,6 +369,15 @@ func (c *Client) Get(ctx context.Context, path string) (Obj, error) {
 		return nil, fmt.Errorf("%w: GET outside %s: %s", ErrRefused, c.g.Account, path)
 	}
 	return c.do(ctx, http.MethodGet, p, nil, "", nil)
+}
+
+// noteCampaign records a campaign we created and the group Taboola put it in.
+func (c *Client) noteCampaign(s *State, out Obj) {
+	id := str(out["id"])
+	s.Campaigns[id] = num(out["spending_limit"])
+	if g := str(out["campaign_group_id"]); g != "" && id != "" {
+		s.Groups[id] = g
+	}
 }
 
 func (c *Client) acct(p string) string { return c.g.Account + "/" + p }

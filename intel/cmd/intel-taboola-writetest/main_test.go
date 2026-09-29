@@ -23,10 +23,18 @@ type backstage struct {
 	next      int
 	campaigns map[string]act.Obj
 	items     map[string]act.Obj // id -> item, with "campaign_id"
+	groups    map[string]act.Obj // AutoGen group per campaign, kept after it is deleted
 	writes    []string
 }
 
 func (b *backstage) id() string { b.next++; return fmt.Sprint(1000 + b.next) }
+
+// group gives a new campaign its own AutoGen group, as Taboola does.
+func (b *backstage) group(c act.Obj) {
+	g := b.id()
+	b.groups[g] = act.Obj{"id": g, "name": "AutoGen - " + fmt.Sprint(c["name"])}
+	c["campaign_group_id"] = g
+}
 
 func (b *backstage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	b.mu.Lock()
@@ -49,17 +57,30 @@ func (b *backstage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	reply := func(v any) { json.NewEncoder(w).Encode(v) }
 	notFound := func() { w.WriteHeader(404); w.Write([]byte(`{"http_status":404,"message":"Resource not found"}`)) }
 	switch {
+	case parts[0] == "campaigns_group":
+		g, ok := b.groups[parts[1]]
+		if !ok || g["status"] == "TERMINATED" {
+			notFound()
+			return
+		}
+		if r.Method == http.MethodDelete {
+			g["status"] = "TERMINATED"
+		}
+		reply(g)
 	case parts[0] == "reports":
 		reply(act.Obj{"results": []any{}})
 	case p == "campaigns" && r.Method == http.MethodGet:
-		rows := []any{act.Obj{"id": "7", "name": "owner's", "status": "PAUSED"}}
+		rows := []any{act.Obj{"id": "7", "name": "owner's", "status": "PAUSED", "campaign_group_id": "9"}}
 		for _, c := range b.campaigns {
-			rows = append(rows, c)
+			if c["status"] != "TERMINATED" {
+				rows = append(rows, c)
+			}
 		}
 		reply(act.Obj{"results": rows})
 	case p == "campaigns":
 		body["id"] = b.id()
 		body["status"], body["approval_state"] = "PAUSED", "APPROVED"
+		b.group(body)
 		b.campaigns[body["id"].(string)] = body
 		reply(body)
 	case len(parts) == 3 && parts[2] == "duplicate":
@@ -72,6 +93,7 @@ func (b *backstage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			cp[k] = v
 		}
 		cp["id"] = b.id()
+		b.group(cp)
 		b.campaigns[cp["id"].(string)] = cp
 		reply(cp)
 	case len(parts) == 2:
@@ -135,7 +157,7 @@ func (b *backstage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestAllStepsTouchOnlyTheirOwnObjects(t *testing.T) {
-	bs := &backstage{campaigns: map[string]act.Obj{}, items: map[string]act.Obj{}}
+	bs := &backstage{campaigns: map[string]act.Obj{}, items: map[string]act.Obj{}, groups: map[string]act.Obj{"9": {"id": "9", "name": "Group 1"}}}
 	srv := httptest.NewServer(bs)
 	defer srv.Close()
 	dir := t.TempDir()
@@ -159,8 +181,13 @@ func TestAllStepsTouchOnlyTheirOwnObjects(t *testing.T) {
 	}
 	tt.writeResults("all")
 	for _, w := range bs.writes {
-		if strings.Contains(w, "campaigns/7") {
+		if strings.Contains(w, "campaigns/7") || strings.Contains(w, "campaigns_group/9") {
 			t.Fatalf("touched the owner's campaign: %s", w)
+		}
+	}
+	for id, g := range bs.groups {
+		if (id == "9") == (g["status"] == "TERMINATED") {
+			t.Errorf("group %s %v: want only the owner's group 9 left", id, g["status"])
 		}
 	}
 	for id, camp := range bs.campaigns {
