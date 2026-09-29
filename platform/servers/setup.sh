@@ -247,6 +247,22 @@ raposa_box() {
     start raposa-web raposa-web
 }
 
+# ---- Create on the data box ------------------------------------------------
+
+create_src="$repo/create"
+
+# create_web: Create's bulk upload page (create/README.md). An empty
+# OPENAI_API_KEY only turns making options off, so it always starts. People
+# reach it through the Cloudflare tunnel (platform/OPERATIONS.md).
+create_web() {
+    [ -d "$create_src/deploy" ] || { echo "$create_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    install_bin create-web
+    install -m 0644 "$create_src/deploy/create-web.service" /etc/systemd/system/create-web.service
+    systemctl daemon-reload
+    env_file create-web "$(grep -E '^[A-Z0-9_]+=' "$create_src/deploy/create-web.env.example")"
+    start create-web create-web
+}
+
 # ---- data box ---------------------------------------------------------------
 
 postgres() {
@@ -502,7 +518,8 @@ tracks-loader           9104  tracks-loader   -
 raposa-engine           9105  raposa-engine   -
 raposa-web              9106  raposa-web      -
 observe-bot             9107  observe-bot     -
-tracks-bridge           9108  tracks-bridge   -'
+tracks-bridge           9108  tracks-bridge   -
+create-web              9109  create-web      -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
@@ -602,7 +619,10 @@ worker)
     raposa_box
     ;;
 standby) capture_box standby:1:9101 ;;
-data) data_box && backups ;;
+data)
+    data_box && backups
+    create_web
+    ;;
 esac
 alloy_agent
 

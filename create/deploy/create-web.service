@@ -1,0 +1,24 @@
+# Create's bulk upload page and the OpenAI calls behind it. Settings in
+# /etc/adhunters/create-web.env. Listens on localhost (CREATE_WEB_ADDR);
+# people reach it through the Cloudflare tunnel, behind Cloudflare Access.
+[Unit]
+Description=Create web
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+DynamicUser=yes
+StateDirectory=create-web
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/create-web.env
+ExecStart=/opt/adhunters/bin/create-web
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

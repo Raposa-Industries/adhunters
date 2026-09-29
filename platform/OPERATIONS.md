@@ -9,7 +9,7 @@ it in the same PR.
 | Box | Hetzner name | Type | Location | Private IP | Public IPv4 | Runs |
 |---|---|---|---|---|---|---|
 | worker | `adhunters-worker` | CX43 | Nuremberg (nbg1) | 10.20.1.10 | 2.28.193.220 (Primary IP, kept across rebuilds) | capture `@a` `@b`, shipper, Raposa |
-| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups |
+| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web |
 | standby | `adhunters-standby` | CX23 | Falkenstein (fsn1) | 10.20.1.30 | 2.28.138.34 (Primary IP) | capture `@standby`, shipper |
 
 All three are in one Hetzner project, created by Terraform
@@ -106,7 +106,7 @@ Build on your computer (Go 1.25), from the repository root:
 ```
 git checkout main && git pull
 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" \
-  -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./platform/observe/cmd/...
+  -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./platform/observe/cmd/...
 ```
 
 Copy the checkout with the binaries to a box and run the setup there:
@@ -152,6 +152,29 @@ that file and run `sudo netplan apply`.
 
 Rolling back one binary on a box:
 `sudo cp /opt/adhunters/bin/NAME.prev /opt/adhunters/bin/NAME && sudo systemctl restart UNIT`.
+
+## Create's page on hunt-teste.fyi
+
+`create-web` listens only on `127.0.0.1:8091` on the data box. People reach
+it at https://hunt-teste.fyi through a Cloudflare Tunnel (`cloudflared` on
+the data box dials out to Cloudflare, so no port opens), behind Cloudflare
+Access, which asks for an allowed email before the page loads. Access is
+what stops strangers spending OpenAI credit: never publish the hostname
+without it.
+
+Set up once, in the Cloudflare dashboard (Zero Trust):
+
+1. Networks › Tunnels › Create a tunnel (Cloudflared), named
+   `adhunters-data`. Copy the token it shows.
+2. On the data box, install cloudflared and run it as a service with that
+   token (`cloudflared service install TOKEN`, see create/README.md).
+3. In the tunnel, Public hostname: `hunt-teste.fyi`, service
+   `http://localhost:8091`.
+4. Access › Applications › Add (Self-hosted) for `hunt-teste.fyi`, with a
+   policy that allows the team's emails (One-time PIN login).
+
+The OpenAI key goes in `/etc/adhunters/create-web.env`
+(`OPENAI_API_KEY=`), then `sudo systemctl restart create-web`.
 
 ## Not yet
 
