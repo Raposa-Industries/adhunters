@@ -8,6 +8,7 @@ import (
 	"html"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,6 +40,8 @@ const (
 	qAlerts   = `sum by (alertname) (count_over_time(ALERTS{alertstate="firing",alertname!="Heartbeat"}[24h]))`
 	qRestarts = `sum by (service) (changes(process_start_time_seconds{job="adhunters"}[24h])) > 0`
 	qDisk     = `min by (box) (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})`
+	// What is left on each prepaid service (observe-bot's own credit checks).
+	qCredits = `adhunters_credit_remaining`
 )
 
 // Write returns the digest for the 24 hours ending at t, in Telegram HTML.
@@ -49,6 +52,7 @@ func Write(ctx context.Context, m Metrics, e Errors, t time.Time, loc *time.Loca
 	gaps, sightings, lag := r.one(qGaps), r.one(qSightings), r.one(qLagMax)
 	visits, kept := r.one(qVisits), r.one(qKept)
 	alerts, restarts, disk := r.many(qAlerts, "alertname"), r.many(qRestarts, "service"), r.many(qDisk, "box")
+	credits := r.credits()
 
 	var issues []sentry.Issue
 	issuesKnown := e != nil
@@ -68,6 +72,9 @@ func Write(ctx context.Context, m Metrics, e Errors, t time.Time, loc *time.Loca
 	if quiet {
 		fmt.Fprintf(&b, "All green: %s scrapes, %s sightings, no alerts, no new errors.\n", count(scrapes), count(sightings))
 		fmt.Fprintf(&b, "Disk free: %s", diskLine(disk))
+		if len(credits) > 0 {
+			fmt.Fprintf(&b, "\nCredit left: %s", strings.Join(credits, ", "))
+		}
 		return b.String()
 	}
 
@@ -119,6 +126,9 @@ func Write(ctx context.Context, m Metrics, e Errors, t time.Time, loc *time.Loca
 		fmt.Fprintf(&b, "Restarts: %s\n", strings.Join(parts, ", "))
 	}
 	fmt.Fprintf(&b, "Disk free: %s", diskLine(disk))
+	if len(credits) > 0 {
+		fmt.Fprintf(&b, "\nCredit left: %s", strings.Join(credits, ", "))
+	}
 	if r.failed {
 		b.WriteString("\n\nSome numbers could not be read; see observe-bot's log.")
 	}
@@ -172,6 +182,23 @@ func (r *reader) many(q, label string) []keyed {
 		}
 		return out[i].key < out[j].key
 	})
+	return out
+}
+
+// credits reads what is left on each prepaid service, "iproyal 4.2 GB",
+// sorted by name; nil when there are none or the query failed.
+func (r *reader) credits() []string {
+	s, err := r.m.Query(r.ctx, qCredits, r.t)
+	if err != nil {
+		r.failed = true
+		return nil
+	}
+	var out []string
+	for _, x := range s {
+		out = append(out, fmt.Sprintf("%s %s %s", html.EscapeString(x.Labels["credit"]),
+			strconv.FormatFloat(math.Round(x.Value*10)/10, 'f', -1, 64), html.EscapeString(x.Labels["unit"])))
+	}
+	sort.Strings(out)
 	return out
 }
 

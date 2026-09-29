@@ -4,6 +4,7 @@ rule_files:
   - ../rules/collection.yaml
   - ../rules/services.yaml
   - ../rules/boxes.yaml
+  - ../rules/credits.yaml
 
 evaluation_interval: 1m
 
@@ -107,3 +108,111 @@ tests:
             exp_annotations:
               summary: The newest database backup finished 1d 3h 0m 0s ago.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/backup-late.md
+
+  # Residential traffic drains slowly (0.03 GB an hour from 3 GB): under
+  # the 2 GB warning after 33 hours, but far from empty, so only a chat
+  # alert. fal drains fast (1.20 USD an hour from 30): under its 20 USD
+  # warning after 8 hours and gone within a day, so it pages too.
+  - interval: 1m
+    input_series:
+      - series: 'adhunters_credit_remaining{credit="iproyal",unit="GB",service="observe-bot",instance="adhunters-data",box="data"}'
+        values: '3-0.0005x2400'
+      - series: 'adhunters_credit_warn{credit="iproyal",unit="GB",service="observe-bot",instance="adhunters-data",box="data"}'
+        values: '2x2400'
+      - series: 'adhunters_credit_remaining{credit="fal",unit="USD",service="observe-bot",instance="adhunters-data",box="data"}'
+        values: '30-0.02x700'
+      - series: 'adhunters_credit_warn{credit="fal",unit="USD",service="observe-bot",instance="adhunters-data",box="data"}'
+        values: '20x700'
+    alert_rule_test:
+      - eval_time: 8h
+        alertname: CreditLow
+        exp_alerts: []
+      - eval_time: 10h
+        alertname: CreditLow
+        exp_alerts:
+          - exp_labels:
+              tier: chat
+              credit: fal
+              unit: USD
+              service: observe-bot
+              instance: adhunters-data
+              box: data
+            exp_annotations:
+              summary: fal is down to 18.0 USD, under its warning level. Top it up.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
+      - eval_time: 10h
+        alertname: CreditRunningOut
+        exp_alerts:
+          - exp_labels:
+              tier: page
+              credit: fal
+              unit: USD
+              service: observe-bot
+              instance: adhunters-data
+              box: data
+            exp_annotations:
+              summary: fal runs out within a day at the current rate (18.0 USD left). Top it up now.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
+      - eval_time: 36h
+        alertname: CreditLow
+        exp_alerts:
+          - exp_labels:
+              tier: chat
+              credit: iproyal
+              unit: GB
+              service: observe-bot
+              instance: adhunters-data
+              box: data
+            exp_annotations:
+              summary: iproyal is down to 1.9 GB, under its warning level. Top it up.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
+      - eval_time: 36h
+        alertname: CreditRunningOut
+        exp_alerts: []
+
+  # A monthly renewal due at 10 days (864000 s) with a 7-day reminder.
+  - interval: 1h
+    input_series:
+      - series: 'adhunters_renewal_due_timestamp_seconds{renewal="proxies-datacenter",service="observe-bot",instance="adhunters-data",box="data"}'
+        values: '864000x300'
+      - series: 'adhunters_renewal_remind_seconds{renewal="proxies-datacenter",service="observe-bot",instance="adhunters-data",box="data"}'
+        values: '604800x300'
+    alert_rule_test:
+      - eval_time: 2d
+        alertname: RenewalDue
+        exp_alerts: []
+      - eval_time: 4d
+        alertname: RenewalDue
+        exp_alerts:
+          - exp_labels:
+              tier: chat
+              renewal: proxies-datacenter
+              service: observe-bot
+              instance: adhunters-data
+              box: data
+            exp_annotations:
+              summary: proxies-datacenter renews or must be paid in 6d 0h 0m 0s. Check the card or the balance behind it.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/renewal-due.md
+
+  # A service is refused for lack of credit once at 30m: the new counter
+  # pages at once, and the page clears 10 minutes after the last refusal.
+  - interval: 1m
+    input_series:
+      - series: 'adhunters_out_of_credit_total{provider="openai",service="forge-api",instance="adhunters-data",box="data"}'
+        values: '_x30 1x30'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: OutOfCredit
+        exp_alerts:
+          - exp_labels:
+              tier: page
+              provider: openai
+              service: forge-api
+              instance: adhunters-data
+              box: data
+            exp_annotations:
+              summary: openai refused forge-api for lack of credit (1 calls in 10 minutes). Work that needs it has stopped.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/out-of-credit.md
+      - eval_time: 45m
+        alertname: OutOfCredit
+        exp_alerts: []

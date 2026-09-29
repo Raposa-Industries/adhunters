@@ -1,0 +1,42 @@
+# What observe-bot checks for credit left and renewals coming up
+# (platform/observe/README.md, "Credits"). setup.sh copies this file to
+# /etc/adhunters/credits.conf on the data box once and never overwrites it.
+# After a change, try it with `observe-bot credits`, then
+# `systemctl restart observe-bot`.
+#
+# [credit NAME]: a balance read from the service's API every 15 minutes.
+#   url, header (repeatable, "Name: value"), field (dotted path to the number
+#   in the JSON answer), scale (multiplies it, default 1), unit, and warn
+#   (CreditLow fires below it). ${NAME} comes from
+#   /etc/adhunters/observe-bot.env. A check whose ${NAME} is unset or FILL_ME
+#   is off.
+# [renewal NAME]: a subscription that must be renewed or paid on a date.
+#   due (YYYY-MM-DD, any one renewal day), every (week, month, year or none),
+#   remind (how long before, default 7d). due = FILL_ME keeps it off.
+
+[credit iproyal]
+# Residential traffic left, for Raposa's res-1 line. Token: IPRoyal dashboard,
+# Residential, API (IPROYAL_API_TOKEN). If `observe-bot credits` shows a
+# number that is not GB, set scale (0.000000001 for bytes).
+url    = https://resi-api.iproyal.com/v1/me
+header = Authorization: Bearer ${IPROYAL_API_TOKEN}
+field  = available_traffic
+unit   = GB
+warn   = 2
+
+[credit fal]
+# fal.ai credit (image models for Create). An admin key from the fal
+# dashboard, Keys (FAL_ADMIN_KEY), in the "id:secret" form.
+url    = https://api.fal.ai/v1/account/billing?expand=credits
+header = Authorization: Key ${FAL_ADMIN_KEY}
+field  = credits.current_balance
+unit   = USD
+warn   = 20
+
+[renewal proxies-datacenter]
+# The datacenter and ISP lines (dc-us-*, isp-* in proxies.env): the day the
+# plan renews. The provider has no balance API; when the plan lapses, capture
+# stops.
+due    = FILL_ME
+every  = month
+remind = 7d

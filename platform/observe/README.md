@@ -12,7 +12,7 @@ itself works (decision 0009).
 | Sentry | hosted (free tier), `kit/errs` | Every log line at error level and every panic becomes a Sentry event, grouped by service and message, tied to the build. |
 | Telegram | the "AdHunters alerts" group | Pages (with sound, every 5 minutes until cleared) and chat alerts (silent, 08:00 to 22:00 São Paulo). Each message links its runbook in `runbooks/`. |
 | Better Stack | hosted (free tier) | Receives the always-firing `Heartbeat` every minute and calls the owner when it stops. Later: outside checks of the apps. |
-| `observe-bot` | data box, `cmd/observe-bot` here | Sends the 08:00 digest (the last 24 hours in numbers; three lines on a quiet day) and posts each new Sentry issue to Telegram, silently, as it first appears. |
+| `observe-bot` | data box, `cmd/observe-bot` here | Sends the 08:00 digest (the last 24 hours in numbers; three lines on a quiet day) and posts each new Sentry issue to Telegram, silently, as it first appears. Reads what is left on each prepaid service every 15 minutes and knows when subscriptions renew (see Credits below). |
 | Dashboards | `dashboards/`, uploaded by `push.sh` | "AdHunters · Collection" (capture, shipper, loader) and "AdHunters · Boxes" (hosts, services, Postgres, backups, Raposa, task freshness). |
 | Backups | data box, pgBackRest (`platform/servers/setup.sh`) | WAL archived every 60 s, a full backup on Sundays and a differential on other days, all to object storage; alerts when archiving fails or a backup is late. |
 
@@ -65,6 +65,10 @@ On each box, after `setup.sh` has run once:
   archive fills the disk), creates the stanza, checks it and starts the first
   full backup.
 
+- Data box: `/etc/adhunters/credits.conf` (written once by `setup.sh` from
+  `credits.conf.example`) and the keys it names in `observe-bot.env`. See
+  Credits below.
+
 On your laptop, once and after every change to `rules/` or `alertmanager/`:
 
 ```
@@ -74,6 +78,51 @@ platform/observe/push.sh push
 
 Push the rules once collection runs on the new boxes: `CaptureStopped` pages
 while no box scrapes, which is true until then.
+
+## Credits
+
+Every paid service the suite runs on can stop our work when it runs out, so
+each one is watched in one of three ways:
+
+1. **A balance check**, where the service has a balance API. observe-bot reads
+   it every 15 minutes (`[credit NAME]` in `credits.conf`). `CreditLow`
+   (chat) fires under the section's `warn` level. `CreditRunningOut` (page)
+   fires when the last 6 hours say it is gone within a day. The digest lists
+   what is left.
+2. **A renewal reminder**, where there is no balance to read but a plan that
+   lapses (`[renewal NAME]`). `RenewalDue` (chat) fires `remind` days before.
+3. **The refusal itself**. A service that is refused for lack of credit
+   calls `srv.OutOfCredit("provider")` (`kit/ops`), and `OutOfCredit` pages on
+   the first one. This is the last line for services with no balance API. It
+   is also why each provider's own auto-recharge or low-balance email should
+   be on.
+
+What we pay for, and how each is watched (checked 29 Sep 2026 from this repo,
+adhunters-collector, adhunters-v4 and auto-creative):
+
+| Service | Used by | Runs out as | Watched by |
+|---|---|---|---|
+| IPRoyal residential | Raposa (`res-1`) | GB of traffic | balance check `iproyal` (`GET resi-api.iproyal.com/v1/me`, `available_traffic`) |
+| Datacenter and ISP lines | capture, Raposa (`dc-us-*`, `isp-*`) | a monthly plan | renewal `proxies-datacenter` (no balance API); capture's own alerts when lines are refused |
+| fal | Create (auto-creative) | prepaid USD | balance check `fal` (`GET api.fal.ai/v1/account/billing?expand=credits`, `credits.current_balance`) |
+| OpenAI | Create (images), Spy (embeddings) | prepaid credit | no balance API: its auto-recharge, then `OutOfCredit` |
+| Together AI | Create (FLUX models) | prepaid credit | no balance API (only usage): its balance limit, then `OutOfCredit` |
+| Google Gemini | Create | Google Cloud billing | a budget alert in Google Cloud, then `OutOfCredit` |
+| OpenCode Zen | Spy (the model) | prepaid credit | no balance API yet (an open request upstream): auto-reload, then `OutOfCredit` |
+| Anthropic | old collector (vertical tagging), Intel briefs later | prepaid credit | no balance API: auto-reload, then `OutOfCredit` |
+| Hetzner (servers, Object Storage) | everything | a monthly invoice | nothing to run out; the card on file |
+| Grafana Cloud, Sentry, Better Stack | observability | free-tier quotas | not yet: each warns by email near its limit |
+
+The two API checks were written from the providers' documentation and have
+not been tried with a real key. The first `observe-bot credits` after filling
+in a key shows whether the path and unit are right; a wrong `field` prints the
+keys the answer has instead. The Create and Spy code that calls the AI
+services is not in this repo yet, so `OutOfCredit` starts counting when it
+moves here.
+
+To add a service: a `[credit]` section when it has a balance API, a
+`[renewal]` when it has a plan date, or both, then `observe-bot credits` to
+try it and `systemctl restart observe-bot`.
 
 ## Changing alerts
 
