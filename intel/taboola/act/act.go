@@ -263,6 +263,36 @@ func (c *Client) DeleteItem(ctx context.Context, campaignID, itemID string) (Obj
 	return out, c.remember(func(s *State) { s.Deleted[itemID] = true }, out)
 }
 
+// DeleteLeftoverItem deletes an item Taboola still lists under one of our
+// campaigns after that campaign was deleted: deleting a campaign leaves its
+// items waiting in review (seen 2026-09-29), and a copy's items were never
+// in our state. It still refuses any campaign this client did not create,
+// and any item Taboola does not list under that campaign.
+func (c *Client) DeleteLeftoverItem(ctx context.Context, campaignID, itemID string) (Obj, error) {
+	c.mu.Lock()
+	_, ours := c.st.Campaigns[campaignID]
+	c.mu.Unlock()
+	if !ours {
+		return nil, fmt.Errorf("%w: campaign %s was not created by this client", ErrRefused, campaignID)
+	}
+	path := c.acct("campaigns/" + url.PathEscape(campaignID) + "/items/" + url.PathEscape(itemID))
+	it, err := c.do(ctx, http.MethodGet, path+"/", nil, "", nil)
+	if err != nil {
+		return nil, err
+	}
+	if str(it["campaign_id"]) != campaignID {
+		return nil, fmt.Errorf("%w: item %s is not in campaign %s", ErrRefused, itemID, campaignID)
+	}
+	out, err := c.send(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return out, err
+	}
+	return out, c.remember(func(s *State) {
+		s.Items[itemID] = campaignID
+		s.Deleted[itemID] = true
+	}, out)
+}
+
 // UploadImage puts an image on Taboola's CDN and returns its URL. It touches
 // no campaign.
 func (c *Client) UploadImage(ctx context.Context, name string, data []byte) (string, error) {

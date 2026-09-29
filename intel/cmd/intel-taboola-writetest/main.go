@@ -8,6 +8,7 @@
 //	intel-taboola-writetest live-cut   -account X -out DIR            # T12: pause one of its two items
 //	intel-taboola-writetest live-end   -account X -out DIR            # T12: pause, read reports, delete
 //	intel-taboola-writetest cleanup    -account X -out DIR            # delete everything the tests made
+//	intel-taboola-writetest purge      -account X -out DIR            # delete items left under our deleted campaigns
 //
 // Every request and answer is saved under DIR/raw before it is read, and
 // what each test showed goes to DIR/results.md. DIR/state.json lists what
@@ -104,6 +105,8 @@ func main() {
 			return t.liveEnd(ctx)
 		case "cleanup":
 			return t.cleanup(ctx)
+		case "purge":
+			return t.purgeDeleted(ctx)
 		}
 		usage()
 		return nil
@@ -114,7 +117,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: intel-taboola-writetest paused|live-start|live-on|live-cut|live-end|cleanup -account X -out DIR [-url URL] [-sites a,b]")
+	fmt.Fprintln(os.Stderr, "usage: intel-taboola-writetest paused|live-start|live-on|live-cut|live-end|cleanup|purge -account X -out DIR [-url URL] [-sites a,b]")
 	os.Exit(2)
 }
 
@@ -357,11 +360,15 @@ func (t *tester) pausedTests(ctx context.Context) error {
 }
 
 // cleanup deletes every campaign the tests made that is not deleted yet,
-// then checks that each answers 404.
+// then checks that each answers 404. Items go first: Taboola leaves a
+// deleted campaign's items waiting in its review queue.
 func (t *tester) cleanup(ctx context.Context) error {
 	st := t.c.State()
 	var errs []error
 	for id := range st.Campaigns {
+		if err := t.purgeItems(ctx, id); err != nil {
+			errs = append(errs, err)
+		}
 		if st.Deleted[id] {
 			continue
 		}
@@ -376,6 +383,47 @@ func (t *tester) cleanup(ctx context.Context) error {
 			after = "then: " + err.Error()
 		}
 		t.note("T11", "deleted campaign %s: status %s; %s", id, s(got["status"]), after)
+	}
+	return errors.Join(errs...)
+}
+
+// purgeDeleted deletes the leftover items of our already deleted campaigns
+// only, leaving a live test alone.
+func (t *tester) purgeDeleted(ctx context.Context) error {
+	st := t.c.State()
+	var errs []error
+	for id := range st.Campaigns {
+		if st.Deleted[id] {
+			if err := t.purgeItems(ctx, id); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// purgeItems deletes every item Taboola still lists under one of our
+// campaigns, deleted or not.
+func (t *tester) purgeItems(ctx context.Context, cid string) error {
+	its, err := t.c.Get(ctx, t.account+"/campaigns/"+cid+"/items/")
+	if err != nil {
+		return err
+	}
+	rows, _ := its["results"].([]any)
+	gone := t.c.State().Deleted
+	var errs []error
+	for _, r := range rows {
+		o, _ := r.(act.Obj)
+		iid := s(o["id"])
+		if gone[iid] {
+			continue
+		}
+		if _, err := t.c.DeleteLeftoverItem(ctx, cid, iid); err != nil {
+			t.note("T11", "delete item %s of campaign %s failed: %v", iid, cid, err)
+			errs = append(errs, err)
+			continue
+		}
+		t.note("T11", "deleted item %s (%q) of campaign %s", iid, s(o["title"]), cid)
 	}
 	return errors.Join(errs...)
 }

@@ -204,3 +204,14 @@ func TestUploadImage(t *testing.T) {
 		t.Fatalf("%s %v", u, err)
 	}
 }
+
+func TestDeleteLeftoverItemOnlyOurCampaigns(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("no request may leave: %s %s", r.Method, r.URL.Path)
+	}))
+	defer srv.Close()
+	c, _ := New(srv.URL, "id", "s", guard(t))
+	if _, err := c.DeleteLeftoverItem(context.Background(), "999", "1"); !errors.Is(err, ErrRefused) {
+		t.Fatalf("got %v, want ErrRefused", err)
+	}
+}
