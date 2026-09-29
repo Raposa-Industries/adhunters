@@ -7,6 +7,7 @@
 //	intel-taboola-writetest live-on    -account X -out DIR            # T12: once approved, turn it on ($20 total at most)
 //	intel-taboola-writetest live-cut   -account X -out DIR            # T12: pause one of its two items
 //	intel-taboola-writetest live-pause -account X -out DIR            # T12: pause the campaign, keep everything
+//	intel-taboola-writetest live-resume -account X -out DIR           # T12: turn a paused campaign back on
 //	intel-taboola-writetest live-end   -account X -out DIR            # T12: pause, read reports, delete
 //	intel-taboola-writetest cleanup    -account X -out DIR            # delete everything the tests made
 //	intel-taboola-writetest purge      -account X -out DIR [-groups a,b] # delete items and AutoGen groups left by our deleted campaigns
@@ -105,6 +106,8 @@ func main() {
 			return t.liveCut(ctx)
 		case "live-pause":
 			return t.livePause(ctx)
+		case "live-resume":
+			return t.liveResume(ctx)
 		case "live-end":
 			return t.liveEnd(ctx)
 		case "cleanup":
@@ -121,7 +124,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: intel-taboola-writetest paused|live-start|live-on|live-cut|live-pause|live-end|cleanup|purge -account X -out DIR [-url URL] [-sites a,b]")
+	fmt.Fprintln(os.Stderr, "usage: intel-taboola-writetest paused|live-start|live-on|live-cut|live-pause|live-resume|live-end|cleanup|purge -account X -out DIR [-url URL] [-sites a,b]")
 	os.Exit(2)
 }
 
@@ -595,6 +598,27 @@ func (t *tester) livePause(ctx context.Context) error {
 		return err
 	}
 	t.note("T12", "campaign %s paused at %s: status %s, spent %v", cid, time.Now().UTC().Format(time.RFC3339), s(got["status"]), got["spent"])
+	return nil
+}
+
+// liveResume turns a paused live campaign back on as it was. The guard
+// still counts its budget once against the money ceiling, and nothing else
+// may be running in the account.
+func (t *tester) liveResume(ctx context.Context) error {
+	cid, _, err := t.live()
+	if err != nil {
+		return err
+	}
+	if err := t.noOtherRunning(ctx); err != nil {
+		t.note("T12", "not resumed: %v", err)
+		return err
+	}
+	got, err := t.c.UpdateCampaign(ctx, cid, act.Obj{"is_active": true})
+	if err != nil {
+		t.note("T12", "resume refused: %v", err)
+		return err
+	}
+	t.note("T12", "campaign %s resumed at %s: status %s, spent %v, total cap %v", cid, time.Now().UTC().Format(time.RFC3339), s(got["status"]), got["spent"], got["spending_limit"])
 	return nil
 }
 
