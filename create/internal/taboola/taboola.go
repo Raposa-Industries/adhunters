@@ -3,10 +3,10 @@
 // and ads (Taboola's items) made in bulk.
 //
 // Ported from intel/taboola/act (the write client proven against the real
-// API on 2026-09-29) and intel/taboola/client.go (token flow, retries). The
-// repo forbids one service importing another's Go module, so the code is
-// copied here rather than shared; what those tests learned is kept, with the
-// reason next to it.
+// API on 2026-09-29) and intel/taboola/client.go (token flow, retries), when
+// the repo still forbade sharing code between services. Decision 0013 now
+// allows it: this and Intel's client are to become one package in shared/.
+// What those tests learned is kept, with the reason next to it.
 //
 // Guards, checked before a request leaves (do):
 //
