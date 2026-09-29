@@ -46,6 +46,18 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | imported hour | An hour before the switch-over whose counts were copied from the old collector's database (`import-old`). The loader never closes it again and a replay refuses it. |
 | Direction | Which way an ad is moving: rising, steady, fading or stopped, judged against its usual value. |
 
+## Intel
+
+| Word | Means |
+|---|---|
+| traffic source | The tracker's record for one ad network (RedTrack's `source`): the macros its tracking code asks the network to fill, and which sub slot each lands in. |
+| sub slot | One of the tracker's numbered click parameters (`sub1` to `sub20` in RedTrack). The traffic source decides what fills each: a campaign id, an item id, a site id. Reports can be grouped by them. |
+| tracker campaign | The tracker's campaign: one link, its traffic source and where it sends clicks. Usually one per ad network campaign, but nothing enforces it; the join goes through the sub slots, not the name. |
+| offer | What a tracker campaign sells: the product page or affiliate link the clicks end on, and what a sale pays. |
+| conversion | One sale (or other event) the offer reported back to the tracker for one click, with its payout. |
+| cost | What the ad network charged for clicks, as the tracker knows it: filled from the `{cpc}` in each link or pulled from the network's API. |
+| revenue | What conversions paid, as the tracker counts it. Profit is revenue minus cost. |
+
 ## Spy
 
 Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
