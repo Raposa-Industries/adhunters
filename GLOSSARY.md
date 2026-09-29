@@ -54,6 +54,8 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 |---|---|
 | check | One scrape, seen from Spy: one look at one publisher on one device. Rates are per check. |
 | presence | Sightings per 100 checks of the network. How often you would see the ad if you looked now. |
+| vertical | The market a creative sells into ("Blood Pressure", "Joint Pain"), one of the fixed list in [spy/verticals](spy/verticals/verticals.yaml). Never a name a classifier made up. |
+| category | A group of verticals ("Heart", "Pain"), for filtering: a category first, then its verticals. |
 | share of voice | A subject's share of all the network's sightings (or its vertical's) in a range. |
 | range | Any start and end a number is asked for. Read to the hour when recent, in whole UTC days when older. |
 | usual | What a range is compared with: the same hours 1 to 3 weeks before, the weeks just before, or a period the person chooses. Direction's usual value is the same idea for right now. |
