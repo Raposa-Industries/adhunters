@@ -47,6 +47,9 @@ campaigns alone and spend $20 at most, in total.
     go run ./intel/cmd/intel-taboola-writetest live-start -account X-sc -url URL -tracking 'sub1={campaign_id}&…' -brand NAME -image PHOTO [-ai] -titles 'one|two' -out DIR   # T12, created paused
     go run ./intel/cmd/intel-taboola-writetest live-on    -account X-sc -out DIR            # once approved
     go run ./intel/cmd/intel-taboola-writetest live-cut   -account X-sc -out DIR
+    go run ./intel/cmd/intel-taboola-writetest live-pause -account X-sc -out DIR            # hold T12: pause, keep everything
+    go run ./intel/cmd/intel-taboola-writetest live-resume -account X-sc -out DIR           # turn it back on as it was
+    go run ./intel/cmd/intel-taboola-writetest live-bid   -account X-sc -out DIR -cpc 0.3   # change its bid (guard: 0.50 at most)
     go run ./intel/cmd/intel-taboola-writetest live-end   -account X-sc -out DIR            # pause, reports, delete
     go run ./intel/cmd/intel-taboola-writetest purge      -account X-sc -out DIR [-groups a,b] # items and groups left by our deleted campaigns
 
