@@ -675,11 +675,13 @@ func (t *tester) liveEnd(ctx context.Context) error {
 	}
 	day := time.Now().UTC()
 	from, to := day.AddDate(0, 0, -2).Format(time.DateOnly), day.Format(time.DateOnly)
+	// Realtime reports refuse more than 24 hours, and a date range counts
+	// both ends (27th to 29th is 49 hours, seen 2026-09-29), so ask for today.
 	for _, p := range []string{
 		"reports/campaign-summary/dimensions/campaign_breakdown?start_date=" + from + "&end_date=" + to + "&campaign=" + cid,
 		"reports/top-campaign-content/dimensions/item_breakdown?start_date=" + from + "&end_date=" + to + "&campaign=" + cid,
-		"reports/realtime-campaign-summary/dimensions/by_campaign?start_date=" + from + "&end_date=" + to,
-		"reports/realtime-top-campaign-content/dimensions/by_item?start_date=" + from + "&end_date=" + to,
+		"reports/realtime-campaign-summary/dimensions/by_campaign?start_date=" + to + "&end_date=" + to,
+		"reports/realtime-top-campaign-content/dimensions/by_item?start_date=" + to + "&end_date=" + to,
 	} {
 		if got, err := t.c.Get(ctx, t.account+"/"+p); err != nil {
 			t.note("T12", "%s: %v", p[:strings.Index(p, "?")], err)
