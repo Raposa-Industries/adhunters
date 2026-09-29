@@ -23,8 +23,8 @@
 // renewals come from CREDITS_FILE (default /etc/adhunters/credits.conf), with
 // their keys in the same environment; each estimate's ledger is kept in
 // STATE_DIRECTORY too. The policy watch reads POLICY_URLS (help center
-// collections, space separated; default the Policy & Content Review
-// collection) and keeps every crawl raw in STATE_DIRECTORY/policy. It stops
+// collections or articles, space separated; default the Policy & Content
+// Review collection and the AI-content and branding text articles) and keeps every crawl raw in STATE_DIRECTORY/policy. It stops
 // cleanly on SIGTERM.
 package main
 

@@ -29,7 +29,7 @@ type policyWatch struct {
 }
 
 func newPolicyWatch(state string, tg *telegram.Client) *policyWatch {
-	roots := []string{policy.DefaultRoot}
+	roots := policy.DefaultRoots
 	if v := os.Getenv("POLICY_URLS"); v != "" {
 		roots = strings.Fields(v)
 	}
