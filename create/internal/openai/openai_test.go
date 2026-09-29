@@ -435,7 +435,7 @@ func TestPlanRequestAndCleaning(t *testing.T) {
 	}
 	user := msgs[1].(map[string]any)["content"].(string)
 	for _, want := range []string{"exactly 3 headlines in Brazilian Portuguese", "exactly 6 image briefs", "VERTICAL: Neuropathy",
-		"PRODUCT PICTURES ARE ATTACHED", "No performing ads", "Example headline", "Already shown headline", "suplemento para neuropatia"} {
+		"PRODUCT PICTURES ARE ATTACHED", "No reference pictures", "THE PERSON'S REFERENCE HEADLINES", "Example headline", "Already shown headline", "suplemento para neuropatia"} {
 		if !strings.Contains(user, want) {
 			t.Errorf("user message lacks %q:\n%s", want, user)
 		}
@@ -472,14 +472,14 @@ func TestPlanReadsPerformingAds(t *testing.T) {
 		t.Fatalf("user content %v", got["messages"])
 	}
 	text := parts[0].(map[string]any)["text"].(string)
-	for _, want := range []string{"PERFORMING ADS ATTACHED: the 2 picture(s)", "AGE RANGE OF THE PEOPLE IN EVERY PICTURE: 70-85", "STYLE EXAMPLES"} {
+	for _, want := range []string{"REFERENCE PICTURES ATTACHED: the 2 picture(s)", "AGE RANGE OF THE PEOPLE IN EVERY PICTURE: 70-85", "TEAM EXAMPLES"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("user text lacks %q:\n%s", want, text)
 		}
 	}
 	// With no examples of its own, a vertical with a team library is shown
 	// MaxExamples of them.
-	if n := strings.Count(grepLines(text, "STYLE EXAMPLES", "ALREADY SHOWN", "STARTING PROMPT"), "\n- "); n != MaxExamples {
+	if n := strings.Count(grepLines(text, "TEAM EXAMPLES", "ALREADY SHOWN", "ADDITIONAL INSTRUCTIONS"), "\n- "); n != MaxExamples {
 		t.Errorf("%d examples", n)
 	}
 	img := parts[1].(map[string]any)["image_url"].(map[string]any)
@@ -557,14 +557,16 @@ func TestParseLibrary(t *testing.T) {
 	}
 }
 
-func TestWithLibrary(t *testing.T) {
+func TestLibrarySample(t *testing.T) {
 	rnd := rand.New(rand.NewPCG(1, 2))
-	own := []string{"Mine"}
-	got := WithLibrary(own, "Tinnitus", rnd)
-	if len(got) != MaxExamples || got[0] != "Mine" {
-		t.Errorf("%d %q", len(got), got[:2])
+	if got := LibrarySample("Tinnitus", false, rnd); len(got) != MaxExamples {
+		t.Errorf("alone: %d", len(got))
 	}
-	if got := WithLibrary(own, "Vision", rnd); len(got) != 1 {
+	// The person's own headlines weigh the most, so the team's step aside.
+	if got := LibrarySample("Tinnitus", true, rnd); len(got) != MaxExamplesAside {
+		t.Errorf("beside the person's: %d", len(got))
+	}
+	if got := LibrarySample("Vision", false, rnd); len(got) != 0 {
 		t.Errorf("no library: %q", got)
 	}
 }

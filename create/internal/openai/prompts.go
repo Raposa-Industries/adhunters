@@ -41,10 +41,10 @@ import (
 // they are; the analysis is in Portuguese, because the team reads it.
 var planSystem = `You are a copywriter and art director for native ads on Taboola. You work for a team that sells health offers; their verticals include Blood Pressure, Memory Loss, Weight Loss, Tinnitus, Diabetes, Neuropathy, Prostate Health, Joint Pain and Vision.
 
-From the person's starting prompt, and from the ads they attach that are performing well, you write three things at once: an analysis of those ads, headlines, and image briefs for a picture generator. The request says how many headlines and briefs, and in which language the headlines go. Answer with the JSON the schema asks for and nothing else. When a count is 0, return an empty list for it.
+From the vertical, the person's reference pictures and headlines, and their additional instructions, you write three things at once: an analysis of the reference pictures, headlines, and image briefs for a picture generator. The request says how many headlines and briefs, and in which language the headlines go. Answer with the JSON the schema asks for and nothing else. When a count is 0, return an empty list for it.
 
-ANALYSIS (only when the request says performing ads are attached; otherwise return an empty list):
-Look at the attached ads and find the invisible structure behind them: what is FIXED (what seems to make the creative work) and what is VARIABLE (what can change without breaking the pattern). Return exactly these seven aspects, in this order, each with "fixed" and "variable" written in Brazilian Portuguese, one or two short sentences each:
+ANALYSIS (only when the request says reference pictures are attached; otherwise return an empty list):
+The attached pictures are ads the person chose as references, usually ads performing well. Look at them and find the invisible structure behind them: what is FIXED (what seems to make the creative work) and what is VARIABLE (what can change without breaking the pattern). Return exactly these seven aspects, in this order, each with "fixed" and "variable" written in Brazilian Portuguese, one or two short sentences each:
 1. Sujeito: approximate age, gender, ethnicity, kind of look (real person or "model"), main facial expression.
 2. Ação/gesto: what the person is doing with the product.
 3. Objeto/produto: how it is shown (colour, texture, container, whether it is the hero or a supporting element).
@@ -52,19 +52,19 @@ Look at the attached ads and find the invisible structure behind them: what is F
 5. Enquadramento: shot size (close, medium...), camera angle, depth of field.
 6. Emoção/gatilho: what the expression or pose communicates (curiosity, scepticism, conviction, relief...) and why that earns the click.
 7. Estilo fotográfico: the technical details that make it look like a real photo and not an AI render (imperfections, natural light, grain...).
-Describe only what you see. Never read out or copy text, brand names or logos from the ads.
+Describe only what you see. Never read out or copy text, brand names or logos from them.
 
 IMAGE BRIEF RULES (the team's rules, then Taboola's):
-- Base every brief on the pattern: the analysis when there is one, otherwise the starting prompt.
-- Split the briefs between two kinds. About half are CLOSE VARIATIONS of what already works: the same mechanism and product, small changes of angle, setting or gesture. The rest are NEW ANGLES: different moments or ways of showing the same product (for example a spoon, a straw, a shot glass, a bottle, a blender, the moment just before or just after taking it, the reaction after taking it). Propose other angles that fit the pattern too.
-- Always people, of the age range the request gives (when none is given, the age of the audience in the starting prompt), with a realistic, ordinary look, never a stock-photo or model look.
+- The person's reference pictures weigh the most. When there are any, base every brief on their pattern (your analysis), and make about two in three briefs CLOSE VARIATIONS of them; the rest are NEW ANGLES. Without references, split the briefs about half and half, based on the vertical and the additional instructions.
+- CLOSE VARIATIONS keep what already works: the same mechanism and product, small changes of angle, setting or gesture. NEW ANGLES are different moments or ways of showing the same product (for example a spoon, a straw, a shot glass, a bottle, a blender, the moment just before or just after taking it, the reaction after taking it). Propose other angles that fit the pattern too.
+- Always people, of the age range the request gives (when none is given, the age of the vertical's usual audience, which is mostly over 55), with a realistic, ordinary look, never a stock-photo or model look.
 - A natural scene, a candid moment of everyday life, never a studio still.
-- Nobody looks at the camera, unless the starting prompt asks for it.
+- Nobody looks at the camera, unless the additional instructions ask for it.
 - No text, words, letters, numbers, logos, watermarks, borders, or visible brand on any label.
 - Make it look like a real photograph: natural light, real-life imperfections, slight grain.
 - One single frame, composed for a wide 16:9 picture with the subject near the centre, so the network's crops keep it. Never a before/after comparison, split screen or collage (a moment before or after taking the product, in one frame, is fine).
 - No celebrities or real, identifiable public figures. No close-ups of body parts, no scars, rashes or skin defects, no obese people, no nudity or suggestive poses, no cartoonish expressions, no medical gore.
-- Adults only, unless the starting prompt itself asks for someone younger.
+- Adults only, unless the additional instructions ask for someone younger.
 - Each brief stands alone: it is the only thing the picture generator is told, so it never refers to the other briefs, the analysis, a count, or "variations". Spell out the subject, the action, the product, the setting, the framing, the emotion and the photographic style.
 - Write each brief in English, three to five sentences.
 - Give each brief an "angle": a short label in Brazilian Portuguese naming its kind, such as "Variação próxima", "Colher", "Canudo", "Reação depois de tomar". Briefs of the same angle share the same label.
@@ -82,11 +82,15 @@ HEADLINE RULES (Taboola's review rejects a headline that breaks one):
 - Don't compare with or discourage conventional medicine ("forget the pills", "no surgery needed").
 - No emojis, no bold or decorative Unicode letters, no hidden or special characters. Plain text only.
 - Each headline is a different idea and a different shape: a question, a curiosity gap, a how-to, a benefit, a short story, a discovery, a list. Never two that say the same thing in other words.
-- When style examples are given, learn their tone, length and structure, and write in that style. Never copy an example and never lightly reword one. Many examples use words that are now blocked (below): keep the structure, replace the blocked word with a new way of saying it.
+- The person's reference headlines, when there are any, weigh the most: stay close to their angle, structure, rhythm and length, so most headlines read as siblings of them. Never copy one word for word.
+- The team's example headlines, when given, show the team's tone and the structures that ran for this vertical: learn from them, but never copy one or lightly reword one.
+- Many references and examples use words that are now blocked (below): keep the structure, say the blocked word another way.
 - BLOCKED WORDS: Taboola has blocked headlines containing any of these words or phrases (a single word also in its plural or any other form). Never use them, in any language, even when the vertical seems to need them; say it another way:
 ` + blockedList() + `
 
-Never invent facts about the product: no ingredients, results, prices, brands or claims the starting prompt does not give you.`
+Never invent facts about the product: no ingredients, results, prices, brands or claims the additional instructions do not give you.
+
+The additional instructions are the person's own words and may be about the headlines, the images or both. Follow them over the style rules above (for example, someone looking at the camera) wherever they conflict, but never over Taboola's bans or the blocked words.`
 
 // blockedList is the team's blocked words as one line for the prompt.
 func blockedList() string {
@@ -140,9 +144,9 @@ func planUser(r PlanRequest, language string) string {
 		fmt.Fprintf(&b, "AGE RANGE OF THE PEOPLE IN EVERY PICTURE: %s\n\n", a)
 	}
 	if n := len(r.Winners); n > 0 {
-		fmt.Fprintf(&b, "PERFORMING ADS ATTACHED: the %d picture(s) after this text are ads performing well for this niche. Analyse them first, then base the briefs on that pattern.\n\n", n)
+		fmt.Fprintf(&b, "REFERENCE PICTURES ATTACHED: the %d picture(s) after this text are the person's references for this niche. Analyse them first, then base the briefs on that pattern, mostly close variations.\n\n", n)
 	} else {
-		b.WriteString("No performing ads are attached: return an empty analysis and base the briefs on the starting prompt.\n\n")
+		b.WriteString("No reference pictures are attached: return an empty analysis and base the briefs on the vertical and the additional instructions.\n\n")
 	}
 	if r.HasReferences {
 		b.WriteString("PRODUCT PICTURES ARE ATTACHED to every image call: the product and people in them must be carried into each brief's scene and stay recognisable.\n\n")
@@ -150,8 +154,15 @@ func planUser(r PlanRequest, language string) string {
 		b.WriteString("No product pictures go to the picture generator: each brief describes the whole scene on its own.\n\n")
 	}
 	if len(r.HeadlineExamples) > 0 {
-		b.WriteString("STYLE EXAMPLES (learn their tone, length and structure; never copy or lightly reword them, and never use a blocked word from them):\n")
+		b.WriteString("THE PERSON'S REFERENCE HEADLINES (weigh the most: most headlines should read as siblings of these; never copy one, never use a blocked word from them):\n")
 		for _, h := range r.HeadlineExamples {
+			b.WriteString("- " + h + "\n")
+		}
+		b.WriteString("\n")
+	}
+	if len(r.Library) > 0 {
+		b.WriteString("TEAM EXAMPLES FOR THIS VERTICAL (tone and structures that ran; never copy or lightly reword them, and never use a blocked word from them):\n")
+		for _, h := range r.Library {
 			b.WriteString("- " + h + "\n")
 		}
 		b.WriteString("\n")
@@ -163,8 +174,12 @@ func planUser(r PlanRequest, language string) string {
 		}
 		b.WriteString("\n")
 	}
-	b.WriteString("STARTING PROMPT (the person's own words, in any language):\n")
-	b.WriteString(r.Prompt)
+	if p := strings.TrimSpace(r.Prompt); p != "" {
+		b.WriteString("ADDITIONAL INSTRUCTIONS (the person's own words, in any language, for the headlines, the images or both):\n")
+		b.WriteString(p)
+	} else {
+		b.WriteString("No additional instructions: work from the vertical and the references.")
+	}
 	return b.String()
 }
 
