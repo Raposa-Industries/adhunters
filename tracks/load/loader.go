@@ -265,6 +265,9 @@ func (l *Loader) load(ctx context.Context, f rawFile) (written, error) {
 	if err := l.checkDays(ctx, days); err != nil {
 		return written{}, err
 	}
+	if err := l.checkImported(ctx, scrapes); err != nil {
+		return written{}, err
+	}
 	for d := range days {
 		if err := l.ensureDay(ctx, d); err != nil {
 			return written{}, err
@@ -326,6 +329,30 @@ func (l *Loader) checkDays(ctx context.Context, days map[time.Time]bool) error {
 	}
 	if len(dropped) > 0 {
 		return errPermanent{fmt.Errorf("a late file for %s, whose sightings were dropped: replay that day", dropped[0].Format("2006-01-02"))}
+	}
+	return nil
+}
+
+// checkImported refuses a file with scrapes in an hour import-old copied
+// from the collector: that hour's counts are the collector's, and closing it
+// again would replace them with this file's alone.
+func (l *Loader) checkImported(ctx context.Context, scrapes []parse.Scrape) error {
+	seen := map[time.Time]bool{}
+	var hours []time.Time
+	for i := range scrapes {
+		h := scrapes[i].At.UTC().Truncate(time.Hour)
+		if !seen[h] {
+			seen[h] = true
+			hours = append(hours, h)
+		}
+	}
+	var hit *time.Time
+	if err := l.db.QueryRow(ctx, `SELECT min(hour) FROM tracks.hour_state WHERE imported_at IS NOT NULL AND hour = ANY($1::timestamptz[])`,
+		hours).Scan(&hit); err != nil {
+		return err
+	}
+	if hit != nil {
+		return errPermanent{fmt.Errorf("scrapes in %s, an hour imported from the collector: its counts are the collector's", hit.UTC().Format(time.RFC3339))}
 	}
 	return nil
 }

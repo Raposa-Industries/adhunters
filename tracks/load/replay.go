@@ -28,6 +28,14 @@ func Replay(ctx context.Context, db *pgxpool.Pool, from, to time.Time, network s
 	if !from.Before(to) {
 		return r, fmt.Errorf("replay: from %s is not before to %s", from, to)
 	}
+	var imported *time.Time
+	if err := db.QueryRow(ctx, `SELECT min(hour) FROM tracks.hour_state WHERE imported_at IS NOT NULL AND hour >= date_trunc('hour', $1::timestamptz) AND hour < $2`,
+		from, to).Scan(&imported); err != nil {
+		return r, err
+	}
+	if imported != nil {
+		return r, fmt.Errorf("replay: %s was imported from the collector (import-old); replay only from the switch-over on", imported.UTC().Format(time.RFC3339))
+	}
 	err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
 		rows, err := tx.Query(ctx, `
 			SELECT day::timestamptz FROM tracks.day_state

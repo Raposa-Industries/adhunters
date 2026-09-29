@@ -40,7 +40,7 @@ Postgres through the read-only `observe` login; it starts once
 `/etc/adhunters/observe.env` (`SENTRY_DSN`, empty leaves Sentry off). See
 `platform/observe/README.md`. The units are in `units/`: each runs as
 `tracks`, restarts on failure, gets 45 s to stop, and serves `/healthz` and
-`/metrics` on `127.0.0.1` (ports 9101 to 9104).
+`/metrics` on `127.0.0.1` (the ports are in `ops_ports` in `setup.sh`; 9108 is `tracks-bridge`, installed but only started for the switch-over, see `platform/SWITCH-OVER.md`).
 
 Capture needs `targets.yaml` (the collector's `config/publishers.yaml`) and
 `proxies.env` (its `secrets/proxies.env`) in `/etc/adhunters/tracks-capture/` (the proxies log in with a password; no IP allowlist).

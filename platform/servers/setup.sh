@@ -311,6 +311,10 @@ data_box() {
     postgres
     install_bin tracks-loader
     install_unit tracks-loader.service
+    # The bridge runs only during the switch-over, started by hand
+    # (platform/SWITCH-OVER.md), so it is installed and never enabled here.
+    install_bin tracks-bridge
+    install_unit tracks-bridge.service
     systemctl daemon-reload
 
     say "database adhunters and the tracks logins"
@@ -352,6 +356,12 @@ OPS_ADDR=127.0.0.1:9104"
         todo+=("put this line in /etc/adhunters/tracks-shipper.env on the worker and standby boxes (shown once):
     DATABASE_URL=postgres://tracks_shipper:$shipper_pw@$data_ip:5432/adhunters?sslmode=require")
     fi
+
+    env_file tracks-bridge "# tracks-bridge settings (platform/SWITCH-OVER.md). The database
+# login and archive keys come from tracks-loader.env.
+OLD_DATABASE_URL=FILL_ME
+BRIDGE_FROM=FILL_ME
+OPS_ADDR=127.0.0.1:9108"
 
     # The loader's start runs its migrations, which also grant the shipper
     # and tracks_api_read their rights.
@@ -478,7 +488,8 @@ tracks-shipper          9103  tracks-shipper  -
 tracks-loader           9104  tracks-loader   -
 raposa-engine           9105  raposa-engine   -
 raposa-web              9106  raposa-web      -
-observe-bot             9107  observe-bot     -'
+observe-bot             9107  observe-bot     -
+tracks-bridge           9108  tracks-bridge   -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.

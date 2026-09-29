@@ -1,0 +1,27 @@
+# Writes Tracks' scrapes into the old collector's database so today's Spy
+# keeps its numbers while the old collector no longer scrapes. Only used during
+# the switch-over (platform/SWITCH-OVER.md); setup installs it but never
+# enables it. Uses the loader's database login and archive keys, and its own
+# settings in /etc/adhunters/tracks-bridge.env.
+[Unit]
+Description=Tracks bridge to the old collector database
+Wants=network-online.target
+After=network-online.target postgresql.service tracks-loader.service
+
+[Service]
+User=tracks
+Group=tracks
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/tracks-loader.env
+EnvironmentFile=/etc/adhunters/tracks-bridge.env
+ExecStart=/opt/adhunters/bin/tracks-bridge run -archive ${ARCHIVE}
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

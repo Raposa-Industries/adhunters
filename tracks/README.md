@@ -8,6 +8,7 @@ adhunters-collector, one binary at a time. Internal: no app of its own.
 | `tracks-capture` | Scrapes the feeds and writes every answer, as received, to the spool. No database. | shadow run |
 | `tracks-shipper` | Uploads sealed raw files to the archive and records them. | built, not deployed |
 | `tracks-loader` | Parses raw files into sightings, closes each hour into counts, replays any range. | built, not deployed |
+| `tracks-bridge` | Writes Tracks' scrapes into the old collector's database, so today's Spy keeps working after the switch-over. | built, not deployed |
 | `tracks-walker` | Follows ad links to landing pages. | later |
 
 ## tracks-capture
@@ -97,6 +98,7 @@ tracks-loader migrate
 tracks-loader run    -archive s3://adhunters-raw [-max-lag 10m]
 tracks-loader replay -from 2026-09-20T00:00:00Z -to 2026-09-21T00:00:00Z [-network taboola]
 tracks-loader status [-books]
+tracks-loader import-old -before 2026-10-01T00:00:00Z [-from 2026-06-01T00:00:00Z]
 ```
 
 `run` does, in a loop:
@@ -139,6 +141,16 @@ range had its sightings dropped, the whole day loads again, because a day's
 counts come from all of its sightings. `status -books` checks that the books
 balance for the last day and exits non-zero when they don't.
 
+`import-old` copies the collector's history into Tracks, reading the
+collector's database (`OLD_DATABASE_URL`) and never writing it: the lookups
+by their natural keys, then day by day the hourly and daily counts before
+`-before` (the switch-over, a UTC midnight), each day replacing what Tracks
+held. Those hours become **imported hours** (`hour_state.imported_at`): the
+loader quarantines a file that would touch one and `replay` refuses them.
+The collector kept the creative and link, and creative and campaign pairs
+only as running totals, so each becomes one row on the last day it was seen.
+Running it again replaces what the last run wrote.
+
 Sessions always run in UTC (`load.UTC`): days and hours are UTC days and hours.
 The publisher's domain comes from the request itself (Taboola's `u`, the
 NewsBreak auction's `site.page`), so a replay does not depend on today's
@@ -161,6 +173,43 @@ targets file.
 Anything dropped comes back by replay from the archive ([decision
 0007](../decisions/0007-keep-times.md)). What other services may read is
 published in `tracks_api` and listed in [`contract/sql/tracks/`](../contract/sql/tracks/).
+
+## tracks-bridge
+
+Only for the switch-over ([platform/SWITCH-OVER.md](../platform/SWITCH-OVER.md)),
+until the new Spy launches: today's Spy reads the collector's database on
+prodbox, and after the switch-over the collector no longer scrapes.
+
+```
+tracks-bridge run    -archive s3://adhunters-raw [-from 2026-10-01T00:00:00Z] [-max-lag 10m]
+tracks-bridge check  [-from …]
+tracks-bridge status [-from …]
+tracks-bridge redo   -from 2026-10-01T10:00:00Z -to 2026-10-01T12:00:00Z
+```
+
+`run` takes the raw files from `-from` (default `BRIDGE_FROM`) on, oldest
+first, parses each with `parse/` and writes its `ok` scrapes into the
+collector's `spy` tables with the collector's own `SpyWriter`, ported as it is
+from adhunters-collector `e20148c` (`bridge/writer.go`). Each scrape's
+`batch_uid` is its capture id and every insert skips rows already there, so a
+file written twice counts once. It also files each ad's newest click link in
+`spy.walk_queue` (at most every 10 minutes per ad), which feeds the
+collector's landing page walker while its sweeper is off.
+
+`tracks.bridge_file` records each file written (scrapes, sightings, attempts,
+the last error). A file that fails 3 times is quarantined; `redo` writes a
+range again. The collector's database being down does not count against a
+file. `check` says whether the collector's database is ready (the table, the
+login's rights, the newest scrape by the collector and by the bridge). Metrics:
+`tracks_bridge_files_total{outcome}`, `…_scrapes_total`, `…_sightings_total`,
+`…_files_pending`, `…_files_quarantined`, `…_lag_seconds`; alerts
+`BridgeBehind` and `BridgeFileQuarantined` ([runbook](../runbooks/bridge-behind.md)).
+`DATABASE_URL` is the loader's login; `OLD_DATABASE_URL` the collector's owner
+login, because the writer creates `spy.sighting` partitions.
+
+Tests run the writer against the collector's schema, dumped into
+`internal/collectortest/collector_spy.sql` (the tables it writes, at `e20148c`
+plus `042_walk_queue.sql`).
 
 ### Not built yet
 

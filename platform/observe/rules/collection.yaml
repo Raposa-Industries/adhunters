@@ -86,6 +86,25 @@ groups:
           summary: '{{ $value }} raw file(s) are quarantined and wait for a fix and a replay.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raw-file-quarantined.md
 
+      # Only while tracks-bridge runs (platform/SWITCH-OVER.md): today's Spy
+      # reads the collector's database, which only the bridge feeds.
+      - alert: BridgeBehind
+        expr: max(tracks_bridge_lag_seconds) > 900
+        for: 5m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'Today''s Spy is {{ $value | humanizeDuration }} behind: tracks-bridge has not written the newest scrapes into the collector''s database.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/bridge-behind.md
+
+      - alert: BridgeFileQuarantined
+        expr: max(tracks_bridge_files_quarantined) > 0
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $value }} raw file(s) could not be written into the collector''s database; today''s Spy is missing them.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/bridge-behind.md
+
       - alert: FormatDrift
         expr: |
           sum by (network) (rate(tracks_loader_scrapes_total{outcome="unparsed"}[30m]))

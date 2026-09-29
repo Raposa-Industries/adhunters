@@ -5,12 +5,14 @@
 //	tracks-loader run    -archive s3://adhunters-raw
 //	tracks-loader replay -from 2026-09-20T00:00Z -to 2026-09-21T00:00Z [-network taboola]
 //	tracks-loader status [-books]
+//	tracks-loader import-old -before 2026-10-01T00:00:00Z [-from 2026-06-01T00:00:00Z]
 //
 // The database URL comes from DATABASE_URL and the archive's keys from
 // S3_ENDPOINT, S3_ACCESS_KEY and S3_SECRET_KEY (see archive.Open). run stops
 // cleanly on SIGTERM; a load or close cut off by the stop rolls back and is
 // done again at the next start. replay only marks files pending, so a running
-// loader does the work.
+// loader does the work. import-old copies the collector's counts from before
+// the switch-over, reading OLD_DATABASE_URL and never writing it.
 package main
 
 import (
@@ -51,6 +53,8 @@ func main() {
 		err = replayCmd(os.Args[2:])
 	case "status":
 		err = statusCmd(os.Args[2:])
+	case "import-old":
+		err = importOldCmd(os.Args[2:])
 	case "version":
 		fmt.Println(version)
 	default:
@@ -63,7 +67,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: tracks-loader run|migrate|replay|status|version [flags]")
+	fmt.Fprintln(os.Stderr, "usage: tracks-loader run|migrate|replay|status|import-old|version [flags]")
 	os.Exit(2)
 }
 
@@ -196,4 +200,42 @@ func statusCmd(args []string) error {
 		return errors.New("the books do not balance")
 	}
 	return nil
+}
+
+func importOldCmd(args []string) error {
+	fs := flag.NewFlagSet("import-old", flag.ExitOnError)
+	before := fs.String("before", "", "the switch-over, 00:00 UTC of Tracks' first day alone, RFC 3339")
+	from := fs.String("from", "", "first day to copy, RFC 3339 (default: the collector's first)")
+	_ = fs.Parse(args)
+	b, err := time.Parse(time.RFC3339, *before)
+	if err != nil {
+		return fmt.Errorf("-before: %w", err)
+	}
+	var f time.Time
+	if *from != "" {
+		if f, err = time.Parse(time.RFC3339, *from); err != nil {
+			return fmt.Errorf("-from: %w", err)
+		}
+	}
+	oldURL := os.Getenv("OLD_DATABASE_URL")
+	if oldURL == "" {
+		return errors.New("OLD_DATABASE_URL is not set (the collector's database on prodbox)")
+	}
+	log := logx.New("tracks-loader", version)
+	ctx := context.Background()
+	db, err := open(ctx, time.Hour, 1)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	old, err := pg.Open(ctx, pg.Config{URL: oldURL, AppName: "tracks-loader import-old", StatementTimeout: time.Hour, MaxConns: 1})
+	if err != nil {
+		return err
+	}
+	defer old.Close()
+	res, err := load.ImportOld(ctx, db, old, load.ImportConfig{Before: b, From: f, Log: log})
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(res)
+	return err
 }
