@@ -1,6 +1,8 @@
 # One capture instance. The worker box runs @a and @b (4 workers each); the
 # standby box runs @standby with 1 worker, raised to 8 when the worker box
-# goes quiet. Its settings are in /etc/adhunters/tracks-capture@<instance>.env.
+# goes quiet. Its settings are in /etc/adhunters/tracks-capture@<instance>.env:
+# WORKERS, and THROTTLE (the wait after each scrape, per worker; a short test
+# beside the old collector uses 1 worker and 10s).
 [Unit]
 Description=Tracks capture, instance %i
 Wants=network-online.target
@@ -9,12 +11,13 @@ After=network-online.target
 [Service]
 User=tracks
 Group=tracks
+Environment=THROTTLE=150ms
 EnvironmentFile=-/etc/adhunters/observe.env
 EnvironmentFile=/etc/adhunters/tracks-capture@%i.env
 ExecStart=/opt/adhunters/bin/tracks-capture run \
     -targets /etc/adhunters/tracks-capture/targets.yaml \
     -lines /etc/adhunters/tracks-capture/proxies.env \
-    -spool /var/lib/tracks/spool -instance %i -workers ${WORKERS}
+    -spool /var/lib/tracks/spool -instance %i -workers ${WORKERS} -throttle ${THROTTLE}
 Restart=always
 RestartSec=2
 TimeoutStopSec=45
