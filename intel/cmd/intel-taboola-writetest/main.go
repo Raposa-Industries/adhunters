@@ -6,6 +6,7 @@
 //	intel-taboola-writetest live-start -account X -url URL -out DIR   # T12: one paused campaign, two items
 //	intel-taboola-writetest live-on    -account X -out DIR            # T12: once approved, turn it on ($20 total at most)
 //	intel-taboola-writetest live-cut   -account X -out DIR            # T12: pause one of its two items
+//	intel-taboola-writetest live-pause -account X -out DIR            # T12: pause the campaign, keep everything
 //	intel-taboola-writetest live-end   -account X -out DIR            # T12: pause, read reports, delete
 //	intel-taboola-writetest cleanup    -account X -out DIR            # delete everything the tests made
 //	intel-taboola-writetest purge      -account X -out DIR [-groups a,b] # delete items and AutoGen groups left by our deleted campaigns
@@ -102,6 +103,8 @@ func main() {
 			return t.liveOn(ctx)
 		case "live-cut":
 			return t.liveCut(ctx)
+		case "live-pause":
+			return t.livePause(ctx)
 		case "live-end":
 			return t.liveEnd(ctx)
 		case "cleanup":
@@ -118,7 +121,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: intel-taboola-writetest paused|live-start|live-on|live-cut|live-end|cleanup|purge -account X -out DIR [-url URL] [-sites a,b]")
+	fmt.Fprintln(os.Stderr, "usage: intel-taboola-writetest paused|live-start|live-on|live-cut|live-pause|live-end|cleanup|purge -account X -out DIR [-url URL] [-sites a,b]")
 	os.Exit(2)
 }
 
@@ -577,6 +580,22 @@ func (t *tester) pendingLive() (string, error) {
 		return "", fmt.Errorf("T12 campaign %s is already on or deleted", id)
 	}
 	return id, nil
+}
+
+// livePause pauses the live campaign and leaves everything in place, for
+// when a person asks to hold the test.
+func (t *tester) livePause(ctx context.Context) error {
+	cid, _, err := t.live()
+	if err != nil {
+		return err
+	}
+	got, err := t.c.UpdateCampaign(ctx, cid, act.Obj{"is_active": false})
+	if err != nil {
+		t.note("T12", "pause refused: %v", err)
+		return err
+	}
+	t.note("T12", "campaign %s paused at %s: status %s, spent %v", cid, time.Now().UTC().Format(time.RFC3339), s(got["status"]), got["spent"])
+	return nil
 }
 
 // liveCut pauses the second item of the live campaign (a cut while serving).
