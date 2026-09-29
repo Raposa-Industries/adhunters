@@ -25,6 +25,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"strings"
@@ -267,7 +268,12 @@ func (c *Client) DeleteItem(ctx context.Context, campaignID, itemID string) (Obj
 func (c *Client) UploadImage(ctx context.Context, name string, data []byte) (string, error) {
 	var buf bytes.Buffer
 	w := multipart.NewWriter(&buf)
-	part, err := w.CreateFormFile("file", name)
+	h := textproto.MIMEHeader{}
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename=%q`, name))
+	// Taboola refuses a part sent as application/octet-stream ("unsupported
+	// type of image"), so name the image's own type.
+	h.Set("Content-Type", http.DetectContentType(data))
+	part, err := w.CreatePart(h)
 	if err != nil {
 		return "", err
 	}

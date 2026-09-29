@@ -58,6 +58,7 @@ func main() {
 	landing := fs.String("url", "", "landing page for the test items")
 	out := fs.String("out", "", "directory for raw answers, state.json and results.md")
 	sites := fs.String("sites", "", "two site names to block and unblock in T8, comma-separated")
+	tracking := fs.String("tracking", "", "campaign tracking code (query string with Taboola macros such as {campaign_id}) that Taboola appends to every item URL")
 	fs.Parse(os.Args[2:])
 	if *account == "" || *out == "" {
 		usage()
@@ -76,7 +77,11 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	t := &tester{c: c, dir: *out, account: *account, url: *landing, sites: splitList(*sites), wait: 10 * time.Second}
+	t := &tester{c: c, dir: *out, account: *account, url: *landing, tracking: *tracking, sites: splitList(*sites), wait: 10 * time.Second}
+	// Carry on the raw file numbers of earlier runs sharing -out.
+	if old, err := os.ReadDir(filepath.Join(*out, "raw")); err == nil {
+		t.n = len(old)
+	}
 	c.Record = t.save
 	log := logx.New("intel-taboola-writetest", version)
 	err = run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
@@ -114,14 +119,15 @@ func fail(err error) {
 }
 
 type tester struct {
-	c       *act.Client
-	dir     string
-	account string
-	url     string
-	sites   []string
-	wait    time.Duration
-	n       int
-	lines   []string
+	c        *act.Client
+	dir      string
+	account  string
+	url      string
+	tracking string
+	sites    []string
+	wait     time.Duration
+	n        int
+	lines    []string
 }
 
 // note records one finding for results.md.
@@ -153,8 +159,18 @@ func (t *tester) writeResults(cmd string) {
 }
 
 // campaignBody is a paused test campaign: fixed $0.10 bid, $20 in total at
-// most, $10 a day at most, US desktop and phone.
+// most, $10 a day at most, US desktop and phone. Taboola fills macros only
+// in the campaign's tracking code: in an item URL it escapes the braces
+// (seen 2026-09-29), so the macros go in -tracking, not in -url.
 func (t *tester) campaignBody(name string) act.Obj {
+	b := t.baseCampaign(name)
+	if t.tracking != "" {
+		b["tracking_code"] = t.tracking
+	}
+	return b
+}
+
+func (t *tester) baseCampaign(name string) act.Obj {
 	return act.Obj{
 		"name": prefix + " " + name, "branding_text": "AH Test", "is_active": false,
 		"marketing_objective": "DRIVE_WEBSITE_TRAFFIC", "bid_strategy": "FIXED", "cpc": bid,
@@ -164,8 +180,17 @@ func (t *tester) campaignBody(name string) act.Obj {
 	}
 }
 
-// paused runs T1 to T11. No campaign is ever turned on.
+// paused runs T1 to T11. No campaign is ever turned on. Whatever stops it
+// early, everything it made is deleted before it returns.
 func (t *tester) paused(ctx context.Context) error {
+	err := t.pausedTests(ctx)
+	if cerr := t.cleanup(ctx); cerr != nil {
+		return errors.Join(err, cerr)
+	}
+	return err
+}
+
+func (t *tester) pausedTests(ctx context.Context) error {
 	if t.url == "" {
 		return errors.New("-url is required")
 	}
@@ -317,7 +342,7 @@ func (t *tester) paused(ctx context.Context) error {
 	} else {
 		t.note("T11", "deleted item %s still answers: status %s", items[1], s(got["status"]))
 	}
-	return t.cleanup(ctx)
+	return nil
 }
 
 // cleanup deletes every campaign the tests made that is not deleted yet,

@@ -184,19 +184,22 @@ func TestUploadImage(t *testing.T) {
 			w.Write([]byte(`{"access_token":"tok","expires_in":43200}`))
 			return
 		}
-		f, _, err := r.FormFile("file")
+		f, fh, err := r.FormFile("file")
 		if err != nil || r.URL.Path != apiPrefix+uploadAPI {
-			t.Errorf("upload: %v %s", err, r.URL.Path)
+			t.Fatalf("upload: %v %s", err, r.URL.Path)
+		}
+		if ct := fh.Header.Get("Content-Type"); ct != "image/png" {
+			t.Errorf("part type %q, want image/png", ct)
 		}
 		b, _ := io.ReadAll(f)
-		if string(b) != "PNG" {
+		if !strings.HasPrefix(string(b), "\x89PNG") {
 			t.Errorf("body %q", b)
 		}
 		w.Write([]byte(`{"name":"image_url","value":"http://cdn/x.png"}`))
 	}))
 	defer srv.Close()
 	c, _ := New(srv.URL, "id", "s", guard(t))
-	u, err := c.UploadImage(context.Background(), "x.png", []byte("PNG"))
+	u, err := c.UploadImage(context.Background(), "x.png", []byte("\x89PNG\r\n\x1a\n..."))
 	if err != nil || u != "http://cdn/x.png" {
 		t.Fatalf("%s %v", u, err)
 	}
