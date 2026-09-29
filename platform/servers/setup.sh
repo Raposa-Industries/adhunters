@@ -39,8 +39,16 @@ say() { echo "== $*"; }
 # ---- every box --------------------------------------------------------------
 
 common() {
+    private_net
     say "base: timezone UTC, the tracks user, folders"
     timedatectl set-timezone UTC
+    # Hetzner gives root a random password that has expired, and sudo from
+    # root (sudo -u postgres, sudo -u raposa) then asks for a new one. Root
+    # still can't log in: SSH is off for it and the password stays unknown.
+    if LC_ALL=C chage -l root | grep -q 'password must be changed'; then
+        chage -d "$(date +%F)" -M -1 root
+        say "cleared the expired root password"
+    fi
     id tracks >/dev/null 2>&1 || useradd --system --home-dir /var/lib/tracks --shell /usr/sbin/nologin tracks
     install -d -m 0755 /etc/adhunters /opt/adhunters/bin
     # Metrics files that scripts write for Alloy (pgBackRest on the data box).
@@ -53,6 +61,22 @@ common() {
         printf '%s\n' "$observe_env" >/etc/adhunters/observe.env
         say "wrote /etc/adhunters/observe.env"
     fi
+}
+
+# private_net: switches on the Hetzner private network card when Ubuntu left
+# it down (it happens when Hetzner attaches it without a netplan entry): the
+# worker and standby reach Postgres at 10.20.1.20 through it.
+private_net() {
+    local nic=enp7s0 f=/etc/netplan/60-private.yaml
+    ip link show "$nic" >/dev/null 2>&1 || return 0
+    ip -4 addr show "$nic" | grep -q 'inet 10\.20\.' && return 0
+    say "private network: dhcp on $nic"
+    install -m 0600 /dev/null "$f"
+    printf 'network:\n  version: 2\n  ethernets:\n    %s:\n      dhcp4: true\n' "$nic" >"$f"
+    netplan apply
+    sleep 3
+    ip -4 addr show "$nic" | grep -q 'inet 10\.20\.' ||
+        todo+=("$nic has no 10.20.1.x address after netplan apply: check the box's network in the Hetzner Console")
 }
 
 observe_env='# Read by every AdHunters unit before its own settings (kit/errs).
@@ -177,7 +201,7 @@ raposa_browser() {
 
 # example NAME: the settings lines of raposa/deploy/NAME.env.example.
 example() {
-    grep -E '^[A-Z_]+=' "$raposa_src/deploy/$1.env.example" || true
+    grep -E '^[A-Z0-9_]+=' "$raposa_src/deploy/$1.env.example" || true
 }
 
 raposa_box() {

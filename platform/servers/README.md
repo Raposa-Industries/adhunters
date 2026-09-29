@@ -44,6 +44,13 @@ Postgres through the read-only `observe` login; it starts once
 
 Capture needs `targets.yaml` (the collector's `config/publishers.yaml`) and
 `proxies.env` (its `secrets/proxies.env`) in `/etc/adhunters/tracks-capture/` (the proxies log in with a password; no IP allowlist).
+Each instance's `/etc/adhunters/tracks-capture@<instance>.env` sets `WORKERS`
+and, optionally, `THROTTLE` (the wait after each scrape, default `150ms`).
+
+`share-secrets.sh`, run on the owner's computer, fills in what the worker
+and standby boxes share with the data box (the object storage keys and the
+`tracks_shipper` and `raposa` database URLs) without showing them; see
+[../OPERATIONS.md](../OPERATIONS.md).
 
 ### Raposa on the worker box
 

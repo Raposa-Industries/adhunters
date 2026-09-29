@@ -28,6 +28,13 @@ Object Storage, same Hetzner project, Falkenstein, private, endpoint
 Proxies log in with username and password; no provider has an IP allowlist
 for them (checked 28 Sep 2026), so the new boxes need no allowlist change.
 
+State on 29 Sep 2026: setup.sh has run on all three boxes. Postgres, the
+loader, backups, both shippers, Raposa's engine and web run; capture is
+stopped on the worker and not configured on the standby, because the proxy
+lines are shared with the old collector (bigworker), and today's Spy reads
+only the old collector's database on prodbox. Grafana Alloy and observe-bot
+wait for their accounts (`FILL_ME`).
+
 ## Accounts
 
 | What | Where | Notes |
@@ -118,6 +125,31 @@ as `NAME.prev` and restarts only units whose settings are complete; the
 capture instances restart one at a time, so collection never stops. It ends
 with a list of what is still to fill in. Details: `platform/servers/README.md`.
 
+The worker and standby boxes share some settings with the data box: the
+object storage keys and the database logins `tracks_shipper` and `raposa`.
+Once the data box has its keys in `tracks-loader.env` and setup.sh has run on
+the other box, fill them in from your computer, with nothing secret on screen:
+
+```
+platform/servers/share-secrets.sh            # or: share-secrets.sh worker
+```
+
+It copies the keys from the data box, copies a login's password from a box
+that already has it (the first time, it sets a new one on the data box),
+writes them into the `.env` files and restarts what is ready. It can run
+again at any time.
+
+If a setup stops at `sudo: Account or password is expired` and asks for
+root's current password, press Ctrl+C (nothing is lost) and run
+`sudo chage -d "$(date +%F)" -M -1 root`, then the setup again. Hetzner
+expires root's random password at creation; the setup now clears it itself.
+
+If the worker or standby can't reach the database (`pg: ping: context
+deadline exceeded`, `ping 10.20.1.20` gets no answer), check `ip -brief addr`
+on it: `enp7s0 DOWN` means Ubuntu left the private network card off. The
+setup now switches it on (`/etc/netplan/60-private.yaml`, DHCP); by hand, write
+that file and run `sudo netplan apply`.
+
 Rolling back one binary on a box:
 `sudo cp /opt/adhunters/bin/NAME.prev /opt/adhunters/bin/NAME && sudo systemctl restart UNIT`.
 
@@ -127,4 +159,5 @@ Rolling back one binary on a box:
   Until then, deploys are the commands above, run by hand.
 - A home for secrets (sops or similar): the `.env` files are written by hand.
 - The switch-over from the old collector (prodbox and bigworker keep running
-  until the owner says otherwise).
+  until the owner says otherwise). It needs today's Spy fed from the new
+  database first; until then capture stays off on the new boxes.
