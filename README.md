@@ -10,6 +10,7 @@ The apps people use are AdHunters Spy, Create, Intel, Funnels and Raposa
 | Folder | What it does | Status |
 |---|---|---|
 | `kit/` | Shared plumbing for every Go binary: logging, stop handling, `/healthz` and `/metrics`, the Postgres pool, migrations. Nothing domain-specific. | started |
+| `shared/` | Code several services need that is not plumbing, such as an ad network client ([decision 0013](decisions/0013-shared-code.md)). | none yet |
 | `contract/` | The data contract: the views each service publishes for others. | tracks_api v1 (scrape_coverage v2), raposa_api v1, spy_api v1 |
 | `platform/` | Servers as code (Terraform + HCP Terraform), box setup, observability (Alloy, alert rules, Telegram routing), deploys, secrets. | Terraform and box setup written; servers partly applied; observability written, accounts not created |
 | `runbooks/` | One page per alert: what it means, what to check, how to fix it. | one per alert |
@@ -28,8 +29,10 @@ in [`decisions/`](decisions/) saying what, why and when.
 ## Working here
 
 - Go 1.25+. `go.work` ties the modules together: `go test ./kit/... ./tracks/...`.
-- Each service is its own Go module. It may import `kit` and `contract`,
-  never another service; `scripts/check-walls.sh` enforces it in CI.
+- Each service is its own Go module. It may import `kit`, `contract` and
+  `shared`, never another service: code a second service needs moves to
+  `shared` rather than being copied ([decision 0013](decisions/0013-shared-code.md)).
+  `scripts/check-walls.sh` enforces it in CI.
 - Each service owns one Postgres schema, `<svc>`, and publishes `<svc>_api`
   for everyone else. Migrations live in the service's folder and run at its
   deploy with `lock_timeout = 3s`; `kit/migrate` lints them.

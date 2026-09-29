@@ -44,6 +44,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | task | Work a service does on a schedule (an hour close, a refresh, a pull). Each promises how often it succeeds; one past its promise is late. |
 | spool | Capture's local folder of raw files not yet archived. Capture writes there and nowhere else. |
 | sealed | A raw file whose minute has ended, compressed with zstd, ready to archive. |
+| shared code | Code several services need, kept in one shared module (`kit`, `contract` or `shared/`) that each imports, never copied between services or imported from another service's folder. See [decision 0013](decisions/0013-shared-code.md). |
 | shadow run | A new binary running beside the one in service on the same input, writing only its own output, to measure or compare. Nothing reads its output as real data. |
 | switch-over | The minute Tracks alone scrapes and the old collector's sweeper stops, always 00:00 UTC. See `platform/SWITCH-OVER.md`. |
 | bridge | `tracks-bridge`: writes Tracks' scrapes into the old collector's database after the switch-over, so today's Spy keeps working until the new Spy launches. |
