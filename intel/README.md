@@ -14,6 +14,8 @@ app has something tested to stand on. Words are in
 | `redtrack/` | Thin client for the RedTrack API: spacing and retries, paging, the key kept out of every answer, error and log line, rows kept as raw JSON fields. |
 | `taboola/` | Read-only client for Taboola's Backstage API: token handling, retries on 429 and 5xx (honouring `Retry-After`), and the reads (account, campaigns, items, reports). Answers come back raw so they are saved before they are read. |
 | `cmd/intel-taboola` | Developer tool: `probe` calls every Taboola read once for one account and writes the raw answers plus `summary.md`. Not a service. |
+| `taboola/act` | The Taboola write client, for intel-act and its tests only. A guard checked before every request: one advertiser account, only campaigns and items it created (kept in a state file), new campaigns paused with a fixed bid and a total budget, and a money ceiling on everything it ever turns on. |
+| `cmd/intel-taboola-writetest` | Developer tool: runs the approved write tests (T1 to T12 of `research/taboola-api/write-test-plan.md`) through `taboola/act`, saving every request and answer raw. |
 | `cmd/redtrack-probe` | Developer tool: reads an account end to end and saves every raw answer, plus `summary.md`. Also sends single raw calls, including writes. Not a service. |
 
 Nothing here runs on a server yet, so there is no `/healthz` and no schema.
@@ -33,12 +35,22 @@ go run ./cmd/redtrack-probe post /sources source.json   # writes: only on an acc
 Output goes to `redtrack-probe-<time>/` (`-out` to change). Cloud sessions
 need `api.redtrack.io` in the environment's allowed domains.
 
-## Taboola: read-only, on purpose
+## Taboola: reading and writing kept apart
 
-The client's transport refuses every request except GETs under
-`/backstage/api/1.0/` and the token POST, before it leaves the process. No
-code here can create, change, pause or delete anything on Taboola. Writing
-comes later, in its own client, once the owner says so.
+The read client (`taboola`) refuses every request except GETs under
+`/backstage/api/1.0/` and the token POST, before it leaves the process.
+Writing lives only in `taboola/act`, behind its guard. On the lent account it
+runs only what the user approved on 2026-09-29: tests that leave running
+campaigns alone and spend $20 at most, in total.
+
+    go run ./intel/cmd/intel-taboola-writetest paused     -account X-sc -url URL -out DIR   # T1 to T11, $0
+    go run ./intel/cmd/intel-taboola-writetest live-start -account X-sc -url URL -out DIR   # T12, created paused
+    go run ./intel/cmd/intel-taboola-writetest live-on    -account X-sc -out DIR            # once approved
+    go run ./intel/cmd/intel-taboola-writetest live-cut   -account X-sc -out DIR
+    go run ./intel/cmd/intel-taboola-writetest live-end   -account X-sc -out DIR            # pause, reports, delete
+
+Use one `-out` for all of them: its `state.json` is how the guard knows what
+is ours and what was turned on.
 
 ## Running the Taboola probe
 
