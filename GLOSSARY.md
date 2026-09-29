@@ -38,6 +38,8 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | heartbeat | The alert that always fires. Better Stack calls when it stops arriving, because then no other alert can be trusted. |
 | runbook | The file in `runbooks/` an alert links: what it means, what to check, how to fix it. |
 | credit | What is left on a prepaid service we pay for: proxy traffic, AI credit. observe-bot reads it where the service has an API (`credits.conf`). |
+| policy page | An article or section of Taboola's advertiser help center (realize.com/help) under Policy & Content Review. observe-bot reads them every 6 hours. |
+| policy change | A policy page that appeared, went away or whose text changed between two crawls. Each one is posted to "AdHunters alerts". |
 | renewal | The day a subscription we depend on renews or must be paid, for services with no balance to read (the datacenter and ISP lines). |
 | task | Work a service does on a schedule (an hour close, a refresh, a pull). Each promises how often it succeeds; one past its promise is late. |
 | spool | Capture's local folder of raw files not yet archived. Capture writes there and nowhere else. |

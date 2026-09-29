@@ -381,7 +381,8 @@ OPS_ADDR=127.0.0.1:9108"
     DATABASE_URL=postgres://raposa:$raposa_pw@$data_ip:5432/adhunters?sslmode=require")
     fi
 
-    # The 08:00 digest, the Sentry relay and the credit checks (platform/observe).
+    # The 08:00 digest, the Sentry relay, the credit checks and the policy
+    # watch (platform/observe).
     install_bin observe-bot
     install_unit observe-bot.service
     systemctl daemon-reload
@@ -412,6 +413,9 @@ SENTRY_API_TOKEN=FILL_ME
 # Keys for the balance checks in /etc/adhunters/credits.conf. A check whose
 # key is FILL_ME is off.
 IPROYAL_API_TOKEN=FILL_ME
+# The policy watch: help center collections to crawl, space separated.
+# Default: Policy & Content Review.
+# POLICY_URLS=https://realize.com/help/en/collections/11915686-policy-content-review
 OPS_ADDR=127.0.0.1:9107'
 
 # ---- backups (data box) -------------------------------------------------------

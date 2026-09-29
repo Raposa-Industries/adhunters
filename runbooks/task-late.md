@@ -16,6 +16,7 @@ A periodic task (a refresh, a pull, a close) has not succeeded for longer than i
 
 - Failing: the error decides. A database problem points to [postgres-down](postgres-down.md); a code error is a fix by PR.
 - Not running: the service is down or stuck; restart it.
+- `policy_watch` (observe-bot): Taboola's help center could not be read, so policy changes are not being posted. `observe-bot policy` on the data box crawls once and prints the error: a bot check or a new page layout ("no text", "no articles") needs a parser fix by PR; a page that is listed but gone clears when Taboola fixes its link or the page goes from the list.
 
 ## After
 
