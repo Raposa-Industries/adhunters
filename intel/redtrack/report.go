@@ -24,12 +24,15 @@ const (
 	PathSettings    = "/me/settings" // time zone, currency, conversion types
 )
 
-// Groups RedTrack reports can be grouped by. sub1…sub20 carry what the
-// tracking code put in them (for Taboola: the campaign, item and site ids).
+// Groups RedTrack reports can be grouped by, all accepted live on
+// 2026-09-29, also combined (campaign,date,hour_of_day). sub1…sub20 carry
+// what the tracking code put in them (for Taboola: the campaign, item and
+// site ids). The hour is hour_of_day: an unknown group, "hour" included,
+// answers HTTP 500 {"error":"Problem with loading report"}.
 var Groups = []string{
 	"campaign", "offer", "source", "landing", "network",
 	"country", "region", "city", "os", "browser", "device", "device_brand", "connection_type", "isp",
-	"date", "hour", "day_of_week",
+	"date", "hour_of_day", "day_of_week",
 	"rt_source", "rt_medium", "rt_campaign", "rt_adgroup", "rt_ad", "rt_placement", "rt_keyword",
 }
 

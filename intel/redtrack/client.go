@@ -31,28 +31,50 @@ const DefaultBaseURL = "https://api.redtrack.io"
 type Client struct {
 	BaseURL string
 	HTTP    *http.Client
-	// MinGap spaces requests out. RedTrack does not publish its limits, so
-	// the default is one request per second; a 429 is still retried.
+	// MinGap spaces out all requests, whatever the path.
 	MinGap time.Duration
-	// MaxRetries is how many times a 429, a 5xx or a network error is
-	// retried, with doubling waits (or the server's Retry-After).
+	// Limits spaces out requests to one path (matched by prefix), for the
+	// endpoints RedTrack limits on their own. Measured 2026-09-29: /report
+	// and /conversions each allow "20 a minute" (a calendar minute) and 2 a
+	// second, but one request often uses two of the 20, so about 10 fit.
+	// /campaigns, /sources and /me/settings answered 25-30 back-to-back
+	// requests with no limit.
+	Limits map[string]time.Duration
+	// MaxRetries is how many times a 5xx or a network error is retried, with
+	// doubling waits.
 	MaxRetries int
+	// MaxRateRetries is how many times a 429 is retried, each after the
+	// server's Retry-After (up to a minute on /report).
+	MaxRateRetries int
 
 	key   string
 	mu    sync.Mutex
 	last  time.Time
+	next  map[string]time.Time // per Limits prefix: earliest next start
 	sleep func(context.Context, time.Duration) error
+	now   func() time.Time
+}
+
+// DefaultLimits keeps the limited endpoints at 10 requests a minute. /tracks
+// sends no rate headers on errors, so it is spaced the same to be safe.
+var DefaultLimits = map[string]time.Duration{
+	PathReport:      6 * time.Second,
+	PathConversions: 6 * time.Second,
+	PathClicks:      6 * time.Second,
 }
 
 // New returns a client for the given API key.
 func New(apiKey string) *Client {
 	return &Client{
-		BaseURL:    DefaultBaseURL,
-		HTTP:       &http.Client{Timeout: 60 * time.Second},
-		MinGap:     time.Second,
-		MaxRetries: 3,
-		key:        apiKey,
-		sleep:      sleepCtx,
+		BaseURL:        DefaultBaseURL,
+		HTTP:           &http.Client{Timeout: 60 * time.Second},
+		MinGap:         200 * time.Millisecond,
+		Limits:         DefaultLimits,
+		MaxRetries:     3,
+		MaxRateRetries: 5,
+		key:            apiKey,
+		sleep:          sleepCtx,
+		now:            time.Now,
 	}
 }
 
@@ -116,8 +138,9 @@ func (c *Client) Do(ctx context.Context, method, path string, q url.Values, body
 	full.Set("api_key", c.key)
 	u.RawQuery = full.Encode()
 
+	rateTries := 0
 	for attempt := 0; ; attempt++ {
-		if err := c.wait(ctx); err != nil {
+		if err := c.wait(ctx, path); err != nil {
 			return nil, err
 		}
 		start := time.Now()
@@ -143,8 +166,17 @@ func (c *Client) Do(ctx context.Context, method, path string, q url.Values, body
 			Status: resp.status, Header: resp.header, Body: []byte(c.redact(string(resp.body))),
 			At: start.UTC(), Duration: time.Since(start),
 		}
-		if (r.Status == http.StatusTooManyRequests || r.Status >= 500) && attempt < c.MaxRetries {
-			if err := c.sleep(ctx, backoff(attempt, r.Header.Get("Retry-After"))); err != nil {
+		c.hold(path, r.Header)
+		if r.Status == http.StatusTooManyRequests && rateTries < c.MaxRateRetries {
+			rateTries++
+			attempt--
+			if err := c.sleep(ctx, backoff(rateTries-1, r.Header.Get("Retry-After"))); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		if r.Status >= 500 && attempt < c.MaxRetries {
+			if err := c.sleep(ctx, backoff(attempt, "")); err != nil {
 				return nil, err
 			}
 			continue
@@ -187,17 +219,62 @@ func (c *Client) once(ctx context.Context, method, u string, payload []byte) (*r
 	return &rawResp{status: resp.StatusCode, header: resp.Header, body: b}, nil
 }
 
-// wait keeps MinGap between the starts of two requests.
-func (c *Client) wait(ctx context.Context) error {
+// limitOf returns the Limits prefix path falls under, or "".
+func (c *Client) limitOf(path string) string {
+	path = "/" + strings.TrimLeft(path, "/")
+	best := ""
+	for p := range c.Limits {
+		if (path == p || strings.HasPrefix(path, p+"/")) && len(p) > len(best) {
+			best = p
+		}
+	}
+	return best
+}
+
+// wait keeps MinGap between the starts of any two requests, and the path's
+// Limits gap between two requests to that path.
+func (c *Client) wait(ctx context.Context, path string) error {
 	c.mu.Lock()
+	now := c.now()
 	next := c.last.Add(c.MinGap)
-	now := time.Now()
+	lim := c.limitOf(path)
+	if lim != "" && c.next[lim].After(next) {
+		next = c.next[lim]
+	}
 	if next.Before(now) {
 		next = now
 	}
 	c.last = next
+	if lim != "" {
+		if c.next == nil {
+			c.next = map[string]time.Time{}
+		}
+		c.next[lim] = next.Add(c.Limits[lim])
+	}
 	c.mu.Unlock()
-	return c.sleep(ctx, time.Until(next))
+	return c.sleep(ctx, next.Sub(now))
+}
+
+// hold reads RedTrack's rate headers: when the minute's allowance for a
+// limited path is used up, no request to it starts before the reset.
+func (c *Client) hold(path string, h http.Header) {
+	lim := c.limitOf(path)
+	if lim == "" || strings.TrimSpace(h.Get("X-Ratelimit-Remaining-Minute")) != "0" {
+		return
+	}
+	reset, err := strconv.Atoi(strings.TrimSpace(h.Get("Ratelimit-Reset")))
+	if err != nil || reset < 0 || reset > 300 {
+		reset = 60
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	until := c.now().Add(time.Duration(reset) * time.Second)
+	if c.next == nil {
+		c.next = map[string]time.Time{}
+	}
+	if until.After(c.next[lim]) {
+		c.next[lim] = until
+	}
 }
 
 func (c *Client) redact(s string) string {
@@ -230,28 +307,34 @@ func sleepCtx(ctx context.Context, d time.Duration) error {
 }
 
 // Items decodes a list answer: a bare array, or {"items": [...], "total": n}.
-// total is -1 when the answer does not say.
+// An empty list may come as null, or as {"items": null}. total is -1 when
+// the answer does not give it as a number (/campaigns/v2 sends an object).
 func Items(body []byte) (items []json.RawMessage, total int, err error) {
 	body = bytes.TrimSpace(body)
+	if string(body) == "null" {
+		return nil, -1, nil
+	}
 	if len(body) > 0 && body[0] == '[' {
 		err = json.Unmarshal(body, &items)
 		return items, -1, err
 	}
-	var env struct {
-		Items *[]json.RawMessage `json:"items"`
-		Total *int               `json:"total"`
-	}
+	var env map[string]json.RawMessage
 	if err := json.Unmarshal(body, &env); err != nil {
 		return nil, -1, err
 	}
-	if env.Items == nil {
+	raw, ok := env["items"]
+	if !ok {
 		return nil, -1, errors.New("redtrack: answer is neither a list nor {items}")
 	}
-	total = -1
-	if env.Total != nil {
-		total = *env.Total
+	if err := json.Unmarshal(raw, &items); err != nil {
+		return nil, -1, fmt.Errorf("redtrack: items: %w", err)
 	}
-	return *env.Items, total, nil
+	total = -1
+	var n int
+	if json.Unmarshal(env["total"], &n) == nil && env["total"] != nil {
+		total = n
+	}
+	return items, total, nil
 }
 
 // Pages walks a paged list with page=1,2,… and per=per, calling fn with each

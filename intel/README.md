@@ -23,7 +23,7 @@ every outside source does, and the reports become re-runnable over any range.
 ```sh
 export REDTRACK_API_KEY=…            # from your RedTrack account settings
 go run ./cmd/redtrack-probe -days 7 probe          # read only
-go run ./cmd/redtrack-probe burst 30               # where 429 starts
+go run ./cmd/redtrack-probe burst 30 /report       # where 429 starts on one path
 go run ./cmd/redtrack-probe get /report group=campaign,sub1 date_from=2026-09-01 date_to=2026-09-28
 go run ./cmd/redtrack-probe post /sources source.json   # writes: only on an account whose owner said so
 ```
@@ -33,22 +33,32 @@ need `api.redtrack.io` in the environment's allowed domains.
 
 ## RedTrack: what the API gives
 
-Taken from RedTrack's API reference and the `mcp-redtrack` client;
-**not yet confirmed on a live account** (the probe does that).
+Taken from RedTrack's API reference and the `mcp-redtrack` client, then
+checked on 2026-09-29 against a fresh, empty sandbox account: every path
+below answers, but with no traffic yet, row fields are still unconfirmed.
+Raw answers: `research/redtrack/` in the project files.
 
 | Endpoint | Gives |
 |---|---|
-| `GET /report` | Numbers grouped by one or more groups over whole days: impressions, clicks, conversions, cost, revenue, profit, ROI, CR, EPC, CPC. Groups: campaign, offer, source, landing, network, geo, device, `date`, `hour`, `sub1`…`sub20`, `rt_*`. Filters: `campaign_id`, `source_id`, `offer_id`, `sub1`…. 1000 rows per page. `timezone` overrides the account's. |
-| `GET /conversions` | One row per conversion: click id, type, status, payout, the click's sub slots, geo and device. 10 000 per page. |
-| `GET /tracks` | One row per click, same shape. 10 000 per page. |
-| `GET /campaigns`, `/campaigns/{id}` | Tracker campaigns and their full setup; `total_stat=true` adds numbers. Status 1 active, 2 paused, 3 deleted. |
+| `GET /report` | A bare JSON array. Numbers grouped by one or more groups over whole days: impressions, clicks, conversions, cost, revenue, profit, ROI, CR, EPC, CPC. Groups: campaign, offer, source, landing, network, geo, device, `date`, `hour_of_day` (not `hour`), `day_of_week`, `sub1`…`sub20`, `rt_*`; combinations such as `campaign,date,hour_of_day` work. An unknown group answers HTTP 500 "Problem with loading report", not 400. Filters: `campaign_id`, `source_id`, `offer_id`, `sub1`…. 1000 rows per page. `timezone` overrides the account's. |
+| `GET /conversions` | `{"items": [...], "total": n}`; `date_from` and `date_to` are required. One row per conversion: click id, type, status, payout, the click's sub slots, geo and device. 10 000 per page. |
+| `GET /tracks` | One row per click, same envelope and required dates. 10 000 per page. |
+| `GET /campaigns`, `/campaigns/{id}` | An array, or `null` when there are none (`/campaigns/v2` sends `{"items": null, "total": {}}`). Tracker campaigns and their full setup; `total_stat=true` adds numbers. Status 1 active, 2 paused, 3 deleted. |
 | `GET /sources`, `/sources/{id}` | Traffic sources, with the sub slot each macro fills. |
 | `GET /offers`, `/networks`, `/landings` | Offers, affiliate networks, landing pages. |
-| `GET /me/settings` | Time zone, currency, conversion types. |
+| `GET /me/settings` | Not the time zone: the web app's table layouts. Useful anyway, as `table_campaigns_report` lists every report column id (241: `clicks`, `unique_clicks`, `lp_views`, `lp_clicks`, `conversions`, `convtype1`…`20`, `revenue`, `revenuetype1`…`20`, `cost`, `profit`, `roi`, `cpc`, `cpa`, `epc`, `approved`, `pending`, `declined`…). No time zone endpoint was found, so reports should always pass `timezone`. |
 | `POST`/`PUT` on the same paths | Create and change campaigns, offers, sources and so on. |
 
-Rate limits are not published. The client waits 1 s between requests and
-honours `Retry-After` on a 429; `burst` measures the real limit.
+Rate limits (measured 2026-09-29; RedTrack does not publish them): `/report`
+and `/conversions` each have their own "20 a minute, 2 a second" allowance
+over a calendar minute, shown in `X-Ratelimit-*` headers, but one request
+often uses two of the 20, so about 10 fit a minute. Lists (`/campaigns`,
+`/sources`) and `/me/settings` took 25-30 back-to-back requests with no
+limit. A 429 carries `Retry-After` (up to the minute's end). So the client
+spaces `/report`, `/conversions` and `/tracks` 6 s apart, everything else
+0.2 s, waits for the reset when a minute's allowance reads 0, and retries a
+429 after `Retry-After` up to 5 times apart from its 5xx retries. A full day
+by campaign, item and site is one to a few pages, so this is no bottleneck.
 
 ## Joining RedTrack with Taboola
 

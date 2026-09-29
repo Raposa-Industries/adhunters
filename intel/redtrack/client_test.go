@@ -24,10 +24,14 @@ func testClient(t *testing.T, h http.HandlerFunc) (*Client, *[]time.Duration) {
 	c := New(testKey)
 	c.BaseURL = srv.URL
 	c.MinGap = 0
+	// A fake clock that only moves when the client sleeps.
+	clock := time.Date(2026, 9, 29, 3, 0, 0, 0, time.UTC)
+	c.now = func() time.Time { return clock }
 	var slept []time.Duration
 	c.sleep = func(ctx context.Context, d time.Duration) error {
 		if d > 0 {
 			slept = append(slept, d)
+			clock = clock.Add(d)
 		}
 		return ctx.Err()
 	}
@@ -110,6 +114,8 @@ func TestItemsShapes(t *testing.T) {
 		{`[{"a":1},{"a":2}]`, 2, -1, false},
 		{`{"items":[{"a":1}],"total":40}`, 1, 40, false},
 		{`{"items":[]}`, 0, -1, false},
+		{`null`, 0, -1, false},                      // /campaigns with none
+		{`{"items":null,"total":{}}`, 0, -1, false}, // /campaigns/v2 with none
 		{`{"id":"x"}`, 0, -1, true},
 	} {
 		items, total, err := Items([]byte(tc.body))
@@ -197,5 +203,56 @@ func TestMinGapSpacesRequests(t *testing.T) {
 	}
 	if len(*slept) != 1 || (*slept)[0] < 59*time.Minute {
 		t.Fatalf("slept %v, want one wait of about an hour", *slept)
+	}
+}
+
+func TestRateRetriesDoNotUseMaxRetries(t *testing.T) {
+	var calls atomic.Int32
+	c, slept := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) <= 3 {
+			w.Header().Set("Retry-After", "25")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		fmt.Fprint(w, `[]`)
+	})
+	c.MaxRetries = 0
+	if _, err := c.Get(context.Background(), PathSources, nil); err != nil || calls.Load() != 4 {
+		t.Fatalf("err=%v calls=%d slept=%v", err, calls.Load(), *slept)
+	}
+	c.MaxRateRetries = 1
+	calls.Store(0)
+	_, err := c.Get(context.Background(), PathSources, nil)
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) || apiErr.Status != 429 || calls.Load() != 2 {
+		t.Fatalf("err=%v calls=%d", err, calls.Load())
+	}
+}
+
+func TestReportIsSpacedButListsAreNot(t *testing.T) {
+	c, slept := testClient(t, func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, `[]`) })
+	for _, p := range []string{PathReport, PathSources, PathReport, PathCampaigns} {
+		if _, err := c.Get(context.Background(), p, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(*slept) != 1 || (*slept)[0] != 6*time.Second {
+		t.Fatalf("slept %v, want one 6s wait before the second report", *slept)
+	}
+}
+
+func TestReportWaitsForResetWhenMinuteIsUsed(t *testing.T) {
+	c, slept := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Ratelimit-Remaining-Minute", "0")
+		w.Header().Set("Ratelimit-Reset", "41")
+		fmt.Fprint(w, `[]`)
+	})
+	for range 2 {
+		if _, err := c.Get(context.Background(), PathReport, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(*slept) != 1 || (*slept)[0] != 41*time.Second {
+		t.Fatalf("slept %v, want [41s]", *slept)
 	}
 }

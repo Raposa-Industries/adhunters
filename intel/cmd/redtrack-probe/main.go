@@ -3,7 +3,7 @@
 // -out before anything reads it, with the API key left out.
 //
 //	REDTRACK_API_KEY=… redtrack-probe [-out DIR] [-days 7] [-tz Zone] probe
-//	REDTRACK_API_KEY=… redtrack-probe [-out DIR] burst N
+//	REDTRACK_API_KEY=… redtrack-probe [-out DIR] burst N [PATH]
 //	REDTRACK_API_KEY=… redtrack-probe [-out DIR] get PATH [k=v …]
 //	REDTRACK_API_KEY=… redtrack-probe [-out DIR] post|put PATH FILE.json   (FILE "-" reads stdin)
 //	REDTRACK_API_KEY=… redtrack-probe [-out DIR] delete PATH
@@ -67,11 +67,14 @@ func main() {
 	case "probe":
 		err = p.probe(ctx, *days, *tz)
 	case "burst":
-		n := 20
+		n, path := 20, redtrack.PathSettings
 		if len(args) > 1 {
 			fmt.Sscan(args[1], &n)
 		}
-		err = p.burst(ctx, n)
+		if len(args) > 2 {
+			path = args[2]
+		}
+		err = p.burst(ctx, n, path)
 	case "get", "delete":
 		if len(args) < 2 {
 			fatal(errors.New("usage: get|delete PATH [k=v …]"))
@@ -211,7 +214,7 @@ func (p *prober) probe(ctx context.Context, days int, tz string) error {
 	for i := 1; i <= 10; i++ {
 		groups = append(groups, fmt.Sprintf("sub%d", i))
 	}
-	groups = append(groups, "campaign,date", "campaign,sub1", "campaign,sub2,sub3", "date,hour", "campaign,rt_ad,rt_placement")
+	groups = append(groups, "campaign,date", "campaign,sub1", "campaign,sub2,sub3", "date,hour_of_day", "campaign,rt_ad,rt_placement")
 	for _, g := range groups {
 		rq := q
 		rq.Group = strings.Split(g, ",")
@@ -225,13 +228,24 @@ func (p *prober) probe(ctx context.Context, days int, tz string) error {
 	return p.writeSummary()
 }
 
-// burst sends n quick requests with no spacing and no retries, to see
-// where RedTrack starts answering 429 and what headers it sends.
-func (p *prober) burst(ctx context.Context, n int) error {
+// burst sends n quick requests to path with no spacing and no retries, to
+// see where RedTrack starts answering 429 and what headers it sends. Limits
+// differ by endpoint: /me/settings has none, /report allows about 10 a minute.
+func (p *prober) burst(ctx context.Context, n int, path string) error {
 	p.c.MinGap, p.c.MaxRetries = 0, 0
-	p.line("# RedTrack burst of %d\n\n| # | status | ms | rate headers |\n|---|---|---|---|", n)
+	p.c.Limits = nil
+	q := url.Values{}
+	d := redtrack.DayOf(time.Now().UTC())
+	switch path {
+	case redtrack.PathReport:
+		q = redtrack.ReportQuery{Group: []string{"campaign"}, From: d, To: d}.Values()
+	case redtrack.PathConversions, redtrack.PathClicks: // both need dates
+		q.Set("date_from", d.String())
+		q.Set("date_to", d.String())
+	}
+	p.line("# RedTrack burst of %d on %s\n\n| # | status | ms | rate headers |\n|---|---|---|---|", n, path)
 	for i := 1; i <= n && ctx.Err() == nil; i++ {
-		r, err := p.c.Get(ctx, redtrack.PathSettings, nil)
+		r, err := p.c.Get(ctx, path, q)
 		if r == nil {
 			p.line("| %d | error | | %v |", i, err)
 			continue
