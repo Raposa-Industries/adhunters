@@ -8,7 +8,7 @@ A prepaid service is running out. observe-bot reads its balance every 15 minutes
 - **CreditLow:** the balance is under the `warn` level for that service.
 - **CreditRunningOut:** at the rate of the last 6 hours it is gone within a day, or it is gone already.
 
-When it is gone, the work that needs it stops. For example, Raposa's residential line (`iproyal`) stops, or image generation (`fal`) stops.
+When it is gone, the work that needs it stops. For example, Raposa's residential line (`iproyal`) stops.
 
 ## Check
 

@@ -104,17 +104,19 @@ adhunters-collector, adhunters-v4 and auto-creative):
 |---|---|---|---|
 | IPRoyal residential | Raposa (`res-1`) | GB of traffic | balance check `iproyal` (`GET resi-api.iproyal.com/v1/me`, `available_traffic`) |
 | Datacenter and ISP lines | capture, Raposa (`dc-us-*`, `isp-*`) | a monthly plan | renewal `proxies-datacenter` (no balance API); capture's own alerts when lines are refused |
-| fal | Create (auto-creative) | prepaid USD | balance check `fal` (`GET api.fal.ai/v1/account/billing?expand=credits`, `credits.current_balance`) |
-| OpenAI | Create (images), Spy (embeddings) | prepaid credit | no balance API: its auto-recharge, then `OutOfCredit` |
-| Together AI | Create (FLUX models) | prepaid credit | no balance API (only usage): its balance limit, then `OutOfCredit` |
-| Google Gemini | Create | Google Cloud billing | a budget alert in Google Cloud, then `OutOfCredit` |
-| OpenCode Zen | Spy (the model) | prepaid credit | no balance API yet (an open request upstream): auto-reload, then `OutOfCredit` |
+| OpenAI | Create (images and headlines, the only provider: the owner's decision of 29 Sep), today's Spy (embeddings) | prepaid credit | no balance API: its auto-recharge, then `OutOfCredit` |
+| OpenCode Zen | today's Spy (the model) | prepaid credit | no balance API yet (an open request upstream): auto-reload, then `OutOfCredit` |
 | Anthropic | old collector (vertical tagging), Intel briefs later | prepaid credit | no balance API: auto-reload, then `OutOfCredit` |
 | Hetzner (servers, Object Storage) | everything | a monthly invoice | nothing to run out; the card on file |
 | Grafana Cloud, Sentry, Better Stack | observability | free-tier quotas | not yet: each warns by email near its limit |
 
-The two API checks were written from the providers' documentation and have
-not been tried with a real key. The first `observe-bot credits` after filling
+auto-creative also has code for fal, Together AI and Gemini; Create will not
+use them, so they are not watched. fal has a balance API
+(`GET api.fal.ai/v1/account/billing?expand=credits`,
+`credits.current_balance`) should that change.
+
+The IPRoyal check was written from its documentation and has not been tried
+with a real key. The first `observe-bot credits` after filling
 in a key shows whether the path and unit are right; a wrong `field` prints the
 keys the answer has instead. The Create and Spy code that calls the AI
 services is not in this repo yet, so `OutOfCredit` starts counting when it

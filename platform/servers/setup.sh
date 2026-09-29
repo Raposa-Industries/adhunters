@@ -412,7 +412,6 @@ SENTRY_API_TOKEN=FILL_ME
 # Keys for the balance checks in /etc/adhunters/credits.conf. A check whose
 # key is FILL_ME is off.
 IPROYAL_API_TOKEN=FILL_ME
-FAL_ADMIN_KEY=FILL_ME
 OPS_ADDR=127.0.0.1:9107'
 
 # ---- backups (data box) -------------------------------------------------------

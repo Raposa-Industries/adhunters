@@ -24,15 +24,6 @@ field  = available_traffic
 unit   = GB
 warn   = 2
 
-[credit fal]
-# fal.ai credit (image models for Create). An admin key from the fal
-# dashboard, Keys (FAL_ADMIN_KEY), in the "id:secret" form.
-url    = https://api.fal.ai/v1/account/billing?expand=credits
-header = Authorization: Key ${FAL_ADMIN_KEY}
-field  = credits.current_balance
-unit   = USD
-warn   = 20
-
 [renewal proxies-datacenter]
 # The datacenter and ISP lines (dc-us-*, isp-* in proxies.env): the day the
 # plan renews. The provider has no balance API; when the plan lapses, capture
