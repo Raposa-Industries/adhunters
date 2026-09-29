@@ -47,7 +47,9 @@ Raw answers: `research/redtrack/` in the project files.
 | `GET /sources`, `/sources/{id}` | Traffic sources, with the sub slot each macro fills. |
 | `GET /offers`, `/networks`, `/landings` | Offers, affiliate networks, landing pages. |
 | `GET /me/settings` | Not the time zone: the web app's table layouts. Useful anyway, as `table_campaigns_report` lists every report column id (241: `clicks`, `unique_clicks`, `lp_views`, `lp_clicks`, `conversions`, `convtype1`…`20`, `revenue`, `revenuetype1`…`20`, `cost`, `profit`, `roi`, `cpc`, `cpa`, `epc`, `approved`, `pending`, `declined`…). No time zone endpoint was found, so reports should always pass `timezone`. |
-| `POST`/`PUT` on the same paths | Create and change campaigns, offers, sources and so on. |
+| `GET /source_presets` | RedTrack's ready-made traffic sources (Taboola, NewsBreak, Outbrain…) with their macros; `page=2` for the rest. |
+| `POST` on the same paths | Create. A source needs only `title`; copy a preset's fields and `preset_id` to get its macros. An offer needs `title`, `url` and `program_id` (the network's id). A campaign needs `title` and `source_id` and comes back with `trackback_url`, the link to paste into Taboola. |
+| `PUT`, `DELETE` | `PUT /sources/{id}` answered 403 "action not allowed" with this key; `PUT /campaigns/{id}` is allowed. `DELETE /sources/{id}` works (204). |
 
 Rate limits (measured 2026-09-29; RedTrack does not publish them): `/report`
 and `/conversions` each have their own "20 a minute, 2 a second" allowance
@@ -65,16 +67,43 @@ by campaign, item and site is one to a few pages, so this is no bottleneck.
 - **Keys.** Taboola fills its macros in the tracking code on every click;
   RedTrack's traffic source puts each in a sub slot. The join is
   `{campaign_id}` to Taboola's campaign, `{campaign_item_id}` to its item and
-  `{site_id}` to the publisher. Which slot holds which is read from
-  `GET /sources/{id}`, never assumed. A report grouped by
-  `campaign,subN,subM` then lines up row for row with Taboola's report by
-  campaign, item and site.
+  `{site_id}` to the publisher. A report grouped by `campaign,sub1,sub4,sub8`
+  then lines up row for row with Taboola's report by campaign, item and site.
+- **The slots.** RedTrack has a Taboola preset (`GET /source_presets`, which
+  pages 100 at a time; Taboola is `5b2781722c822c00013beb61`, NewsBreak
+  `650995e8da57fc0001f4fa69`). A source created from it (checked 2026-09-29
+  in the sandbox; raw answers in `research/redtrack/source-2026-09-29/`)
+  gives this tracking link:
+
+  | Slot | Taboola macro | RedTrack role |
+  |---|---|---|
+  | `sub1` | `{campaign_id}` | campaign id (`cid`) |
+  | `utm_source` (sub2) | `Taboola` (fixed) | `rt_source` |
+  | `utm_campaign` (sub3) | `{campaign_name}` | `rt_campaign` |
+  | `sub4` | `{campaign_item_id}` | ad id (`aid`) |
+  | `sub5` | `{site}` | publisher name (`pid`) |
+  | `sub6` | `{title}` | headline |
+  | `sub7` | `{platform}` | platform |
+  | `sub8` | `{site_id}` | placement (`rt_placement`) |
+  | `sub9` | `{thumbnail}` | image URL |
+  | `sub10` | `{timestamp}` | click time |
+  | `ref_id` | `{click_id}` | Taboola's click id, sent back in the conversion postback |
+
+  The preset has no `{cpc}`. The team's real account may have edited its
+  source, so read its `GET /sources/{id}` before trusting this table for it.
+- **Cost.** Taboola's own spend is the truth. The preset's cost comes from
+  RedTrack's Taboola API integration (`integration_types.cost_update`, at
+  campaign and placement level; RedTrack's note says support must switch on
+  the API rules), not from the link. Either way it can drift from Taboola's
+  report; compare the two and report the gap rather than overwrite either.
+- **Conversions back to Taboola.** The preset's postback is
+  `https://trc.taboola.com/actions-handler/log/3/s2s-action?click-id={ref_id}&name=EVENT_NAME`.
+- **NewsBreak** has a preset too: `__CAMPAIGN_ID__` (cid), `__FLIGHT_ID__`
+  (ad group), `__CREATIVE_ID__` (ad), their names, `__OS__`, and
+  `__CALLBACK_PARAM__` as `ref_id`; cost at campaign, ad group and ad level.
 - **Days.** Both sides count whole days in their account's time zone. Ask
   RedTrack with `timezone` set to the Taboola account's, or the days will
   not match.
-- **Cost.** Taboola's own spend is the truth. RedTrack's cost comes either
-  from `{cpc}` in each link or from its Taboola integration, so it can drift;
-  compare the two and report the gap rather than overwrite either.
 - **Clicks.** The two counts differ (clicks lost in the redirect, bot
   filtering). Expected; worth watching, not fixing.
 - **Conversions and revenue** exist only in RedTrack.
