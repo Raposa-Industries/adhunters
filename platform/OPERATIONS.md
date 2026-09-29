@@ -159,5 +159,6 @@ Rolling back one binary on a box:
   Until then, deploys are the commands above, run by hand.
 - A home for secrets (sops or similar): the `.env` files are written by hand.
 - The switch-over from the old collector (prodbox and bigworker keep running
-  until the owner says otherwise). It needs today's Spy fed from the new
-  database first; until then capture stays off on the new boxes.
+  until the owner says otherwise). The plan and its commands are in
+  [SWITCH-OVER.md](SWITCH-OVER.md); until the owner runs it, capture stays
+  off on the new boxes and `tracks-bridge` is installed but not started.

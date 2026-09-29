@@ -41,6 +41,9 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | spool | Capture's local folder of raw files not yet archived. Capture writes there and nowhere else. |
 | sealed | A raw file whose minute has ended, compressed with zstd, ready to archive. |
 | shadow run | A new binary running beside the one in service on the same input, writing only its own output, to measure or compare. Nothing reads its output as real data. |
+| switch-over | The minute Tracks alone scrapes and the old collector's sweeper stops, always 00:00 UTC. See `platform/SWITCH-OVER.md`. |
+| bridge | `tracks-bridge`: writes Tracks' scrapes into the old collector's database after the switch-over, so today's Spy keeps working until the new Spy launches. |
+| imported hour | An hour before the switch-over whose counts were copied from the old collector's database (`import-old`). The loader never closes it again and a replay refuses it. |
 | Direction | Which way an ad is moving: rising, steady, fading or stopped, judged against its usual value. |
 
 ## Raposa
