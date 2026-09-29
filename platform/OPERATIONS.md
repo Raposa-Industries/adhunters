@@ -137,6 +137,12 @@ root's current password, press Ctrl+C (nothing is lost) and run
 `sudo chage -d "$(date +%F)" -M -1 root`, then the setup again. Hetzner
 expires root's random password at creation; the setup now clears it itself.
 
+If the worker or standby can't reach the database (`pg: ping: context
+deadline exceeded`, `ping 10.20.1.20` gets no answer), check `ip -brief addr`
+on it: `enp7s0 DOWN` means Ubuntu left the private network card off. The
+setup now switches it on (`/etc/netplan/60-private.yaml`, DHCP); by hand, write
+that file and run `sudo netplan apply`.
+
 Rolling back one binary on a box:
 `sudo cp /opt/adhunters/bin/NAME.prev /opt/adhunters/bin/NAME && sudo systemctl restart UNIT`.
 

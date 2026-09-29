@@ -39,6 +39,7 @@ say() { echo "== $*"; }
 # ---- every box --------------------------------------------------------------
 
 common() {
+    private_net
     say "base: timezone UTC, the tracks user, folders"
     timedatectl set-timezone UTC
     # Hetzner gives root a random password that has expired, and sudo from
@@ -60,6 +61,22 @@ common() {
         printf '%s\n' "$observe_env" >/etc/adhunters/observe.env
         say "wrote /etc/adhunters/observe.env"
     fi
+}
+
+# private_net: switches on the Hetzner private network card when Ubuntu left
+# it down (it happens when Hetzner attaches it without a netplan entry): the
+# worker and standby reach Postgres at 10.20.1.20 through it.
+private_net() {
+    local nic=enp7s0 f=/etc/netplan/60-private.yaml
+    ip link show "$nic" >/dev/null 2>&1 || return 0
+    ip -4 addr show "$nic" | grep -q 'inet 10\.20\.' && return 0
+    say "private network: dhcp on $nic"
+    install -m 0600 /dev/null "$f"
+    printf 'network:\n  version: 2\n  ethernets:\n    %s:\n      dhcp4: true\n' "$nic" >"$f"
+    netplan apply
+    sleep 3
+    ip -4 addr show "$nic" | grep -q 'inet 10\.20\.' ||
+        todo+=("$nic has no 10.20.1.x address after netplan apply: check the box's network in the Hetzner Console")
 }
 
 observe_env='# Read by every AdHunters unit before its own settings (kit/errs).
