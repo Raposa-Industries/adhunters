@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subir anúncios · Create</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<header>
+  <h1>Subir anúncios no Taboola</h1>
+  <p class="muted">AdHunters Create. Gere ou envie imagens e headlines, escolha as que valem, combine e baixe a planilha e as imagens para o Bulk Upload do Taboola. Nada é enviado ao Taboola daqui.</p>
+</header>
+
+<main>
+  <section id="brief">
+    <h2>1. Briefing</h2>
+    <p id="gen-status" class="muted"></p>
+    <div id="gen-form">
+      <label>Do que é o anúncio?
+        <textarea id="prompt" rows="3" placeholder="Ex.: suplemento para dor nas articulações, público 55+ nos EUA, foto de um senhor sorrindo segurando o frasco"></textarea>
+      </label>
+      <div class="row">
+        <label>Imagens de referência (opcional)
+          <input id="refs-input" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+        </label>
+        <div id="refs" class="thumbs"></div>
+      </div>
+      <label>Headlines de referência (opcional, uma por linha)
+        <textarea id="examples" rows="2" placeholder="Headlines que funcionaram ou que você viu no Spy"></textarea>
+      </label>
+      <div class="row inline">
+        <label>Idioma das headlines
+          <select id="language">
+            <option value="en">Inglês</option>
+            <option value="pt-BR">Português</option>
+            <option value="es">Espanhol</option>
+          </select>
+        </label>
+        <label>Vertical
+          <select id="vertical">
+            <option value="">(nenhuma)</option>
+            <option>Blood Pressure</option><option>Memory Loss</option><option>Weight Loss</option>
+            <option>Tinnitus</option><option>Diabetes</option><option>Neuropathy</option>
+            <option>Prostate Health</option><option>Joint Pain/Arthritis</option><option>Vision/Eye Health</option>
+          </select>
+        </label>
+        <label>Imagens <input id="n-images" type="number" min="0" max="12" value="6"></label>
+        <label>Headlines <input id="n-headlines" type="number" min="0" max="30" value="10"></label>
+      </div>
+      <p><button id="generate" class="primary">Gerar opções</button> <span id="gen-progress" class="muted"></span></p>
+    </div>
+  </section>
+
+  <section id="creatives-section">
+    <h2>2. Criativos <span id="creatives-count" class="muted"></span></h2>
+    <p class="muted">Marque as imagens que vão para a campanha. Também dá para enviar as suas.</p>
+    <p>
+      <label class="button">Enviar imagens <input id="upload-input" type="file" accept="image/*" multiple hidden></label>
+      <button id="creatives-all">Marcar todas</button>
+      <button id="creatives-none">Desmarcar todas</button>
+    </p>
+    <div id="creatives" class="grid"></div>
+  </section>
+
+  <section id="headlines-section">
+    <h2>3. Headlines <span id="headlines-count" class="muted"></span></h2>
+    <p class="muted">Marque as headlines que vão para a campanha. Dá para editar o texto aqui mesmo.</p>
+    <div id="headlines"></div>
+    <label>Adicionar headlines (uma por linha)
+      <textarea id="paste-headlines" rows="3"></textarea>
+    </label>
+    <p><button id="add-headlines">Adicionar</button> <button id="headlines-all">Marcar todas</button> <button id="headlines-none">Desmarcar todas</button></p>
+  </section>
+
+  <section id="pairing-section">
+    <h2>4. Combinação</h2>
+    <div class="row inline" id="modes">
+      <label><input type="radio" name="mode" value="mixed" checked> Sortido</label>
+      <label><input type="radio" name="mode" value="manual"> Um a um</label>
+      <label><input type="radio" name="mode" value="every"> Todas as combinações</label>
+      <button id="reshuffle">Sortear de novo</button>
+    </div>
+    <p id="pairing-note" class="muted"></p>
+    <div id="grid-wrap"><table id="grid"></table></div>
+  </section>
+
+  <section id="campaign-section">
+    <h2>5. Campanha</h2>
+    <label>IDs das campanhas no Taboola (uma ou mais, separadas por vírgula)
+      <input id="campaigns" placeholder="Ex.: 45123456, 45123457">
+    </label>
+    <p class="muted">Crie ou duplique a campanha no Taboola e copie o ID dela. Cada anúncio entra em cada campanha.</p>
+    <label>Link da página (o link da campanha no RedTrack, sem {macros})
+      <input id="url" placeholder="https://...">
+    </label>
+    <p id="url-warnings" class="warn"></p>
+    <div class="row inline">
+      <label>Botão (CTA) <select id="cta"></select></label>
+      <label>Status
+        <select id="status"><option value="Active">Ativo (roda quando aprovado)</option><option value="Paused">Pausado</option></select>
+      </label>
+      <label>Marca (só para a prévia) <input id="brand" maxlength="25" placeholder="Nome da marca"></label>
+    </div>
+    <label>Descrição (opcional, até 250 caracteres)
+      <input id="description" maxlength="250">
+    </label>
+    <fieldset id="ai-label">
+      <legend>Marcar os anúncios como feitos com IA no Taboola?</legend>
+      <label><input type="radio" name="ai" value="yes"> Sim</label>
+      <label><input type="radio" name="ai" value="no"> Não</label>
+      <p id="ai-warning" class="warn"></p>
+    </fieldset>
+  </section>
+
+  <section id="ads-section">
+    <h2>6. Anúncios <span id="ads-count" class="muted"></span></h2>
+    <div id="warnings-summary" class="warn"></div>
+    <div id="ads" class="grid ads"></div>
+  </section>
+
+  <section id="download-section">
+    <h2>7. Baixar e subir</h2>
+    <p>
+      <button id="download-sheet" class="primary">Baixar planilha (.xlsx)</button>
+      <button id="download-zip" class="primary">Baixar imagens (.zip)</button>
+      <button id="copy-rows">Copiar linhas</button>
+      <span id="download-note" class="muted"></span>
+    </p>
+    <ol class="steps">
+      <li>No Taboola (Realize): <b>Create › Bulk Upload</b>.</li>
+      <li>Envie a planilha. Quando pedir, envie o .zip das imagens: os nomes batem com a coluna Image File Name.</li>
+      <li>Confira o relatório de processamento. Os anúncios entram na revisão do Taboola.</li>
+      <li id="ai-step" hidden>Marque “AI content” nesses anúncios no Realize se a planilha não tiver essa opção.</li>
+      <li>Se o Taboola recusar a planilha, baixe o modelo dele (Download Template), clique em <b>Copiar linhas</b> e cole na aba Ads, abaixo do cabeçalho.</li>
+    </ol>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,77 @@
+/* Plain and functional until the apps' own design arrives. */
+:root {
+  --bg: #ffffff;
+  --fg: #1b1b1b;
+  --muted: #5f6368;
+  --line: #d6d6d6;
+  --soft: #f3f4f6;
+  --accent: #1f52a8;
+  --warn: #9a4a00;
+  --chosen: #e8eef9;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151718; --fg: #e6e6e6; --muted: #9aa0a6; --line: #3a3d40; --soft: #202325;
+    --accent: #8fb2f3; --warn: #f0a458; --chosen: #1d2940; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151718; --fg: #e6e6e6; --muted: #9aa0a6; --line: #3a3d40; --soft: #202325;
+  --accent: #8fb2f3; --warn: #f0a458; --chosen: #1d2940; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header, main { max-width: 72rem; margin: 0 auto; padding: 0 16px; }
+header { padding-top: 20px; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 0 0 8px; }
+section { border-top: 1px solid var(--line); padding: 18px 0; }
+label { display: block; margin: 8px 0; }
+.inline label, fieldset label { display: inline-block; margin-right: 16px; }
+input:not([type=radio]):not([type=checkbox]), textarea, select {
+  display: block; width: 100%; margin-top: 4px; padding: 6px 8px; font: inherit;
+  color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+}
+.inline input, .inline select { width: auto; min-width: 6rem; }
+button, .button {
+  display: inline-block; font: inherit; padding: 6px 12px; margin: 2px 4px 2px 0; cursor: pointer;
+  color: var(--fg); background: var(--soft); border: 1px solid var(--line); border-radius: 4px;
+}
+button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+fieldset { border: 1px solid var(--line); border-radius: 4px; margin: 12px 0; }
+.muted { color: var(--muted); }
+.warn { color: var(--warn); }
+.warn:empty { display: none; }
+ul.warn { margin: 4px 0; padding-left: 18px; font-size: .9em; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumbs figure { margin: 0; width: 96px; font-size: .8em; }
+.thumbs img { width: 96px; height: 54px; object-fit: cover; display: block; border: 1px solid var(--line); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.card { border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: var(--bg); font-size: .9em; min-width: 0; }
+.card.chosen { background: var(--chosen); border-color: var(--accent); }
+.card .pic { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: var(--soft); border-radius: 4px; }
+.card .pending { display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.card .meta { color: var(--muted); overflow-wrap: anywhere; }
+.card .tag { display: inline-block; font-size: .8em; padding: 0 6px; border: 1px solid var(--line); border-radius: 8px; margin-right: 4px; }
+.headline { display: grid; grid-template-columns: auto 3.2rem 1fr auto; gap: 8px; align-items: start; padding: 6px; border-bottom: 1px solid var(--line); }
+.headline.chosen { background: var(--chosen); }
+.headline input[type=text] { margin: 0; }
+.headline .count { font-variant-numeric: tabular-nums; color: var(--muted); padding-top: 6px; }
+.headline .num { padding-top: 6px; font-weight: 600; }
+#grid-wrap { overflow-x: auto; }
+#grid { border-collapse: collapse; font-size: .85em; }
+#grid th, #grid td { border: 1px solid var(--line); padding: 2px 4px; text-align: center; }
+#grid th.row-head { text-align: left; white-space: nowrap; }
+#grid th.row-head img { width: 64px; height: 36px; object-fit: cover; vertical-align: middle; margin-right: 6px; }
+#grid td button { margin: 0; padding: 2px 8px; min-width: 2rem; }
+#grid td.on { background: var(--chosen); font-weight: 700; }
+.ads .card .title { font-weight: 600; margin: 6px 0 2px; }
+.ads .card .brand { color: var(--muted); font-size: .85em; }
+.steps li { margin: 4px 0; }
+@media (max-width: 600px) {
+  .headline { grid-template-columns: auto 1fr; }
+  .headline .count, .headline .num { display: none; }
+}
+[hidden] { display: none !important; }

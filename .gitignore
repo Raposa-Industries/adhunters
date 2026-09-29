@@ -16,3 +16,6 @@ coverage.out
 
 # Observability secrets for push.sh
 platform/observe/observe.env
+
+# Create keeps every OpenAI reply here when run from the repo root
+create-kept/

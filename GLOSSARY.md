@@ -50,6 +50,16 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | imported hour | An hour before the switch-over whose counts were copied from the old collector's database (`import-old`). The loader never closes it again and a replay refuses it. |
 | Direction | Which way an ad is moving: rising, steady, fading or stopped, judged against its usual value. |
 
+## Create
+
+| Word | Means |
+|---|---|
+| brief | The starting point a person gives Create: what the ad is about, optional reference images and headlines, the language and the vertical. Also the one-line idea Create writes for each image it will make. |
+| option | An image or headline Create made from a brief. Nothing is used until a person chooses it. |
+| pairing | How the chosen creatives and headlines become ads. Mixed: the longer list once each, the shorter repeated in turn until the longer runs out (10 images and 5 headlines make 10 ads). One to one: the person picks each pair. Every combination: each creative with each headline. |
+| ad id | Our own id for an ad: `ah-`, then the first 10 hex characters of the creative's SHA-256, a dash, and the first 10 of the headline's. It goes in Taboola's Custom ID (30 characters at most), so results can come back to the ad. |
+| bulk sheet | The Excel file Taboola's Realize takes in Create › Bulk Upload: a Campaigns tab, then an Ads tab with one row per item, plus a ZIP of the images named in "Image File Name". |
+
 ## Intel
 
 | Word | Means |

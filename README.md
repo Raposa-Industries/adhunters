@@ -17,7 +17,7 @@ The apps people use are AdHunters Spy, Create, Intel, Funnels and Raposa
 | `raposa/` | AdHunters Raposa: dark funnel forensics. Investigations, the browser runner, the keeper, watches and plain pages. Replaces the collector's Raposa. | built, not deployed |
 | `spy/` | AdHunters Spy: research app and its derived numbers (any range, momentum, Size, Direction). Was adhunters-v4; the numbers move here from the collector. | numbers built, not deployed; app later |
 | `intel/` | AdHunters Intel: our campaigns' performance, briefs and alerts. | RedTrack client and probe, read-only Taboola client and probe; app later |
-| `create/` | AdHunters Create: images and headlines. Was auto-creative. | later |
+| `create/` | AdHunters Create: images and headlines. Was auto-creative. | bulk upload page (`create-web`): make options from a brief, choose, pair, download Taboola's bulk sheet; not deployed |
 | `funnels/` | AdHunters Funnels: landing pages, funnels and visitor behaviour. | later |
 
 How to reach, build and deploy the servers: [platform/OPERATIONS.md](platform/OPERATIONS.md).

@@ -43,6 +43,16 @@ jobs:
             echo "::endgroup::"
           done
 
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: create web page tests
+        run: node --test create/web/test/*.test.js
+
   terraform:
     runs-on: ubuntu-24.04
     defaults:
