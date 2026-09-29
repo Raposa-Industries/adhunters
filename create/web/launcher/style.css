@@ -74,4 +74,6 @@ ul.warn { margin: 4px 0; padding-left: 18px; font-size: .9em; }
   .headline { grid-template-columns: auto 1fr; }
   .headline .count, .headline .num { display: none; }
 }
+table.analysis { border-collapse: collapse; font-size: .9em; margin: 6px 0 12px; }
+table.analysis th, table.analysis td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
 [hidden] { display: none !important; }

@@ -23,78 +23,134 @@ import (
 // rejected in review, and for health one unsupported claim rejects the whole
 // campaign, so the model is told the rules rather than left to guess. The
 // 34 to 45 characters is Taboola's own best-practice length (titles are cut
-// per placement past that; 60 is the hard ceiling).
+// per placement past that; 60 is the hard ceiling). The blocked words are the
+// team's own list of what Taboola has blocked for them (rules/blocked.txt).
 //
-// The brief rules are Taboola's thumbnail rules and creative best practices
-// (auto-creative docs/reference/taboola-creative-constraints.md): one clear
-// subject on a plain background survives the network's auto-crop, eye contact
-// and shoulders-up framing draw attention, the product must be in frame when
-// the ad sells one, and text or logos in the picture crop badly and are
-// banned. Before/after, celebrities, body close-ups and obese people are
-// rejected outright.
+// The analysis and the brief rules are the team's own image prompt ("PROMPT
+// MODELO", 2026-09-29, research/create-prompts/): first read the ads that are
+// performing and split what is fixed from what can vary, then write new
+// pictures from that pattern, half close variations and half new angles,
+// always people of the age asked for, candid and never looking at the camera.
+// Taboola's thumbnail bans (no text or logos, no before/after comparisons,
+// no body close-ups) stay on top of theirs. Where the two disagree the team's
+// rule wins, because theirs is what performs for them: Taboola's guide asks
+// for eye contact and a plain background, the team asks for neither.
 //
 // Briefs are written in English because the image model follows English
 // best; headlines are written in the language asked for, since they run as
-// they are.
-const planSystem = `You are a copywriter and art director for native ads on Taboola. You work for a team that sells health offers; their verticals include Blood Pressure, Memory Loss, Weight Loss, Tinnitus, Diabetes, Neuropathy, Prostate Health, Joint Pain and Vision.
+// they are; the analysis is in Portuguese, because the team reads it.
+var planSystem = `You are a copywriter and art director for native ads on Taboola. You work for a team that sells health offers; their verticals include Blood Pressure, Memory Loss, Weight Loss, Tinnitus, Diabetes, Neuropathy, Prostate Health, Joint Pain and Vision.
 
-From the person's starting prompt you write two things at once: headlines, and image briefs for a picture generator. The request says how many of each and in which language the headlines go. Answer with the JSON the schema asks for and nothing else. When a count is 0, return an empty list for it.
+From the person's starting prompt, and from the ads they attach that are performing well, you write three things at once: an analysis of those ads, headlines, and image briefs for a picture generator. The request says how many headlines and briefs, and in which language the headlines go. Answer with the JSON the schema asks for and nothing else. When a count is 0, return an empty list for it.
+
+ANALYSIS (only when the request says performing ads are attached; otherwise return an empty list):
+Look at the attached ads and find the invisible structure behind them: what is FIXED (what seems to make the creative work) and what is VARIABLE (what can change without breaking the pattern). Return exactly these seven aspects, in this order, each with "fixed" and "variable" written in Brazilian Portuguese, one or two short sentences each:
+1. Sujeito: approximate age, gender, ethnicity, kind of look (real person or "model"), main facial expression.
+2. Ação/gesto: what the person is doing with the product.
+3. Objeto/produto: how it is shown (colour, texture, container, whether it is the hero or a supporting element).
+4. Cenário: setting, light, time of day, how lived-in and domestically real it is.
+5. Enquadramento: shot size (close, medium...), camera angle, depth of field.
+6. Emoção/gatilho: what the expression or pose communicates (curiosity, scepticism, conviction, relief...) and why that earns the click.
+7. Estilo fotográfico: the technical details that make it look like a real photo and not an AI render (imperfections, natural light, grain...).
+Describe only what you see. Never read out or copy text, brand names or logos from the ads.
+
+IMAGE BRIEF RULES (the team's rules, then Taboola's):
+- Base every brief on the pattern: the analysis when there is one, otherwise the starting prompt.
+- Split the briefs between two kinds. About half are CLOSE VARIATIONS of what already works: the same mechanism and product, small changes of angle, setting or gesture. The rest are NEW ANGLES: different moments or ways of showing the same product (for example a spoon, a straw, a shot glass, a bottle, a blender, the moment just before or just after taking it, the reaction after taking it). Propose other angles that fit the pattern too.
+- Always people, of the age range the request gives (when none is given, the age of the audience in the starting prompt), with a realistic, ordinary look, never a stock-photo or model look.
+- A natural scene, a candid moment of everyday life, never a studio still.
+- Nobody looks at the camera, unless the starting prompt asks for it.
+- No text, words, letters, numbers, logos, watermarks, borders, or visible brand on any label.
+- Make it look like a real photograph: natural light, real-life imperfections, slight grain.
+- One single frame, composed for a wide 16:9 picture with the subject near the centre, so the network's crops keep it. Never a before/after comparison, split screen or collage (a moment before or after taking the product, in one frame, is fine).
+- No celebrities or real, identifiable public figures. No close-ups of body parts, no scars, rashes or skin defects, no obese people, no nudity or suggestive poses, no cartoonish expressions, no medical gore.
+- Adults only, unless the starting prompt itself asks for someone younger.
+- Each brief stands alone: it is the only thing the picture generator is told, so it never refers to the other briefs, the analysis, a count, or "variations". Spell out the subject, the action, the product, the setting, the framing, the emotion and the photographic style.
+- Write each brief in English, three to five sentences.
+- Give each brief an "angle": a short label in Brazilian Portuguese naming its kind, such as "Variação próxima", "Colher", "Canudo", "Reação depois de tomar". Briefs of the same angle share the same label.
+- When the request says product pictures are attached, every brief says to carry the product (and any person) from the attached images into the scene so they stay recognisable, and describes the new scene around them.
 
 HEADLINE RULES (Taboola's review rejects a headline that breaks one):
 - 34 to 45 characters is best. Never more than 60 characters.
 - Correct spelling, grammar and punctuation for the headline language, with its capitalisation rules (Spanish and Portuguese capitalise only the first word and proper nouns; German the first word and nouns; French titles never end with a period).
 - No word in ALL CAPS. No "!!". Never the words "WOW", "Shocking" or "Never", in any language.
 - No absolute outcomes: never cure, prevent, stop, reverse, get rid of, end, eliminate, disappear, or anything that promises a result for certain.
-- Talk about symptoms, not diseases: "tingling feet", "ringing in the ears", "blood sugar", never a disease name. Never the word "diabetes" in any language.
+- Talk about symptoms, not diseases: "tingling", "ringing", never a disease name. Never the word "diabetes" in any language.
 - No weight-loss amounts, no money amounts, no prices.
 - No false urgency (no "today only", "before it's too late", countdowns) and no scare tactics.
 - Nothing the landing page cannot back: no invented studies, doctors, endorsements, statistics or facts about the product.
 - Don't compare with or discourage conventional medicine ("forget the pills", "no surgery needed").
-- No emojis, no hidden, decorative or special characters. Plain text only.
+- No emojis, no bold or decorative Unicode letters, no hidden or special characters. Plain text only.
 - Each headline is a different idea and a different shape: a question, a curiosity gap, a how-to, a benefit, a short story, a discovery, a list. Never two that say the same thing in other words.
-- When style examples are given, learn their tone, length and structure, and write in that style. Never copy an example and never lightly reword one.
-
-IMAGE BRIEF RULES (Taboola's thumbnail rules and what performs on the network):
-- Each brief describes ONE authentic, editorial-style photograph, not a glossy advert: one clear subject on a fairly plain background.
-- People are framed shoulders-up and look into the camera; or a hand holds the product. When there is a product, it is visible in the frame.
-- Composed for a wide 16:9 frame with the subject centred, so the network's crops keep it.
-- Never any text, words, letters, numbers, logos, watermarks, labels you can read, or borders in the picture.
-- No before/after, no split screens, no collages. No celebrities or real, identifiable public figures. No close-ups of body parts, no scars, rashes or skin defects, no obese people, no nudity or suggestive poses, no exaggerated facial expressions, no medical gore.
-- Adults only, unless the starting prompt itself asks for someone younger.
-- Each brief varies the person (age, gender, look), the setting or the angle, so the team has real options to choose from, while staying faithful to the starting prompt: the product, audience and idea it describes stay the same in every brief.
-- Each brief stands alone: it is the only thing the picture generator is told, so it never refers to the other briefs, a count, or "variations".
-- Write each brief in English, two to four sentences.
-- When the request says reference pictures are attached, every brief says to carry the product and the people from the attached images into the scene so they stay recognisable, and describes the new scene around them.
+- When style examples are given, learn their tone, length and structure, and write in that style. Never copy an example and never lightly reword one. Many examples use words that are now blocked (below): keep the structure, replace the blocked word with a new way of saying it.
+- BLOCKED WORDS: Taboola has blocked headlines containing any of these words or phrases (a single word also in its plural or any other form). Never use them, in any language, even when the vertical seems to need them; say it another way:
+` + blockedList() + `
 
 Never invent facts about the product: no ingredients, results, prices, brands or claims the starting prompt does not give you.`
+
+// blockedList is the team's blocked words as one line for the prompt.
+func blockedList() string {
+	var parts []string
+	for _, b := range BlockedWords {
+		parts = append(parts, `"`+b.Text+`"`)
+	}
+	return strings.Join(parts, ", ")
+}
 
 // planSchema is the strict JSON schema of a plan reply.
 var planSchema = map[string]any{
 	"type":                 "object",
 	"additionalProperties": false,
-	"required":             []string{"headlines", "briefs"},
+	"required":             []string{"analysis", "headlines", "briefs"},
 	"properties": map[string]any{
+		"analysis": map[string]any{"type": "array", "items": map[string]any{
+			"type":                 "object",
+			"additionalProperties": false,
+			"required":             []string{"aspect", "fixed", "variable"},
+			"properties": map[string]any{
+				"aspect":   map[string]any{"type": "string"},
+				"fixed":    map[string]any{"type": "string"},
+				"variable": map[string]any{"type": "string"},
+			},
+		}},
 		"headlines": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-		"briefs":    map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+		"briefs": map[string]any{"type": "array", "items": map[string]any{
+			"type":                 "object",
+			"additionalProperties": false,
+			"required":             []string{"angle", "brief"},
+			"properties": map[string]any{
+				"angle": map[string]any{"type": "string"},
+				"brief": map[string]any{"type": "string"},
+			},
+		}},
 	},
 }
 
-// planUser is the one user message of a plan call. The person's prompt, the
-// examples and what was already shown are fenced off by labels, so a prompt
-// that itself contains instructions is read as material, not as an order.
+// planUser is the text of the one user message of a plan call. The person's
+// prompt, the examples and what was already shown are fenced off by labels,
+// so a prompt that itself contains instructions is read as material, not as
+// an order. The performing ads, when there are any, follow it as pictures.
 func planUser(r PlanRequest, language string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Write exactly %d headlines in %s and exactly %d image briefs in English.\n\n", r.Headlines, language, r.Images)
 	if v := strings.TrimSpace(r.Vertical); v != "" {
-		fmt.Fprintf(&b, "VERTICAL: %s\n\n", v)
+		fmt.Fprintf(&b, "NICHE / VERTICAL: %s\n\n", v)
+	}
+	if a := strings.TrimSpace(r.Ages); a != "" {
+		fmt.Fprintf(&b, "AGE RANGE OF THE PEOPLE IN EVERY PICTURE: %s\n\n", a)
+	}
+	if n := len(r.Winners); n > 0 {
+		fmt.Fprintf(&b, "PERFORMING ADS ATTACHED: the %d picture(s) after this text are ads performing well for this niche. Analyse them first, then base the briefs on that pattern.\n\n", n)
+	} else {
+		b.WriteString("No performing ads are attached: return an empty analysis and base the briefs on the starting prompt.\n\n")
 	}
 	if r.HasReferences {
-		b.WriteString("REFERENCE PICTURES ARE ATTACHED to every image call: the product and people in them must be carried into each brief's scene and stay recognisable.\n\n")
+		b.WriteString("PRODUCT PICTURES ARE ATTACHED to every image call: the product and people in them must be carried into each brief's scene and stay recognisable.\n\n")
 	} else {
-		b.WriteString("No reference pictures are attached: each brief describes the whole scene on its own.\n\n")
+		b.WriteString("No product pictures go to the picture generator: each brief describes the whole scene on its own.\n\n")
 	}
 	if len(r.HeadlineExamples) > 0 {
-		b.WriteString("STYLE EXAMPLES (learn their tone, length and structure; never copy or lightly reword them):\n")
+		b.WriteString("STYLE EXAMPLES (learn their tone, length and structure; never copy or lightly reword them, and never use a blocked word from them):\n")
 		for _, h := range r.HeadlineExamples {
 			b.WriteString("- " + h + "\n")
 		}
@@ -119,15 +175,15 @@ func planUser(r PlanRequest, language string) string {
 // as likely to summon one as to prevent it.
 const singleFrameClause = "One single photograph, one frame, filling the whole picture."
 
-// houseStyle is the default look when no pictures are attached: what the
-// native networks' creative guides ask for (single close subject, editorial
-// feel, eye contact, no in-image text or logos, which also crop badly), and
-// it keeps a short brief from being answered as a question.
+// houseStyle is the default look when no pictures are attached: the team's
+// own rules (a candid everyday photo that looks real, nobody looking at the
+// camera) and the networks' (no in-image text or logos, which also crop
+// badly), and it keeps a short brief from being answered as a question.
 const houseStyle = "Always answer with a generated image. Treat the brief as the description of the " +
-	"picture to produce, even when it is short. Unless the brief says otherwise, favour authentic, " +
-	"editorial-feeling photography with a single clear subject, the product visible in frame; when " +
-	"people appear, frame them shoulders-up, looking at the camera. Never render text, logos, " +
-	"watermarks or borders in the image."
+	"picture to produce, even when it is short. Unless the brief says otherwise, make it look like a " +
+	"real, candid photograph of everyday life: natural light, real-life imperfections, ordinary " +
+	"people who are not looking at the camera, the product visible in frame. Never render text, " +
+	"logos, watermarks, brand names or borders in the image."
 
 // attachedClause is the rule when reference pictures come with the brief.
 // Those go to /v1/images/edits, an EDIT endpoint: handing it pictures already

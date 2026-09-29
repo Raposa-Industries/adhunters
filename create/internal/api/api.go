@@ -21,7 +21,9 @@ import (
 
 // Limits of one request.
 const (
-	planBodyMax     = 256 << 10
+	planBodyMax     = 32 << 20
+	winnerMax       = 4 << 20
+	maxWinners      = 6
 	imageBodyMax    = 60 << 20
 	referenceMax    = 10 << 20
 	maxReferences   = 6
@@ -77,6 +79,11 @@ type statusReply struct {
 	ImageQuality string  `json:"image_quality"`
 	TextModel    string  `json:"text_model"`
 	ImageCostUSD float64 `json:"image_cost_usd"`
+	// Blocked is the team's list of words Taboola has blocked, which the
+	// page warns about. It is served even with generation off.
+	Blocked []openai.Blocked `json:"blocked"`
+	// ExampleVerticals have team headlines the plan learns from.
+	ExampleVerticals []string `json:"example_verticals"`
 }
 
 func (s *Server) status(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +95,9 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 		ImageQuality: set.ImageQuality,
 		TextModel:    set.TextModel,
 		ImageCostUSD: s.ai.EstimateImageCost(set.ImageQuality),
+
+		Blocked:          openai.BlockedWords,
+		ExampleVerticals: openai.ExampleVerticals(),
 	})
 }
 
@@ -98,8 +108,12 @@ type planBody struct {
 	Vertical         string   `json:"vertical"`
 	Headlines        *int     `json:"headlines"`
 	Images           *int     `json:"images"`
+	Ages             string   `json:"ages"`
 	HasReferences    bool     `json:"has_references"`
 	Avoid            []string `json:"avoid"`
+	// Winners are pictures of ads performing well, as data URLs
+	// ("data:image/jpeg;base64,..."), read for the analysis.
+	Winners []string `json:"winners"`
 }
 
 func (s *Server) plan(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +126,7 @@ func (s *Server) plan(w http.ResponseWriter, r *http.Request) {
 	if err := dec.Decode(&body); err != nil {
 		var tooBig *http.MaxBytesError
 		if errors.As(err, &tooBig) {
-			writeError(w, http.StatusRequestEntityTooLarge, "pedido grande demais (máximo 256 KB)")
+			writeError(w, http.StatusRequestEntityTooLarge, "pedido grande demais (máximo 32 MB)")
 			return
 		}
 		writeError(w, http.StatusBadRequest, "corpo do pedido não é um JSON válido")
@@ -140,6 +154,7 @@ func checkPlan(b planBody) (openai.PlanRequest, string) {
 		Prompt:        strings.TrimSpace(b.Prompt),
 		Language:      strings.TrimSpace(b.Language),
 		Vertical:      openai.CleanLine(b.Vertical),
+		Ages:          openai.CleanLine(b.Ages),
 		Headlines:     10,
 		Images:        6,
 		HasReferences: b.HasReferences,
@@ -158,6 +173,19 @@ func checkPlan(b planBody) (openai.PlanRequest, string) {
 	}
 	if utf8.RuneCountInString(req.Vertical) > maxShortRunes {
 		return req, "vertical inválida"
+	}
+	if utf8.RuneCountInString(req.Ages) > maxShortRunes {
+		return req, "faixa etária inválida"
+	}
+	if len(b.Winners) > maxWinners {
+		return req, "no máximo 6 anúncios para analisar"
+	}
+	for i, w := range b.Winners {
+		ref, msg := dataURL(w)
+		if msg != "" {
+			return req, "anúncio " + strconv.Itoa(i+1) + ": " + msg
+		}
+		req.Winners = append(req.Winners, ref)
 	}
 	if b.Headlines != nil {
 		req.Headlines = *b.Headlines
@@ -182,6 +210,30 @@ func checkPlan(b planBody) (openai.PlanRequest, string) {
 		return req, "lista avoid grande demais"
 	}
 	return req, ""
+}
+
+// dataURL reads one picture sent as a data URL. The type is read from the
+// bytes, never from the label.
+func dataURL(s string) (openai.Reference, string) {
+	head, b64, ok := strings.Cut(s, ",")
+	if !ok || !strings.HasPrefix(head, "data:") || !strings.HasSuffix(head, ";base64") {
+		return openai.Reference{}, "imagem não veio como data URL"
+	}
+	if base64.StdEncoding.DecodedLen(len(b64)) > winnerMax+3 {
+		return openai.Reference{}, "imagem grande demais (máximo 4 MB)"
+	}
+	data, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return openai.Reference{}, "imagem ilegível"
+	}
+	if len(data) > winnerMax {
+		return openai.Reference{}, "imagem grande demais (máximo 4 MB)"
+	}
+	switch mime := http.DetectContentType(data); mime {
+	case "image/jpeg", "image/png", "image/webp", "image/gif":
+		return openai.Reference{Data: data, MIME: mime}, ""
+	}
+	return openai.Reference{}, "não é JPEG, PNG, WebP nem GIF"
 }
 
 // lines cleans a list of short lines, dropping empties.

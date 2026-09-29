@@ -23,14 +23,23 @@
         <textarea id="prompt" rows="3" placeholder="Ex.: suplemento para dor nas articulações, público 55+ nos EUA, foto de um senhor sorrindo segurando o frasco"></textarea>
       </label>
       <div class="row">
-        <label>Imagens de referência (opcional)
+        <label>Anúncios que estão funcionando (opcional, até 6)
+          <input id="winners-input" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+        </label>
+        <p class="muted">A IA separa o que é fixo do que varia (pessoa, gesto, produto, cenário, enquadramento, emoção, estilo da foto) e cria imagens novas nesse padrão: metade variações próximas, metade ângulos novos. Esses anúncios não vão para o gerador de imagens.</p>
+        <div id="winners" class="thumbs"></div>
+      </div>
+      <div class="row">
+        <label>Foto do produto (opcional, até 6)
           <input id="refs-input" type="file" accept="image/jpeg,image/png,image/webp" multiple>
         </label>
+        <p class="muted">Vai junto para o gerador, para o produto aparecer igual em todas as imagens.</p>
         <div id="refs" class="thumbs"></div>
       </div>
       <label>Headlines de referência (opcional, uma por linha)
         <textarea id="examples" rows="2" placeholder="Headlines que funcionaram ou que você viu no Spy"></textarea>
       </label>
+      <p id="examples-note" class="muted"></p>
       <div class="row inline">
         <label>Idioma das headlines
           <select id="language">
@@ -47,11 +56,13 @@
             <option>Prostate Health</option><option>Joint Pain/Arthritis</option><option>Vision/Eye Health</option>
           </select>
         </label>
+        <label>Idade das pessoas <input id="ages" size="8" placeholder="Ex.: 70-85"></label>
         <label>Imagens <input id="n-images" type="number" min="0" max="12" value="6"></label>
         <label>Headlines <input id="n-headlines" type="number" min="0" max="30" value="10"></label>
       </div>
       <p><button id="generate" class="primary">Gerar opções</button> <span id="gen-progress" class="muted"></span></p>
     </div>
+    <div id="analysis"></div>
   </section>
 
   <section id="creatives-section">
@@ -99,14 +110,12 @@
     <p id="url-warnings" class="warn"></p>
     <div class="row inline">
       <label>Botão (CTA) <select id="cta"></select></label>
-      <label>Status
-        <select id="status"><option value="Active">Ativo (roda quando aprovado)</option><option value="Paused">Pausado</option></select>
-      </label>
       <label>Marca (só para a prévia) <input id="brand" maxlength="25" placeholder="Nome da marca"></label>
     </div>
     <label>Descrição (opcional, até 250 caracteres)
       <input id="description" maxlength="250">
     </label>
+    <p id="description-warnings" class="warn"></p>
     <fieldset id="ai-label">
       <legend>Marcar os anúncios como feitos com IA no Taboola?</legend>
       <label><input type="radio" name="ai" value="yes"> Sim</label>
@@ -123,6 +132,10 @@
 
   <section id="download-section">
     <h2>7. Baixar e subir</h2>
+    <label>Modelo do Taboola (.xlsx)
+      <input id="template-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    </label>
+    <p id="template-status" class="muted">No Realize: <b>Create › Bulk Upload › Download Template</b>, na conta onde estão as campanhas. O Taboola só aceita a planilha no formato do modelo dele, então os anúncios são escritos dentro desse arquivo. Fica guardado neste navegador.</p>
     <p>
       <button id="download-sheet" class="primary">Baixar planilha (.xlsx)</button>
       <button id="download-zip" class="primary">Baixar imagens (.zip)</button>
@@ -130,11 +143,9 @@
       <span id="download-note" class="muted"></span>
     </p>
     <ol class="steps">
-      <li>No Taboola (Realize): <b>Create › Bulk Upload</b>.</li>
-      <li>Envie a planilha. Quando pedir, envie o .zip das imagens: os nomes batem com a coluna Image File Name.</li>
-      <li>Confira o relatório de processamento. Os anúncios entram na revisão do Taboola.</li>
-      <li id="ai-step" hidden>Marque “AI content” nesses anúncios no Realize se a planilha não tiver essa opção.</li>
-      <li>Se o Taboola recusar a planilha, baixe o modelo dele (Download Template), clique em <b>Copiar linhas</b> e cole na aba Ads, abaixo do cabeçalho.</li>
+      <li>No Realize: <b>Create › Bulk Upload</b>. Envie a planilha (os anúncios estão na aba <b>Ads</b>) e depois o .zip das imagens: os nomes batem com a coluna Image File Name.</li>
+      <li>Confira o relatório de processamento. Os anúncios entram ativos na revisão do Taboola; pause pela campanha se precisar.</li>
+      <li>Sem o modelo? <b>Copiar linhas</b> e cole na aba Ads do modelo, na primeira linha vazia abaixo do cabeçalho (linha 3).</li>
     </ol>
   </section>
 </main>

@@ -1,0 +1,74 @@
+# Words and phrases the team has seen Taboola block, from their sheet
+# "keywords bloqueadas" (2026-09-29). One per line: where it is blocked
+# (title, or title+description), a tab, then the word or the start of the
+# phrase. Case never matters; a single word also matches its plural.
+# Grouped by the sheet's Tema column.
+
+# Neuropatia / dor nervosa
+title	neuropathy
+title	feet
+title	Neuropathy Has Been Linked to a Common Habit
+title	sciatica
+title	nerve pain
+title	Füße
+title	back pain
+title	Burning, Tingling & Numbness
+# Perda de peso / emagrecimento
+title	weight
+title	Bauchfett
+title	gordura
+title	stop losing weight
+title	Drink 1 Cup In The Morning
+title	barriga
+title	keto
+title	dropping weight
+# Diabetes / blood sugar
+title	blood sugar
+title	glucosa
+title	The Greatest Enemy of Blood Sugar
+# Demência / memória / cognição
+title	memory
+title	memory loss
+title+description	neurologists
+title	brain fog
+title	cognitive decline
+title	forget
+title	cognitive
+title	Doctors Warn… Rapid Memory Decline
+title	Memory Loss and Brain Plaque
+# Audição / zumbido
+title	tinnitus
+title	Ringing In The Ears
+title	auditiva
+# Pele / estética / anti-aging
+title	gelatin
+title	wrinkles
+title	Dermatologists: The 1 Vitamin
+title	Gelatin Trick
+title	plastic surgeon
+# Próstata / saúde masculina
+title	impotência
+title	prostate
+title	prostata
+# Cardio / médicos
+title	doctors
+title	cardiologists
+title	doctor
+title	MDs
+# Sono / respiração
+title	apnea
+# Gut / intestino
+title	intestino
+# Medicamento / suplemento / pílula
+title	pill
+title	medication
+title	mineral
+title	vitamin
+# Bebidas / alimentos genéricos de saúde
+title	drink
+title	poison
+title	linked to this common drink
+title	soda
+title	food
+title+description	wine
+title	enemy

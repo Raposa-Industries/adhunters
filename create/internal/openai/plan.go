@@ -2,8 +2,10 @@ package openai
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +16,9 @@ import (
 const (
 	MaxHeadlines = 30
 	MaxImages    = 12
+	// MaxExamples is how many style examples one plan is shown: the person's
+	// own first, then a fresh random slice of the vertical's team library.
+	MaxExamples = 40
 )
 
 // PlanRequest is what the page asks a plan for. Counts are already
@@ -25,15 +30,35 @@ type PlanRequest struct {
 	Vertical         string   `json:"vertical,omitempty"`
 	Headlines        int      `json:"headlines"`
 	Images           int      `json:"images"`
+	Ages             string   `json:"ages,omitempty"`
 	HasReferences    bool     `json:"has_references"`
 	Avoid            []string `json:"avoid,omitempty"`
+	// Winners are pictures of ads performing well, read for the analysis.
+	// They are not kept with the request (the person has them already); the
+	// kept record says how many there were.
+	Winners []Reference `json:"-"`
 }
 
-// Plan is headlines and image briefs from one text call.
+// Plan is an analysis, headlines and image briefs from one text call.
 type Plan struct {
+	Analysis  []Aspect `json:"analysis"`
 	Headlines []string `json:"headlines"`
-	Briefs    []string `json:"briefs"`
+	Briefs    []Brief  `json:"briefs"`
 	Cost      float64  `json:"cost_usd"`
+}
+
+// Aspect is one line of the analysis of the performing ads: what stays and
+// what may change.
+type Aspect struct {
+	Aspect   string `json:"aspect"`
+	Fixed    string `json:"fixed"`
+	Variable string `json:"variable"`
+}
+
+// Brief is one picture to make, with the angle it belongs to.
+type Brief struct {
+	Angle string `json:"angle"`
+	Brief string `json:"brief"`
 }
 
 type chatReply struct {
@@ -55,6 +80,7 @@ type planKept struct {
 	Model        string          `json:"model"`
 	Reasoning    string          `json:"reasoning_effort,omitempty"`
 	Request      PlanRequest     `json:"request"`
+	Winners      int             `json:"winners"`
 	LanguageName string          `json:"language_name"`
 	System       string          `json:"system"`
 	User         string          `json:"user"`
@@ -74,13 +100,28 @@ func (c *Client) TextCost(u *Usage) float64 {
 // Plan writes headlines and briefs in one structured text call. The reply is
 // kept before it is parsed.
 func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
+	r.HeadlineExamples = WithLibrary(r.HeadlineExamples, r.Vertical, rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())))
 	language := LanguageName(r.Language)
 	user := planUser(r, language)
+	var content any = user
+	if len(r.Winners) > 0 {
+		parts := []map[string]any{{"type": "text", "text": user}}
+		for _, w := range r.Winners {
+			parts = append(parts, map[string]any{
+				"type": "image_url",
+				"image_url": map[string]any{
+					"url":    "data:" + w.MIME + ";base64," + base64.StdEncoding.EncodeToString(w.Data),
+					"detail": "high",
+				},
+			})
+		}
+		content = parts
+	}
 	payload := map[string]any{
 		"model": c.s.TextModel,
-		"messages": []map[string]string{
+		"messages": []map[string]any{
 			{"role": "system", "content": planSystem},
-			{"role": "user", "content": user},
+			{"role": "user", "content": content},
 		},
 		// No temperature: the reasoning models refuse anything but the default.
 		"response_format": map[string]any{
@@ -111,7 +152,7 @@ func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
 	// Kept before parsing, so a reply we could not read is still on disk.
 	kept, err := c.keep.JSON("plan", planKept{
 		Kind: "plan", Time: time.Now().UTC(), Model: c.s.TextModel, Reasoning: c.s.TextReasoning,
-		Request: r, LanguageName: language, System: planSystem, User: user,
+		Request: r, Winners: len(r.Winners), LanguageName: language, System: planSystem, User: user,
 		Usage: reply.Usage, CostUSD: cost, Reply: raw,
 	})
 	if err != nil {
@@ -134,18 +175,43 @@ func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
 		return Plan{}, err
 	}
 	plan.Cost = cost
-	c.log.Info("plan made", "model", c.s.TextModel, "headlines", len(plan.Headlines),
+	c.log.Info("plan made", "model", c.s.TextModel, "winners", len(r.Winners), "headlines", len(plan.Headlines),
 		"briefs", len(plan.Briefs), "cost_usd", cost, "kept", kept)
 	return plan, nil
+}
+
+// WithLibrary tops the person's examples up to MaxExamples with a random
+// slice of the vertical's team headlines, when the team has any.
+func WithLibrary(own []string, vertical string, rnd *rand.Rand) []string {
+	lib, ok := LibraryFor(vertical)
+	if !ok || len(own) >= MaxExamples {
+		return own
+	}
+	out := append([]string{}, own...)
+	have := map[string]bool{}
+	for _, o := range own {
+		have[o] = true
+	}
+	for _, h := range sample(lib.Headlines, MaxExamples, rnd) {
+		if len(out) >= MaxExamples {
+			break
+		}
+		if !have[h] {
+			out = append(out, h)
+		}
+	}
+	return out
 }
 
 // ParsePlan reads the model's JSON and cleans it: each line trimmed and
 // stripped of invisible characters, empties and exact duplicates dropped,
 // anything already shown dropped, and the counts capped to what was asked.
+// Briefs keep the model's order grouped by angle, first angle first.
 func ParsePlan(content string, r PlanRequest) (Plan, error) {
 	var answer struct {
+		Analysis  []Aspect `json:"analysis"`
 		Headlines []string `json:"headlines"`
-		Briefs    []string `json:"briefs"`
+		Briefs    []Brief  `json:"briefs"`
 	}
 	if err := json.Unmarshal([]byte(strings.TrimSpace(content)), &answer); err != nil {
 		return Plan{}, &Error{Status: http.StatusOK, Message: "a OpenAI devolveu um plano ilegível"}
@@ -154,10 +220,39 @@ func ParsePlan(content string, r PlanRequest) (Plan, error) {
 	for _, a := range r.Avoid {
 		shown[CleanLine(a)] = true
 	}
-	return Plan{
-		Headlines: tidy(answer.Headlines, r.Headlines, shown),
-		Briefs:    tidy(answer.Briefs, r.Images, shown),
-	}, nil
+	plan := Plan{Analysis: []Aspect{}, Headlines: tidy(answer.Headlines, r.Headlines, shown), Briefs: []Brief{}}
+	if len(r.Winners) > 0 {
+		for _, a := range answer.Analysis {
+			a = Aspect{Aspect: CleanLine(a.Aspect), Fixed: CleanLine(a.Fixed), Variable: CleanLine(a.Variable)}
+			if a.Aspect != "" {
+				plan.Analysis = append(plan.Analysis, a)
+			}
+		}
+	}
+	seen := map[string]bool{}
+	var order []string
+	byAngle := map[string][]Brief{}
+	for _, b := range answer.Briefs {
+		if len(seen) >= r.Images {
+			break
+		}
+		b = Brief{Angle: CleanLine(b.Angle), Brief: CleanLine(b.Brief)}
+		if b.Brief == "" || seen[b.Brief] || shown[b.Brief] {
+			continue
+		}
+		seen[b.Brief] = true
+		if b.Angle == "" {
+			b.Angle = "Outro"
+		}
+		if _, ok := byAngle[b.Angle]; !ok {
+			order = append(order, b.Angle)
+		}
+		byAngle[b.Angle] = append(byAngle[b.Angle], b)
+	}
+	for _, a := range order {
+		plan.Briefs = append(plan.Briefs, byAngle[a]...)
+	}
+	return plan, nil
 }
 
 func tidy(lines []string, limit int, shown map[string]bool) []string {

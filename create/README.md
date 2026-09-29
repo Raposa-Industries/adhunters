@@ -8,11 +8,12 @@ stays as it is; this folder is the new Create.
 One page, in Portuguese, for the team that puts ads on Taboola by hand. It
 takes the typing out of Taboola's Bulk Upload:
 
-1. **Brief.** What the ad is about, optional reference images and headlines,
-   the headline language, the vertical, how many images and headlines to make.
-   Create asks OpenAI for headlines and a one-line idea per image, then makes
-   each image (with the references when there are any). Everything made is an
-   option: nothing is used until a person ticks it.
+1. **Brief.** What the ad is about, optional ads that are performing well,
+   an optional product photo, optional headlines, the headline language, the
+   vertical, the age of the people in the pictures, how many images and
+   headlines to make. Create asks OpenAI for headlines and an idea per image,
+   then makes each image (with the product photo when there is one).
+   Everything made is an option: nothing is used until a person ticks it.
 2. **Creatives and headlines.** Tick the options worth using, upload your own
    images, paste your own headlines, edit any headline in place.
 3. **Pairing** (GLOSSARY.md):
@@ -22,19 +23,54 @@ takes the typing out of Taboola's Bulk Upload:
    - *Um a um* (one to one): a grid where each tick is one ad.
    - *Todas as combinações* (every combination).
 4. **Campaign.** The Taboola campaign ids the ads go into (each ad goes into
-   each), the landing page link, CTA, status, and whether the ads are marked
-   as AI-made.
-5. **Download** the bulk sheet (`.xlsx`, Campaigns and Ads tabs, one Ads row
-   per item) and a `.zip` of the images named as in "Image File Name", then
-   upload both in Realize › Create › Bulk Upload. "Copiar linhas" copies the
-   Ads rows to paste into Taboola's own template if Realize refuses ours.
+   all of them), the landing page link, CTA, and whether the ads are marked
+   as AI-made (the template's "AI Content" column).
+5. **Download** the bulk sheet and a `.zip` of the images named as in "Image
+   File Name", then upload both in Realize › Create › Bulk Upload.
+
+**The sheet is always Realize's own template.** Realize rejects a workbook
+that is not in its template's shape (a home-made one got "Invalid number of
+library creatives"): the template carries hidden METADATA tabs naming the
+account and the field behind each column. So the person picks the template
+once (Create › Bulk Upload › Download Template, in the account that owns the
+campaigns; the page keeps it in the browser), and the page writes one row
+per ad into its Ads tab from row 3, finding columns by their header in row
+2 and leaving every other file in the workbook as Realize wrote it
+(`launcher/template.js`). "Campaign ID" takes several ids as `123; 456`.
+Status stays empty: new ads start Active. The Ads tab runs to row 500, so
+one sheet holds 498 ads. "Copiar linhas" copies the same rows to paste at A3
+by hand.
 
 Nothing is sent to Taboola or RedTrack from here.
+
+**The team's own prompts are built in** (their material, 2026-09-29, is in
+`internal/openai/rules/` and the project files at research/create-prompts/):
+
+- *Performing ads* are analysed first, the team's "Etapa 1": for seven
+  aspects (subject, gesture, product, setting, framing, emotion, photo style)
+  what is fixed and what can vary. The page shows it as a table. These ads
+  go to the text model only, never to the image model.
+- *Image ideas* follow the team's "Etapa 2": about half close variations of
+  that pattern and half new angles (spoon, straw, shot, bottle, blender,
+  just before or after taking it, the reaction after), always people of the
+  age asked for, a candid everyday scene, nobody looking at the camera, no
+  text or brands. Each idea carries its angle, and the options are grouped
+  by it. Where the team's rules and Taboola's guide disagree (Taboola
+  suggests eye contact and plain backgrounds) the team's win.
+- *Headlines* learn from the team's headlines for the vertical (Blood
+  Pressure, Memory Loss, Neuropathy, Tinnitus, Weight Loss): a random 40 per
+  plan, after any the person typed.
+- *Blocked words*: the team's list of words Taboola has blocked for them
+  (`rules/blocked.txt`). The model is told never to use them, and the page
+  warns when a headline (or the description, for the words blocked there
+  too) has one. The team's own examples use many of these words; the model
+  keeps their structure and says it another way.
 
 **Warnings, never blocks.** Headlines and images are checked against
 Taboola's rules (research/taboola-policies/digest.md in the project files):
 hidden characters, over 60 characters, shouting, "cure", disease names,
-amounts, emoji, image size and shape, `{macros}` in the link. Each shows as a
+amounts, emoji, the team's blocked words, image size and shape, `{macros}`
+in the link. Each shows as a
 warning; the person decides. The AI label is their choice too: download
 waits only until they answer it, with a warning when AI-made content is
 marked "no".
@@ -43,19 +79,16 @@ marked "no".
 headline's>` in Taboola's Custom ID, so results can be joined back to the ad
 later (Intel).
 
-### What is not confirmed about Taboola's sheet
+### What is not confirmed yet
 
-From research/taboola-bulk-upload/findings.md (project files), read
-2026-09-29 from the help center, not from a real template:
-
-- The column names and order are the help article's; the tab and header row
-  of a real template are not seen yet. Someone on the team downloading
-  Create › Bulk Upload › Download Template settles it.
-- An Ads row can only join an *existing* campaign (numeric Campaign ID), so a
-  new campaign is made (or duplicated) first, in Realize.
-- The classic Ads tab has no AI column: the "AI content" box is ticked in
-  Realize after the upload. The page reminds them when they chose "Sim".
-- Title over 60 characters is Taboola's guideline, not a hard cap.
+- The first upload of a filled template: the template layout is Realize's
+  (a real one, 2026-09-29, is in the project files at
+  research/taboola-bulk-upload/realize-template-2026-09-29.xlsx), but no
+  filled one has gone through Realize yet. Cells are written as inline
+  text, which Excel reads the same as its own shared strings.
+- An ad can only join an *existing* campaign, so a new campaign is made (or
+  duplicated) first, in Realize.
+- Title over 60 characters is Taboola's guideline; the template says under 100.
 
 ## API (for the page)
 
@@ -63,10 +96,14 @@ Errors are `{"error": "<a line in Portuguese>"}`: 400 bad input, 402 out of
 OpenAI credit, 503 no key, 502 any other OpenAI failure. Only same-origin
 requests are accepted.
 
-- `GET /api/status`: whether making options is on, the models, the price of one image.
+- `GET /api/status`: whether making options is on, the models, the price of
+  one image, the team's blocked words and the verticals with team headlines.
 - `POST /api/plan` (JSON: prompt, headline_examples, language, vertical,
-  headlines 0-30, images 0-12, has_references, avoid): headlines and one
-  brief per image, cleaned of hidden characters and duplicates.
+  ages, headlines 0-30, images 0-12, has_references, avoid, and 0-6
+  `winners` as `data:` URLs of performing ads): an analysis of the ads (empty
+  without them), headlines, and one `{angle, brief}` per image grouped by
+  angle, cleaned of hidden characters and duplicates. The ads themselves are
+  not kept, only how many there were.
 - `POST /api/image` (multipart: brief, optional quality, 0-6 `reference`
   JPEG or PNG files): one picture, base64. With references it goes to
   OpenAI's edits endpoint. At most 4 pictures are made at once.
