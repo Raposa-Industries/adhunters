@@ -2,11 +2,10 @@
 // accounts the page may use, their campaigns, a new campaign, image uploads
 // and ads (Taboola's items) made in bulk.
 //
-// Ported from intel/taboola/act (the write client proven against the real
-// API on 2026-09-29) and intel/taboola/client.go (token flow, retries), when
-// the repo still forbade sharing code between services. Decision 0013 now
-// allows it: this and Intel's client are to become one package in shared/.
-// What those tests learned is kept, with the reason next to it.
+// The token, sending, retries and the image form come from shared/taboola,
+// which Intel's clients use too (decision 0013). The guards, the keep folder
+// and the pt-BR messages are Create's own and live here. What the write tests
+// of 2026-09-29 learned is kept, with the reason next to it.
 //
 // Guards, checked before a request leaves (do):
 //
@@ -30,15 +29,12 @@
 package taboola
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -46,23 +42,22 @@ import (
 	"unicode/utf8"
 
 	"github.com/Raposa-Industries/adhunters/create/internal/keep"
+	api "github.com/Raposa-Industries/adhunters/shared/taboola"
 )
 
 // DefaultBase is Backstage's production host.
-const DefaultBase = "https://backstage.taboola.com"
+const DefaultBase = api.DefaultBase
 
 const (
-	tokenPath       = "/backstage/oauth/token"
-	apiPrefix       = "/backstage/api/1.0/"
-	uploadPath      = "operations/upload-image"
+	tokenPath       = api.TokenPath
+	apiPrefix       = api.APIPrefix
+	uploadPath      = api.UploadPath
 	allowedAccounts = "users/current/allowed-accounts/"
 	keepKind        = "taboola"
 
 	// maxRetries is how often a 429 (or a 5xx where a repeat is safe) is
 	// tried again.
 	maxRetries = 3
-	// maxWait caps any pause between tries.
-	maxWait = 2 * time.Minute
 )
 
 // Settings are the knobs create-web reads from its environment.
@@ -115,15 +110,13 @@ func (e *Error) Error() string { return "taboola: " + e.Message }
 // for concurrent use. A nil *Client is a client that is off.
 type Client struct {
 	s    Settings
-	http *http.Client
+	api  *api.Client
 	keep *keep.Folder
 	log  *slog.Logger
 	// wait pauses between tries; tests make it instant.
 	wait func(context.Context, time.Duration) error
 
 	mu      sync.Mutex
-	token   string
-	expires time.Time
 	names   map[string]string // account id -> name, from allowed-accounts
 	listed  []Account         // the same accounts in Taboola's order, the network left out
 	network string            // the login's network account id ("" for a single account)
@@ -148,15 +141,13 @@ func New(s Settings, kept *keep.Folder, log *slog.Logger) (*Client, error) {
 		}
 	}
 	s.Accounts = accts
-	c := &Client{
-		s: s,
-		// Every call also carries the caller's deadline; this only stops one
-		// stuck exchange from holding a whole batch.
-		http: &http.Client{Timeout: 2 * time.Minute},
-		keep: kept,
-		log:  log,
-		wait: sleep,
-	}
+	c := &Client{s: s, keep: kept, log: log, wait: api.Sleep}
+	// Every call also carries the caller's deadline; the shared client's 2
+	// minute timeout only stops one stuck exchange from holding a whole batch.
+	c.api = api.New(s.Base, s.ClientID, s.ClientSecret, nil)
+	c.api.MaxRetries = maxRetries
+	c.api.Wait = func(ctx context.Context, d time.Duration) error { return c.wait(ctx, d) }
+	c.api.Record = c.keepAttempt
 	if s.OnlyOwn {
 		if err := c.loadOwn(); err != nil {
 			return nil, err
@@ -274,76 +265,55 @@ func (c *Client) do(ctx context.Context, k call) ([]byte, error) {
 	if err := c.checkPath(k.method, k.path); err != nil {
 		return nil, err
 	}
-	refreshed := false
-	for attempt, retries := 1, 0; ; attempt++ {
-		tok, err := c.accessToken(ctx)
-		if err != nil {
-			return nil, err
-		}
-		var rd io.Reader
-		if k.body != nil {
-			rd = bytes.NewReader(k.body)
-		}
-		req, err := http.NewRequestWithContext(ctx, k.method, c.s.Base+apiPrefix+k.path, rd)
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("Authorization", "Bearer "+tok)
-		req.Header.Set("Accept", "application/json")
-		if k.ctype != "" {
-			req.Header.Set("Content-Type", k.ctype)
-		}
-		ex := exchange{Time: time.Now().UTC(), Method: k.method, Path: k.path, Attempt: attempt, Request: k.kept}
-		res, err := c.http.Do(req)
-		if err != nil {
-			ex.Error = err.Error()
-			if kerr := c.keepExchange(ex); kerr != nil {
-				c.log.Error("taboola exchange not kept", "err", kerr)
-			}
-			if ctx.Err() != nil {
-				return nil, ctx.Err()
-			}
-			msg := "sem resposta da Taboola"
-			if k.method != http.MethodGet {
-				msg += "; confira no Taboola antes de repetir"
-			}
-			return nil, &Error{Message: msg}
-		}
-		body, err := io.ReadAll(res.Body)
-		res.Body.Close()
-		ex.Status = res.StatusCode
-		ex.Body = rawBody(body)
-		if err != nil {
-			ex.Error = err.Error()
-		}
-		if kerr := c.keepExchange(ex); kerr != nil {
-			c.log.Error("taboola answer not kept, not handed back", "method", k.method, "path", k.path, "status", res.StatusCode, "err", kerr)
-			return nil, fmt.Errorf("%w: %v", ErrKeep, kerr)
-		}
-		if err != nil {
-			return nil, &Error{Status: res.StatusCode, Message: "resposta da Taboola cortada no meio"}
-		}
-
-		switch {
-		case res.StatusCode == http.StatusUnauthorized && !refreshed:
-			// Expired early or revoked: fetch a new token, once. A 401 was
-			// not acted on, so repeating it is safe for any method.
-			refreshed = true
-			c.forgetToken()
-			continue
-		case (res.StatusCode == http.StatusTooManyRequests || (res.StatusCode >= 500 && k.retry5xx)) && retries < maxRetries:
-			// A 429 was not acted on. A 5xx after a create may have created
-			// it, so creates are never repeated on one.
-			if err := c.wait(ctx, backoff(res.Header, retries)); err != nil {
-				return nil, err
-			}
-			retries++
-			continue
-		case res.StatusCode/100 == 2:
-			return body, nil
-		}
-		return nil, answerError(k.method, res.StatusCode, body)
+	res, err := c.api.Do(ctx, api.Request{
+		Method: k.method, Path: k.path, Body: k.body, ContentType: k.ctype,
+		Log: k.kept, Retry5xx: k.retry5xx,
+	})
+	if err == nil {
+		return res.Body, nil
 	}
+	var (
+		send *api.SendError
+		rec  *api.RecordError
+		cut  *api.CutError
+		st   *api.StatusError
+		tok  *api.TokenError
+	)
+	switch {
+	case errors.As(err, &send):
+		if send.RecordErr != nil {
+			c.log.Error("taboola exchange not kept", "err", send.RecordErr)
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		msg := "sem resposta da Taboola"
+		if k.method != http.MethodGet {
+			msg += "; confira no Taboola antes de repetir"
+		}
+		return nil, &Error{Message: msg}
+	case errors.As(err, &rec):
+		c.log.Error("taboola answer not kept, not handed back", "method", k.method, "path", k.path, "status", rec.Status, "err", rec.Err)
+		return nil, fmt.Errorf("%w: %v", ErrKeep, rec.Err)
+	case errors.As(err, &cut):
+		return nil, &Error{Status: cut.Status, Message: "resposta da Taboola cortada no meio"}
+	case errors.As(err, &st):
+		return nil, answerError(k.method, st.Status, st.Body)
+	case errors.As(err, &tok):
+		return nil, c.tokenError(ctx, tok)
+	case errors.Is(err, api.ErrNoCredentials):
+		return nil, ErrNotConfigured
+	}
+	return nil, err
+}
+
+// keepAttempt keeps one attempt raw before anything reads it.
+func (c *Client) keepAttempt(a api.Exchange) error {
+	ex := exchange{Time: a.Time, Method: a.Method, Path: a.Path, Attempt: a.Attempt, Request: a.Log, Status: a.Status, Body: rawBody(a.Body)}
+	if a.Err != nil {
+		ex.Error = a.Err.Error()
+	}
+	return c.keepExchange(ex)
 }
 
 // checkPath lets through the image upload, the list of accounts the login
@@ -443,80 +413,24 @@ func oneLine(s string, max int) string {
 	return s
 }
 
-// accessToken returns a cached token, fetching one when none is left or the
-// current one ends within a minute. The token exchange is never kept: its
-// request holds the secret and its answer the token.
-func (c *Client) accessToken(ctx context.Context) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.token != "" && time.Until(c.expires) > time.Minute {
-		return c.token, nil
-	}
-	form := url.Values{
-		"client_id":     {c.s.ClientID},
-		"client_secret": {c.s.ClientSecret},
-		"grant_type":    {"client_credentials"},
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.s.Base+tokenPath, strings.NewReader(form.Encode()))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
-	res, err := c.http.Do(req)
-	if err != nil {
+// tokenError is a failed token request as one pt-BR line. The token
+// exchange itself is never kept: its request holds the secret and its answer
+// the token.
+func (c *Client) tokenError(ctx context.Context, e *api.TokenError) error {
+	switch e.Status {
+	case 0:
 		if ctx.Err() != nil {
-			return "", ctx.Err()
+			return ctx.Err()
 		}
-		return "", &Error{Message: "sem resposta da Taboola ao pedir acesso"}
+		return &Error{Message: "sem resposta da Taboola ao pedir acesso"}
+	case http.StatusOK:
+		return &Error{Status: e.Status, Message: "a Taboola deu acesso sem token"}
 	}
-	defer res.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
-	var t struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
+	c.log.Warn("taboola token refused", "status", e.Status)
+	if e.Status == http.StatusUnauthorized || e.Status == http.StatusBadRequest || e.Status == http.StatusForbidden {
+		return &Error{Status: e.Status, Message: fmt.Sprintf("a Taboola recusou TABOOLA_CLIENT_ID/TABOOLA_CLIENT_SECRET (HTTP %d)", e.Status)}
 	}
-	if res.StatusCode != http.StatusOK {
-		c.log.Warn("taboola token refused", "status", res.StatusCode)
-		if res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusBadRequest || res.StatusCode == http.StatusForbidden {
-			return "", &Error{Status: res.StatusCode, Message: fmt.Sprintf("a Taboola recusou TABOOLA_CLIENT_ID/TABOOLA_CLIENT_SECRET (HTTP %d)", res.StatusCode)}
-		}
-		return "", &Error{Status: res.StatusCode, Message: fmt.Sprintf("a Taboola falhou ao dar acesso (HTTP %d)", res.StatusCode)}
-	}
-	if json.Unmarshal(body, &t) != nil || t.AccessToken == "" {
-		return "", &Error{Status: res.StatusCode, Message: "a Taboola deu acesso sem token"}
-	}
-	if t.ExpiresIn <= 0 {
-		t.ExpiresIn = 3600
-	}
-	c.token = t.AccessToken
-	c.expires = time.Now().Add(time.Duration(t.ExpiresIn) * time.Second)
-	return c.token, nil
-}
-
-func (c *Client) forgetToken() {
-	c.mu.Lock()
-	c.token = ""
-	c.mu.Unlock()
-}
-
-// backoff honours Retry-After (seconds) and otherwise waits 2, 4, 8 s.
-func backoff(h http.Header, retry int) time.Duration {
-	if s, err := strconv.Atoi(strings.TrimSpace(h.Get("Retry-After"))); err == nil && s >= 0 {
-		return min(time.Duration(s)*time.Second, maxWait)
-	}
-	return time.Duration(2<<retry) * time.Second
-}
-
-func sleep(ctx context.Context, d time.Duration) error {
-	t := time.NewTimer(d)
-	defer t.Stop()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-t.C:
-		return nil
-	}
+	return &Error{Status: e.Status, Message: fmt.Sprintf("a Taboola falhou ao dar acesso (HTTP %d)", e.Status)}
 }
 
 // obj is a JSON object as Taboola sends or takes it.

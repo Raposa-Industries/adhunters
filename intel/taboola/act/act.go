@@ -15,30 +15,30 @@
 //     for our campaigns, once no campaign in them is left.
 //
 // Each request and answer is handed to Record before anything reads it, so
-// callers save it raw (decision 0003).
+// callers save it raw (decision 0003). The token and sending come from
+// shared/taboola (decision 0013); this client never repeats a request other
+// than once after a 401, as before.
 package act
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"mime/multipart"
 	"net/http"
-	"net/textproto"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	api "github.com/Raposa-Industries/adhunters/shared/taboola"
 )
 
 const (
-	tokenPath = "/backstage/oauth/token"
-	apiPrefix = "/backstage/api/1.0/"
-	uploadAPI = "operations/upload-image"
+	tokenPath = api.TokenPath
+	apiPrefix = api.APIPrefix
+	uploadAPI = api.UploadPath
 	autoGroup = "AutoGen - " // Taboola's name for the group it makes per campaign
 )
 
@@ -77,15 +77,12 @@ type Exchange struct {
 
 // Client writes to one Taboola account within its guard.
 type Client struct {
-	base, id, secret string
-	g                Guard
-	http             *http.Client
-	Record           func(Exchange)
+	g      Guard
+	api    *api.Client
+	Record func(Exchange)
 
-	mu      sync.Mutex
-	st      State
-	token   string
-	expires time.Time
+	mu sync.Mutex
+	st State
 }
 
 // New loads the guard's state file (if any) and returns a client.
@@ -96,8 +93,15 @@ func New(base, clientID, clientSecret string, g Guard) (*Client, error) {
 	if strings.HasSuffix(g.Account, "-network") {
 		return nil, fmt.Errorf("%w: %s is a network account", ErrRefused, g.Account)
 	}
-	c := &Client{base: strings.TrimRight(base, "/"), id: clientID, secret: clientSecret, g: g,
-		http: &http.Client{Timeout: 2 * time.Minute}, Record: func(Exchange) {}}
+	c := &Client{g: g, api: api.New(base, clientID, clientSecret, nil), Record: func(Exchange) {}}
+	c.api.MaxRetries = 0
+	c.api.Record = func(ex api.Exchange) error {
+		if ex.Status != 0 { // as before: only answers that arrived
+			logged, _ := ex.Log.([]byte)
+			c.Record(Exchange{Time: ex.Time, Method: ex.Method, Path: ex.Path, RequestBody: logged, Status: ex.Status, Body: ex.Body})
+		}
+		return nil
+	}
 	c.st = State{Campaigns: map[string]float64{}, Items: map[string]string{}, Activated: map[string]float64{}, Deleted: map[string]bool{}, Groups: map[string]string{}}
 	if b, err := os.ReadFile(g.StateFile); err == nil {
 		if err := json.Unmarshal(b, &c.st); err != nil {
@@ -338,20 +342,11 @@ func (c *Client) DeleteCampaignGroup(ctx context.Context, groupID string) (Obj, 
 // UploadImage puts an image on Taboola's CDN and returns its URL. It touches
 // no campaign.
 func (c *Client) UploadImage(ctx context.Context, name string, data []byte) (string, error) {
-	var buf bytes.Buffer
-	w := multipart.NewWriter(&buf)
-	h := textproto.MIMEHeader{}
-	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename=%q`, name))
-	// Taboola refuses a part sent as application/octet-stream ("unsupported
-	// type of image"), so name the image's own type.
-	h.Set("Content-Type", http.DetectContentType(data))
-	part, err := w.CreatePart(h)
+	form, ctype, err := api.ImageForm(name, data)
 	if err != nil {
 		return "", err
 	}
-	part.Write(data)
-	w.Close()
-	out, err := c.do(ctx, http.MethodPost, uploadAPI, buf.Bytes(), w.FormDataContentType(), []byte("(image "+name+")"))
+	out, err := c.do(ctx, http.MethodPost, uploadAPI, form, ctype, []byte("(image "+name+")"))
 	if err != nil {
 		return "", err
 	}
@@ -488,71 +483,19 @@ func (c *Client) do(ctx context.Context, method, path string, body []byte, ctype
 	if !strings.HasPrefix(path, c.g.Account+"/") && path != uploadAPI && !(method == http.MethodGet && strings.HasPrefix(path, "resources/")) {
 		return nil, fmt.Errorf("%w: %s %s is outside account %s", ErrRefused, method, path, c.g.Account)
 	}
-	tok, err := c.accessToken(ctx)
-	if err != nil {
+	res, err := c.api.Do(ctx, api.Request{Method: method, Path: path, Body: body, ContentType: ctype, Log: logged})
+	var st *api.StatusError
+	switch {
+	case errors.As(err, &st):
+		var out Obj
+		json.Unmarshal(st.Body, &out)
+		return out, fmt.Errorf("taboola act: %s %s: HTTP %d: %s", method, path, st.Status, api.Snippet(st.Body))
+	case err != nil:
 		return nil, err
 	}
-	var rd io.Reader
-	if body != nil {
-		rd = bytes.NewReader(body)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, c.base+apiPrefix+path, rd)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+tok)
-	req.Header.Set("Accept", "application/json")
-	if ctype != "" {
-		req.Header.Set("Content-Type", ctype)
-	}
-	res, err := c.http.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	resBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	c.Record(Exchange{Time: time.Now().UTC(), Method: method, Path: path, RequestBody: logged, Status: res.StatusCode, Body: resBody})
 	var out Obj
-	json.Unmarshal(resBody, &out)
-	if res.StatusCode/100 != 2 {
-		return out, fmt.Errorf("taboola act: %s %s: HTTP %d: %s", method, path, res.StatusCode, snippet(resBody))
-	}
+	json.Unmarshal(res.Body, &out)
 	return out, nil
-}
-
-func (c *Client) accessToken(ctx context.Context) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.token != "" && time.Until(c.expires) > time.Minute {
-		return c.token, nil
-	}
-	form := url.Values{"client_id": {c.id}, "client_secret": {c.secret}, "grant_type": {"client_credentials"}}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.base+tokenPath, strings.NewReader(form.Encode()))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	res, err := c.http.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-	b, _ := io.ReadAll(res.Body)
-	var t struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
-	}
-	if res.StatusCode != http.StatusOK || json.Unmarshal(b, &t) != nil || t.AccessToken == "" {
-		return "", fmt.Errorf("taboola act: token request: HTTP %d: %s", res.StatusCode, snippet(b))
-	}
-	if t.ExpiresIn <= 0 {
-		t.ExpiresIn = 3600
-	}
-	c.token, c.expires = t.AccessToken, time.Now().Add(time.Duration(t.ExpiresIn)*time.Second)
-	return c.token, nil
 }
 
 func str(v any) string {
@@ -578,12 +521,4 @@ func num(v any) float64 {
 		return f
 	}
 	return 0
-}
-
-func snippet(b []byte) string {
-	s := strings.TrimSpace(string(b))
-	if len(s) > 300 {
-		s = s[:300] + "…"
-	}
-	return s
 }
