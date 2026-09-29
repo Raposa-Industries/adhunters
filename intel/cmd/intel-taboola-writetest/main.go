@@ -60,6 +60,7 @@ func main() {
 	sites := fs.String("sites", "", "two site names to block and unblock in T8, comma-separated")
 	brand := fs.String("brand", "", "live-start: the brand shown on the ads (a real advertiser name)")
 	imagePath := fs.String("image", "", "live-start: photo for the ads (JPEG or PNG the owner has rights to)")
+	aiImage := fs.Bool("ai", false, "live-start: the photo is AI-made, so the ads carry Taboola's AI label")
 	titles := fs.String("titles", "", "live-start: the two headlines, separated by |, matching the landing page")
 	tracking := fs.String("tracking", "", "campaign tracking code (query string with Taboola macros such as {campaign_id}) that Taboola appends to every item URL")
 	fs.Parse(os.Args[2:])
@@ -81,7 +82,7 @@ func main() {
 		fail(err)
 	}
 	t := &tester{c: c, dir: *out, account: *account, url: *landing, tracking: *tracking, sites: splitList(*sites),
-		brand: *brand, imagePath: *imagePath, titles: splitBar(*titles), wait: 10 * time.Second}
+		brand: *brand, imagePath: *imagePath, aiImage: *aiImage, titles: splitBar(*titles), wait: 10 * time.Second}
 	// Carry on the raw file numbers of earlier runs sharing -out.
 	if old, err := os.ReadDir(filepath.Join(*out, "raw")); err == nil {
 		t.n = len(old)
@@ -133,6 +134,7 @@ type tester struct {
 	// real content, never the placeholders the paused tests use.
 	brand     string
 	imagePath string
+	aiImage   bool
 	titles    []string
 	wait      time.Duration
 	n         int
@@ -411,10 +413,15 @@ func (t *tester) liveStart(ctx context.Context) error {
 		t.note("T12", "image upload failed: %v", err)
 		return errors.Join(err, t.cleanup(ctx))
 	}
-	if _, err := t.c.MassCreateItems(ctx, cid, []act.Obj{
-		{"url": t.url, "title": t.titles[0], "thumbnail_url": img, "custom_data": act.Obj{"custom_id": "AH-T12-1"}},
-		{"url": t.url, "title": t.titles[1], "thumbnail_url": img, "custom_data": act.Obj{"custom_id": "AH-T12-2"}},
-	}); err != nil {
+	var ads []act.Obj
+	for i, title := range t.titles {
+		ad := act.Obj{"url": t.url, "title": title, "thumbnail_url": img, "custom_data": act.Obj{"custom_id": fmt.Sprintf("AH-T12-%d", i+1)}}
+		if t.aiImage {
+			ad["ai_disclosure"] = act.Obj{"status": "AI_GENERATED"}
+		}
+		ads = append(ads, ad)
+	}
+	if _, err := t.c.MassCreateItems(ctx, cid, ads); err != nil {
 		t.note("T12", "items failed: %v", err)
 		return err
 	}
