@@ -1275,6 +1275,7 @@ window.addEventListener("beforeunload", (e) => {
 });
 
 function update() {
+  renderTemplate();
   renderTracking();
   renderSwaps();
   const list = combos();
@@ -1370,7 +1371,10 @@ function rows() {
 
 $("download-sheet").addEventListener("click", async () => {
   try {
-    const out = await fillTemplate(state.template.bytes, AD_COLUMNS, rows());
+    // The built-in base gets the account's part from the API when there is
+    // one; without it the account lists stay empty, as in a blank template.
+    const account = state.template.builtin && tbOn() ? await getJSON("api/taboola/workbook").catch(() => null) : null;
+    const out = await fillTemplate(state.template.bytes, AD_COLUMNS, rows(), account);
     save(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `taboola-anuncios-${stamp()}.xlsx`);
   } catch (err) {
     $("download-note").textContent = `Não deu para montar a planilha: ${err.message}`;
@@ -1416,9 +1420,11 @@ function idb(mode, work) {
   });
 }
 
-// The page carries the team's Realize template (realize-template.xlsx, when
-// the folder has one), so nobody has to pick it. A template picked by hand
-// wins and is kept in this browser, for a login whose template differs.
+// The page carries Realize's template with no account in it
+// (realize-base.xlsx), and fills the account's part from the Taboola API
+// when it builds a sheet, so nobody has to pick a template. One picked by
+// hand wins and is kept in this browser, for a login where Realize refuses
+// the built-in one.
 let builtinTemplate = null;
 
 async function useTemplate(name, bytes, keep, builtin = false) {
@@ -1440,7 +1446,7 @@ function renderTemplate() {
   const t = state.template;
   if (!t) return;
   $("template-status").textContent = t.builtin
-    ? "A planilha sai no modelo do Taboola que já vem na página. Se o Taboola recusar numa conta, escolha abaixo o modelo baixado dela (Create › Bulk Upload › Download Template); ele fica guardado neste navegador."
+    ? `A planilha sai no modelo do Taboola que já vem na página${tbOn() ? ", com a conta lida da API" : ""}. Se o Taboola recusar numa conta, escolha abaixo o modelo baixado dela (Create › Bulk Upload › Download Template); ele fica guardado neste navegador.`
     : `Modelo escolhido: ${t.name}${t.account ? ` (conta ${t.account})` : ""}. Fica guardado neste navegador.`;
   $("template-reset").hidden = t.builtin || !builtinTemplate;
 }
@@ -1448,7 +1454,7 @@ function renderTemplate() {
 async function fetchBuiltinTemplate() {
   if (builtinTemplate) return builtinTemplate;
   try {
-    const res = await fetch("realize-template.xlsx");
+    const res = await fetch("realize-base.xlsx");
     if (res.ok) builtinTemplate = new Uint8Array(await res.arrayBuffer());
   } catch { /* offline or not served: the person picks a template */ }
   return builtinTemplate;
@@ -1462,7 +1468,7 @@ $("template-input").addEventListener("change", async (e) => {
 
 $("template-reset").addEventListener("click", async () => {
   await idb("readwrite", (s) => s.delete("template")).catch(() => {});
-  if (await fetchBuiltinTemplate()) await useTemplate("realize-template.xlsx", builtinTemplate, false, true);
+  if (await fetchBuiltinTemplate()) await useTemplate("realize-base.xlsx", builtinTemplate, false, true);
 });
 
 async function loadTemplate() {
@@ -1471,7 +1477,7 @@ async function loadTemplate() {
     const saved = await idb("readonly", (s) => s.get("template"));
     if (saved?.bytes) return await useTemplate(saved.name, new Uint8Array(saved.bytes), false);
   } catch { /* no storage here: the built-in template, or the person picks one */ }
-  if (builtinTemplate) await useTemplate("realize-template.xlsx", builtinTemplate, false, true);
+  if (builtinTemplate) await useTemplate("realize-base.xlsx", builtinTemplate, false, true);
 }
 
 // ---- wiring ----------------------------------------------------------------------------------------------

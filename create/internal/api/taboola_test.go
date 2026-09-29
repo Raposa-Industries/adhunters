@@ -57,7 +57,7 @@ func tbSetup(t *testing.T, set taboola.Settings, fail ...string) (http.Handler, 
 		bs.mu.Unlock()
 		switch {
 		case p == "users/current/allowed-accounts/":
-			io.WriteString(w, `{"results":[{"account_id":"acme-sc","name":"Acme"}]}`)
+			io.WriteString(w, `{"results":[{"account_id":"acme-network","name":"Acme Network","type":"NETWORK"},{"account_id":"acme-sc","name":"Acme","type":"PARTNER"},{"account_id":"acme-2-sc","name":"Acme 2","type":"PARTNER"}]}`)
 		case p == "operations/upload-image":
 			fmt.Fprintf(w, `{"value":"https://cdn.taboola.com/img-%d.jpg"}`, bs.n.Add(1))
 		case strings.HasSuffix(p, "/items/mass"):
@@ -226,6 +226,16 @@ func TestTaboolaGroups(t *testing.T) {
 	}
 	if rec, _ := do(h, httptest.NewRequest("POST", "/api/taboola/groups", strings.NewReader(`{"account":"acme-sc","name":"G3","spending_limit_model":"MONTHLY"}`))); rec.Code != 400 {
 		t.Errorf("no budget: %d", rec.Code)
+	}
+}
+
+func TestTaboolaWorkbook(t *testing.T) {
+	h, _ := tbSetup(t, taboola.Settings{})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/api/taboola/workbook", nil))
+	want := `{"network":"acme-network","accounts":[{"id":"acme-sc","name":"Acme"},{"id":"acme-2-sc","name":"Acme 2"}],"groups":["G"]}`
+	if rec.Code != 200 || strings.TrimSpace(rec.Body.String()) != want {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 }
 

@@ -209,7 +209,7 @@ test("one row per ad, into every campaign, in the template's column order", () =
   assert.equal(rows[1][col("Image File Name")], "b.jpg");
   assert.equal(rows[1][col("Title")], "T2");
   assert.equal(rows[1][col("Custom ID")], "ah-2");
-  assert.equal(rows[1][col("Status")], "");
+  assert.equal(rows[1][col("Status")], "Paused");
   assert.equal(rows[1][col("AI Content")], "Yes");
   assert.equal(rows[1][col("CTA")], "Learn More");
   assert.equal(col("AI Content"), 16); // column Q
@@ -259,8 +259,61 @@ for row in sheet.find("m:sheetData", ns):
 `;
   const text = python(script, file);
   assert.match(text, /\['METADATA', 'Campaigns', 'Ads'\]/);
-  assert.match(text, /3 \{'B3': '987654', 'C3': 'https:\/\/x.io', 'D3': 'n', 'E3': 'ah-x', 'F3': 'Tips & <tricks> for “you”', 'I3': 'a.jpg', 'Q3': 'No'\}/);
+  assert.match(text, /3 \{'B3': '987654', 'C3': 'https:\/\/x.io', 'D3': 'n', 'E3': 'ah-x', 'F3': 'Tips & <tricks> for “you”', 'I3': 'a.jpg', 'P3': 'Paused', 'Q3': 'No'\}/);
   assert.match(text, /4 \{'B4': '987654'.*'F4': 'Two'/);
+});
+
+// The built-in base: Realize's template with no account in it, which the
+// page fills with the account read from the API.
+const BASE = new URL("../launcher/realize-base.xlsx", import.meta.url);
+
+test("the built-in base carries no account, and gets one when filled", async () => {
+  const base = new Uint8Array(readFileSync(BASE));
+  const t = await readTemplate(base);
+  assert.equal(t.account, "");
+  assert.ok(t.headers.includes("Title") && t.headers.includes("Status"));
+  const rows = adRows([{ creativeFile: "a.jpg", adName: "n", customId: "ah-x", title: "One" }],
+    { campaigns: ["987654"], url: "https://x.io", ai: "Yes" });
+  const account = { network: "acme-network", accounts: [{ id: "acme-sc", name: "Acme" }], groups: ["Group A"] };
+  const out = await fillTemplate(base, AD_COLUMNS, rows, account, new Date("2026-09-29T20:00:00Z"));
+  const dir = mkdtempSync(join(tmpdir(), "xlsx-"));
+  const file = join(dir, "base.xlsx");
+  writeFileSync(file, out);
+  const script = `
+import sys, zipfile, xml.etree.ElementTree as ET
+z = zipfile.ZipFile(sys.argv[1])
+assert z.testzip() is None
+M = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+sst = ["".join(t.text or "" for t in si.iter(M + "t")) for si in ET.fromstring(z.read("xl/sharedStrings.xml"))]
+rels = {r.get("Id"): r.get("Target") for r in ET.fromstring(z.read("xl/_rels/workbook.xml.rels"))}
+tabs = {s.get("name"): "xl/" + rels[s.get(R + "id")].lstrip("/").replace("xl/", "") for s in ET.fromstring(z.read("xl/workbook.xml")).iter(M + "sheet")}
+def rows(name):
+    out = []
+    for row in ET.fromstring(z.read(tabs[name])).iter(M + "row"):
+        vals = []
+        for c in row:
+            v = c.find(M + "v")
+            vals.append(sst[int(v.text)] if c.get("t") == "s" and v is not None else "".join(t.text or "" for t in c.iter(M + "t")) or (v.text if v is not None else ""))
+        out.append(vals)
+    return out
+meta = {r[0]: (r[1] if len(r) > 1 else "") for r in rows("METADATA") if r}
+print("meta", meta["accountName"], meta["utcDate"])
+print("accounts", rows("Accounts"))
+print("groups", rows("Campaign Groups"))
+ads = rows("Ads")
+print("ad", ads[1][5], ads[2][5], ads[2][15])
+print("bulk groups rows with text", sum(1 for r in rows("Campaign Groups ")[2:] if any(r)))
+blob = b"".join(z.read(n) for n in z.namelist()).lower()
+print("zolta", b"zolta" in blob)
+`;
+  const text = python(script, file);
+  assert.match(text, /meta acme-network 2026-09-29T20:00:00.000Z/);
+  assert.match(text, /accounts \[\['Account Name', 'Display Name'\], \['acme-sc', 'Acme'\]\]/);
+  assert.match(text, /groups \[\['Name'\], \['Group A'\]\]/);
+  assert.match(text, /ad Title One Paused/);
+  assert.match(text, /bulk groups rows with text 0/);
+  assert.match(text, /zolta False/);
 });
 
 test("file names are made safe and unique", () => {

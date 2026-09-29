@@ -41,8 +41,8 @@ export function campaignIds(text) {
 // adRows makes one Ads row per ad, in AD_COLUMNS order. An ad goes into
 // every campaign at once ("123; 456" in Campaign ID, as the template asks).
 // ads: [{creativeFile, adName, customId, title, cta}]; settings: {campaigns,
-// url, description, cta (when an ad has none of its own), ai ("Yes" or "No")}. Status is left empty: Realize sets
-// new ads Active and reads the column only on updates.
+// url, description, cta (when an ad has none of its own), ai ("Yes" or "No")}. Status is Paused: every ad is
+// created stopped and runs only when a person starts it in Taboola.
 export function adRows(ads, settings) {
   const at = (name) => AD_COLUMNS.indexOf(name);
   return ads.map((ad) => {
@@ -56,6 +56,7 @@ export function adRows(ads, settings) {
     row[at("CTA")] = (ad.cta ?? settings.cta) || "";
     row[at("Image File Name")] = ad.creativeFile;
     row[at("AI Content")] = settings.ai || "";
+    row[at("Status")] = "Paused";
     return row;
   });
 }

@@ -125,6 +125,8 @@ type Client struct {
 	token   string
 	expires time.Time
 	names   map[string]string // account id -> name, from allowed-accounts
+	listed  []Account         // the same accounts in Taboola's order, the network left out
+	network string            // the login's network account id ("" for a single account)
 	namesAt time.Time
 
 	stateMu sync.Mutex

@@ -154,6 +154,49 @@ func (s *Server) taboolaGroups(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
+// workbookReply is the account's part of Realize's bulk template, which the
+// page writes into its built-in base template: the network account id
+// (METADATA's accountName), the accounts and the campaign group names.
+type workbookReply struct {
+	Network  string            `json:"network"`
+	Accounts []taboola.Account `json:"accounts"`
+	Groups   []string          `json:"groups"`
+}
+
+func (s *Server) taboolaWorkbook(w http.ResponseWriter, r *http.Request) {
+	if !s.tb.Available() {
+		writeError(w, http.StatusServiceUnavailable, s.tb.Why())
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), taboolaReadBudget)
+	defer cancel()
+	network, accounts, err := s.tb.Directory(ctx)
+	if err != nil {
+		s.taboolaFail(w, err)
+		return
+	}
+	reply := workbookReply{Network: network, Accounts: accounts, Groups: []string{}}
+	if reply.Accounts == nil {
+		reply.Accounts = []taboola.Account{}
+	}
+	usable, err := s.tb.Accounts(ctx)
+	if err != nil {
+		s.taboolaFail(w, err)
+		return
+	}
+	for _, a := range usable {
+		groups, err := s.tb.Groups(ctx, a.ID)
+		if err != nil {
+			s.taboolaFail(w, err)
+			return
+		}
+		for _, g := range groups {
+			reply.Groups = append(reply.Groups, g.Name)
+		}
+	}
+	writeJSON(w, http.StatusOK, reply)
+}
+
 type groupBody struct {
 	Account            string  `json:"account"`
 	Name               string  `json:"name"`

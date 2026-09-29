@@ -72,17 +72,21 @@ bulk sheet is the way out.
 **The sheet is always Realize's own template.** Realize rejects a workbook
 that is not in its template's shape (a home-made one got "Invalid number of
 library creatives"): the template carries hidden METADATA tabs naming the
-account and the field behind each column. When the launcher folder carries
-`realize-template.xlsx`, the page uses it and asks for nothing; the person
-can still pick another (Create › Bulk Upload › Download Template, in the
-account that owns the campaigns; the page keeps it in the browser), for a
-login where Realize refuses the built-in one. Only the team's own template
-goes there, never one from a lent account: a template carries its account's
-audiences, conversion events and group names. The page writes one row
+account and the field behind each column. The page carries that template
+with no account in it (`launcher/realize-base.xlsx`, the US one, made from a
+downloaded template by `web/tools/realize-base.mjs`, which empties the
+Accounts, Conversion Events, audience and Campaign Groups lists and blanks
+every string only they used). When it builds a sheet it writes the
+account's part back from the API (`GET /api/taboola/workbook`: the network
+account as METADATA's accountName, the accounts, the group names), so
+nobody picks a template. A template picked by hand still wins and is kept in
+the browser, for a login where Realize refuses the built-in one. Realize's
+upload only creates (rows with no id) or updates (rows with an id); the page
+writes no ids, so a sheet can only add ads. The page writes one row
 per ad into its Ads tab from row 3, finding columns by their header in row
 2 and leaving every other file in the workbook as Realize wrote it
 (`launcher/template.js`). "Campaign ID" takes several ids as `123; 456`.
-Status stays empty: new ads start Active. The Ads tab runs to row 500, so
+Status is Paused on every ad. The Ads tab runs to row 500, so
 one sheet holds 498 ads. "Copiar linhas" copies the same rows to paste at A3
 by hand.
 
