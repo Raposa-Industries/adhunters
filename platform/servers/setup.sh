@@ -481,6 +481,7 @@ raposa-web              9106  raposa-web      -
 observe-bot             9107  observe-bot     -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
+# Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
 GRAFANA_METRICS_URL=FILL_ME
 GRAFANA_METRICS_USER=FILL_ME
 GRAFANA_LOGS_URL=FILL_ME
