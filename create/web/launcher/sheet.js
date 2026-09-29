@@ -145,7 +145,9 @@ export function xlsx(sheets) {
     return index.get(s);
   };
   const files = [];
-  const sheetXml = sheets.map(({ rows }) => {
+  // The workbook opens on its last tab: Ads, where the rows are.
+  const last = sheets.length - 1;
+  const sheetXml = sheets.map(({ rows }, i) => {
     const body = rows.map((row, r) => {
       const cells = row.map((v, c) => {
         if (v === "" || v === null || v === undefined) return "";
@@ -156,7 +158,7 @@ export function xlsx(sheets) {
       }).join("");
       return `<row r="${r + 1}">${cells}</row>`;
     }).join("");
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="${MAIN}"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetData>${body}</sheetData></worksheet>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="${MAIN}"><sheetViews><sheetView${i === last ? ' tabSelected="1"' : ""} workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetData>${body}</sheetData></worksheet>`;
   });
 
   const n = sheets.length;
@@ -170,7 +172,7 @@ export function xlsx(sheets) {
   });
   files.push({
     name: "xl/workbook.xml",
-    text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="${MAIN}" xmlns:r="${REL}"><sheets>${sheets.map((s, i) => `<sheet name="${esc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets></workbook>`,
+    text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="${MAIN}" xmlns:r="${REL}"><bookViews><workbookView activeTab="${sheets.length - 1}"/></bookViews><sheets>${sheets.map((s, i) => `<sheet name="${esc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets></workbook>`,
   });
   files.push({
     name: "xl/_rels/workbook.xml.rels",
