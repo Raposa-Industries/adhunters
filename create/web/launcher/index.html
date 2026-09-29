@@ -9,145 +9,289 @@
 <script type="module" src="app.js"></script>
 </head>
 <body>
-<header>
-  <h1>Subir anúncios no Taboola</h1>
-  <p class="muted">AdHunters Create. Gere ou envie imagens e headlines, escolha as que valem, combine e baixe a planilha e as imagens para o Bulk Upload do Taboola. Nada é enviado ao Taboola daqui.</p>
+<header class="top">
+  <div class="top-inner">
+    <div>
+      <div class="eyebrow">AdHunters Create</div>
+      <h1>Subir anúncios no Taboola</h1>
+    </div>
+    <div id="connections" class="connections"></div>
+  </div>
 </header>
 
-<main>
-  <section id="brief">
-    <h2>1. Briefing</h2>
-    <p id="gen-status" class="muted"></p>
-    <div id="gen-form">
-      <label>Do que é o anúncio?
-        <textarea id="prompt" rows="3" placeholder="Ex.: suplemento para dor nas articulações, público 55+ nos EUA, foto de um senhor sorrindo segurando o frasco"></textarea>
+<div class="layout">
+  <nav class="rail" aria-label="Etapas">
+    <ol id="rail"></ol>
+  </nav>
+
+  <main>
+    <!-- 1 -->
+    <section class="step" id="s-vertical" data-title="Vertical">
+      <h2><span class="n">1</span> Vertical</h2>
+      <p class="lead">Para qual mercado são os anúncios? A IA usa as headlines que já rodaram no time para essa vertical. Headlines e imagens saem sempre em inglês.</p>
+      <div id="verticals" class="chips big" role="radiogroup" aria-label="Vertical"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="step" id="s-refs" data-title="Referências">
+      <h2><span class="n">2</span> Referências <span class="opt">opcional</span></h2>
+      <p class="lead">Anúncios que funcionam e headlines que você gosta. Quando existem, pesam mais que tudo no resultado.</p>
+      <div class="two">
+        <div>
+          <div class="label">Imagens de referência <span class="muted">até 6</span></div>
+          <label class="drop" id="refs-drop">
+            <input id="refs-input" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+            <span><b>Arraste imagens aqui</b> ou clique para escolher</span>
+          </label>
+          <div id="refs" class="thumbs"></div>
+          <p class="hint">A IA analisa o padrão (pessoa, gesto, produto, cenário, enquadramento, emoção, estilo) e cria imagens nesse padrão. Marque <b>Manter produto</b> numa imagem para ela ir junto ao gerador e o produto aparecer igual.</p>
+        </div>
+        <label class="field">Headlines de referência <span class="muted">uma por linha</span>
+          <textarea id="examples" rows="7" placeholder="Headlines que funcionaram ou que você viu no Spy"></textarea>
+          <span id="examples-note" class="hint"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="step" id="s-generate" data-title="Gerar">
+      <h2><span class="n">3</span> Gerar opções</h2>
+      <label class="field">Instruções adicionais <span class="muted">opcional, valem para imagens e headlines</span>
+        <textarea id="prompt" rows="3" placeholder="Ex.: produto em pó misturado na água, mulheres de cabelo branco, headlines em forma de pergunta"></textarea>
       </label>
-      <div class="row">
-        <label>Anúncios que estão funcionando (opcional, até 6)
-          <input id="winners-input" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-        </label>
-        <p class="muted">A IA separa o que é fixo do que varia (pessoa, gesto, produto, cenário, enquadramento, emoção, estilo da foto) e cria imagens novas nesse padrão: metade variações próximas, metade ângulos novos. Esses anúncios não vão para o gerador de imagens.</p>
-        <div id="winners" class="thumbs"></div>
+      <div class="fields">
+        <label class="field">Idade das pessoas <input id="ages" placeholder="Ex.: 70-85"></label>
+        <label class="field">Imagens <input id="n-images" type="number" min="0" max="12" value="6"></label>
+        <label class="field">Headlines <input id="n-headlines" type="number" min="0" max="30" value="10"></label>
       </div>
-      <div class="row">
-        <label>Foto do produto (opcional, até 6)
-          <input id="refs-input" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-        </label>
-        <p class="muted">Vai junto para o gerador, para o produto aparecer igual em todas as imagens.</p>
-        <div id="refs" class="thumbs"></div>
+      <div class="actions">
+        <button id="generate" class="primary lg">Gerar opções</button>
+        <span id="gen-status" class="muted"></span>
       </div>
-      <label>Headlines de referência (opcional, uma por linha)
-        <textarea id="examples" rows="2" placeholder="Headlines que funcionaram ou que você viu no Spy"></textarea>
+      <div id="gen-bar" class="bar" hidden><div></div></div>
+      <p id="gen-progress" class="muted"></p>
+      <div id="analysis"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="step" id="s-creatives" data-title="Imagens">
+      <h2><span class="n">4</span> Escolha as imagens <span id="creatives-count" class="count"></span></h2>
+      <p class="lead">Clique numa imagem para usar. Também dá para arrastar as suas para cá.</p>
+      <div class="toolbar">
+        <label class="button">Enviar imagens <input id="upload-input" type="file" accept="image/*" multiple hidden></label>
+        <button id="creatives-all" class="ghost">Marcar todas</button>
+        <button id="creatives-none" class="ghost">Desmarcar todas</button>
+      </div>
+      <div id="creatives" class="tiles"></div>
+      <p id="creatives-empty" class="empty">As imagens geradas ou enviadas aparecem aqui.</p>
+    </section>
+
+    <!-- 5 -->
+    <section class="step" id="s-headlines" data-title="Headlines">
+      <h2><span class="n">5</span> Escolha as headlines <span id="headlines-count" class="count"></span></h2>
+      <p class="lead">Clique para usar. O texto pode ser editado aqui mesmo.</p>
+      <div class="toolbar">
+        <button id="headlines-all" class="ghost">Marcar todas</button>
+        <button id="headlines-none" class="ghost">Desmarcar todas</button>
+      </div>
+      <div id="headlines" class="rows"></div>
+      <p id="headlines-empty" class="empty">As headlines geradas ou adicionadas aparecem aqui.</p>
+      <div class="add-row">
+        <textarea id="paste-headlines" rows="2" placeholder="Adicionar headlines suas, uma por linha"></textarea>
+        <button id="add-headlines">Adicionar</button>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="step" id="s-ctas" data-title="Botões">
+      <h2><span class="n">6</span> Botões (CTA) <span id="ctas-count" class="count"></span></h2>
+      <p class="lead">Escolha um ou mais. Cada botão entra na combinação como mais uma variação.</p>
+      <div id="ctas" class="chips"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="step" id="s-pairing" data-title="Combinação">
+      <h2><span class="n">7</span> Combinação</h2>
+      <div class="segmented" id="modes" role="radiogroup">
+        <label><input type="radio" name="mode" value="mixed" checked><span><b>Sortido</b><small>Tudo é usado, sem repetir anúncio</small></span></label>
+        <label><input type="radio" name="mode" value="manual"><span><b>Um a um</b><small>Você liga cada imagem a cada headline</small></span></label>
+        <label><input type="radio" name="mode" value="every"><span><b>Todas as combinações</b><small>Cada imagem × headline × botão</small></span></label>
+      </div>
+      <p id="pairing-note" class="note"></p>
+      <p><button id="reshuffle" class="ghost">Sortear de novo</button></p>
+      <div id="grid-wrap"><table id="grid"></table></div>
+    </section>
+
+    <!-- 8 -->
+    <section class="step" id="s-brand" data-title="Marca">
+      <h2><span class="n">8</span> Marca e descrição</h2>
+      <div class="fields">
+        <label class="field grow">Marca <span class="muted">aparece embaixo do anúncio, até 25 caracteres</span>
+          <input id="brand" maxlength="25" placeholder="Nome da marca">
+        </label>
+      </div>
+      <label class="field">Descrição <span class="muted">opcional, até 250 caracteres, igual em todos os anúncios</span>
+        <input id="description" maxlength="250">
       </label>
-      <p id="examples-note" class="muted"></p>
-      <div class="row inline">
-        <label>Idioma das headlines
-          <select id="language">
-            <option value="en">Inglês</option>
-            <option value="pt-BR">Português</option>
-            <option value="es">Espanhol</option>
-          </select>
-        </label>
-        <label>Vertical
-          <select id="vertical">
-            <option value="">(nenhuma)</option>
-            <option>Blood Pressure</option><option>Memory Loss</option><option>Weight Loss</option>
-            <option>Tinnitus</option><option>Diabetes</option><option>Neuropathy</option>
-            <option>Prostate Health</option><option>Joint Pain/Arthritis</option><option>Vision/Eye Health</option>
-          </select>
-        </label>
-        <label>Idade das pessoas <input id="ages" size="8" placeholder="Ex.: 70-85"></label>
-        <label>Imagens <input id="n-images" type="number" min="0" max="12" value="6"></label>
-        <label>Headlines <input id="n-headlines" type="number" min="0" max="30" value="10"></label>
+      <p id="description-warnings" class="warn"></p>
+    </section>
+
+    <!-- 9 -->
+    <section class="step" id="s-ai" data-title="IA">
+      <h2><span class="n">9</span> Declarar que foi feito com IA?</h2>
+      <div class="choice" id="ai-label">
+        <label><input type="radio" name="ai" value="yes"><span><b>Sim, declarar</b><small>O Taboola marca os anúncios como conteúdo de IA</small></span></label>
+        <label><input type="radio" name="ai" value="no"><span><b>Não declarar</b><small>A decisão é sua</small></span></label>
       </div>
-      <p><button id="generate" class="primary">Gerar opções</button> <span id="gen-progress" class="muted"></span></p>
-    </div>
-    <div id="analysis"></div>
-  </section>
-
-  <section id="creatives-section">
-    <h2>2. Criativos <span id="creatives-count" class="muted"></span></h2>
-    <p class="muted">Marque as imagens que vão para a campanha. Também dá para enviar as suas.</p>
-    <p>
-      <label class="button">Enviar imagens <input id="upload-input" type="file" accept="image/*" multiple hidden></label>
-      <button id="creatives-all">Marcar todas</button>
-      <button id="creatives-none">Desmarcar todas</button>
-    </p>
-    <div id="creatives" class="grid"></div>
-  </section>
-
-  <section id="headlines-section">
-    <h2>3. Headlines <span id="headlines-count" class="muted"></span></h2>
-    <p class="muted">Marque as headlines que vão para a campanha. Dá para editar o texto aqui mesmo.</p>
-    <div id="headlines"></div>
-    <label>Adicionar headlines (uma por linha)
-      <textarea id="paste-headlines" rows="3"></textarea>
-    </label>
-    <p><button id="add-headlines">Adicionar</button> <button id="headlines-all">Marcar todas</button> <button id="headlines-none">Desmarcar todas</button></p>
-  </section>
-
-  <section id="pairing-section">
-    <h2>4. Combinação</h2>
-    <div class="row inline" id="modes">
-      <label><input type="radio" name="mode" value="mixed" checked> Sortido</label>
-      <label><input type="radio" name="mode" value="manual"> Um a um</label>
-      <label><input type="radio" name="mode" value="every"> Todas as combinações</label>
-      <button id="reshuffle">Sortear de novo</button>
-    </div>
-    <p id="pairing-note" class="muted"></p>
-    <div id="grid-wrap"><table id="grid"></table></div>
-  </section>
-
-  <section id="campaign-section">
-    <h2>5. Campanha</h2>
-    <label>IDs das campanhas no Taboola (uma ou mais, separadas por vírgula)
-      <input id="campaigns" placeholder="Ex.: 45123456, 45123457">
-    </label>
-    <p class="muted">Crie ou duplique a campanha no Taboola e copie o ID dela. Cada anúncio entra em cada campanha.</p>
-    <label>Link da página (o link da campanha no RedTrack, sem {macros})
-      <input id="url" placeholder="https://...">
-    </label>
-    <p id="url-warnings" class="warn"></p>
-    <div class="row inline">
-      <label>Botão (CTA) <select id="cta"></select></label>
-      <label>Marca (só para a prévia) <input id="brand" maxlength="25" placeholder="Nome da marca"></label>
-    </div>
-    <label>Descrição (opcional, até 250 caracteres)
-      <input id="description" maxlength="250">
-    </label>
-    <p id="description-warnings" class="warn"></p>
-    <fieldset id="ai-label">
-      <legend>Marcar os anúncios como feitos com IA no Taboola?</legend>
-      <label><input type="radio" name="ai" value="yes"> Sim</label>
-      <label><input type="radio" name="ai" value="no"> Não</label>
       <p id="ai-warning" class="warn"></p>
-    </fieldset>
-  </section>
+    </section>
 
-  <section id="ads-section">
-    <h2>6. Anúncios <span id="ads-count" class="muted"></span></h2>
-    <div id="warnings-summary" class="warn"></div>
-    <div id="ads" class="grid ads"></div>
-  </section>
+    <!-- 10 -->
+    <section class="step" id="s-campaign" data-title="Campanha">
+      <h2><span class="n">10</span> Campanha</h2>
+      <p class="note paused">Tudo é criado <b>pausado</b>: campanhas e anúncios só rodam quando você ligar no painel do Taboola.</p>
+      <div id="tb-on" hidden>
+        <p id="tb-own" class="note"></p>
+        <div class="fields">
+          <label class="field">Conta do Taboola <select id="tb-account"></select></label>
+        </div>
+        <div class="segmented two-way" id="tb-modes" role="radiogroup">
+          <label><input type="radio" name="tb-mode" value="existing" checked><span><b>Campanha existente</b><small>Os anúncios entram numa ou mais campanhas</small></span></label>
+          <label><input type="radio" name="tb-mode" value="new"><span><b>Nova campanha</b><small>Monta a campanha passo a passo e cria tudo junto</small></span></label>
+        </div>
+        <div id="tb-existing">
+          <div class="toolbar">
+            <input id="tb-search" type="search" placeholder="Buscar campanha pelo nome ou ID">
+            <button id="tb-reload" class="ghost">Recarregar</button>
+          </div>
+          <div id="tb-campaigns" class="rows campaigns"></div>
+        </div>
+        <div id="tb-new" hidden>
+          <div class="sub">
+            <h3><span class="k">a</span> Começar de</h3>
+            <div class="fields">
+              <label class="field grow">Configurações
+                <select id="nc-copy"><option value="">Do zero</option></select>
+              </label>
+              <label class="field grow">Nome da campanha <input id="nc-name" placeholder="Ex.: Tinnitus US - 29/09"></label>
+            </div>
+            <p class="hint">Copiar uma campanha traz a segmentação, os lances e o tracking dela, sem os anúncios. O que você mudar abaixo vale por cima.</p>
+          </div>
+          <div class="sub">
+            <h3><span class="k">b</span> Objetivo e grupo</h3>
+            <div class="fields">
+              <label class="field">Objetivo
+                <select id="nc-objective">
+                  <option value="DRIVE_WEBSITE_TRAFFIC">Tráfego para o site</option>
+                  <option value="LEADS_GENERATION">Gerar leads</option>
+                  <option value="ONLINE_PURCHASES">Vendas online</option>
+                  <option value="BRAND_AWARENESS">Reconhecimento da marca</option>
+                </select>
+              </label>
+              <label class="field grow">Grupo de campanhas
+                <select id="nc-group"><option value="">Automático (o Taboola cria um só para ela)</option><option value="new">Novo grupo…</option></select>
+                <small id="nc-group-copy" class="hint" hidden>Uma cópia fica no grupo da campanha copiada.</small>
+              </label>
+            </div>
+            <div id="nc-group-new" class="fields" hidden>
+              <label class="field grow">Nome do grupo <input id="ng-name" placeholder="Ex.: Tinnitus - testes de setembro"></label>
+              <label class="field">Verba do grupo (US$) <input id="ng-limit" type="number" min="1" step="1" value="300"></label>
+              <label class="field">Por <select id="ng-model"><option value="MONTHLY">mês</option><option value="ENTIRE">total</option></select></label>
+            </div>
+            <p class="hint">Um grupo junta campanhas sob uma verba só. Sem escolher, o Taboola cria um grupo "AutoGen" para cada campanha.</p>
+          </div>
+          <div class="sub">
+            <h3><span class="k">c</span> Público</h3>
+            <div class="fields">
+              <label class="field">Países <input id="nc-countries" value="US" placeholder="US, CA"></label>
+              <div class="field">Aparelhos
+                <div class="chips" id="nc-platforms">
+                  <label class="chip"><input type="checkbox" value="DESK" checked><span>Computador</span></label>
+                  <label class="chip"><input type="checkbox" value="PHON" checked><span>Celular</span></label>
+                  <label class="chip"><input type="checkbox" value="TBLT"><span>Tablet</span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="sub">
+            <h3><span class="k">d</span> Lance e verba</h3>
+            <div class="fields">
+              <label class="field">Lance
+                <select id="nc-bid"><option value="FIXED">Fixo</option><option value="SMART">Inteligente (o Taboola ajusta)</option></select>
+              </label>
+              <label class="field">Por clique (US$) <input id="nc-cpc" type="number" min="0.01" step="0.01" value="0.30"></label>
+              <label class="field">Limite por dia (US$) <input id="nc-daily" type="number" min="1" step="1" value="50"></label>
+              <label class="field">Limite total (US$) <input id="nc-total" type="number" min="0" step="1" placeholder="sem limite"></label>
+            </div>
+          </div>
+          <div class="sub">
+            <h3><span class="k">e</span> Agenda <span class="opt">opcional</span></h3>
+            <div class="fields">
+              <label class="field">Começa em <input id="nc-start" type="date"></label>
+              <label class="field">Termina em <input id="nc-end" type="date"></label>
+            </div>
+          </div>
+          <p id="nc-warnings" class="warn"></p>
+        </div>
+      </div>
+      <div id="tb-off">
+        <p id="tb-reason" class="note"></p>
+        <label class="field">IDs das campanhas no Taboola <span class="muted">uma ou mais, separadas por vírgula</span>
+          <input id="campaigns" placeholder="Ex.: 45123456, 45123457">
+        </label>
+      </div>
 
-  <section id="download-section">
-    <h2>7. Baixar e subir</h2>
-    <label>Modelo do Taboola (.xlsx)
-      <input id="template-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-    </label>
-    <p id="template-status" class="muted">No Realize: <b>Create › Bulk Upload › Download Template</b>, na conta onde estão as campanhas. O Taboola só aceita a planilha no formato do modelo dele, então os anúncios são escritos dentro desse arquivo. Fica guardado neste navegador.</p>
-    <p>
-      <button id="download-sheet" class="primary">Baixar planilha (.xlsx)</button>
-      <button id="download-zip" class="primary">Baixar imagens (.zip)</button>
-      <button id="copy-rows">Copiar linhas</button>
-      <span id="download-note" class="muted"></span>
-    </p>
-    <ol class="steps">
-      <li>No Realize: <b>Create › Bulk Upload</b>. Envie a planilha (os anúncios estão na aba <b>Ads</b>) e depois o .zip das imagens: os nomes batem com a coluna Image File Name.</li>
-      <li>Confira o relatório de processamento. Os anúncios entram ativos na revisão do Taboola; pause pela campanha se precisar.</li>
-      <li>Sem o modelo? <b>Copiar linhas</b> e cole na aba Ads do modelo, na primeira linha vazia abaixo do cabeçalho (linha 3).</li>
-    </ol>
-  </section>
-</main>
+      <div class="sub">
+        <h3>Rastreamento e página</h3>
+        <div class="chips" id="trackers"></div>
+        <label class="field">Link <span id="tracker-hint" class="muted"></span>
+          <input id="link" placeholder="https://...">
+        </label>
+        <div class="fields">
+          <label class="field grow">Link de cada anúncio <input id="url" placeholder="https://..."></label>
+        </div>
+        <label class="field" id="tracking-field">Tracking code da campanha <span class="muted">o Taboola acrescenta ao link e preenche os {macros} a cada clique</span>
+          <input id="tracking" placeholder="sub1={campaign_id}&amp;sub4={campaign_item_id}&amp;sub8={site_id}">
+        </label>
+        <p id="tracking-note" class="hint"></p>
+        <p id="url-warnings" class="warn"></p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="step" id="s-review" data-title="Criar">
+      <h2><span class="n">11</span> Revisar e criar <span id="ads-count" class="count"></span></h2>
+      <div id="warnings-summary"></div>
+      <div id="ads" class="tiles ads"></div>
+      <p><button id="ads-more" class="ghost" hidden></button></p>
+      <div id="create-box" class="create-box">
+        <button id="create" class="primary xl">CRIAR NO TABOOLA</button>
+        <div id="create-note" class="muted"></div>
+        <div id="create-result"></div>
+      </div>
+      <details id="bundle" class="bundle">
+        <summary>Baixar para o Bulk Upload em vez disso</summary>
+        <label class="field">Modelo do Taboola (.xlsx)
+          <input id="template-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        </label>
+        <p id="template-status" class="hint">No Realize: <b>Create › Bulk Upload › Download Template</b>, na conta onde estão as campanhas. O Taboola só aceita a planilha no formato do modelo dele. Fica guardado neste navegador.</p>
+        <p>
+          <button id="download-sheet">Baixar planilha (.xlsx)</button>
+          <button id="download-zip">Baixar imagens (.zip)</button>
+          <button id="copy-rows" class="ghost">Copiar linhas</button>
+        </p>
+        <p id="download-note" class="muted"></p>
+      </details>
+    </section>
+  </main>
+</div>
+
+<footer class="dock">
+  <div class="dock-inner">
+    <div id="dock-summary"></div>
+    <div id="dock-spent" class="muted"></div>
+    <a href="#s-review" class="button primary" id="dock-go">Revisar</a>
+  </div>
+</footer>
 </body>
 </html>

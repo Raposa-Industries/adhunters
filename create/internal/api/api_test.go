@@ -276,7 +276,7 @@ func TestPlanBadInput(t *testing.T) {
 	h, _, _ := setup(t, "sk-test", nil)
 	for name, body := range map[string]string{
 		"not json":      `{`,
-		"no prompt":     `{"prompt":"  "}`,
+		"no vertical":   `{"prompt":"  "}`,
 		"too many":      `{"prompt":"x","headlines":31}`,
 		"negative":      `{"prompt":"x","images":-1}`,
 		"too many imgs": `{"prompt":"x","images":13}`,

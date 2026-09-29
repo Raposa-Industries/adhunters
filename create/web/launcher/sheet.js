@@ -16,11 +16,19 @@ for (let i = 1; i <= 5; i++) {
   AD_COLUMNS.push(`3rd Party Tracking ${i} - Pixel URL`, `3rd Party Tracking ${i} - Tag Type`, `3rd Party Tracking Pixel ${i} - Event Type`);
 }
 
-// The template's CTA Types tab. Empty means no button.
+// The template's CTA Types tab, kept to the ones Backstage's API also takes
+// (its cta_type list, read 2026-09-29), so a choice works both ways. Empty
+// means no button.
 export const CTAS = ["", "Learn More", "Read More", "Shop Now", "Buy Now", "Order Now", "Get Offer", "Get Now",
-  "Try Now", "Sign Up", "Watch Now", "Apply Now", "Click Here", "Get Started", "Start Now", "Get Info", "Get Deals",
+  "Try Now", "Sign Up", "Watch Now", "Apply Now", "Click Here", "Start Now", "Get Info", "Get Deals",
   "Get Coupon", "Get Quote", "Get Sample", "Try Free", "Save Now", "Explore", "Contact Us", "Call Now", "Book Now",
   "Register", "Subscribe", "Join Now", "Download"];
+
+// ctaType is the API's name for a CTA label: "Learn More" is LEARN_MORE, no
+// button is "".
+export function ctaType(label) {
+  return label ? label.trim().toUpperCase().replace(/\s+/g, "_") : "";
+}
 
 // The most ads one template holds: its Ads tab runs to row 500.
 export const MAX_ADS = 498;
@@ -32,8 +40,8 @@ export function campaignIds(text) {
 
 // adRows makes one Ads row per ad, in AD_COLUMNS order. An ad goes into
 // every campaign at once ("123; 456" in Campaign ID, as the template asks).
-// ads: [{creativeFile, adName, customId, title}]; settings: {campaigns, url,
-// description, cta, ai ("Yes" or "No")}. Status is left empty: Realize sets
+// ads: [{creativeFile, adName, customId, title, cta}]; settings: {campaigns,
+// url, description, cta (when an ad has none of its own), ai ("Yes" or "No")}. Status is left empty: Realize sets
 // new ads Active and reads the column only on updates.
 export function adRows(ads, settings) {
   const at = (name) => AD_COLUMNS.indexOf(name);
@@ -45,7 +53,7 @@ export function adRows(ads, settings) {
     row[at("Custom ID")] = ad.customId;
     row[at("Title")] = ad.title;
     row[at("Description")] = settings.description || "";
-    row[at("CTA")] = settings.cta || "";
+    row[at("CTA")] = (ad.cta ?? settings.cta) || "";
     row[at("Image File Name")] = ad.creativeFile;
     row[at("AI Content")] = settings.ai || "";
     return row;
@@ -96,8 +104,11 @@ export async function fingerprint(bytes) {
 // adId is our id for one ad, sent as the item's Custom ID (30 characters at
 // most): "ah-", the creative's fingerprint, "-", the cleaned headline's. The
 // same picture with the same headline gets the same id in any bundle and
-// campaign, so Taboola's reports can name the ad later.
-export async function adId(creativeFingerprint, headline) {
-  const h = await fingerprint(new TextEncoder().encode(clean(headline)));
+// campaign, so Taboola's reports can name the ad later. With a CTA, the CTA
+// joins the headline in the second hash, so the same picture and headline
+// under two buttons are two ads with two ids.
+export async function adId(creativeFingerprint, headline, cta = "") {
+  const text = cta ? `${clean(headline)}\u0000${cta}` : clean(headline);
+  const h = await fingerprint(new TextEncoder().encode(text));
   return `ah-${creativeFingerprint}-${h}`;
 }

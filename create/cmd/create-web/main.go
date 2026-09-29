@@ -1,11 +1,13 @@
 // Command create-web serves AdHunters Create's launcher page and the API it
 // calls: a plan of headlines and image briefs from one prompt, and pictures
-// one at a time, both from OpenAI.
+// one at a time, both from OpenAI; and, when a Taboola login is set, the
+// accounts' campaigns, a new campaign and ads sent straight to Taboola.
 //
 //	create-web [-addr 127.0.0.1:8091] [-keep create-kept]
 //	create-web version
 //
-// Every OpenAI reply it hands back is first kept in the keep folder (-keep or
+// Every OpenAI reply it hands back, and every Taboola request and answer, is
+// first kept in the keep folder (-keep or
 // CREATE_KEEP_DIR, relative to the working directory). It listens on
 // localhost unless told otherwise (CREATE_WEB_ADDR). /healthz and /metrics
 // are on OPS_ADDR, 127.0.0.1:9109 by default. It stops cleanly on SIGTERM.
@@ -22,6 +24,24 @@
 //	CREATE_IMAGE_PRICE_OUT  30    USD per million image output tokens
 //	CREATE_TEXT_PRICE_IN    0.25  USD per million text input tokens
 //	CREATE_TEXT_PRICE_OUT   2     USD per million text output tokens
+//	TABOOLA_CLIENT_ID       unset: the Taboola routes answer that it is off
+//	TABOOLA_CLIENT_SECRET   unset: likewise (one Taboola login's credentials)
+//	TABOOLA_ACCOUNTS        advertiser account ids the page may use, comma
+//	                        separated ("acme-sc,acme-2-sc"); a "-network"
+//	                        account is refused at boot
+//	TABOOLA_BASE_URL        https://backstage.taboola.com (a local fake, for trying)
+//	TABOOLA_MAX_CPC         1.00  highest bid (USD) a new campaign may have
+//	TABOOLA_MAX_DAILY_CAP   100   highest daily cap (USD); a total budget is at
+//	                              most 30 of them
+//	TABOOLA_ONLY_OWN        unset; 1 for a lent account: only campaigns and
+//	                        groups made here are listed or touched
+//	TABOOLA_NAME_PREFIX     with TABOOLA_ONLY_OWN, what every new campaign
+//	                        and group is named with ("AH-TEST")
+//	TABOOLA_STATE_FILE      <keep folder>/taboola-state.json: with
+//	                        TABOOLA_ONLY_OWN, the ids made here
+//
+// Nothing is created running on Taboola: campaigns, groups and ads are made
+// paused, and a person turns them on in Taboola's own dashboard.
 package main
 
 import (
@@ -32,12 +52,15 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Raposa-Industries/adhunters/create/internal/api"
 	"github.com/Raposa-Industries/adhunters/create/internal/keep"
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
+	"github.com/Raposa-Industries/adhunters/create/internal/taboola"
 	"github.com/Raposa-Industries/adhunters/create/web"
 	"github.com/Raposa-Industries/adhunters/kit/logx"
 	"github.com/Raposa-Industries/adhunters/kit/ops"
@@ -61,7 +84,7 @@ func main() {
 func serve(args []string) error {
 	fs := flag.NewFlagSet("create-web", flag.ExitOnError)
 	addr := fs.String("addr", envOr("CREATE_WEB_ADDR", "127.0.0.1:8091"), "where the page and API listen")
-	keepDir := fs.String("keep", envOr("CREATE_KEEP_DIR", "create-kept"), "folder every OpenAI reply is kept in")
+	keepDir := fs.String("keep", envOr("CREATE_KEEP_DIR", "create-kept"), "folder every OpenAI reply and Taboola exchange is kept in")
 	_ = fs.Parse(args)
 
 	log := logx.New("create-web", version)
@@ -73,15 +96,32 @@ func serve(args []string) error {
 		return fmt.Errorf("CREATE_IMAGE_QUALITY must be low, medium or high, not %q", set.ImageQuality)
 	}
 
+	tbSet, err := taboolaSettings(*keepDir)
+	if err != nil {
+		return err
+	}
+
 	srv := ops.New("create-web", version)
-	client := openai.New(set, srv, keep.New(*keepDir), log)
+	kept := keep.New(*keepDir)
+	client := openai.New(set, srv, kept, log)
 	if !client.Available() {
 		log.Warn("OPENAI_API_KEY is not set: the page loads but generation is off")
+	}
+	tb, err := taboola.New(tbSet, kept, log)
+	if err != nil {
+		return err
+	}
+	if tb.Available() {
+		log.Info("taboola connected", "base", tbSet.Base, "accounts", strings.Join(tbSet.Accounts, ","),
+			"max_cpc", tbSet.MaxCPC, "max_daily_cap", tbSet.MaxDailyCap,
+			"only_own", tbSet.OnlyOwn, "name_prefix", tbSet.NamePrefix)
+	} else {
+		log.Info("taboola off", "reason", tb.Why())
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/", web.Handler())
-	mux.Handle("/api/", api.New(client, log).Handler())
+	mux.Handle("/api/", api.New(client, log).WithTaboola(tb).Handler())
 	// The API spends money, so a request another site makes the browser
 	// send (a form posted cross-origin) is refused; the page's own fetches
 	// are same-origin and pass.
@@ -100,9 +140,10 @@ func serve(args []string) error {
 	httpSrv := &http.Server{
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
-		// Long enough for one picture: a slot, up to three attempts, a slow
-		// render (the API's own budget is 5.5 minutes).
-		WriteTimeout: 6 * time.Minute,
+		// Long enough for one send of ads to Taboola: every image uploaded
+		// one at a time, then every campaign's items (the API's own budget
+		// is 10 minutes; one picture's is 5.5).
+		WriteTimeout: 11 * time.Minute,
 		IdleTimeout:  2 * time.Minute,
 	}
 	log.Info("create-web listening", "addr", ln.Addr().String(), "keep", *keepDir,
@@ -172,6 +213,58 @@ func settings() (openai.Settings, error) {
 				return s, fmt.Errorf("%s must be a price in USD per million tokens, not %q", p.key, v)
 			}
 			*p.to = f
+		}
+	}
+	return s, nil
+}
+
+// taboolaSettings reads the Taboola login. Unset credentials leave Taboola
+// off; a network account, a bad ceiling or TABOOLA_ONLY_OWN without a name
+// prefix stops the boot.
+func taboolaSettings(keepDir string) (taboola.Settings, error) {
+	s := taboola.Settings{
+		Base:         envOr("TABOOLA_BASE_URL", taboola.DefaultBase),
+		ClientID:     os.Getenv("TABOOLA_CLIENT_ID"),
+		ClientSecret: os.Getenv("TABOOLA_CLIENT_SECRET"),
+		NamePrefix:   strings.TrimSpace(os.Getenv("TABOOLA_NAME_PREFIX")),
+		StateFile:    envOr("TABOOLA_STATE_FILE", filepath.Join(keepDir, "taboola-state.json")),
+	}
+	switch v := os.Getenv("TABOOLA_ONLY_OWN"); v {
+	case "", "0", "false":
+	case "1", "true":
+		s.OnlyOwn = true
+		if s.NamePrefix == "" {
+			return s, errors.New("TABOOLA_ONLY_OWN needs TABOOLA_NAME_PREFIX (for example AH-TEST)")
+		}
+	default:
+		return s, fmt.Errorf("TABOOLA_ONLY_OWN must be 1 or 0, not %q", v)
+	}
+	for _, a := range strings.Split(os.Getenv("TABOOLA_ACCOUNTS"), ",") {
+		a = strings.TrimSpace(a)
+		if a == "" {
+			continue
+		}
+		if strings.HasSuffix(a, "-network") {
+			return s, fmt.Errorf("TABOOLA_ACCOUNTS must hold advertiser accounts, not the network account %q", a)
+		}
+		s.Accounts = append(s.Accounts, a)
+	}
+	limits := []struct {
+		key string
+		def float64
+		to  *float64
+	}{
+		{"TABOOLA_MAX_CPC", 1, &s.MaxCPC},
+		{"TABOOLA_MAX_DAILY_CAP", 100, &s.MaxDailyCap},
+	}
+	for _, l := range limits {
+		*l.to = l.def
+		if v := os.Getenv(l.key); v != "" {
+			f, err := strconv.ParseFloat(v, 64)
+			if err != nil || !(f > 0) {
+				return s, fmt.Errorf("%s must be an amount in USD above 0, not %q", l.key, v)
+			}
+			*l.to = f
 		}
 	}
 	return s, nil

@@ -16,9 +16,11 @@ import (
 const (
 	MaxHeadlines = 30
 	MaxImages    = 12
-	// MaxExamples is how many style examples one plan is shown: the person's
-	// own first, then a fresh random slice of the vertical's team library.
-	MaxExamples = 40
+	// MaxExamples is how many of the team's headlines one plan is shown, a
+	// fresh random slice each time; only a few when the person gave their own,
+	// so theirs weigh the most.
+	MaxExamples      = 40
+	MaxExamplesAside = 10
 )
 
 // PlanRequest is what the page asks a plan for. Counts are already
@@ -26,13 +28,16 @@ const (
 type PlanRequest struct {
 	Prompt           string   `json:"prompt"`
 	HeadlineExamples []string `json:"headline_examples,omitempty"`
-	Language         string   `json:"language"`
-	Vertical         string   `json:"vertical,omitempty"`
-	Headlines        int      `json:"headlines"`
-	Images           int      `json:"images"`
-	Ages             string   `json:"ages,omitempty"`
-	HasReferences    bool     `json:"has_references"`
-	Avoid            []string `json:"avoid,omitempty"`
+	// Library is the slice of the team's headlines for the vertical this plan
+	// was shown; Plan fills it.
+	Library       []string `json:"library,omitempty"`
+	Language      string   `json:"language"`
+	Vertical      string   `json:"vertical,omitempty"`
+	Headlines     int      `json:"headlines"`
+	Images        int      `json:"images"`
+	Ages          string   `json:"ages,omitempty"`
+	HasReferences bool     `json:"has_references"`
+	Avoid         []string `json:"avoid,omitempty"`
 	// Winners are pictures of ads performing well, read for the analysis.
 	// They are not kept with the request (the person has them already); the
 	// kept record says how many there were.
@@ -100,7 +105,7 @@ func (c *Client) TextCost(u *Usage) float64 {
 // Plan writes headlines and briefs in one structured text call. The reply is
 // kept before it is parsed.
 func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
-	r.HeadlineExamples = WithLibrary(r.HeadlineExamples, r.Vertical, rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())))
+	r.Library = LibrarySample(r.Vertical, len(r.HeadlineExamples) > 0, rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())))
 	language := LanguageName(r.Language)
 	user := planUser(r, language)
 	var content any = user
@@ -180,27 +185,18 @@ func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
 	return plan, nil
 }
 
-// WithLibrary tops the person's examples up to MaxExamples with a random
-// slice of the vertical's team headlines, when the team has any.
-func WithLibrary(own []string, vertical string, rnd *rand.Rand) []string {
+// LibrarySample is a random slice of the team's headlines for a vertical:
+// MaxExamples of them, or MaxExamplesAside when the person gave their own.
+func LibrarySample(vertical string, ownGiven bool, rnd *rand.Rand) []string {
 	lib, ok := LibraryFor(vertical)
-	if !ok || len(own) >= MaxExamples {
-		return own
+	if !ok {
+		return nil
 	}
-	out := append([]string{}, own...)
-	have := map[string]bool{}
-	for _, o := range own {
-		have[o] = true
+	n := MaxExamples
+	if ownGiven {
+		n = MaxExamplesAside
 	}
-	for _, h := range sample(lib.Headlines, MaxExamples, rnd) {
-		if len(out) >= MaxExamples {
-			break
-		}
-		if !have[h] {
-			out = append(out, h)
-		}
-	}
-	return out
+	return sample(lib.Headlines, n, rnd)
 }
 
 // ParsePlan reads the model's JSON and cleans it: each line trimmed and

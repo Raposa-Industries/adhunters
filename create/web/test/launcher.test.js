@@ -6,11 +6,12 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { mixed, every, uses, seeded } from "../launcher/pairing.js";
+import { mixed, every, uses, seeded, mixedN, everyN, usesN } from "../launcher/pairing.js";
 import { clean, hasHidden, headlineWarnings, blockedWords, blockedWarnings, imageWarnings, urlWarnings, looksAIMade } from "../launcher/checks.js";
 import { zip, concat, crc32, unzip, inflate } from "../launcher/zip.js";
-import { AD_COLUMNS, adRows, campaignIds, safeName, uniqueNames, adId, tsv } from "../launcher/sheet.js";
+import { AD_COLUMNS, CTAS, adRows, campaignIds, ctaType, safeName, uniqueNames, adId, tsv } from "../launcher/sheet.js";
 import { readTemplate, fillTemplate } from "../launcher/template.js";
+import { splitLink, TRACKERS } from "../launcher/tracking.js";
 import { xlsx } from "./xlsx.js";
 
 test("mixed: 10 creatives and 5 headlines make 10 ads, each headline twice", () => {
@@ -48,6 +49,38 @@ test("mixed and every with an empty list make nothing", () => {
   assert.deepEqual(mixed(0, 5), []);
   assert.deepEqual(mixed(3, 0), []);
   assert.equal(every(4, 3).length, 12);
+});
+
+test("mixed over three lists: the longest once each, the others in even rounds", () => {
+  const combos = mixedN([6, 4, 2], seeded(7));
+  assert.equal(combos.length, 6);
+  assert.deepEqual(combos.map((c) => c[0]), [0, 1, 2, 3, 4, 5]);
+  const [a, b, c] = usesN(combos, [6, 4, 2]);
+  assert.deepEqual(a, [1, 1, 1, 1, 1, 1]);
+  assert.ok(Math.max(...b) - Math.min(...b) <= 1 && Math.min(...b) >= 1);
+  assert.deepEqual(c, [3, 3]);
+  // A list that is not the longest can lead too: 2 images, 5 headlines, 3 CTAs.
+  const other = mixedN([2, 5, 3]);
+  assert.equal(new Set(other.map((x) => x.join())).size, 5);
+  assert.deepEqual(mixedN([3, 0, 1]), []);
+});
+
+test("every combination over three lists", () => {
+  const all = everyN([2, 3, 2]);
+  assert.equal(all.length, 12);
+  assert.equal(new Set(all.map((x) => x.join())).size, 12);
+  assert.deepEqual(all[0], [0, 0, 0]);
+  assert.deepEqual(all[1], [0, 0, 1]);
+});
+
+test("CTA labels map to the API's names, and a CTA makes its own ad id", async () => {
+  assert.equal(ctaType("Learn More"), "LEARN_MORE");
+  assert.equal(ctaType(""), "");
+  for (const c of CTAS) assert.match(ctaType(c), /^([A-Z]+(_[A-Z0-9]+)*)?$/);
+  const plain = await adId("0123456789", "A headline");
+  assert.equal(await adId("0123456789", "A headline", ""), plain);
+  assert.notEqual(await adId("0123456789", "A headline", "Learn More"), plain);
+  assert.ok((await adId("0123456789", "A headline", "Learn More")).length <= 30);
 });
 
 test("hidden characters are found and cleaned", () => {
@@ -216,4 +249,15 @@ test("ad ids are stable, short and ignore invisible characters", async () => {
   assert.equal(a, b);
   assert.match(a, /^ah-0123456789-[0-9a-f]{10}$/);
   assert.ok(a.length <= 30);
+});
+
+test("a tracker link splits into the ad's address and the tracking code", () => {
+  const link = "https://j4j2s.rttrk.com/6abbbb874d42468fe3139131?sub1={campaign_id}&utm_source=Taboola&sub4={campaign_item_id}&sub8={site_id}";
+  assert.deepEqual(splitLink(link), {
+    url: "https://j4j2s.rttrk.com/6abbbb874d42468fe3139131?utm_source=Taboola",
+    tracking: "sub1={campaign_id}&sub4={campaign_item_id}&sub8={site_id}",
+  });
+  assert.deepEqual(splitLink("https://x.io/p"), { url: "https://x.io/p", tracking: "" });
+  assert.deepEqual(splitLink(" https://x.io/p?a=1#top "), { url: "https://x.io/p?a=1#top", tracking: "" });
+  assert.match(TRACKERS.redtrack.template, /sub1=\{campaign_id\}.*sub4=\{campaign_item_id\}.*sub8=\{site_id\}/);
 });

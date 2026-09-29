@@ -1,4 +1,4 @@
-// Pairing: how the chosen creatives and headlines become ads.
+// Pairing: how the chosen creatives, headlines and CTAs become ads.
 //
 // mixed ("Sortido") makes as many ads as the longer list. Every creative and
 // every headline is used at least once: the longer list goes in order, once
@@ -68,4 +68,46 @@ function shuffle(list, rand) {
     const j = Math.floor(rand() * (i + 1));
     [list[i], list[j]] = [list[j], list[i]];
   }
+}
+
+// The same three ways over any number of lists (creatives, headlines, CTAs):
+// each ad is one index per list.
+
+// mixedN makes as many ads as the longest list. The longest goes in order,
+// once each, so no two ads are the same; every other list repeats in rounds,
+// shuffled with rand, so each of its items is used and the counts differ by
+// at most one.
+export function mixedN(sizes, rand) {
+  if (!sizes.length || sizes.some((n) => n <= 0)) return [];
+  const n = Math.max(...sizes);
+  const lead = sizes.indexOf(n);
+  const seqs = sizes.map((m, i) => {
+    const seq = [];
+    while (seq.length < n) {
+      const round = [...Array(m).keys()];
+      if (rand && i !== lead) shuffle(round, rand);
+      seq.push(...round);
+    }
+    return seq;
+  });
+  return [...Array(n).keys()].map((k) => seqs.map((seq) => seq[k]));
+}
+
+// everyN is every combination, the first list slowest.
+export function everyN(sizes) {
+  if (!sizes.length || sizes.some((n) => n <= 0)) return [];
+  let out = [[]];
+  for (const n of sizes) {
+    const next = [];
+    for (const partial of out) for (let i = 0; i < n; i++) next.push([...partial, i]);
+    out = next;
+  }
+  return out;
+}
+
+// usesN counts how many ads each item of each list is in.
+export function usesN(combos, sizes) {
+  const counts = sizes.map((n) => new Array(n).fill(0));
+  for (const combo of combos) combo.forEach((i, l) => counts[l][i]++);
+  return counts;
 }
