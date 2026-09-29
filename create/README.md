@@ -8,11 +8,12 @@ stays as it is; this folder is the new Create.
 One page, in Portuguese, for the team that puts ads on Taboola by hand. It
 takes the typing out of Taboola's Bulk Upload:
 
-1. **Brief.** What the ad is about, optional reference images and headlines,
-   the headline language, the vertical, how many images and headlines to make.
-   Create asks OpenAI for headlines and a one-line idea per image, then makes
-   each image (with the references when there are any). Everything made is an
-   option: nothing is used until a person ticks it.
+1. **Brief.** What the ad is about, optional ads that are performing well,
+   an optional product photo, optional headlines, the headline language, the
+   vertical, the age of the people in the pictures, how many images and
+   headlines to make. Create asks OpenAI for headlines and an idea per image,
+   then makes each image (with the product photo when there is one).
+   Everything made is an option: nothing is used until a person ticks it.
 2. **Creatives and headlines.** Tick the options worth using, upload your own
    images, paste your own headlines, edit any headline in place.
 3. **Pairing** (GLOSSARY.md):
@@ -42,10 +43,34 @@ by hand.
 
 Nothing is sent to Taboola or RedTrack from here.
 
+**The team's own prompts are built in** (their material, 2026-09-29, is in
+`internal/openai/rules/` and the project files at research/create-prompts/):
+
+- *Performing ads* are analysed first, the team's "Etapa 1": for seven
+  aspects (subject, gesture, product, setting, framing, emotion, photo style)
+  what is fixed and what can vary. The page shows it as a table. These ads
+  go to the text model only, never to the image model.
+- *Image ideas* follow the team's "Etapa 2": about half close variations of
+  that pattern and half new angles (spoon, straw, shot, bottle, blender,
+  just before or after taking it, the reaction after), always people of the
+  age asked for, a candid everyday scene, nobody looking at the camera, no
+  text or brands. Each idea carries its angle, and the options are grouped
+  by it. Where the team's rules and Taboola's guide disagree (Taboola
+  suggests eye contact and plain backgrounds) the team's win.
+- *Headlines* learn from the team's headlines for the vertical (Blood
+  Pressure, Memory Loss, Neuropathy, Tinnitus, Weight Loss): a random 40 per
+  plan, after any the person typed.
+- *Blocked words*: the team's list of words Taboola has blocked for them
+  (`rules/blocked.txt`). The model is told never to use them, and the page
+  warns when a headline (or the description, for the words blocked there
+  too) has one. The team's own examples use many of these words; the model
+  keeps their structure and says it another way.
+
 **Warnings, never blocks.** Headlines and images are checked against
 Taboola's rules (research/taboola-policies/digest.md in the project files):
 hidden characters, over 60 characters, shouting, "cure", disease names,
-amounts, emoji, image size and shape, `{macros}` in the link. Each shows as a
+amounts, emoji, the team's blocked words, image size and shape, `{macros}`
+in the link. Each shows as a
 warning; the person decides. The AI label is their choice too: download
 waits only until they answer it, with a warning when AI-made content is
 marked "no".
@@ -71,10 +96,14 @@ Errors are `{"error": "<a line in Portuguese>"}`: 400 bad input, 402 out of
 OpenAI credit, 503 no key, 502 any other OpenAI failure. Only same-origin
 requests are accepted.
 
-- `GET /api/status`: whether making options is on, the models, the price of one image.
+- `GET /api/status`: whether making options is on, the models, the price of
+  one image, the team's blocked words and the verticals with team headlines.
 - `POST /api/plan` (JSON: prompt, headline_examples, language, vertical,
-  headlines 0-30, images 0-12, has_references, avoid): headlines and one
-  brief per image, cleaned of hidden characters and duplicates.
+  ages, headlines 0-30, images 0-12, has_references, avoid, and 0-6
+  `winners` as `data:` URLs of performing ads): an analysis of the ads (empty
+  without them), headlines, and one `{angle, brief}` per image grouped by
+  angle, cleaned of hidden characters and duplicates. The ads themselves are
+  not kept, only how many there were.
 - `POST /api/image` (multipart: brief, optional quality, 0-6 `reference`
   JPEG or PNG files): one picture, base64. With references it goes to
   OpenAI's edits endpoint. At most 4 pictures are made at once.

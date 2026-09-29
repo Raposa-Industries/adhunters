@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { mixed, every, uses, seeded } from "../launcher/pairing.js";
-import { clean, hasHidden, headlineWarnings, imageWarnings, urlWarnings, looksAIMade } from "../launcher/checks.js";
+import { clean, hasHidden, headlineWarnings, blockedWords, blockedWarnings, imageWarnings, urlWarnings, looksAIMade } from "../launcher/checks.js";
 import { zip, concat, crc32, unzip, inflate } from "../launcher/zip.js";
 import { AD_COLUMNS, adRows, campaignIds, safeName, uniqueNames, adId, tsv } from "../launcher/sheet.js";
 import { readTemplate, fillTemplate } from "../launcher/template.js";
@@ -68,6 +68,27 @@ test("headline warnings follow Taboola's title rules", () => {
   assert.match(w("Lose 20 lbs before summer"), /valor/);
   assert.equal(w("New ED option men are talking about"), "");
   assert.match(w("x".repeat(61)), /61 caracteres/);
+});
+
+// The team's list, read the way the server reads it.
+const BLOCKED = readFileSync(new URL("../../internal/openai/rules/blocked.txt", import.meta.url), "utf8")
+  .split("\n").filter((l) => l.trim() && !l.startsWith("#"))
+  .map((l) => { const [where, text] = l.split("\t"); return { text: text.trim(), description: where === "title+description" }; });
+
+test("the team's blocked words are found, with their endings, and named once", () => {
+  assert.deepEqual(blockedWords("Seniors Are Drinking This Before Bed", BLOCKED), ["drink"]);
+  assert.deepEqual(blockedWords("What Doctors Say About Foods", BLOCKED), ["doctors", "food"]);
+  assert.deepEqual(blockedWords("Memory Loss After 60?", BLOCKED), ["memory loss"]);
+  assert.deepEqual(blockedWords("Doctors Warn Seniors About Rapid Memory Decline", BLOCKED), ["Doctors Warn… Rapid Memory Decline"]);
+  assert.deepEqual(blockedWords("Ringing in the ears at night?", BLOCKED), ["Ringing In The Ears"]);
+  assert.deepEqual(blockedWords("Warum Füße nachts brennen", BLOCKED), ["Füße"]);
+  // No word inside another word, and a clean headline is clean.
+  assert.deepEqual(blockedWords("A pillow trick seniors love", BLOCKED), []);
+  assert.deepEqual(blockedWords("This Morning Habit Surprised Everyone", BLOCKED), []);
+  // Descriptions only carry the words blocked there too.
+  assert.deepEqual(blockedWords("Neurologists and doctors agree", BLOCKED, "description"), ["neurologists"]);
+  assert.equal(blockedWarnings("Tinnitus?", BLOCKED).length, 1);
+  assert.deepEqual(blockedWarnings("Tinnitus?", undefined), []);
 });
 
 test("image and link warnings", () => {

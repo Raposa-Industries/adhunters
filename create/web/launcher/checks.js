@@ -73,6 +73,38 @@ export function headlineWarnings(text) {
   return out;
 }
 
+// The team's list of words Taboola has blocked for them comes from the server
+// (/api/status, create/internal/openai/rules/blocked.txt) as {text,
+// description}. A single word also matches its common endings (drinks,
+// drinking); "…" inside a phrase stands for anything.
+const patterns = new Map();
+
+function blockedPattern(text) {
+  if (!patterns.has(text)) {
+    const esc = (s) => s.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+    const body = text.split(/…|\.\.\./).filter((p) => p.trim()).map(esc).join(".*");
+    const ending = /\s/.test(text.trim()) ? "" : "(?:s|es|ing|ed|ting|ful)?";
+    patterns.set(text, new RegExp(`(?<![\\p{L}\\p{N}])${body}${ending}(?![\\p{L}\\p{N}])`, "iu"));
+  }
+  return patterns.get(text);
+}
+
+// blockedWords lists the team's blocked words found in a text. field is
+// "title" or "description"; a description is only checked against the words
+// blocked there too. When a phrase is found, the words inside it are not
+// named again ("memory loss", not also "memory").
+export function blockedWords(text, list, field = "title") {
+  const t = clean(text);
+  const found = (list || []).filter((b) => (field === "title" || b.description) && blockedPattern(b.text).test(t)).map((b) => b.text);
+  return found.filter((f) => !found.some((g) => g !== f && g.toLowerCase().includes(f.toLowerCase())));
+}
+
+export function blockedWarnings(text, list, field = "title") {
+  const words = blockedWords(text, list, field);
+  if (!words.length) return [];
+  return [`Tem ${words.map((w) => `“${w}”`).join(", ")}: está na lista de palavras que o Taboola já bloqueou para o time.`];
+}
+
 const TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp"]);
 
 // imageWarnings checks one picture against Taboola's thumbnail limits:

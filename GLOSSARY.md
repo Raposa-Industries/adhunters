@@ -55,6 +55,9 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | Word | Means |
 |---|---|
 | brief | The starting point a person gives Create: what the ad is about, optional reference images and headlines, the language and the vertical. Also the one-line idea Create writes for each image it will make. |
+| performing ads | Ads a person gives Create because they are doing well. Create reads them for their pattern (what is fixed, what can vary) and makes new images in it; they are never sent to the image model. |
+| angle | The kind of image an idea is: a close variation of what works, or a new way of showing the product ("Colher", "Canudo", "Reação depois de tomar"). Options are grouped by it. |
+| blocked words | The team's list of words and phrases Taboola has blocked for them in titles (a few in descriptions too). Create avoids them and warns about them; it never refuses them. |
 | option | An image or headline Create made from a brief. Nothing is used until a person chooses it. |
 | pairing | How the chosen creatives and headlines become ads. Mixed: the longer list once each, the shorter repeated in turn until the longer runs out (10 images and 5 headlines make 10 ads). One to one: the person picks each pair. Every combination: each creative with each headline. |
 | ad id | Our own id for an ad: `ah-`, then the first 10 hex characters of the creative's SHA-256, a dash, and the first 10 of the headline's. It goes in Taboola's Custom ID (30 characters at most), so results can come back to the ad. |

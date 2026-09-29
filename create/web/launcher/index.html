@@ -23,14 +23,23 @@
         <textarea id="prompt" rows="3" placeholder="Ex.: suplemento para dor nas articulações, público 55+ nos EUA, foto de um senhor sorrindo segurando o frasco"></textarea>
       </label>
       <div class="row">
-        <label>Imagens de referência (opcional)
+        <label>Anúncios que estão funcionando (opcional, até 6)
+          <input id="winners-input" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+        </label>
+        <p class="muted">A IA separa o que é fixo do que varia (pessoa, gesto, produto, cenário, enquadramento, emoção, estilo da foto) e cria imagens novas nesse padrão: metade variações próximas, metade ângulos novos. Esses anúncios não vão para o gerador de imagens.</p>
+        <div id="winners" class="thumbs"></div>
+      </div>
+      <div class="row">
+        <label>Foto do produto (opcional, até 6)
           <input id="refs-input" type="file" accept="image/jpeg,image/png,image/webp" multiple>
         </label>
+        <p class="muted">Vai junto para o gerador, para o produto aparecer igual em todas as imagens.</p>
         <div id="refs" class="thumbs"></div>
       </div>
       <label>Headlines de referência (opcional, uma por linha)
         <textarea id="examples" rows="2" placeholder="Headlines que funcionaram ou que você viu no Spy"></textarea>
       </label>
+      <p id="examples-note" class="muted"></p>
       <div class="row inline">
         <label>Idioma das headlines
           <select id="language">
@@ -47,11 +56,13 @@
             <option>Prostate Health</option><option>Joint Pain/Arthritis</option><option>Vision/Eye Health</option>
           </select>
         </label>
+        <label>Idade das pessoas <input id="ages" size="8" placeholder="Ex.: 70-85"></label>
         <label>Imagens <input id="n-images" type="number" min="0" max="12" value="6"></label>
         <label>Headlines <input id="n-headlines" type="number" min="0" max="30" value="10"></label>
       </div>
       <p><button id="generate" class="primary">Gerar opções</button> <span id="gen-progress" class="muted"></span></p>
     </div>
+    <div id="analysis"></div>
   </section>
 
   <section id="creatives-section">
@@ -104,6 +115,7 @@
     <label>Descrição (opcional, até 250 caracteres)
       <input id="description" maxlength="250">
     </label>
+    <p id="description-warnings" class="warn"></p>
     <fieldset id="ai-label">
       <legend>Marcar os anúncios como feitos com IA no Taboola?</legend>
       <label><input type="radio" name="ai" value="yes"> Sim</label>

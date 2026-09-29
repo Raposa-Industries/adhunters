@@ -14,6 +14,7 @@ import (
 	"io"
 	"log/slog"
 	"math"
+	"math/rand/v2"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -376,7 +377,15 @@ func TestPlanRequestAndCleaning(t *testing.T) {
 		"Already shown headline",
 		"A fourth one",
 		"A fifth one"
-	],"briefs":["A man, 60, on a porch\nholding the jar.","A man, 60, on a porch holding the jar.","   ","A woman in a kitchen."]}`
+	],"analysis":[{"aspect":"Sujeito","fixed":"Idoso real","variable":"Etnia"}],
+	"briefs":[
+		{"angle":"Colher","brief":"A man, 60, on a porch\nholding the jar."},
+		{"angle":"Variação próxima","brief":"A woman in a kitchen."},
+		{"angle":"Colher","brief":"A man, 60, on a porch holding the jar."},
+		{"angle":"Colher","brief":"   "},
+		{"angle":"","brief":"A man at a table."},
+		{"angle":"Colher","brief":"A spoon by a window."}
+	]}`
 	var got map[string]any
 	c, m, dir := newClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {
@@ -394,9 +403,15 @@ func TestPlanRequestAndCleaning(t *testing.T) {
 		t.Fatal(err)
 	}
 	wantH := []string{"Why tingling feet keep you up at night", "Hidden trick for sore joints", "A fourth one"}
-	wantB := []string{"A man, 60, on a porch holding the jar.", "A woman in a kitchen."}
+	// Grouped by angle in the order the angles first came; a brief with no
+	// angle gets one; the analysis is dropped because no ads were attached.
+	wantB := []Brief{{"Colher", "A man, 60, on a porch holding the jar."}, {"Colher", "A spoon by a window."},
+		{"Variação próxima", "A woman in a kitchen."}, {"Outro", "A man at a table."}}
 	if fmt.Sprint(plan.Headlines) != fmt.Sprint(wantH) || fmt.Sprint(plan.Briefs) != fmt.Sprint(wantB) {
 		t.Errorf("headlines %q\nbriefs %q", plan.Headlines, plan.Briefs)
+	}
+	if len(plan.Analysis) != 0 {
+		t.Errorf("analysis without ads: %v", plan.Analysis)
 	}
 	wantCost := 2000*0.25/1e6 + 1000*2/1e6
 	if !near(plan.Cost, wantCost) || len(m.spent) != 1 || !near(m.spent[0], wantCost) {
@@ -420,7 +435,7 @@ func TestPlanRequestAndCleaning(t *testing.T) {
 	}
 	user := msgs[1].(map[string]any)["content"].(string)
 	for _, want := range []string{"exactly 3 headlines in Brazilian Portuguese", "exactly 6 image briefs", "VERTICAL: Neuropathy",
-		"REFERENCE PICTURES ARE ATTACHED", "Example headline", "Already shown headline", "suplemento para neuropatia"} {
+		"PRODUCT PICTURES ARE ATTACHED", "No performing ads", "Example headline", "Already shown headline", "suplemento para neuropatia"} {
 		if !strings.Contains(user, want) {
 			t.Errorf("user message lacks %q:\n%s", want, user)
 		}
@@ -432,6 +447,125 @@ func TestPlanRequestAndCleaning(t *testing.T) {
 	raw, _ := os.ReadFile(plans[0])
 	if !bytes.Contains(raw, []byte("chatcmpl-1")) || !bytes.Contains(raw, []byte("suplemento para neuropatia")) {
 		t.Errorf("plan not kept raw: %s", raw)
+	}
+}
+
+func TestPlanReadsPerformingAds(t *testing.T) {
+	var got map[string]any
+	c, _, dir := newClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&got)
+		io.WriteString(w, chatReplyJSON(`{"analysis":[{"aspect":"Sujeito","fixed":"Mulher de 70 anos","variable":"Cabelo"}],"headlines":[],"briefs":[{"angle":"Canudo","brief":"A woman sips through a straw."}]}`))
+	})
+	jpeg := []byte("\xff\xd8\xff\xe0 fake")
+	plan, err := c.Plan(context.Background(), PlanRequest{
+		Prompt: "colágeno", Vertical: "Memory Loss", Ages: "70-85", Images: 1,
+		Winners: []Reference{{Data: jpeg, MIME: "image/jpeg"}, {Data: jpeg, MIME: "image/jpeg"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Analysis) != 1 || plan.Analysis[0].Fixed != "Mulher de 70 anos" || plan.Briefs[0].Angle != "Canudo" {
+		t.Errorf("plan %+v", plan)
+	}
+	parts, ok := got["messages"].([]any)[1].(map[string]any)["content"].([]any)
+	if !ok || len(parts) != 3 {
+		t.Fatalf("user content %v", got["messages"])
+	}
+	text := parts[0].(map[string]any)["text"].(string)
+	for _, want := range []string{"PERFORMING ADS ATTACHED: the 2 picture(s)", "AGE RANGE OF THE PEOPLE IN EVERY PICTURE: 70-85", "STYLE EXAMPLES"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("user text lacks %q:\n%s", want, text)
+		}
+	}
+	// With no examples of its own, a vertical with a team library is shown
+	// MaxExamples of them.
+	if n := strings.Count(grepLines(text, "STYLE EXAMPLES", "ALREADY SHOWN", "STARTING PROMPT"), "\n- "); n != MaxExamples {
+		t.Errorf("%d examples", n)
+	}
+	img := parts[1].(map[string]any)["image_url"].(map[string]any)
+	if !strings.HasPrefix(img["url"].(string), "data:image/jpeg;base64,") {
+		t.Errorf("image part %v", img)
+	}
+	raw, _ := os.ReadFile(kept(t, dir, "-plan.json")[0])
+	if bytes.Contains(raw, []byte(base64.StdEncoding.EncodeToString(jpeg))) || !bytes.Contains(raw, []byte(`"winners": 2`)) {
+		t.Errorf("kept record should count the ads, not hold them: %s", raw)
+	}
+}
+
+// grepLines returns the text from the line starting with from up to the
+// first line starting with any of until.
+func grepLines(s, from string, until ...string) string {
+	i := strings.Index(s, from)
+	if i < 0 {
+		return ""
+	}
+	s = s[i:]
+	end := len(s)
+	for _, u := range until {
+		if j := strings.Index(s, u); j > 0 && j < end {
+			end = j
+		}
+	}
+	return s[:end]
+}
+
+func TestTeamRules(t *testing.T) {
+	if len(BlockedWords) < 50 {
+		t.Errorf("%d blocked words", len(BlockedWords))
+	}
+	var both []string
+	for _, b := range BlockedWords {
+		if b.Description {
+			both = append(both, b.Text)
+		}
+	}
+	if fmt.Sprint(both) != "[neurologists wine]" {
+		t.Errorf("title+description: %v", both)
+	}
+	if !strings.Contains(planSystem, `"blood sugar"`) {
+		t.Error("blocked words not in the system message")
+	}
+	for _, v := range ExampleVerticals() {
+		lib, ok := LibraryFor(v)
+		if !ok || len(lib.Headlines) < 30 {
+			t.Errorf("%s: %d headlines", v, len(lib.Headlines))
+		}
+		for _, h := range lib.Headlines {
+			if strings.HasPrefix(h, "___") || strings.HasSuffix(h, ":") && len(h) < 25 || strings.ContainsRune(h, 0xFEFF) {
+				t.Errorf("%s: heading kept as a headline: %q", v, h)
+			}
+			for _, r := range h {
+				if r >= 0x1D400 && r <= 0x1D7FF {
+					t.Errorf("%s: bold letters kept: %q", v, h)
+					break
+				}
+			}
+		}
+	}
+	if lib, _ := LibraryFor("blood pressure"); len(lib.Descriptions) == 0 {
+		t.Error("descriptions not split off")
+	}
+	if _, ok := LibraryFor("Prostate Health"); ok {
+		t.Error("library for a vertical with none")
+	}
+}
+
+func TestParseLibrary(t *testing.T) {
+	lib := parseLibrary("\uFEFFHEAD ORIGINAIS:\nOne\n\n________________\nHeadlines (sem drink) 14/09/26\n𝐁𝐨𝐥𝐝 𝐓𝐰𝐨 𝟒\nOne\nDESCRIÇÕES\nA description\n")
+	if fmt.Sprint(lib.Headlines) != "[One Bold Two 4]" || fmt.Sprint(lib.Descriptions) != "[A description]" {
+		t.Errorf("%q %q", lib.Headlines, lib.Descriptions)
+	}
+}
+
+func TestWithLibrary(t *testing.T) {
+	rnd := rand.New(rand.NewPCG(1, 2))
+	own := []string{"Mine"}
+	got := WithLibrary(own, "Tinnitus", rnd)
+	if len(got) != MaxExamples || got[0] != "Mine" {
+		t.Errorf("%d %q", len(got), got[:2])
+	}
+	if got := WithLibrary(own, "Vision", rnd); len(got) != 1 {
+		t.Errorf("no library: %q", got)
 	}
 }
 

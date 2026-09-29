@@ -3,7 +3,7 @@
 // the page also works as plain files with no server (generation off).
 
 import { mixed, every, uses, seeded } from "./pairing.js";
-import { clean, hasHidden, headlineWarnings, imageWarnings, urlWarnings, looksAIMade } from "./checks.js";
+import { clean, hasHidden, headlineWarnings, blockedWarnings, imageWarnings, urlWarnings, looksAIMade } from "./checks.js";
 import { zip } from "./zip.js";
 import { AD_COLUMNS, CTAS, MAX_ADS, adRows, campaignIds, uniqueNames, fingerprint, adId, tsv } from "./sheet.js";
 import { readTemplate, fillTemplate } from "./template.js";
@@ -14,9 +14,10 @@ const money = (usd) => `US$ ${usd.toFixed(usd < 0.1 ? 3 : 2).replace(".", ",")}`
 
 let nextId = 1;
 const state = {
-  creatives: [], // {id, name, blob, url, width, height, size, type, fp, ai, aiLikely, source, chosen, brief, pending, error}
+  creatives: [], // {id, name, blob, url, width, height, size, type, fp, ai, aiLikely, source, chosen, brief, angle, pending, error}
   headlines: [], // {id, text, source, chosen}
-  refs: [], // {id, name, blob, url}
+  refs: [], // product pictures sent with every image call: {id, name, blob, url}
+  winners: [], // ads performing well, read for the analysis only: {id, name, blob, url}
   mode: "mixed",
   seed: 0, // 0 = rounds in order
   manual: new Set(), // "creativeId:headlineId"
@@ -27,7 +28,7 @@ const state = {
 
 // ---- saved fields (per browser, only text) ---------------------------------
 
-const FIELDS = ["prompt", "examples", "language", "vertical", "n-images", "n-headlines", "campaigns", "url", "cta", "brand", "description"];
+const FIELDS = ["prompt", "examples", "language", "vertical", "ages", "n-images", "n-headlines", "campaigns", "url", "cta", "brand", "description"];
 const STORE = "adhunters-create-launcher";
 
 function loadFields() {
@@ -60,6 +61,23 @@ async function loadStatus() {
     ? `Gera com a OpenAI (${state.status.image_model}, cerca de ${money(state.status.image_cost_usd || 0)} por imagem; headlines com ${state.status.text_model}).`
     : `Geração desligada. ${state.status.reason || ""}`;
   for (const el of $("gen-form").querySelectorAll("input, textarea, select, button")) el.disabled = !on;
+  renderExamplesNote();
+  renderHeadlines();
+  update();
+}
+
+// titleWarnings is every warning for a headline: Taboola's rules and the
+// team's blocked words.
+function titleWarnings(text) {
+  return [...headlineWarnings(text), ...blockedWarnings(text, state.status?.blocked)];
+}
+
+function renderExamplesNote() {
+  const v = $("vertical").value;
+  const has = (state.status?.example_verticals || []).includes(v);
+  $("examples-note").textContent = has
+    ? `Sem headlines aqui, a IA aprende com as headlines do time para ${v}. As suas entram primeiro.`
+    : "";
 }
 
 async function readError(res) {
@@ -83,6 +101,15 @@ async function postImage(brief, refs) {
   const res = await fetch("api/image", { method: "POST", body: form });
   if (!res.ok) throw new Error(await readError(res));
   return res.json();
+}
+
+function dataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
 }
 
 // downscale keeps reference pictures small on the way to the server.
@@ -115,28 +142,32 @@ async function generate() {
   const nImages = clamp(+$("n-images").value, 0, 12);
   const nHeadlines = clamp(+$("n-headlines").value, 0, 30);
   $("generate").disabled = true;
-  progress("Escrevendo headlines e ideias de imagem…");
+  progress(state.winners.length ? "Analisando os anúncios e escrevendo headlines e ideias de imagem…" : "Escrevendo headlines e ideias de imagem…");
   try {
     const refs = await Promise.all(state.refs.map((r) => downscale(r.blob)));
+    const winners = await Promise.all(state.winners.map(async (r) => dataURL(await downscale(r.blob, 1024))));
     const plan = await postJSON("api/plan", {
       prompt,
       headline_examples: lines($("examples").value),
       language: $("language").value,
       vertical: $("vertical").value,
+      ages: $("ages").value.trim(),
       headlines: nHeadlines,
       images: nImages,
       has_references: refs.length > 0,
+      winners,
       avoid: [...state.headlines.map((h) => h.text), ...state.creatives.filter((c) => c.brief).map((c) => c.brief)],
     });
     state.spent += plan.cost_usd || 0;
+    if (plan.analysis?.length) renderAnalysis(plan.analysis);
     const known = new Set(state.headlines.map((h) => clean(h.text).toLowerCase()));
     for (const text of plan.headlines || []) {
       if (known.has(clean(text).toLowerCase())) continue;
       state.headlines.push({ id: nextId++, text, source: "generated", chosen: false });
     }
     renderHeadlines();
-    const cards = (plan.briefs || []).map((brief) => {
-      const c = { id: nextId++, source: "generated", brief, pending: true, chosen: false, ai: true };
+    const cards = (plan.briefs || []).map(({ brief, angle }) => {
+      const c = { id: nextId++, source: "generated", brief, angle, pending: true, chosen: false, ai: true };
       state.creatives.push(c);
       return c;
     });
@@ -153,6 +184,12 @@ async function generate() {
   } finally {
     $("generate").disabled = !state.status?.generation;
   }
+}
+
+function renderAnalysis(rows) {
+  $("analysis").innerHTML = `<h3>Padrão dos anúncios que funcionam</h3>
+    <table class="analysis"><tr><th>Aspecto</th><th>Fixo (o que faz funcionar)</th><th>Variável (pode mudar)</th></tr>
+    ${rows.map((a) => `<tr><th>${esc(a.aspect)}</th><td>${esc(a.fixed)}</td><td>${esc(a.variable)}</td></tr>`).join("")}</table>`;
 }
 
 async function makeImage(c, refs) {
@@ -226,6 +263,7 @@ function renderCreatives() {
     const warnings = usable(c) ? imageWarnings(c) : [];
     const tags = [
       c.source === "generated" ? "gerada com IA" : "enviada",
+      c.angle ? `ângulo: ${esc(c.angle)}` : "",
       c.source === "upload" && c.aiLikely ? "parece feita com IA" : "",
     ].filter(Boolean).map((t) => `<span class="tag">${t}</span>`).join("");
     return `<div class="card${c.chosen ? " chosen" : ""}" data-id="${c.id}">
@@ -291,7 +329,7 @@ function renderHeadlines() {
 }
 
 function headlineHint(h) {
-  const warnings = headlineWarnings(h.text);
+  const warnings = titleWarnings(h.text);
   const tag = h.source === "generated" ? "gerada com IA · " : "";
   return `<span class="muted">${tag}${clean(h.text).length} caracteres</span>` +
     (warnings.length ? `<ul class="warn">${warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : "");
@@ -463,7 +501,7 @@ async function renderAds(list) {
     </div>`).join("");
 
   const problems = [];
-  const badHeadlines = new Set(ads.filter((a) => headlineWarnings(a.headline.text).length).map((a) => a.headline));
+  const badHeadlines = new Set(ads.filter((a) => titleWarnings(a.headline.text).length).map((a) => a.headline));
   const badImages = new Set(ads.filter((a) => imageWarnings(a.creative).length).map((a) => a.creative));
   if (badHeadlines.size) problems.push(`${badHeadlines.size} headline(s) com aviso das regras do Taboola (veja a seção 3).`);
   if (badImages.size) problems.push(`${badImages.size} imagem(ns) com aviso (veja a seção 2).`);
@@ -473,6 +511,7 @@ async function renderAds(list) {
   if (ads.length > MAX_ADS) problems.push(`${ads.length} anúncios: o modelo do Taboola tem espaço para ${MAX_ADS}. Divida em mais de uma planilha.`);
   $("warnings-summary").innerHTML = problems.length ? `<ul class="warn">${problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : "";
   $("url-warnings").textContent = $("url").value ? urlWarnings(s.url).join(" ") : "";
+  $("description-warnings").textContent = blockedWarnings(s.description, state.status?.blocked, "description").join(" ");
 
   const ready = ads.length > 0 && !!aiAnswer();
   for (const id of ["download-zip", "copy-rows"]) $(id).disabled = !ready;
@@ -615,25 +654,29 @@ function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, Number.isFinite(n) ? Math.round(n) : lo));
 }
 
-function renderRefs() {
-  $("refs").innerHTML = state.refs.map((r) => `<figure data-id="${r.id}"><img src="${r.url}" alt=""><figcaption>${esc(r.name)} <button data-act="remove-ref">×</button></figcaption></figure>`).join("");
+// Two picture lists share one behaviour: product pictures (refs) and
+// performing ads (winners), six at most each.
+for (const key of ["refs", "winners"]) {
+  const render = () => {
+    $(key).innerHTML = state[key].map((r) => `<figure data-id="${r.id}"><img src="${r.url}" alt=""><figcaption>${esc(r.name)} <button data-act="remove-ref">×</button></figcaption></figure>`).join("");
+  };
+  $(`${key}-input`).addEventListener("change", (e) => {
+    for (const f of e.target.files) {
+      if (state[key].length >= 6) break;
+      state[key].push({ id: nextId++, name: f.name, blob: f, url: URL.createObjectURL(f) });
+    }
+    e.target.value = "";
+    render();
+  });
+  $(key).addEventListener("click", (e) => {
+    if (e.target.dataset?.act !== "remove-ref") return;
+    const id = +e.target.closest("figure").dataset.id;
+    const gone = state[key].find((r) => r.id === id);
+    if (gone) URL.revokeObjectURL(gone.url);
+    state[key] = state[key].filter((r) => r.id !== id);
+    render();
+  });
 }
-
-$("refs-input").addEventListener("change", (e) => {
-  for (const f of e.target.files) {
-    if (state.refs.length >= 6) break;
-    state.refs.push({ id: nextId++, name: f.name, blob: f, url: URL.createObjectURL(f) });
-  }
-  e.target.value = "";
-  renderRefs();
-});
-
-$("refs").addEventListener("click", (e) => {
-  if (e.target.dataset?.act !== "remove-ref") return;
-  const id = +e.target.closest("figure").dataset.id;
-  state.refs = state.refs.filter((r) => r.id !== id);
-  renderRefs();
-});
 
 $("upload-input").addEventListener("change", (e) => {
   addUploads(e.target.files);
@@ -672,7 +715,8 @@ $("headlines-all").addEventListener("click", setAll(() => state.headlines, true)
 $("headlines-none").addEventListener("click", setAll(() => state.headlines, false));
 
 $("generate").addEventListener("click", generate);
-for (const id of ["campaigns", "url", "cta", "brand", "description", "prompt", "examples", "language", "vertical", "n-images", "n-headlines"]) {
+$("vertical").addEventListener("change", renderExamplesNote);
+for (const id of ["campaigns", "url", "cta", "brand", "description", "prompt", "examples", "language", "vertical", "ages", "n-images", "n-headlines"]) {
   $(id).addEventListener("input", update);
   $(id).addEventListener("change", update);
 }
