@@ -17,8 +17,13 @@ import (
 	"time"
 )
 
-// DefaultRoot is the Policy & Content Review collection.
-const DefaultRoot = "https://realize.com/help/en/collections/11915686-policy-content-review"
+// DefaultRoots are the Policy & Content Review collection and the policy
+// articles that live outside it: declaring AI-made content, and branding text.
+var DefaultRoots = []string{
+	"https://realize.com/help/en/collections/11915686-policy-content-review",
+	"https://realize.com/help/en/articles/16002528-declare-ai-generated-content-in-your-ads",
+	"https://realize.com/help/en/articles/3878080-campaign-branding-text",
+}
 
 // Snapshot is every page one crawl read, by key.
 type Snapshot struct {
