@@ -44,13 +44,19 @@ runs only what the user approved on 2026-09-29: tests that leave running
 campaigns alone and spend $20 at most, in total.
 
     go run ./intel/cmd/intel-taboola-writetest paused     -account X-sc -url URL -out DIR   # T1 to T11, $0
-    go run ./intel/cmd/intel-taboola-writetest live-start -account X-sc -url URL -out DIR   # T12, created paused
+    go run ./intel/cmd/intel-taboola-writetest live-start -account X-sc -url URL -tracking QUERY -out DIR   # T12, created paused
     go run ./intel/cmd/intel-taboola-writetest live-on    -account X-sc -out DIR            # once approved
     go run ./intel/cmd/intel-taboola-writetest live-cut   -account X-sc -out DIR
     go run ./intel/cmd/intel-taboola-writetest live-end   -account X-sc -out DIR            # pause, reports, delete
 
 Use one `-out` for all of them: its `state.json` is how the guard knows what
 is ours and what was turned on.
+
+Put Taboola's macros in `-tracking` (the campaign's `tracking_code`, for
+example `sub1={campaign_id}&sub4={campaign_item_id}&sub8={site_id}`), never in
+`-url`: Taboola escapes the braces in an item URL (`%7Bcampaign_id%7D`), so
+they would reach RedTrack unfilled. Images must go up with an image content
+type; Taboola refuses `application/octet-stream`.
 
 ## Running the Taboola probe
 
@@ -119,7 +125,8 @@ by campaign, item and site is one to a few pages, so this is no bottleneck.
 
 ## Joining RedTrack with Taboola
 
-- **Keys.** Taboola fills its macros in the tracking code on every click;
+- **Keys.** Taboola fills its macros in the campaign's tracking code on every
+  click (not in item URLs, where it escapes the braces);
   RedTrack's traffic source puts each in a sub slot. The join is
   `{campaign_id}` to Taboola's campaign, `{campaign_item_id}` to its item and
   `{site_id}` to the publisher. A report grouped by `campaign,sub1,sub4,sub8`
