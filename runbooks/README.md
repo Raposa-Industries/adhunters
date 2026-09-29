@@ -7,7 +7,7 @@ means, what to check, how to fix it, and what happens after.
 They are written so a person or an agent can follow them. An agent may run
 the checks (read logs, metrics, `status` commands) and propose the fix; a
 restart, a rollback or anything that changes a box waits for the owner's word
-(CLAUDE.md: never change production without it).
+(AGENTS.md: never change production without it).
 
 `platform/observe/push.sh check` fails when an alert has no runbook here, so
 a new alert comes with its runbook in the same PR.
