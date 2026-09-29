@@ -28,6 +28,13 @@ Object Storage, same Hetzner project, Falkenstein, private, endpoint
 Proxies log in with username and password; no provider has an IP allowlist
 for them (checked 28 Sep 2026), so the new boxes need no allowlist change.
 
+State on 29 Sep 2026: setup.sh has run on all three boxes. Postgres, the
+loader, backups, both shippers, Raposa's engine and web run; capture is
+stopped on the worker and not configured on the standby, because the proxy
+lines are shared with the old collector (bigworker), and today's Spy reads
+only the old collector's database on prodbox. Grafana Alloy and observe-bot
+wait for their accounts (`FILL_ME`).
+
 ## Accounts
 
 | What | Where | Notes |
@@ -152,4 +159,5 @@ Rolling back one binary on a box:
   Until then, deploys are the commands above, run by hand.
 - A home for secrets (sops or similar): the `.env` files are written by hand.
 - The switch-over from the old collector (prodbox and bigworker keep running
-  until the owner says otherwise).
+  until the owner says otherwise). It needs today's Spy fed from the new
+  database first; until then capture stays off on the new boxes.
