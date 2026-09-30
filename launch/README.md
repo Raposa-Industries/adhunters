@@ -163,9 +163,9 @@ Accounts are not in `launch_api`: they are the network login's, read live
 
 `deploy/launch-web.env.example` lists them; `deploy/launch-web.service` is
 the unit. `LAUNCH_LIBRARY_URL` is the library's API (default
-`http://127.0.0.1:8093`; `off` for none). Not in `platform/servers/setup.sh` yet
-(it also needs the `launch_api_read` role made before the first start, like
-`raposa_api_read`), and not deployed: the
+`http://127.0.0.1:8093`; `off` for none). `platform/servers/setup.sh data`
+installs it on the data box with its login and the `launch_api_read` role
+(platform/OPERATIONS.md, "Launch's page"). Not deployed yet: the
 prototype (create-web at hunt-teste.fyi) keeps working until Launch
 replaces it. The lent ZoltaGroup login is never set on both at once.
 

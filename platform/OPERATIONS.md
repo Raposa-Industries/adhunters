@@ -9,7 +9,7 @@ it in the same PR.
 | Box | Hetzner name | Type | Location | Private IP | Public IPv4 | Runs |
 |---|---|---|---|---|---|---|
 | worker | `adhunters-worker` | CX43 | Nuremberg (nbg1) | 10.20.1.10 | 2.28.193.220 (Primary IP, kept across rebuilds) | capture `@a` `@b`, shipper, Raposa |
-| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web, create, library, Desk |
+| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web, create, library, Desk, launch-web |
 | standby | `adhunters-standby` | CX23 | Falkenstein (fsn1) | 10.20.1.30 | 2.28.138.34 (Primary IP) | capture `@standby`, shipper |
 
 All three are in one Hetzner project, created by Terraform
@@ -218,6 +218,24 @@ that serves the whole hostname. Desk answers once its Claude key is in
 `/etc/adhunters/desk-agent.env` (`ANTHROPIC_API_KEY=`), then
 `sudo systemctl restart desk-agent`. Its daily Claude limit and stop switch
 are on its settings page.
+
+## Launch's page
+
+`launch-web` (launch/README.md) listens only on `127.0.0.1:8094` on the data
+box, metrics on `127.0.0.1:9111`. `setup.sh data` installs it, makes the
+`launch` login and the `launch_api_read` role, and writes
+`/etc/adhunters/launch-web.env` with the database line filled in (the password
+is shown only on the run that makes the login). It starts without Taboola
+keys: the pages work and the tree says Taboola is not connected.
+
+It is reached on the same address and behind the same Access application as
+the launcher page: in the tunnel (Networks › Tunnels › `adhunters-data` ›
+Public hostname), add a hostname `hunt-teste.fyi` with path `^/launch`,
+service `http://localhost:8094`, and move it above the one that serves the
+whole hostname. Launch is the only app that writes to Taboola and makes
+everything paused; the lent ZoltaGroup keys go in its file only with
+`TABOOLA_ONLY_OWN=1`, for paused tests the owner has approved, and never while
+create-web holds them too.
 
 ## Not yet
 
