@@ -18,7 +18,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
-	"github.com/Raposa-Industries/adhunters/create/internal/taboola"
+	taboola "github.com/Raposa-Industries/adhunters/shared/taboola/write"
 )
 
 // Limits of one request.

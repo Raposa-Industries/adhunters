@@ -64,6 +64,10 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | angle | The kind of image an idea is: a close variation of what works, or a new way of showing the product ("Colher", "Canudo", "Reação depois de tomar"). Options are grouped by it. |
 | blocked words | The team's list of words and phrases Taboola has blocked for them in titles (a few in descriptions too). Create avoids them, warns about them and offers other words in their place; it never refuses them. |
 | option | An image or headline Create made from a brief. Nothing is used until a person chooses it. |
+| reference | A picture a brief is made from: a Spy ad, a creative in the library, or a file from the person's computer. Create keeps its bytes before reading it. |
+| analysis | What the performing ads share, aspect by aspect: what to keep and what can vary. Create writes it when it reads them; the person edits it before making options. |
+| round | One ask for options from a brief: headlines and picture ideas in one plan, then one picture per idea. "Mais 3, ângulo novo" is a round too. |
+| save | Chosen options written into the library as one set, with the person's AI label. |
 | pairing | How the chosen creatives, headlines and CTAs become ads. Mixed: the longest list once each, the shorter ones repeated in turn until it runs out (10 images, 5 headlines and 2 CTAs make 10 ads). One to one: the person picks each pair. Every combination: each creative with each headline and each CTA. |
 | CTA | The button on an ad ("Read More", "Learn More"). Taboola takes one per item, from its own list; a person may pick several and pairing spreads them. |
 | ad id | Our own id for an ad: `ah-`, then the first 10 hex characters of the creative's SHA-256, a dash, and the first 10 of the headline's. It goes in Taboola's Custom ID (30 characters at most), so results can come back to the ad. |
@@ -71,6 +75,28 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | campaign group | Taboola's level above a campaign, which can hold a budget shared by its campaigns. Taboola makes an "AutoGen" one for a campaign made without a group, and a campaign's group is set only when it is made. |
 | paused | Made but not running: a group, campaign or item with Taboola's `is_active` false. Everything Create makes on Taboola is paused; only a person turns it on, in Taboola's own dashboard. (Not "stopped", which is Spy's word for a creative no longer seen.) |
 | lent account | A Taboola login someone else owns that we may use for tests (ZoltaGroup). create-web runs it only-own: it lists and touches only the groups and campaigns it made, as recorded in its state file. |
+
+## Library
+
+| Word | Means |
+|---|---|
+| library | The creatives and headlines the team keeps, shared by Create and Launch, with a copy of each file in the team's Google Drive folder. The apps never call it Drive. See [decision 0014](decisions/0014-library.md). |
+| set | Creatives and headlines made or uploaded together: one brief in Create, one folder in Drive. Launch picks a set to make ads from. |
+| safe copy | The library's own copy of a picture's bytes, kept before its row is written, so a file deleted in Drive is never lost. |
+| minted name | A creative's name from its vertical's code, the network letter and a counter that only goes up (`BPT43`), given when an app saves it. Never given twice. |
+| hidden | Taken out of the library's lists by a person. Nothing in the library is deleted. |
+
+## Launch
+
+| Word | Means |
+|---|---|
+| group | Short for campaign group, in Launch's tree (Network > Account > Group > Campaign > Ads). On NewsBreak, its campaign. |
+| pair | One desktop and one mobile campaign Launch made together, with the same settings and the same ads, in one group. Named "<name> · Desktop" and "<name> · Mobile". Mobile means phones only. |
+| preset | Settings a person saved to reuse, at one of two levels: a group preset (budget and objective) or a campaign preset (bid, caps, countries, link and tracking code, brand, description). For one account or all. Nobody fixes them for the team. |
+| copy | A new, paused campaign with another's settings and ads (Taboola's duplicate with its items; the ads get new ids and go through review again). It has its own id. |
+| move | Putting a campaign in another group. Taboola fixes a campaign's group when it is made, so a move is a copy in the new group; the original is paused when a person starts the copy (or at once, or never, as the person chose). |
+| draft | A new pair saved on the server to finish later. It is deleted when the pair is made. |
+| History | Everything Launch did on a network, one row per change: who did it, who asked (a person, or later Intel or Desk), before and after, and the result. |
 
 ## Intel
 
@@ -114,6 +140,23 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | hit rate | The share of an operator's launches with an outcome that ran 15 days or more, past a Taboola A/B test's 14 (a hit), rather than ending sooner (a miss). |
 | Size | A subject's share and rank in its vertical over 24 hours and 7 days. Scaled: among the few creatives that make half their vertical. |
 | stage | Retired: the collector's blend of counts into test, scaling and winner. Use momentum, lifespan and new. |
+
+## Desk
+
+| Word | Means |
+|---|---|
+| conversation | One person's talk with Desk, on Desk's page. Only that person sees it, and Desk acts in it for them, with their rights. |
+| turn | Desk answering what is new in a conversation: calls to Claude and the tools it asks for, until it answers in words. |
+| action | One thing an app lets a teammate do: one view or function in its `<app>_api`, listed in the action catalog. A read looks; a change changes the app's own data or starts its work; an ask asks the app for something a person then confirms on the app's own screen. |
+| action catalog | Every app's actions, one file per app in `contract/actions/`. Desk can do only what it lists, and it lists no confirm. |
+| plan | Work Desk proposes in a conversation: a goal and its plan steps, shown with every input. Nothing in it runs before the conversation's person OKs it. A new plan replaces one still waiting for its OK. |
+| plan step | One numbered part of a plan ("step" inside Desk): an action (a change or an ask), a choice, or a person's to-do. It can take a value from an earlier one: the id a change returned, the ids chosen. |
+| OK | A person's yes to a plan on Desk's page, for the plan exactly as they saw it: a plan changed since is not approved. Confirming an ask is not an OK; that happens on the owning app's screen. |
+| choice | A plan step that shows a read's rows (creatives, headlines) with the ones Desk would pick and why. The plan goes on with the rows the person picks. |
+| to-do | One piece of work someone holds, a person or Desk: a title, a due date, a link and notes, on one list for everyone. (Not "task", which is a service's scheduled work.) |
+| origin | What asked an app for something, passed to its function: `auto` for Raposa's own investigations, `desk:step:<id>` for a plan step (the same on every try, so an app that tracks origins never does it twice). |
+| outside column | A read's column holding text someone outside the team wrote (a competitor's headline, a landing page's title). The model gets it cut short and marked as data, never as instructions. |
+| stop switch | Stops Desk at once: no call to Claude and no plan step runs until someone starts it again. Anyone on the team can use it. |
 
 ## Raposa
 

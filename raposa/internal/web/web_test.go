@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/testdb"
+	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 func newServer(t *testing.T) (*httptest.Server, *Server) {

@@ -19,8 +19,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/keep"
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
+	"github.com/Raposa-Industries/adhunters/kit/keep"
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 

@@ -26,8 +26,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Raposa-Industries/adhunters/raposa/internal/engine"
-	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/pagever"
+	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 // Config is what one import needs.

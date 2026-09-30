@@ -1,0 +1,25 @@
+# The library: creatives and headlines shared by Create and Launch, with a
+# copy of each file in the team's Google Drive folder. Settings in
+# /etc/adhunters/library.env. Listens on localhost (LIBRARY_ADDR); only the
+# apps on this box call it.
+[Unit]
+Description=Library
+Wants=network-online.target postgresql.service
+After=network-online.target postgresql.service
+
+[Service]
+DynamicUser=yes
+StateDirectory=library
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/library.env
+ExecStart=/opt/adhunters/bin/library
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

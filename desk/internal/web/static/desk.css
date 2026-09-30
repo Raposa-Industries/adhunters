@@ -1,0 +1,39 @@
+/* Desk's own parts, on top of the Frame's. */
+.banner { margin: 0 0 14px; }
+.section { margin: 22px 0 10px; }
+.composer { margin-top: 16px; }
+.composer textarea { min-height: 72px; }
+.stop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; }
+
+.timeline { display: flex; flex-direction: column; gap: 12px; max-width: 900px; }
+.msg { max-width: 760px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line-subtle); background: var(--surface-1); }
+.msg.from-person { align-self: flex-end; background: var(--surface-2); }
+.msg .who { font-size: 12px; margin-bottom: 4px; }
+.msg .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.event { margin: 0; font-size: 12.5px; color: var(--ink-3); overflow-wrap: anywhere; }
+.thinking { color: var(--accent-soft); }
+
+.plan, .choice { max-width: 900px; }
+.plan-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.steps { margin: 12px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; }
+.step-head { display: flex; justify-content: space-between; gap: 12px; }
+.step-what { font-size: 12.5px; margin-top: 2px; }
+.inputs { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 6px 0 0; font-size: 12.5px; }
+.inputs dt { color: var(--muted); font-family: var(--mono); }
+.inputs dd { margin: 0; overflow-wrap: anywhere; }
+
+.badge.proposed, .badge.asked { background: var(--ember-chip); border-color: var(--ember-chip-line); color: var(--accent-soft); }
+.badge.running, .badge.approved, .badge.done { background: var(--ok-surface); border-color: var(--ok-line); color: var(--ok-ink); }
+.badge.failed, .badge.refused, .badge.stopped { background: var(--fail-surface); border-color: var(--fail-line); color: var(--fail-ink); }
+
+.pickable { cursor: pointer; }
+.thumb figcaption { display: flex; flex-direction: column; gap: 4px; }
+.thumb .why { color: var(--accent-soft); }
+
+.filters { margin: 0 0 14px; }
+.filters .segmented { display: inline-flex; gap: 0; }
+.filters .segmented .button { border-radius: 0; }
+.todos tr.done td { color: var(--ink-3); }
+.notes { margin-top: 4px; }
+.notes form { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-width: 520px; }
+.note-line { margin: 6px 0; font-size: 12.5px; }

@@ -13,11 +13,12 @@ How to get onto a box and copy the build there: [../OPERATIONS.md](../OPERATIONS
 `DIR` holds the binaries, built on any machine from the repository root:
 
 ```
-GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" -o DIR/ ./tracks/cmd/... ./raposa/cmd/... ./platform/observe/cmd/... ./spy/cmd/...
+GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" -o DIR/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./spy/cmd/... ./platform/observe/cmd/...
 ```
 
 The script runs from a checkout of the repository: it takes the units in
-`units/`, and Raposa's units and browser runner from `raposa/`.
+`units/`, Raposa's units and browser runner from `raposa/`, and Desk's units
+from `desk/deploy/`.
 
 It can run again at any time. It changes only what differs, keeps the
 previous build of each binary as `NAME.prev`, never overwrites a secrets file
@@ -29,7 +30,7 @@ with a list of what is still to do.
 |---|---|
 | worker | `tracks-capture@a` and `@b` (4 workers each), `tracks-shipper`; Raposa: `raposa-browser`, `raposa-engine`, `raposa-web` |
 | standby | `tracks-capture@standby` (1 worker), `tracks-shipper` |
-| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), Spy (`spy-numbers` and `spy-web`, with the `spy` and `spy_web` logins and the `spy_api_read` role), `observe-bot` (the 08:00 digest, the Sentry relay, the credit checks and the Taboola policy watch), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in |
+| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), Spy (`spy-numbers` and `spy-web`, with the `spy` and `spy_web` logins and the `spy_api_read` role), `observe-bot` (the 08:00 digest, the Sentry relay, the credit checks and the Taboola policy watch), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in; Desk: the `desk` login (owner of the `desk` schemas, member of the `_api_read` role of each app in `contract/actions`), the `desk_api_read` role, `desk-web` and `desk-agent` (both run Desk's migrations before they start; `desk-agent` waits for its Claude key) |
 
 Every box: timezone UTC, the `tracks` user, `/var/lib/tracks/spool`, the
 binaries in `/opt/adhunters/bin`, and Grafana Alloy (from Grafana's apt

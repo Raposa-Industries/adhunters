@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/keep"
+	"github.com/Raposa-Industries/adhunters/kit/keep"
 )
 
 var quiet = slog.New(slog.NewTextHandler(io.Discard, nil))
