@@ -40,7 +40,8 @@ All under `/launch/`; a link to any of them opens it.
   preset it came from.
 - **Move.** Taboola fixes a campaign's group when it is made (proven
   2026-09-30), so a move is a copy into the new group, with a new id, and the
-  ads remade in it (they go through review again). The original is paused
+  ads copied along in the same call (new ids, paused, back through review;
+  proven 2026-09-30, any ad that comes back running is paused). The original is paused
   when a person starts the copy (checked every `LAUNCH_WATCH_EVERY`), or at
   once, or never, as chosen. Waiting moves can be cancelled.
 - **Copy.** The same, in the same group, named "(cópia)". Copying both
@@ -102,10 +103,10 @@ throwaway database:
 
 ```
 cd launch
-PG_TEST_URL=postgres://… LAUNCH_DEMO=127.0.0.1:8093 go test ./cmd/launch-web -run TestDemo -timeout 0
+PG_TEST_URL=postgres://… LAUNCH_DEMO=127.0.0.1:8094 go test ./cmd/launch-web -run TestDemo -timeout 0
 ```
 
-then open http://127.0.0.1:8093/launch/.
+then open http://127.0.0.1:8094/launch/.
 
 ## Tests
 

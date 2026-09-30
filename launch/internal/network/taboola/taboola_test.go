@@ -52,6 +52,10 @@ func (b *backstage) serve(w http.ResponseWriter, r *http.Request) {
 			500+b.next, body["name"], body["campaign_group_id"], mustJSON(body["platform_targeting"].(map[string]any)["value"]))
 	case r.Method == "POST" && strings.HasSuffix(p, "/duplicate/"):
 		fmt.Fprintf(w, `{"id":"%d","name":%q,"status":"PAUSED","is_active":false,"campaign_group_id":%q}`, 700+b.next, body["name"], body["campaign_group_id"])
+	case r.Method == "GET" && strings.HasPrefix(p, "acme-sc/campaigns/7") && strings.HasSuffix(p, "/items/") && p != "acme-sc/campaigns/77/items/":
+		io.WriteString(w, `{"results":[{"id":"31","title":"Old ad","url":"https://lp.test/a","thumbnail_url":"https://cdn.taboola.test/old.jpg","is_active":false,"status":"PENDING_APPROVAL","custom_data":{"custom_id":"ah-1"}},{"id":"32","title":"Second","url":"https://lp.test/a","thumbnail_url":"https://cdn.taboola.test/2.jpg","is_active":true,"status":"PENDING_APPROVAL"}]}`)
+	case r.Method == "POST" && strings.Contains(p, "/items/3"):
+		io.WriteString(w, `{"id":"32","is_active":false}`)
 	case r.Method == "GET" && p == "acme-sc/campaigns/77/items/":
 		io.WriteString(w, `{"results":[{"id":"1","title":"Old ad","url":"https://lp.test/a","thumbnail_url":"https://cdn.taboola.test/old.jpg","is_active":true,"status":"RUNNING","approval_state":"APPROVED","custom_data":{"custom_id":"ah-1"}}]}`)
 	case r.Method == "POST" && strings.HasSuffix(p, "/items/mass"):
@@ -145,28 +149,27 @@ func TestPairSharesUploadsAndTargetsOneDevice(t *testing.T) {
 	}
 }
 
-func TestCopyIntoGroupRemakesAds(t *testing.T) {
+func TestCopyIntoGroupBringsAdsPaused(t *testing.T) {
 	tb, b := adapter(t)
 	m, err := tb.Copy(context.Background(), "acme-sc", "77", network.CopyTo{Name: "Moved", GroupID: "55"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m.Campaign.GroupID != "55" || len(m.Ads) != 1 || m.Ads[0].AdID != "ah-1" {
+	if m.Campaign.GroupID != "55" || len(m.Ads) != 2 || m.Ads[0].AdID != "ah-1" || m.Ads[1].Active {
 		t.Fatalf("%+v", m)
 	}
 	dup := b.bodies["POST acme-sc/campaigns/77/duplicate/"]
-	if len(dup) != 1 || dup[0]["campaign_group_id"] != "55" || dup[0]["name"] != "Moved" {
+	if len(dup) != 1 || dup[0]["campaign_group_id"] != "55" || dup[0]["name"] != "Moved" || fmt.Sprint(dup[0]["duplicate_settings"]) != "map[include_items:true]" {
 		t.Fatalf("duplicate sent %v", dup)
 	}
-	var mass []map[string]any
-	for k, v := range b.bodies {
-		if strings.HasSuffix(k, "/items/mass") {
-			mass = append(mass, v...)
+	var paused []string
+	for _, c := range b.calls {
+		if strings.HasPrefix(c, "POST ") && strings.Contains(c, "/items/") {
+			paused = append(paused, c)
 		}
 	}
-	it := mass[0]["collection"].([]any)[0].(map[string]any)
-	if it["is_active"] != false || it["thumbnail_url"] != "https://cdn.taboola.test/old.jpg" || it["title"] != "Old ad" {
-		t.Errorf("copied item %v", it)
+	if len(paused) != 1 || !strings.HasSuffix(paused[0], "/items/32/") {
+		t.Errorf("paused %v, want only the running ad 32", paused)
 	}
 }
 

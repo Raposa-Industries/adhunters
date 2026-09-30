@@ -49,7 +49,7 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 }
 
 // TestDemo serves the pages over a fake Taboola until stopped, to look at
-// them in a browser: LAUNCH_DEMO=127.0.0.1:8093 go test ./cmd/launch-web -run TestDemo
+// them in a browser: LAUNCH_DEMO=127.0.0.1:8094 go test ./cmd/launch-web -run TestDemo
 func TestDemo(t *testing.T) {
 	addr := os.Getenv("LAUNCH_DEMO")
 	if addr == "" {

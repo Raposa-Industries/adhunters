@@ -202,32 +202,35 @@ func (t *Taboola) CreateCampaign(ctx context.Context, account string, n network.
 	return made, err
 }
 
-// Copy duplicates a campaign (settings only, as Taboola does), then makes
-// its ads again in the copy, paused. Taboola's duplicate can carry items,
-// but whether they keep their approval is not proven, so Launch copies them
-// itself and they go through review again.
+// Copy duplicates a campaign with its ads in one call (include_items,
+// proven 2026-09-30: the ads arrive paused with new ids and go back to
+// review), then reads the copy's ads and pauses any that came back running.
 func (t *Taboola) Copy(ctx context.Context, account, from string, to network.CopyTo) (network.Made, error) {
-	ads, err := t.c.Ads(ctx, account, from)
-	if err != nil {
-		return network.Made{}, err
-	}
-	cp, err := t.c.DuplicateCampaign(ctx, account, from, write.NewCampaign{Name: to.Name, GroupID: to.GroupID})
+	cp, err := t.c.DuplicateCampaign(ctx, account, from, write.NewCampaign{Name: to.Name, GroupID: to.GroupID, WithAds: true})
 	if err != nil {
 		return network.Made{}, err
 	}
 	made := network.Made{Campaign: campaign(cp)}
-	var items []write.NewItem
+	ads, err := t.c.Ads(ctx, account, cp.ID)
+	if err != nil {
+		return made, errors.New("cópia " + cp.ID + " feita, pausada, mas não consegui ler os anúncios dela: " + write.Message(err))
+	}
+	var running []string
 	for _, a := range ads {
-		items = append(items, a.NewItem())
+		if a.IsActive {
+			if err := t.c.PauseAd(ctx, account, cp.ID, a.ID); err != nil {
+				running = append(running, a.ID)
+				made.Ads = append(made.Ads, ad(a))
+				continue
+			}
+			a.IsActive = false
+		}
+		made.Ads = append(made.Ads, ad(a))
 	}
-	if len(items) == 0 {
-		return made, nil
+	if len(running) > 0 {
+		return made, errors.New("anúncios da cópia " + cp.ID + " que ficaram ligados: " + strings.Join(running, ", "))
 	}
-	got, err := t.c.MassCreateItems(ctx, account, cp.ID, items)
-	for _, it := range got {
-		made.Ads = append(made.Ads, network.Ad{ID: it.ID, Title: it.Title, Status: it.Status, AdID: it.CustomID, Active: !it.Paused})
-	}
-	return made, err
+	return made, nil
 }
 
 func (t *Taboola) Pause(ctx context.Context, account, campaign string) error {

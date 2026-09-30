@@ -3,7 +3,7 @@
 // /launch/_ads/, and every write Launch makes on an ad network (Taboola
 // today).
 //
-//	launch-web [-addr 127.0.0.1:8093] [-data /var/lib/launch-web]
+//	launch-web [-addr 127.0.0.1:8094] [-data /var/lib/launch-web]
 //	launch-web version
 //
 // It applies the launch schema's migrations at start. Every Taboola request
@@ -15,7 +15,7 @@
 // Settings come from the environment:
 //
 //	DATABASE_URL            the launch-web login on the data box's Postgres
-//	LAUNCH_WEB_ADDR         127.0.0.1:8093
+//	LAUNCH_WEB_ADDR         127.0.0.1:8094
 //	LAUNCH_DATA_DIR         launch-data (kept exchanges, pictures, only-own state)
 //	LAUNCH_WATCH_EVERY      5m: how often moves are checked for started copies
 //	TABOOLA_*               one Taboola login (shared/taboola/write, SettingsFromEnv)
@@ -73,7 +73,7 @@ func main() {
 
 func serve(args []string) error {
 	fs := flag.NewFlagSet("launch-web", flag.ExitOnError)
-	addr := fs.String("addr", envOr("LAUNCH_WEB_ADDR", "127.0.0.1:8093"), "where the pages and API listen")
+	addr := fs.String("addr", envOr("LAUNCH_WEB_ADDR", "127.0.0.1:8094"), "where the pages and API listen")
 	dataDir := fs.String("data", envOr("LAUNCH_DATA_DIR", "launch-data"), "folder for kept exchanges, pictures and only-own state")
 	_ = fs.Parse(args)
 	every, err := time.ParseDuration(envOr("LAUNCH_WATCH_EVERY", "5m"))

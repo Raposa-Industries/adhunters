@@ -200,6 +200,10 @@ type NewCampaign struct {
 	// A copy (DuplicateCampaign) stays in its original's group unless
 	// GroupID names another.
 	GroupID string
+	// WithAds, on a copy only, brings the original's ads along
+	// (include_items). Proven on 2026-09-30: each ad gets a new id, keeps
+	// its title and thumbnail, arrives paused and goes back to review.
+	WithAds bool
 }
 
 // maxBrand is Taboola's limit on branding_text.
@@ -394,7 +398,7 @@ func (c *Client) DuplicateCampaign(ctx context.Context, account, from string, n 
 	if err := c.checkOwnCampaignBody(account, n); err != nil {
 		return Campaign{}, err
 	}
-	b["duplicate_settings"] = obj{"include_items": false}
+	b["duplicate_settings"] = obj{"include_items": n.WithAds}
 	out, err := c.sendJSON(ctx, http.MethodPost, campaignPath(account, from)+"/duplicate/", b, false)
 	if err != nil {
 		return Campaign{}, err

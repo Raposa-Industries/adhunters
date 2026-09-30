@@ -695,14 +695,14 @@ func TestDuplicateCampaign(t *testing.T) {
 	if len(f.seen()) != 1 {
 		t.Errorf("a refused copy reached Taboola")
 	}
-	// A copy into another group is how a campaign moves.
-	if _, err := c.DuplicateCampaign(ctx, "acme-sc", "101", NewCampaign{Name: "moved", GroupID: "7"}); err != nil {
+	// A copy into another group, with its ads, is how a campaign moves.
+	if _, err := c.DuplicateCampaign(ctx, "acme-sc", "101", NewCampaign{Name: "moved", GroupID: "7", WithAds: true}); err != nil {
 		t.Fatal(err)
 	}
 	s = f.seen()
 	b = nil
 	_ = json.Unmarshal(s[len(s)-1].Body, &b)
-	if b["campaign_group_id"] != "7" || b["is_active"] != false {
+	if b["campaign_group_id"] != "7" || b["is_active"] != false || fmt.Sprint(b["duplicate_settings"]) != "map[include_items:true]" {
 		t.Errorf("copy into group 7 sent %v", b)
 	}
 }
