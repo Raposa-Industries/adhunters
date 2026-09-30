@@ -2,10 +2,11 @@
 // switch between them, where a switch lands, and how ⌘K ranks what it finds.
 // frame.js draws the Frame from these; tests run them in node.
 
-// The apps in the order the team works: find, make, launch, measure.
-// Every app lives under its own path on one address (/launch/, /create/),
-// so a link from one to another is a plain path. `ready` says whether the
-// app answers at that path yet; one that does not shows as "em breve".
+// The apps in the order the team works: find, make, launch, measure; then
+// Desk, which works across them. Every app lives under its own path on one
+// address (/launch/, /create/), so a link from one to another is a plain
+// path. `ready` says whether the app answers at that path yet; one that
+// does not shows as "em breve".
 export const APPS = [
   { id: 'spy', name: 'Spy', key: 'S', about: 'Anúncios que estão funcionando', ready: false },
   { id: 'create', name: 'Create', key: 'C', about: 'Imagens e headlines', ready: true },
@@ -13,6 +14,7 @@ export const APPS = [
   { id: 'intel', name: 'Intel', key: 'I', about: 'O que está performando', ready: false },
   { id: 'funnels', name: 'Funnels', key: 'F', about: 'Landing pages e funis', ready: false },
   { id: 'raposa', name: 'Raposa', key: 'R', about: 'Investigar operadores', ready: false },
+  { id: 'desk', name: 'Desk', key: 'D', about: 'Pedir trabalho conversando', ready: false },
 ];
 
 // Apps whose paths hold Taboola's tree after the app's name

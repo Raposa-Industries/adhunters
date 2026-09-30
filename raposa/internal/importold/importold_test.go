@@ -12,8 +12,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/testdb"
+	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 // oldSchema is the part of the collector's database (e20148c) the import

@@ -1,0 +1,25 @@
+# AdHunters Create: briefs, options made with OpenAI, saves into the
+# library (create/README.md). Settings in /etc/adhunters/create.env. Listens
+# on localhost (CREATE_ADDR); people reach /create/ through the Cloudflare
+# tunnel, behind Cloudflare Access.
+[Unit]
+Description=Create
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+DynamicUser=yes
+StateDirectory=create
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/create.env
+ExecStart=/opt/adhunters/bin/create
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

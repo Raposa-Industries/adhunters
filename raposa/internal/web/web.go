@@ -24,7 +24,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
+	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 //go:embed templates/*.html

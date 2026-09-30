@@ -1,0 +1,71 @@
+{
+  "app": "raposa",
+  "actions": [
+    {
+      "name": "raposa.request_investigation",
+      "version": 1,
+      "kind": "change",
+      "says": "Ask Raposa to find a creative's dark funnel (and, when given, one of its ads'): deep or quick. Asking again while one waits or runs returns that one.",
+      "call": "raposa_api.request_investigation_v1",
+      "args": [
+        {"name": "creative_id", "type": "integer", "says": "Tracks' id of the creative"},
+        {"name": "mode", "type": "string", "enum": ["deep", "quick"], "says": "deep: the whole ladder of disguises, then a sample; quick: only the rungs that cost nothing, the landing page's HTML only"},
+        {"name": "ad_id", "type": "integer", "optional": true, "says": "Tracks' id of one ad of the creative, when one matters"},
+        {"name": "requested_by", "from": "person"}
+      ],
+      "returns": "the investigation's id",
+      "follow": {"view": "raposa_api.investigation_v1", "id": "id", "state": "status", "done": ["completed"], "failed": ["failed", "stopped"]},
+      "link": "/raposa/i/{returned}",
+      "undo": "raposa.stop_investigation",
+      "per_day": 20,
+      "costs": "A deep one makes about 100 visits through the proxy lines; a quick one costs nothing."
+    },
+    {
+      "name": "raposa.stop_investigation",
+      "version": 1,
+      "kind": "change",
+      "says": "Stop an investigation. One that has not started stops at once; a running one stops at its next visit and keeps what it found.",
+      "call": "raposa_api.stop_investigation_v1",
+      "args": [
+        {"name": "id", "type": "integer", "says": "the investigation's id"}
+      ],
+      "returns": "true when it was stopped, false when it had already ended",
+      "link": "/raposa/i/{id}",
+      "per_day": 50
+    },
+    {
+      "name": "raposa.investigations",
+      "version": 1,
+      "kind": "read",
+      "says": "Investigations and where each stands: waiting, running, completed, failed or stopped, the rung that saw the dark page, and whether the ad is cloaked.",
+      "view": "raposa_api.investigation_v1",
+      "columns": ["id", "creative_id", "ad_id", "mode", "origin", "requested_by", "requested_at", "status", "stage", "stage_note",
+                  "visits_target", "visits_done", "variants_count", "breach_rung", "is_cloaked", "cloaked_confidence", "started_at", "completed_at"],
+      "filters": [
+        {"column": "id", "op": "=", "type": "integer"},
+        {"column": "creative_id", "op": "=", "type": "integer"},
+        {"column": "status", "op": "in", "type": "string", "enum": ["waiting", "running", "completed", "failed", "stopped"]},
+        {"column": "requested_by", "op": "=", "type": "string"}
+      ],
+      "order": "id DESC",
+      "limit": 50
+    },
+    {
+      "name": "raposa.evidence",
+      "version": 1,
+      "kind": "read",
+      "says": "The landing pages investigations reached, as proof of who runs an ad: domain, page kind, title, checkout and seller.",
+      "view": "raposa_api.evidence_v1",
+      "columns": ["id", "investigation_id", "creative_id", "ad_id", "account_id", "device", "outcome", "final_url", "domain",
+                  "page_kind", "title", "checkout_platform", "seller_platform", "seller_account", "recorded_at"],
+      "outside": ["final_url", "domain", "title", "seller_account"],
+      "filters": [
+        {"column": "investigation_id", "op": "=", "type": "integer"},
+        {"column": "creative_id", "op": "=", "type": "integer"},
+        {"column": "outcome", "op": "=", "type": "string", "enum": ["white", "dark"]}
+      ],
+      "order": "id DESC",
+      "limit": 50
+    }
+  ]
+}

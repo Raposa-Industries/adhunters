@@ -1,0 +1,21 @@
+{{define "top"}}<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · Desk</title>
+<link rel="stylesheet" href="/desk/_frame/frame.css">
+<link rel="stylesheet" href="/desk/static/desk.css">
+<script type="module" src="/desk/static/desk.js"></script>
+</head>
+<body data-tab="{{.Tab}}" data-user="{{.Person}}">
+<main>
+{{if .Stopped}}<p class="note fail banner" role="status"><b>Desk está parado.</b> Não responde nem roda passos até alguém ligar de novo em <a href="/desk/settings">Ajustes</a>.</p>{{end}}
+{{if .OverBudget}}<p class="note warn banner" role="status"><b>O limite de hoje com o Claude acabou</b> ({{usd .Spent}} de {{usd .Cap}}). Desk responde às 00:00 UTC, ou quando alguém subir o limite em <a href="/desk/settings">Ajustes</a>.</p>{{end}}
+{{end}}
+
+{{define "bottom"}}
+</main>
+</body>
+</html>
+{{end}}

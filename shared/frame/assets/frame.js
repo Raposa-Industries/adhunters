@@ -29,6 +29,7 @@ const GLYPHS = {
   intel: '<path d="M1.5 12.5 5.5 8l3 2.5 6-7" stroke-linejoin="round"/><path d="M1.5 14.5h13" stroke-width="1.2"/>',
   funnels: '<path d="M1.5 2.5h13L9.5 8.5v5l-3-1.5V8.5z" stroke-linejoin="round"/>',
   raposa: '<path d="M2 2.5 5.5 6h5L14 2.5 13 9l-5 5-5-5z" stroke-linejoin="round"/><circle cx="6" cy="8.5" r=".9" fill="currentColor" stroke="none"/><circle cx="10" cy="8.5" r=".9" fill="currentColor" stroke="none"/>',
+  desk: '<path d="M2 3h12v7.5H8l-3.5 3v-3H2z" stroke-linejoin="round"/><path d="M5 6h6M5 8h3.5" stroke-width="1.2"/>',
   search: '<circle cx="7" cy="7" r="4.6"/><path d="m10.4 10.4 3.2 3.2"/>',
   chevron: '<path d="m4.5 6.5 3.5 3.5 3.5-3.5"/>',
   filter: '<path d="M2 4h12M4.5 8h7M7 12h2"/>',

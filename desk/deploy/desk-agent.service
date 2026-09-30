@@ -1,0 +1,24 @@
+# Desk at work: answers the conversations waiting for it (on Claude) and
+# carries out the plans people OK'd. Settings and the Claude key are in
+# /etc/adhunters/desk-agent.env. Migrations run before each start.
+[Unit]
+Description=Desk agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+DynamicUser=yes
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/desk-agent.env
+ExecStartPre=/opt/adhunters/bin/desk-agent migrate
+ExecStart=/opt/adhunters/bin/desk-agent run -turns ${TURNS}
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

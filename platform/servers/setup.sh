@@ -311,6 +311,106 @@ funnels_box() {
     start funnels-loader funnels-loader
 }
 
+# ---- the library on the data box -------------------------------------------
+
+library_src="$repo/library"
+
+# library_box: the library Create and Launch share (library/README.md). It
+# owns the library and library_api schemas and runs their migrations; the
+# apps read library_api through library_api_read. Its Drive sync stays off
+# until the Google client is filled in and someone runs drive-login.
+library_box() {
+    [ -d "$library_src/deploy" ] || { echo "$library_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "the library login"
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'library_api_read') THEN CREATE ROLE library_api_read NOLOGIN; END IF; END \$\$"
+    local library_pw
+    library_pw=$(login library)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO library"
+    install_bin library
+    install -m 0644 "$library_src/deploy/library.service" /etc/systemd/system/library.service
+    systemctl daemon-reload
+    local example
+    example=$(grep -E '^[A-Z0-9_]+=' "$library_src/deploy/library.env.example")
+    if [ -n "$library_pw" ]; then
+        example=$(printf '%s\n' "$example" | sed "s|^DATABASE_URL=FILL_ME\$|DATABASE_URL=postgres://library:$library_pw@localhost:5432/adhunters?sslmode=require|")
+    fi
+    env_file library "$example"
+    start library library
+    if grep -q '^LIBRARY_GOOGLE_CLIENT_ID=$' /etc/adhunters/library.env; then
+        todo+=("to copy the library to Google Drive: put the Google client id and secret in /etc/adhunters/library.env, systemctl restart library, then run: sudo /opt/adhunters/bin/library drive-login")
+    fi
+}
+
+# ---- Create on the data box ---------------------------------------------------
+
+# create_box: AdHunters Create (create/README.md). It owns the create_app and
+# create_api schemas ("create" is a reserved word in SQL) and runs their
+# migrations; Desk calls create_api through create_api_read. It reads Spy
+# ads through tracks_api and saves into the library over HTTP.
+create_box() {
+    say "the create_app login"
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'create_api_read') THEN CREATE ROLE create_api_read NOLOGIN; END IF; END \$\$"
+    local create_pw
+    create_pw=$(login create_app)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO create_app"
+    psql_su -d adhunters -c "GRANT tracks_api_read TO create_app"
+    install_bin create
+    install -m 0644 "$create_src/deploy/create.service" /etc/systemd/system/create.service
+    systemctl daemon-reload
+    local example
+    example=$(grep -E '^[A-Z0-9_]+=' "$create_src/deploy/create.env.example")
+    if [ -n "$create_pw" ]; then
+        example=$(printf '%s\n' "$example" | sed "s|^DATABASE_URL=FILL_ME\$|DATABASE_URL=postgres://create_app:$create_pw@localhost:5432/adhunters?sslmode=require|")
+    fi
+    env_file create "$example"
+    start create create
+    if grep -q '^OPENAI_API_KEY=$' /etc/adhunters/create.env; then
+        todo+=("to make options in Create: put the OpenAI key in /etc/adhunters/create.env (OPENAI_API_KEY=), then systemctl restart create")
+    fi
+}
+
+# ---- Desk on the data box ---------------------------------------------------
+
+desk_src="$repo/desk"
+
+# desk_box: AdHunters Desk (desk/README.md). The desk login owns the desk and
+# desk_api schemas; both units run the migrations before they start, so the
+# pages work before the Claude key is in. desk-agent waits for the key.
+desk_box() {
+    [ -d "$desk_src/deploy" ] || { echo "$desk_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "the desk login"
+    # desk_api_read must exist before Desk's first migration, which grants it.
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'desk_api_read') THEN CREATE ROLE desk_api_read NOLOGIN; END IF; END \$\$"
+    local desk_pw
+    desk_pw=$(login desk)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO desk"
+    # Desk reads and calls each app in contract/actions through that app's
+    # <app>_api_read role. A role made here before its app is set up gets its
+    # rights from the app's first migration.
+    local f r
+    for f in "$repo"/contract/actions/*.json; do
+        r="$(basename "$f" .json)_api_read"
+        psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '$r') THEN CREATE ROLE $r NOLOGIN; END IF; END \$\$"
+        psql_su -d adhunters -c "GRANT $r TO desk"
+    done
+    install_bin desk-agent
+    install_bin desk-web
+    local u example
+    for u in desk-agent desk-web; do
+        install -m 0644 "$desk_src/deploy/$u.service" "/etc/systemd/system/$u.service"
+    done
+    systemctl daemon-reload
+    for u in desk-agent desk-web; do
+        example=$(grep -E '^[A-Z0-9_]+=' "$desk_src/deploy/$u.env.example")
+        if [ -n "$desk_pw" ]; then
+            example=$(printf '%s\n' "$example" | sed "s|^DATABASE_URL=FILL_ME\$|DATABASE_URL=postgres://desk:$desk_pw@localhost:5432/adhunters?sslmode=require|")
+        fi
+        env_file "$u" "$example"
+    done
+    start desk-web desk-web
+    start desk-agent desk-agent
+}
+
 # ---- data box ---------------------------------------------------------------
 
 postgres() {
@@ -568,8 +668,12 @@ raposa-web              9106  raposa-web      -
 observe-bot             9107  observe-bot     -
 tracks-bridge           9108  tracks-bridge   -
 create-web              9109  create-web      -
+library                 9110  library         -
+create                  9112  create          -
 funnels-edge            9117  funnels-edge    -
-funnels-loader          9118  funnels-loader  -'
+funnels-loader          9118  funnels-loader  -
+desk-agent              9120  desk-agent      -
+desk-web                9121  desk-web        -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
@@ -671,8 +775,11 @@ worker)
 standby) capture_box standby:1:9101 ;;
 data)
     data_box && backups
+    library_box
+    create_box
     create_web
     funnels_box
+    desk_box
     ;;
 esac
 alloy_agent

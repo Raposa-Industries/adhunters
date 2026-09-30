@@ -1,0 +1,37 @@
+{
+  "app": "tracks",
+  "actions": [
+    {
+      "name": "tracks.creatives",
+      "version": 1,
+      "kind": "read",
+      "says": "Creatives as collected: the image's link, format and when it was first and last seen.",
+      "view": "tracks_api.creative_v1",
+      "columns": ["id", "creative_key", "image_url", "format_type", "first_seen_at", "last_seen_at"],
+      "outside": ["image_url"],
+      "filters": [
+        {"column": "id", "op": "=", "type": "integer"}
+      ],
+      "order": "id",
+      "limit": 50,
+      "show": {"id": "id", "image": "image_url"}
+    },
+    {
+      "name": "tracks.ads",
+      "version": 1,
+      "kind": "read",
+      "says": "Ads as collected: a creative with its headline, description and CTA, and the account and brand that run it.",
+      "view": "tracks_api.ad_v1",
+      "columns": ["id", "creative_id", "headline", "description", "cta", "brand_id", "account_id", "first_seen_at", "last_seen_at"],
+      "outside": ["headline", "description", "cta"],
+      "filters": [
+        {"column": "id", "op": "=", "type": "integer"},
+        {"column": "creative_id", "op": "=", "type": "integer"},
+        {"column": "headline", "op": "has", "type": "string", "says": "words the headline contains"}
+      ],
+      "order": "last_seen_at DESC",
+      "limit": 50,
+      "show": {"id": "id", "text": "headline"}
+    }
+  ]
+}

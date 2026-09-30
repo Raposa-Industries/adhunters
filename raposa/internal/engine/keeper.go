@@ -17,8 +17,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
+	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 // The keeper keeps every version of every page a deep investigation reached
