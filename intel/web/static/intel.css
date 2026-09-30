@@ -1,0 +1,22 @@
+/* Intel's few parts the Frame does not have. */
+.block { margin-top: 22px; }
+.block > h3 { margin-bottom: 10px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.cards .panel + .panel, .block > .panel + .panel { margin-top: 0; }
+.block > .card + .card { margin-top: 10px; }
+.card h2 { margin-top: 8px; }
+.card p { margin: 6px 0 0; }
+.card form { display: inline; }
+.card.closed { opacity: .7; }
+.card-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12.5px; }
+.card-head a { text-decoration: none; }
+.small-text { font-size: 11.5px; }
+td.up { color: var(--ok-ink); }
+td.down { color: var(--fail-ink); }
+.badge.faint { color: var(--faint); }
+td.ad { display: flex; gap: 10px; align-items: center; min-width: 260px; }
+td.ad img { border-radius: 4px; object-fit: cover; background: var(--surface-3); flex: none; }
+.line { margin: 6px 0 0; padding-left: 18px; }
+.win, .acct { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); text-decoration: none; }
+.acct { display: block; border: 0; border-radius: 6px; padding: 4px 8px; }
+.win.on, .acct.on { background: var(--ember-chip); border-color: var(--ember-chip-line); color: var(--ink-strong); }

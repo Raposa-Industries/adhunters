@@ -47,7 +47,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/platform/observe/internal/digest"
 	"github.com/Raposa-Industries/adhunters/platform/observe/internal/prom"
 	"github.com/Raposa-Industries/adhunters/platform/observe/internal/sentry"
-	"github.com/Raposa-Industries/adhunters/platform/observe/internal/telegram"
+	"github.com/Raposa-Industries/adhunters/shared/telegram"
 )
 
 // version is set at build time: -ldflags "-X main.version=…".
