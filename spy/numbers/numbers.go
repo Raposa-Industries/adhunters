@@ -1,14 +1,15 @@
 // Package numbers runs Spy's derived numbers on a schedule: the last 24
-// hours, the classifier, the read model, and Size and Direction. The numbers themselves are
-// SQL functions in the spy schema (migrations/sql); this package decides when
-// each runs, times it and reports it.
+// hours, the classifier, the read model, Size and Direction, and auction
+// prices. The numbers themselves are SQL functions in the spy schema
+// (migrations/sql) and the classifier is spy/classify; this package decides
+// when each runs, times it and reports it.
 //
 // Every minute it asks for the last 24 hours, which rebuild only when Tracks
 // closed a new hour (or closed one again). Every 5 minutes it runs the
-// classifier (spy/classify), rebuilds the read model, which reads its
-// verticals, then Direction, which reads the read model's junk flags. Every
-// hour it sums today's and yesterday's auction prices again. A job
-// that fails is logged and counted; the next tick tries again.
+// classifier, rebuilds the read model, which reads its verticals, then
+// Direction, which reads the read model's junk flags. Every hour it sums
+// today's and yesterday's auction prices again. A job that fails is logged
+// and counted; the next tick tries again.
 package numbers
 
 import (
