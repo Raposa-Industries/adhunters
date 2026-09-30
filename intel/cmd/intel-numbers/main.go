@@ -10,7 +10,7 @@
 //
 // DATABASE_URL owns the intel schemas. TELEGRAM_BOT_TOKEN and
 // TELEGRAM_CHAT_ID, when set, send each new alert to "AdHunters alerts";
-// INTEL_BASE_URL (https://app.adhunters.pro) makes the message link back.
+// INTEL_BASE_URL (https://hunt-teste.fyi for now) makes the message link back.
 // It never talks to Taboola or RedTrack, and never writes anywhere but the
 // intel schemas.
 package main
