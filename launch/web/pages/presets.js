@@ -14,7 +14,7 @@ export const OBJECTIVES = [
   ['BRAND_AWARENESS', 'Marca'],
 ];
 
-const MODELS = [['', 'Por campanha'], ['DAILY', 'Por dia'], ['MONTHLY', 'Por mês'], ['ENTIRE', 'Total']];
+const MODELS = [['', 'Por campanha'], ['MONTHLY', 'Por mês'], ['ENTIRE', 'Total']];
 
 // The team's defaults for a new campaign (2026-09-30).
 export const TEAM = {
@@ -22,11 +22,16 @@ export const TEAM = {
   bid_strategy: 'MAX_CONVERSIONS',
   ad_delivery: 'OPTIMIZED',
   countries: ['US'],
-  // Cities the team never shows in. The values must be Taboola's own
-  // (its US city dictionary); these are to be checked against it.
-  exclude_cities: ['Atlanta, GA', 'Bend, OR', 'Biloxi, MS', 'Idaho Falls, ID', 'Indianapolis, IN', 'New York, NY', 'Rochester, NY', 'Shreveport, LA', 'Tallahassee, FL'],
+  // Cities the team never shows in, by their id in Taboola's US city
+  // dictionary (resources/countries/US/cities, read 2026-09-30).
+  exclude_cities: ['3', '2132', '2038', '995', '140', '57', '125', '189', '847'],
   tracking_code: 'src={site}&utm_medium={thumbnail}&utm_content={title}&utm_term={cachebuster}&click_id={click_id}&cpc={cpc}&sub1={campaign_id}&utm_source=Taboola&utm_campaign={campaign_name}&sub4={campaign_item_id}&sub5={site}&sub6={title}&sub7={platform}&sub8={site_id}&sub9={thumbnail}&sub10={timestamp}&ref_id={click_id}',
 };
+
+// CITY names the dictionary ids the team uses.
+export const CITY = { 3: 'Atlanta (Georgia)', 2132: 'Bend (Oregon)', 2038: 'Biloxi (Mississippi)', 995: 'Idaho Falls (Idaho)', 140: 'Indianapolis (Indiana)', 57: 'New York (New York)', 125: 'Rochester (New York)', 189: 'Shreveport (Louisiana)', 847: 'Tallahassee (Florida)' };
+const cityLines = (ids) => (ids || []).map((id) => (CITY[id] ? `${id} ${CITY[id]}` : id)).join('\n');
+const cityIds = (text) => text.split(/\r?\n/).map((l) => (l.trim().match(/^\d+/) || [''])[0]).filter(Boolean);
 
 const BIDS = [['MAX_CONVERSIONS', 'Maximizar conversões (CPA)'], ['FIXED', 'CPC fixo'], ['SMART', 'CPC Smart']];
 const DELIVERY = [['OPTIMIZED', 'Priorizar os melhores anúncios'], ['EVEN', 'Teste A/B (igual para todos)']];
@@ -82,7 +87,7 @@ export function settingsForm(values = {}, limits = {}) {
   const limit = input({ inputmode: 'decimal', placeholder: 'nenhum', value: s.spending_limit || '' });
   let deliveryNow = s.ad_delivery || 'OPTIMIZED';
   const delivery = segmented('delivery-' + Math.random().toString(36).slice(2, 7), DELIVERY, deliveryNow, (v) => { deliveryNow = v; });
-  const cities = h('textarea', { rows: 4, spellcheck: 'false', 'aria-label': 'Cidades fora' }, (s.exclude_cities || []).join('\n'));
+  const cities = h('textarea', { rows: 5, spellcheck: 'false', 'aria-label': 'Cidades fora' }, cityLines(s.exclude_cities));
   const objective = select(OBJECTIVES, s.objective || 'DRIVE_WEBSITE_TRAFFIC');
   const start = input({ type: 'date', value: s.start_date || '' });
   const end = input({ type: 'date', value: s.end_date || '' });
@@ -124,7 +129,7 @@ export function settingsForm(values = {}, limits = {}) {
       field('Objetivo', objective),
       field('Começa em', start, 'vazio: quando for ligada'), field('Termina em', end, 'vazio: sem fim')),
     h('h3', {}, 'Onde'),
-    h('p', { class: 'muted' }, 'Estados Unidos, menos estas cidades (uma por linha):'),
+    h('p', { class: 'muted' }, 'Estados Unidos, menos estas cidades (uma por linha, começando pelo número da cidade no Taboola):'),
     cities,
     h('h3', {}, 'Orçamento e lance'),
     h('div', { class: 'fields' },
@@ -153,7 +158,7 @@ export function settingsForm(values = {}, limits = {}) {
       daily_cap: numberOf(cap.value) || 0,
       spending_limit: numberOf(limit.value) || 0,
       countries: ['US'],
-      exclude_cities: cities.value.split(/\r?\n/).map((c) => c.trim()).filter(Boolean),
+      exclude_cities: cityIds(cities.value),
       ad_delivery: deliveryNow,
       tracking_code: tracking.value.trim(),
       objective: objective.value,
@@ -184,7 +189,7 @@ export function settingsForm(values = {}, limits = {}) {
       if (s.ad_delivery) { deliveryNow = s.ad_delivery; radio('delivery-', deliveryNow); }
       if (s.daily_cap !== undefined) cap.value = s.daily_cap || '';
       if (s.spending_limit !== undefined) limit.value = s.spending_limit || '';
-      if (s.exclude_cities) cities.value = s.exclude_cities.join('\n');
+      if (s.exclude_cities) cities.value = cityLines(s.exclude_cities);
       if (s.tracking_code !== undefined) tracking.value = s.tracking_code;
       if (s.objective) objective.value = s.objective;
       if (s.start_date !== undefined) start.value = s.start_date;

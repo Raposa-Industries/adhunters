@@ -37,7 +37,7 @@ func TestTeamNames(t *testing.T) {
 		}
 		return *j.Result
 	}
-	maxConv := map[string]any{"daily_cap": 500, "bid_strategy": "MAX_CONVERSIONS", "exclude_cities": []string{"Atlanta"}, "ad_delivery": "OPTIMIZED"}
+	maxConv := map[string]any{"daily_cap": 500, "bid_strategy": "MAX_CONVERSIONS", "exclude_cities": []string{"3"}, "ad_delivery": "OPTIMIZED"}
 	res := send("m1", "mobile", maxConv)
 	if res.Desktop != nil || res.Mobile == nil || res.Mobile.Campaign.Name != "CMP13-1-Mobile-pp-bl" || res.Group.Name != "08" || res.PairID != 0 {
 		t.Fatalf("%+v", res)

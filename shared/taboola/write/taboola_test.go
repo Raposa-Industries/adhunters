@@ -310,12 +310,12 @@ func TestCampaignBody(t *testing.T) {
 			}
 			return ""
 		}},
-		{"max conversions, cities, delivery", NewCampaign{Name: "x", Brand: "b", DailyCap: 100, BidStrategy: "max_conversions", ExcludeCities: []string{" Atlanta ", "Bend"}, AdDelivery: "optimized"}, func(b map[string]any) string {
+		{"max conversions, cities, delivery", NewCampaign{Name: "x", Brand: "b", DailyCap: 100, BidStrategy: "max_conversions", ExcludeCities: []string{" 3 ", "2132"}, AdDelivery: "optimized"}, func(b map[string]any) string {
 			_, hasCPC := b["cpc"]
 			switch {
 			case b["bid_strategy"] != "MAX_CONVERSIONS" || hasCPC:
 				return "bid"
-			case fmt.Sprint(b["city_targeting"]) != "map[type:EXCLUDE value:[Atlanta Bend]]":
+			case fmt.Sprint(b["city_targeting"]) != "map[type:EXCLUDE value:[3 2132]]":
 				return "cities"
 			case b["traffic_allocation_mode"] != "OPTIMIZED":
 				return "delivery"
@@ -369,6 +369,7 @@ func TestCampaignBody(t *testing.T) {
 		"cpa without":      {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, TargetCPA: 20},
 		"delivery":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, AdDelivery: "FAST"},
 		"empty city":       {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, ExcludeCities: []string{" "}},
+		"city by name":     {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, ExcludeCities: []string{"Atlanta"}},
 		"smart over":       {Name: "x", Brand: "b", CPC: 1.5, DailyCap: 10, BidStrategy: "SMART"},
 		"bad date":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "01/10/2026"},
 		"end first":        {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "2026-10-02", EndDate: "2026-10-01"},
@@ -767,7 +768,7 @@ func TestGroups(t *testing.T) {
 		"too much":  {Name: "g", SpendingLimit: 3001, Model: "MONTHLY"},
 		"model":     {Name: "g", SpendingLimit: 10, Model: "WEEKLY"},
 		"none, sum": {Name: "g", SpendingLimit: 10, Model: "NONE"},
-		"daily":     {Name: "g", SpendingLimit: 101, Model: "DAILY"},
+		"daily":     {Name: "g", SpendingLimit: 10, Model: "DAILY"},
 	} {
 		var r *Refused
 		if _, err := c.CreateGroup(ctx, "acme-sc", n); !errors.As(err, &r) {

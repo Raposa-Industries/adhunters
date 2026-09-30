@@ -25,7 +25,7 @@ All under `/launch/`; a link to any of them opens it.
 | `/launch/taboola/<account>/g/<group>` | One group's campaigns. `g/-` is campaigns without a group. |
 | `/launch/taboola/<account>/g/<group>/c/<campaign>` | One campaign: settings, ads with their review state, the pair's other half, its History, and the same actions (rename here only). |
 | `…/c/<campaign>?do=…&from=intel:<id>` | The same page with a suggested change filled in on top: `do=pause-ads&ads=<ids,…>`, `pause-campaign`, `set-daily-cap&cap=<usd>`, `set-bid&cpc=<usd>`. Only this campaign, not its pair. Nothing is sent until the person presses the button; History records `from` (only `intel:…` or `desk:…`, like `desk:step:12`) as who asked. |
-| `/launch/new` | **Nova campanha**, Realize's flow in one page: 1 · Grupo (account; an existing group or a new one, named with the account's next number, 01, 02…, from a group preset or typed: objective, budget per campaign (default) or the group's per day, month or in total). 2 · Campanha (devices: both, which makes a desktop and a mobile campaign alike, mobile or desktop; named CMP<n>-<account number>-<Mobile or Desktop>-pp-bl unless a name is typed; settings from a campaign preset or the team's defaults below). 3 · Anúncios (pictures uploaded or from the library, English headlines, buttons, Sortido or every combination, AI label). 4 · Revisar e **Criar pausado**. Each step of the send shows as it happens; the same send twice is one send. Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
+| `/launch/new` | **Nova campanha**, Realize's flow in one page: 1 · Grupo (account; an existing group or a new one, named with the account's next number, 01, 02…, from a group preset or typed: objective, budget per campaign (default) or the group's per month or in total). 2 · Campanha (devices: both, which makes a desktop and a mobile campaign alike, mobile or desktop; named CMP<n>-<account number>-<Mobile or Desktop>-pp-bl unless a name is typed; settings from a campaign preset or the team's defaults below). 3 · Anúncios (pictures uploaded or from the library, English headlines, buttons, Sortido or every combination, AI label). 4 · Revisar e **Criar pausado**. Each step of the send shows as it happens; the same send twice is one send. Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
 | `/launch/new?account=…&to=<ids>` | **Novos anúncios**: the same ads, paused, added to campaigns that exist (Realize's "assign creatives"); from **Adicionar anúncios** on the tree or a campaign. |
 | `/launch/new?set=<id>` | Nova campanha with one library set's creatives and headlines already in (Create links here after saving a set). |
 | `/launch/drafts` | Drafts; opening one continues it in Nova campanha. |
@@ -41,8 +41,10 @@ or saved in a preset:
 
 - **Where:** United States, minus Atlanta GA, Bend OR, Biloxi MS, Idaho
   Falls ID, Indianapolis IN, New York NY, Rochester NY, Shreveport LA and
-  Tallahassee FL. The values must be Taboola's own city names; they are
-  being checked against its US city dictionary.
+  Tallahassee FL, sent as their ids in Taboola's US city dictionary (3,
+  2132, 2038, 995, 140, 57, 125, 189, 847; read 2026-09-30, see
+  research/taboola-api/lookups-2026-09-30 in the project files). The
+  `city_targeting` EXCLUDE shape is to be proven on the first paused create.
 - **Budget:** US$ 500 a day, no spending limit. The ceiling
   (`TABOOLA_MAX_DAILY_CAP`) is 500 in the example settings.
 - **Bid:** Maximize conversions (CPA), a target CPA optional; Taboola sets

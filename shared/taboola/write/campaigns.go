@@ -208,8 +208,9 @@ type NewCampaign struct {
 	// TargetCPA is the cost per conversion to aim for (USD), with
 	// MAX_CONVERSIONS only.
 	TargetCPA float64
-	// ExcludeCities are Taboola's city values (its US city dictionary) the
-	// campaign does not show in.
+	// ExcludeCities are the ids (the "name" field) of cities in Taboola's
+	// dictionary (resources/countries/US/cities) the campaign does not show
+	// in. The EXCLUDE shape is unproven on the real API (2026-09-30).
 	ExcludeCities []string
 	// AdDelivery is OPTIMIZED (Realize's "Prioritize top-performing ads")
 	// or EVEN (A/B testing); empty leaves Taboola's default.
@@ -327,8 +328,8 @@ func (n NewCampaign) body(maxCPC, maxDailyCap float64, full bool) (obj, error) {
 		cities := make([]string, 0, len(n.ExcludeCities))
 		for _, c := range n.ExcludeCities {
 			c = strings.TrimSpace(c)
-			if c == "" || utf8.RuneCountInString(c) > 100 || strings.ContainsAny(c, "\r\n\t") {
-				return nil, refuse("cidade %q inválida", oneLine(c, 40))
+			if !digits.MatchString(c) {
+				return nil, refuse("cidade %q inválida: use o número da cidade no Taboola", oneLine(c, 40))
 			}
 			cities = append(cities, c)
 		}
@@ -509,9 +510,10 @@ type NewGroup struct {
 	// SpendingLimit is the group's budget, above 0 and at most 30 daily
 	// caps; 0 with Model NONE.
 	SpendingLimit float64
-	// Model is DAILY, MONTHLY or ENTIRE (lifetime), or NONE: no group
-	// budget, each campaign keeps its own (Realize's default, "Manually set
-	// budgets per campaign"). NONE and DAILY are unproven on the real API
+	// Model is MONTHLY or ENTIRE (lifetime), or NONE: no group budget,
+	// each campaign keeps its own (Realize's default, "Manually set budgets
+	// per campaign"). Taboola's spending-limit-model dictionary lists NONE,
+	// MONTHLY, ENTIRE and SCHEDULED; NONE on a group is unproven
 	// (2026-09-30).
 	Model string
 	// MarketingObjective must match its campaigns'; DRIVE_WEBSITE_TRAFFIC
@@ -540,10 +542,8 @@ func (c *Client) CreateGroup(ctx context.Context, account string, n NewGroup) (G
 		return Group{}, refuse("sem orçamento do grupo, não mande valor")
 	case model != "NONE" && (!(n.SpendingLimit > 0) || n.SpendingLimit > 30*c.s.MaxDailyCap):
 		return Group{}, refuse("o orçamento do grupo deve ficar entre 0 e %s", usd(30*c.s.MaxDailyCap))
-	case model == "DAILY" && n.SpendingLimit > c.s.MaxDailyCap:
-		return Group{}, refuse("o orçamento diário do grupo deve ficar até %s", usd(c.s.MaxDailyCap))
-	case model != "NONE" && model != "DAILY" && model != "MONTHLY" && model != "ENTIRE":
-		return Group{}, refuse("o orçamento do grupo deve ser NONE, DAILY, MONTHLY ou ENTIRE")
+	case model != "NONE" && model != "MONTHLY" && model != "ENTIRE":
+		return Group{}, refuse("o orçamento do grupo deve ser NONE, MONTHLY ou ENTIRE")
 	case !objectives[objective]:
 		return Group{}, refuse("objetivo %q inválido", oneLine(n.MarketingObjective, 40))
 	}

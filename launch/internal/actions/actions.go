@@ -702,7 +702,7 @@ func (l *Launch) Change(ctx context.Context, who Who, net, account string, ids [
 }
 
 func groupBudget(g network.Group) string {
-	per := map[string]string{"DAILY": " por dia", "MONTHLY": " por mês", "ENTIRE": " no total"}[g.BudgetModel]
+	per := map[string]string{"MONTHLY": " por mês", "ENTIRE": " no total"}[g.BudgetModel]
 	if per == "" || g.Budget == 0 {
 		return "orçamento por campanha"
 	}
