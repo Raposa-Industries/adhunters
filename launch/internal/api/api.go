@@ -13,6 +13,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -55,8 +56,16 @@ func Who(r *http.Request) string {
 	return strings.TrimSpace(r.Header.Get("Cf-Access-Authenticated-User-Email"))
 }
 
+// asker is who else asked for a change: "intel:311" when a person opened
+// one of Intel's one-tap actions, "desk:42" for a Desk request.
+var asker = regexp.MustCompile(`^(intel|desk):[A-Za-z0-9_-]{1,40}$`)
+
 func who(r *http.Request) actions.Who {
-	return actions.Who{Person: Who(r), AskedBy: strings.TrimSpace(r.URL.Query().Get("from"))}
+	w := actions.Who{Person: Who(r)}
+	if from := strings.TrimSpace(r.URL.Query().Get("from")); asker.MatchString(from) {
+		w.AskedBy = from
+	}
+	return w
 }
 
 // Handler routes /launch/api/.
@@ -73,6 +82,7 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("POST "+p+"{net}/{account}/duplicate", a.duplicate)
 	m.HandleFunc("POST "+p+"{net}/{account}/pause", a.pause)
 	m.HandleFunc("POST "+p+"{net}/{account}/change", a.change)
+	m.HandleFunc("POST "+p+"{net}/{account}/campaigns/{id}/pause-ads", a.pauseAds)
 	m.HandleFunc("POST "+p+"moves/{id}/cancel", a.cancelMove)
 	m.HandleFunc("POST "+p+"pairs", a.newPair)
 	m.HandleFunc("GET "+p+"jobs/{id}", a.job)
@@ -246,6 +256,7 @@ type many struct {
 	ToGroup   string          `json:"to_group,omitempty"`
 	Originals string          `json:"originals,omitempty"`
 	Change    *network.Change `json:"change,omitempty"`
+	Ads       []string        `json:"ads,omitempty"`
 }
 
 func (a *API) doMany(w http.ResponseWriter, r *http.Request, run func(many) ([]actions.Done, error)) {
@@ -276,6 +287,12 @@ func (a *API) duplicate(w http.ResponseWriter, r *http.Request) {
 func (a *API) pause(w http.ResponseWriter, r *http.Request) {
 	a.doMany(w, r, func(b many) ([]actions.Done, error) {
 		return a.l.Pause(r.Context(), who(r), r.PathValue("net"), r.PathValue("account"), b.Campaigns)
+	})
+}
+
+func (a *API) pauseAds(w http.ResponseWriter, r *http.Request) {
+	a.doMany(w, r, func(b many) ([]actions.Done, error) {
+		return a.l.PauseAds(r.Context(), who(r), r.PathValue("net"), r.PathValue("account"), r.PathValue("id"), b.Ads)
 	})
 }
 

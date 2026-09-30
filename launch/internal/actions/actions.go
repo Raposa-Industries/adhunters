@@ -298,6 +298,7 @@ type Done struct {
 	Campaign string            `json:"campaign"`
 	Copy     *network.Campaign `json:"copy,omitempty"`
 	Ads      int               `json:"ads,omitempty"`
+	Ad       string            `json:"ad,omitempty"`
 	Error    string            `json:"error,omitempty"`
 }
 
@@ -478,6 +479,45 @@ func (l *Launch) Pause(ctx context.Context, who Who, net, account string, ids []
 		l.record(ctx, ch)
 		out = append(out, d)
 	}
+	return out, nil
+}
+
+// PauseAds pauses some ads of one campaign, recorded as one pause in
+// History.
+func (l *Launch) PauseAds(ctx context.Context, who Who, net, account, campaign string, ids []string) ([]Done, error) {
+	n, err := l.Net(net)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return nil, &network.Refused{Message: "escolha ao menos um anúncio"}
+	}
+	c, err := n.Campaign(ctx, account, campaign)
+	if err != nil {
+		return nil, err
+	}
+	var out []Done
+	var paused, problems []string
+	for _, id := range ids {
+		d := Done{Campaign: campaign, Ad: id}
+		if err := n.PauseAd(ctx, account, campaign, id); err != nil {
+			d.Error = l.Say(err)
+			problems = append(problems, id+": "+d.Error)
+		} else {
+			paused = append(paused, id)
+		}
+		out = append(out, d)
+	}
+	ch := store.Change{Who: who.Person, AskedBy: who.asked(), Network: net, Account: account, GroupID: c.GroupID, CampaignID: campaign,
+		Kind: "pause", Summary: "Pausou " + ads(len(paused)) + " de " + orID(c.Name, campaign),
+		Before: raw(map[string]any{"ads": ids}), After: raw(map[string]any{"paused": paused}), Result: "done", Problems: problems}
+	switch {
+	case len(paused) == 0:
+		ch.Result, ch.Summary = "failed", "Tentou pausar "+ads(len(ids))+" de "+orID(c.Name, campaign)
+	case len(problems) > 0:
+		ch.Result = "partial"
+	}
+	l.record(ctx, ch)
 	return out, nil
 }
 

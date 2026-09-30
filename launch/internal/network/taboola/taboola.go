@@ -237,6 +237,10 @@ func (t *Taboola) Pause(ctx context.Context, account, campaign string) error {
 	return t.c.PauseCampaign(ctx, account, campaign)
 }
 
+func (t *Taboola) PauseAd(ctx context.Context, account, campaign, ad string) error {
+	return t.c.PauseAd(ctx, account, campaign, ad)
+}
+
 func (t *Taboola) Change(ctx context.Context, account, id string, ch network.Change) (network.Campaign, error) {
 	c, err := t.c.ChangeCampaign(ctx, account, id, write.Change{Name: ch.Name, CPC: ch.CPC, DailyCap: ch.DailyCap, SpendingLimit: ch.SpendingLimit})
 	if err != nil {

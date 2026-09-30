@@ -38,6 +38,8 @@ type Network interface {
 	// campaign is made).
 	Copy(ctx context.Context, account, campaign string, to CopyTo) (Made, error)
 	Pause(ctx context.Context, account, campaign string) error
+	// PauseAd pauses one ad of a campaign.
+	PauseAd(ctx context.Context, account, campaign, ad string) error
 	Change(ctx context.Context, account, campaign string, ch Change) (Campaign, error)
 }
 
