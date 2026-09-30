@@ -7,6 +7,8 @@
 
 # Go
 /bin/
+# a service's binary built in its folder (go build ./cmd/...)
+/launch/launch-web
 *.test
 coverage.out
 

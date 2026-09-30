@@ -11,6 +11,7 @@ import { clean, hasHidden, headlineWarnings, imageWarnings, looksAIMade } from '
 import { CTAS, AD_COLUMNS, MAX_ADS, adId, adRows, uniqueNames, campaignIds } from '/launch/_ads/sheet.js';
 import { fillTemplate } from '/launch/_ads/template.js';
 import { zip } from '/launch/_ads/zip.js';
+import { libraryPicker } from './library.js';
 
 // Portuguese in a headline: accents Portuguese uses and English does not,
 // and a few common words. Headlines always go out in English.
@@ -41,13 +42,15 @@ export async function newPair({ main, status }) {
     mode: 'mixed',
     seed: 0,
     ai: '',
+    devices: 'both',
   };
+  let next = null; // the account's next names: {group, campaign, desktop, mobile}
   let accounts = [];
   let groups = [];
   let presetList = [];
 
-  const head = h('div', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Novo par'),
-    h('p', { class: 'lead muted' }, 'Uma campanha desktop e uma mobile, com as mesmas configurações e os mesmos anúncios. Tudo nasce pausado.')));
+  const head = h('div', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Nova campanha'),
+    h('p', { class: 'lead muted' }, 'Grupo, campanha e anúncios, como no Taboola. Com "Os dois" saem uma campanha desktop e uma mobile iguais. Tudo nasce pausado.')));
   main.append(head);
   if (!connected.length) {
     main.append(note('warn', h('b', {}, 'Taboola desligado. '), 'Monte os anúncios aqui e baixe a planilha no fim para subir pelo Bulk Upload do Taboola.'));
@@ -56,8 +59,9 @@ export async function newPair({ main, status }) {
   // ---- 1. where ----
   const accountSel = select([['', 'Carregando contas…']], '', { 'aria-label': 'Conta' });
   const groupSel = select([['', '—']], '', { 'aria-label': 'Grupo' });
-  const pairName = input({ placeholder: 'Memory Loss US · 30/09', 'aria-label': 'Nome do par' });
-  const nameHint = h('span', { class: 'hint' }, 'o Launch põe “ · Desktop” e “ · Mobile” no fim');
+  const pairName = input({ placeholder: 'vazio: o nome do time', 'aria-label': 'Nome próprio' });
+  const nameHint = h('span', { class: 'hint' }, '');
+  const deviceBox = segmented('devices', [['both', 'Os dois'], ['mobile', 'Mobile'], ['desktop', 'Desktop']], s.devices, (v) => { s.devices = v; names(); update(); });
   const gForm = groupFields();
   let newGroup = false;
   const gBox = h('div', { class: 'new-group', hidden: true });
@@ -66,19 +70,33 @@ export async function newPair({ main, status }) {
     groupSel.closest('label').hidden = newGroup;
     gBox.hidden = !newGroup;
   });
-  const where = h('section', { class: 'panel step' }, h('h2', {}, '1 · Onde'),
-    h('div', { class: 'fields' }, field('Conta', accountSel), h('label', { class: 'field' }, 'Nome do par', pairName, nameHint)),
+  const where = h('section', { class: 'panel step' }, h('h2', {}, '1 · Grupo'),
+    h('div', { class: 'fields' }, field('Conta', accountSel)),
     h('div', { class: 'group-pick' }, groupMode, field('Grupo', groupSel)), gBox);
-  pairName.addEventListener('input', () => {
-    const n = pairName.value.trim();
-    nameHint.textContent = n ? `${n} · Desktop  e  ${n} · Mobile` : 'o Launch põe “ · Desktop” e “ · Mobile” no fim';
-  });
+  const campaignHead = h('div', {},
+    h('span', { class: 'field' }, 'Dispositivo'), deviceBox,
+    h('div', { class: 'fields' }, h('label', { class: 'field' }, 'Nome próprio (opcional)', pairName, nameHint)));
+  // names shows the campaigns' names: the team's (CMP<n>-<conta>-<Mobile|Desktop>-pp-bl) or the typed one.
+  function names() {
+    const own = pairName.value.trim();
+    const list = campaignNames();
+    nameHint.textContent = own ? list.join('  e  ') : next ? 'o nome do time: ' + list.join('  e  ') : '';
+    const gHint = gForm.name.closest('label')?.querySelector('.hint');
+    if (gHint && next) gHint.textContent = 'vazio: ' + next.group;
+  }
+  function campaignNames() {
+    const own = pairName.value.trim();
+    const both = s.devices === 'both' ? ['desktop', 'mobile'] : [s.devices];
+    return both.map((d) => (own ? `${own} · ${d === 'desktop' ? 'Desktop' : 'Mobile'}` : next ? next[d] : ''));
+  }
+  pairName.addEventListener('input', names);
 
   // ---- 2. settings ----
   const set = settingsForm({}, status.limits || {});
   const presetHold = h('div');
-  const settingsPanel = h('section', { class: 'panel step' }, h('h2', {}, '2 · Configurações'),
-    h('p', { class: 'muted' }, 'As duas campanhas recebem as mesmas. Use um preset ou salve estas como um.'), presetHold, set.el);
+  const settingsPanel = h('section', { class: 'panel step' }, h('h2', {}, '2 · Campanha'),
+    campaignHead,
+    h('p', { class: 'muted' }, 'Começa com o padrão do time. Use um preset ou salve estas como um.'), presetHold, set.el);
   let presetId = null;
 
   // ---- 3. ads ----
@@ -90,6 +108,7 @@ export async function newPair({ main, status }) {
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); });
   const upNote = h('div');
+  const lib = libraryPicker(fromLibrary);
 
   const paste = h('textarea', { rows: 4, placeholder: 'Uma headline por linha, em inglês', spellcheck: 'true' });
   const hlList = h('ol', { class: 'headlines' });
@@ -112,7 +131,7 @@ export async function newPair({ main, status }) {
   const aiBox = h('div');
   const pairing = h('p', { class: 'muted' });
   const adsPanel = h('section', { class: 'panel step' }, h('h2', {}, '3 · Anúncios'),
-    h('h3', {}, 'Imagens'), drop, fileIn, upNote, imgGrid,
+    lib.el, h('h3', {}, 'Imagens'), drop, fileIn, upNote, imgGrid,
     h('h3', {}, 'Headlines'), h('p', { class: 'faint' }, 'Sempre em inglês. Os avisos são do Taboola e não impedem o envio.'), paste, h('div', { class: 'actions' }, addHl), hlList,
     h('h3', {}, 'Botão'), ctaBox,
     h('h3', {}, 'Combinação'), h('div', { class: 'actions' }, modeBox, reshuffle), pairing,
@@ -121,7 +140,7 @@ export async function newPair({ main, status }) {
   // ---- 4. review and send ----
   const review = h('div');
   const sendOut = h('div');
-  const sendBtn = h('button', { type: 'button', class: 'primary big', onclick: () => sendPair() }, 'Criar o par pausado');
+  const sendBtn = h('button', { type: 'button', class: 'primary big', onclick: () => sendPair() }, 'Criar pausado');
   const draftBtn = h('button', { type: 'button', class: 'ghost', onclick: () => saveDraft() }, 'Salvar rascunho');
   const draftOut = h('span', { class: 'faint' });
   const sheetIds = input({ placeholder: '123456, 123457', 'aria-label': 'Ids das campanhas para a planilha' });
@@ -134,7 +153,30 @@ export async function newPair({ main, status }) {
       h('div', { class: 'fields' }, field('Ids das campanhas', sheetIds, 'cada anúncio vai em todas')),
       h('div', { class: 'actions' }, sheetBtn), sheetOut));
 
-  main.append(where, settingsPanel, adsPanel, sendPanel);
+  // Ads only (Realize's "assign creatives"): /launch/new?account=…&to=<campaign ids>
+  // adds the ads, paused, to campaigns that exist.
+  const to = (q.get('to') || '').split(',').map((x) => x.trim()).filter((x) => /^\d+$/.test(x));
+  const adUrl = input({ type: 'url', placeholder: 'https://…', 'aria-label': 'Página dos anúncios' });
+  const adDesc = input({ placeholder: 'opcional, em inglês', 'aria-label': 'Descrição' });
+  const url = () => (to.length ? adUrl.value.trim() : set.url());
+  const description = () => (to.length ? adDesc.value.trim() : set.description());
+  if (to.length) {
+    head.querySelector('h1').textContent = 'Novos anúncios';
+    head.querySelector('p').textContent = 'Os mesmos anúncios, pausados, em cada campanha escolhida. Eles passam pela revisão do Taboola.';
+    const targets = h('ul', { class: 'lib-headlines' }, to.map((id) => h('li', { class: 'mono' }, id)));
+    main.append(h('section', { class: 'panel step' }, h('h2', {}, '1 · Campanhas'), targets,
+      h('div', { class: 'fields' }, field('Página (landing page)', adUrl, 'a mesma em todos os anúncios'), field('Descrição', adDesc))), adsPanel, sendPanel);
+    sendBtn.textContent = 'Adicionar pausados';
+    adsPanel.querySelector('h2').textContent = '2 · Anúncios';
+    sendPanel.querySelector('h2').textContent = '3 · Revisar e adicionar';
+    Promise.all(to.map((id) => api(`${s.net}/${encodeURIComponent(s.account)}/campaigns/${id}`).then((d) => d.campaign).catch(() => ({ id, name: id }))))
+      .then((cs) => {
+        targets.replaceChildren(...cs.map((c) => h('li', {}, h('a', { href: link(s.net, s.account, c.group_id || '-', c.id) }, c.name), ' ', h('span', { class: 'mono faint' }, c.id))));
+        if (!adUrl.value) adUrl.value = '';
+      });
+  } else {
+    main.append(where, settingsPanel, adsPanel, sendPanel);
+  }
 
   // ---- loading ----
   async function loadAccounts() {
@@ -153,8 +195,19 @@ export async function newPair({ main, status }) {
     s.account = accountSel.value;
     await loadGroups();
   }
+  async function loadNext() {
+    next = null;
+    try {
+      next = await api(`${s.net}/${encodeURIComponent(s.account)}/next`);
+    } catch {
+      // The names are worked out again when sent.
+    }
+    names();
+    update();
+  }
   async function loadGroups() {
     groupSel.replaceChildren(h('option', { value: '' }, 'Carregando…'));
+    loadNext();
     try {
       groups = (await api(`${s.net}/${encodeURIComponent(s.account)}/tree`)).groups;
     } catch (e) {
@@ -194,6 +247,44 @@ export async function newPair({ main, status }) {
     drawImages();
     update();
   }
+  // fromLibrary brings a library set's chosen creatives and headlines in.
+  // A creative's AI label is the one saved with it; an unlabelled one is
+  // looked at like an upload.
+  async function fromLibrary(creatives, lines) {
+    const problems = [];
+    let nI = 0;
+    let nH = 0;
+    for (const c of creatives) {
+      try {
+        const r = await api('library/use?id=' + encodeURIComponent(c.id), { method: 'POST' });
+        if (s.images.some((x) => x.sha256 === r.image.sha256)) continue;
+        let ai = c.ai_label === 'ai';
+        if (c.ai_label !== 'ai' && c.ai_label !== 'not_ai') {
+          const res = await fetch('/launch/api/images/' + r.image.sha256).catch(() => null);
+          if (res?.ok) ai = looksAIMade(new Uint8Array(await res.arrayBuffer()));
+        }
+        s.images.push({ ...r.image, ai, on: true, library: c.id });
+        nI++;
+      } catch (e) {
+        problems.push(`${c.name || 'criativo ' + c.id}: ${e.message}`);
+      }
+    }
+    const known = new Set(s.headlines.map((x) => clean(x.text).toLowerCase()));
+    for (const x of lines) {
+      const t = clean(x.text || '');
+      if (!t || known.has(t.toLowerCase())) continue;
+      known.add(t.toLowerCase());
+      s.headlines.push({ text: t, on: true, library: x.id, ai: x.ai_label === 'ai' });
+      nH++;
+    }
+    if (!s.ai && (s.images.some((x) => x.on && x.ai) || s.headlines.some((x) => x.on && x.ai))) s.ai = 'yes';
+    upNote.replaceChildren(...problems.map((p) => note('fail', p)));
+    drawImages();
+    drawHeadlines();
+    update();
+    return { images: nI, headlines: nH, problems: problems.length };
+  }
+
   function drawImages() {
     imgGrid.replaceChildren(...s.images.map((img, i) => {
       const warn = imageWarnings({ width: img.width, height: img.height, size: img.bytes, type: img.type });
@@ -286,13 +377,17 @@ export async function newPair({ main, status }) {
   function drawReview(list) {
     const w = warnings(list);
     const st = set.settings();
-    const g = newGroup ? gForm.get().name || 'grupo novo' : groups.find((x) => x.id === groupSel.value)?.name || '';
+    const g = newGroup ? gForm.get().name || (next ? next.group + ' (novo)' : 'grupo novo') : groups.find((x) => x.id === groupSel.value)?.name || '';
     review.replaceChildren(...[
+      to.length ? h('dl', { class: 'summary' },
+        h('dt', {}, 'Campanhas'), h('dd', {}, plural(to.length, 'campanha', 'campanhas')),
+        h('dt', {}, 'Anúncios'), h('dd', {}, list.length ? `${list.length} em cada, ${list.length * to.length} no total, todos pausados` : '—')) :
       h('dl', { class: 'summary' },
-        h('dt', {}, 'Campanhas'), h('dd', {}, pairName.value.trim() ? `${pairName.value.trim()} · Desktop e ${pairName.value.trim()} · Mobile` : '—'),
+        h('dt', {}, 'Campanhas'), h('dd', {}, campaignNames().filter(Boolean).join(' e ') || '—'),
         h('dt', {}, 'Grupo'), h('dd', {}, g || '—'),
-        h('dt', {}, 'Lance'), h('dd', {}, st.cpc ? `${money(st.cpc)} por clique, teto ${money(st.daily_cap)} por dia em cada` : '—'),
-        h('dt', {}, 'Anúncios'), h('dd', {}, list.length ? `${list.length} em cada campanha, ${list.length * 2} no total, todos pausados` : '—')),
+        h('dt', {}, 'Lance'), h('dd', {}, (st.bid_strategy === 'MAX_CONVERSIONS' ? 'Maximizar conversões' + (st.target_cpa ? `, CPA alvo ${money(st.target_cpa)}` : '') : st.cpc ? `${money(st.cpc)} por clique` : '—') + (st.daily_cap ? `, ${money(st.daily_cap)} por dia em cada` : '')),
+        h('dt', {}, 'Onde'), h('dd', {}, 'Estados Unidos' + (st.exclude_cities.length ? `, menos ${plural(st.exclude_cities.length, 'cidade', 'cidades')}` : '')),
+        h('dt', {}, 'Anúncios'), h('dd', {}, list.length ? `${list.length} em cada campanha, ${list.length * campaignNames().length} no total, todos pausados` : '—')),
       w.length ? note('warn', h('b', {}, 'Avisos (não impedem): '), w.join(' ')) : null,
       list.length ? h('div', { class: 'table-wrap ads-preview' }, h('table', { class: 'list' },
         h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', {}, 'Headline'), h('th', {}, 'Botão'), h('th', {}, 'Id do anúncio'))),
@@ -305,7 +400,12 @@ export async function newPair({ main, status }) {
   // ---- send ----
   function problem(list) {
     if (!s.account) return 'Escolha a conta.';
-    if (!pairName.value.trim()) return 'Dê um nome ao par.';
+    if (to.length) {
+      if (!url()) return 'Falta o link da página.';
+      if (!list.length) return 'Escolha ao menos uma imagem, uma headline e um botão.';
+      if (!s.ai) return 'Diga se os anúncios foram feitos com IA.';
+      return '';
+    }
     if (newGroup) {
       const p = gForm.problem();
       if (p) return p;
@@ -327,13 +427,24 @@ export async function newPair({ main, status }) {
       sendOut.replaceChildren(note('fail', p));
       return;
     }
+    if (to.length) {
+      await busy(sendBtn, sendOut, async () => {
+        const res = await api(`${s.net}/${encodeURIComponent(s.account)}/add-ads`, { method: 'POST', body: { campaigns: to,
+          new_ads: list.map((a) => ({ title: a.title, description: description(), url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })) } });
+        sendBtn.hidden = true;
+        sendOut.replaceChildren(...res.done.map((d) => (d.error ? note('fail', h('b', {}, d.campaign + ': '), d.error) : note('ok', h('b', {}, d.campaign + ': '), plural(d.ads, 'anúncio adicionado', 'anúncios adicionados') + ', pausados'))),
+          h('p', {}, h('a', { href: link(s.net, s.account) }, 'Voltar às campanhas')));
+      });
+      return;
+    }
     const body = {
       network: s.net,
       account: s.account,
       name: pairName.value.trim(),
+      devices: s.devices,
       group_id: newGroup ? '' : groupSel.value,
       settings: set.settings(),
-      ads: list.map((a) => ({ title: a.title, description: set.description(), url: set.url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })),
+      ads: list.map((a) => ({ title: a.title, description: description(), url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })),
     };
     if (newGroup) body.new_group = gForm.get();
     if (presetId) body.preset_id = presetId;
@@ -366,9 +477,11 @@ export async function newPair({ main, status }) {
     const camp = (m) => (m?.campaign?.id ? h('a', { href: link(s.net, s.account, r.group_id || '-', m.campaign.id) }, m.campaign.name) : null);
     if (job.error) return note('fail', job.error);
     if (r.result === 'done') {
-      return h('div', {}, note('ok', h('b', {}, 'Par criado, pausado. '), 'Ligue as campanhas no Taboola quando quiser que comecem.'),
-        h('p', {}, camp(r.desktop), ' · ', camp(r.mobile)),
-        h('div', { class: 'actions' }, h('a', { class: 'button', href: link(s.net, s.account, r.group_id) }, 'Ver o grupo'), h('a', { class: 'button ghost', href: '/launch/new' }, 'Outro par')));
+      loadNext();
+      return h('div', {}, note('ok', h('b', {}, (r.desktop && r.mobile ? 'Par criado' : 'Campanha criada') + ', pausado. '), 'Ligue no Taboola quando quiser que comece.'),
+        h('p', {}, ...[camp(r.desktop), r.desktop && r.mobile ? ' · ' : null, camp(r.mobile)].filter(Boolean)),
+        h('div', { class: 'actions' }, h('a', { class: 'button', href: link(s.net, s.account, r.group_id) }, 'Ver o grupo'),
+          h('a', { class: 'button ghost', href: '/launch/new?' + new URLSearchParams({ account: s.account, group: r.group_id || '' }) }, 'Outra campanha neste grupo')));
     }
     return h('div', {}, note(r.result === 'partial' ? 'warn' : 'fail', h('b', {}, r.result === 'partial' ? 'Criado em parte. ' : 'Nada foi criado. '), (r.problems || []).join(' · ')),
       h('p', {}, camp(r.desktop), r.desktop && r.mobile ? ' · ' : '', camp(r.mobile)),
@@ -380,7 +493,7 @@ export async function newPair({ main, status }) {
     return {
       net: s.net, account: s.account, group: groupSel.value, newGroup, group_fields: gForm.get(),
       name: pairName.value, settings: set.preset(), start: set.settings().start_date, end: set.settings().end_date,
-      images: s.images, headlines: s.headlines, ctas: [...s.ctas], mode: s.mode, seed: s.seed, ai: s.ai, preset_id: presetId,
+      images: s.images, headlines: s.headlines, ctas: [...s.ctas], mode: s.mode, seed: s.seed, ai: s.ai, devices: s.devices, preset_id: presetId,
     };
   }
   async function saveDraft() {
@@ -405,6 +518,9 @@ export async function newPair({ main, status }) {
     s.mode = b.mode || 'mixed';
     s.seed = b.seed || 0;
     s.ai = b.ai || '';
+    s.devices = b.devices || 'both';
+    const dv = deviceBox.querySelector(`input[value=${s.devices}]`);
+    if (dv) dv.checked = true;
     presetId = b.preset_id || null;
     pairName.value = b.name || '';
     set.set({ ...(b.settings || {}), settings: { ...(b.settings?.settings || {}), start_date: b.start || '', end_date: b.end || '' } });
@@ -432,7 +548,7 @@ export async function newPair({ main, status }) {
       const rows = adRows(list.map((a) => ({
         creativeFile: fileOf.get(a.img), title: a.title, cta: a.cta, customId: a.adId,
         adName: `${fileOf.get(a.img).replace(/\.[^.]+$/, '')} - H${a.h + 1}${T.length > 1 ? ' - ' + (a.cta || 'sem botão') : ''}`,
-      })), { campaigns: ids, url: set.url(), description: set.description(), ai: { yes: 'Yes', no: 'No' }[s.ai] || '' });
+      })), { campaigns: ids, url: url(), description: description(), ai: { yes: 'Yes', no: 'No' }[s.ai] || '' });
       const base = new Uint8Array(await (await fetch('/launch/_ads/realize-base.xlsx')).arrayBuffer());
       const sheet = await fillTemplate(base, AD_COLUMNS, rows);
       const files = [];
@@ -459,6 +575,8 @@ export async function newPair({ main, status }) {
   drawHeadlines();
   drawCTAs();
   update();
+  // Create sends people here with the set they just saved: /launch/new?set=7.
+  if (/^\d+$/.test(q.get('set') || '')) lib.open(q.get('set'), true);
   for (const el of [where, settingsPanel]) {
     el.addEventListener('input', () => update());
     el.addEventListener('change', () => update());

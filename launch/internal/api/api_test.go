@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"image"
 	"image/color"
 	"image/png"
@@ -43,6 +44,8 @@ type rig struct {
 	srv *httptest.Server
 	net *fake.Net
 	l   *actions.Launch
+	api *API
+	db  *pgxpool.Pool
 }
 
 func setup(t *testing.T) *rig {
@@ -55,7 +58,7 @@ func setup(t *testing.T) *rig {
 	a := New(context.Background(), l, img, log, classify)
 	srv := httptest.NewServer(a.Handler())
 	t.Cleanup(srv.Close)
-	return &rig{t: t, srv: srv, net: n, l: l}
+	return &rig{t: t, srv: srv, net: n, l: l, api: a, db: db}
 }
 
 // call sends a request as ana@team.test and decodes the answer into out.
@@ -355,5 +358,36 @@ func TestErrors(t *testing.T) {
 	r.call("GET", "search?q=blood", nil, &s)
 	if len(s.Results) != 1 || !strings.Contains(s.Results[0]["href"], "/launch/taboola/"+acct+"/g/-/c/") {
 		t.Errorf("%+v", s)
+	}
+}
+
+func TestPauseAdsAskedByIntel(t *testing.T) {
+	r := setup(t)
+	g := r.net.AddGroup(acct, network.Group{Name: "G"})
+	c := r.net.AddCampaign(acct, network.Campaign{Name: "C", GroupID: g.ID, Status: "RUNNING", Active: true},
+		network.Ad{ID: "11", Title: "a", Active: true, Status: "RUNNING"},
+		network.Ad{ID: "12", Title: "b", Active: true, Status: "RUNNING"},
+		network.Ad{ID: "13", Title: "c", Active: true, Status: "RUNNING"})
+	r.net.Fail["PauseAd 13"] = &network.Refused{Message: "não deu"}
+	var out struct{ Done []actions.Done }
+	r.call("POST", "taboola/"+acct+"/campaigns/"+c.ID+"/pause-ads?from=desk:step:311", map[string]any{"ads": []string{"11", "13"}}, &out)
+	if len(out.Done) != 2 || out.Done[0].Error != "" || out.Done[1].Error != "não deu" {
+		t.Fatalf("%+v", out.Done)
+	}
+	ads, _ := r.net.Ads(context.Background(), acct, c.ID)
+	if ads[0].Active || !ads[1].Active || !ads[2].Active {
+		t.Errorf("only ad 11 should be paused: %+v", ads)
+	}
+	var hist struct{ History []store.Change }
+	r.call("GET", "history?campaign="+c.ID, nil, &hist)
+	if len(hist.History) != 1 || hist.History[0].Result != "partial" || hist.History[0].AskedBy != "desk:step:311" || hist.History[0].Summary != "Pausou 1 anúncio de C" {
+		t.Errorf("%+v", hist.History)
+	}
+
+	// A from that is not Intel's or Desk's is ignored: the person asked.
+	r.call("POST", "taboola/"+acct+"/campaigns/"+c.ID+"/pause-ads?from=<b>x", map[string]any{"ads": []string{"12"}}, &out)
+	r.call("GET", "history?campaign="+c.ID, nil, &hist)
+	if hist.History[0].AskedBy != "ana@team.test" {
+		t.Errorf("asked by %q", hist.History[0].AskedBy)
 	}
 }

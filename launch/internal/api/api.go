@@ -10,9 +10,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/Raposa-Industries/adhunters/launch/internal/library"
 	"io"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,6 +40,9 @@ type API struct {
 	base context.Context
 	// Limits are shown on the page (the network's ceilings).
 	Limits map[string]any
+	// Library is the team's library, for a new pair's pictures and
+	// headlines; nil when there is none.
+	Library *library.Client
 
 	mu   sync.Mutex
 	jobs map[string]*job
@@ -55,8 +60,16 @@ func Who(r *http.Request) string {
 	return strings.TrimSpace(r.Header.Get("Cf-Access-Authenticated-User-Email"))
 }
 
+// asker is who else asked for a change: "intel:311" when a person opened
+// one of Intel's one-tap actions, "desk:42" for a Desk request.
+var asker = regexp.MustCompile(`^(intel|desk):[A-Za-z0-9_:-]{1,60}$`)
+
 func who(r *http.Request) actions.Who {
-	return actions.Who{Person: Who(r), AskedBy: strings.TrimSpace(r.URL.Query().Get("from"))}
+	w := actions.Who{Person: Who(r)}
+	if from := strings.TrimSpace(r.URL.Query().Get("from")); asker.MatchString(from) {
+		w.AskedBy = from
+	}
+	return w
 }
 
 // Handler routes /launch/api/.
@@ -67,12 +80,15 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("GET "+p+"search", a.search)
 	m.HandleFunc("GET "+p+"accounts/{net}", a.accounts)
 	m.HandleFunc("GET "+p+"{net}/{account}/tree", a.tree)
+	m.HandleFunc("GET "+p+"{net}/{account}/next", a.next)
 	m.HandleFunc("GET "+p+"{net}/{account}/campaigns/{id}", a.campaign)
 	m.HandleFunc("POST "+p+"{net}/{account}/groups", a.newGroup)
 	m.HandleFunc("POST "+p+"{net}/{account}/move", a.move)
 	m.HandleFunc("POST "+p+"{net}/{account}/duplicate", a.duplicate)
 	m.HandleFunc("POST "+p+"{net}/{account}/pause", a.pause)
 	m.HandleFunc("POST "+p+"{net}/{account}/change", a.change)
+	m.HandleFunc("POST "+p+"{net}/{account}/add-ads", a.addAds)
+	m.HandleFunc("POST "+p+"{net}/{account}/campaigns/{id}/pause-ads", a.pauseAds)
 	m.HandleFunc("POST "+p+"moves/{id}/cancel", a.cancelMove)
 	m.HandleFunc("POST "+p+"pairs", a.newPair)
 	m.HandleFunc("GET "+p+"jobs/{id}", a.job)
@@ -86,8 +102,16 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("POST "+p+"drafts", a.saveDraft)
 	m.HandleFunc("PUT "+p+"drafts/{id}", a.saveDraft)
 	m.HandleFunc("DELETE "+p+"drafts/{id}", a.deleteDraft)
+	m.HandleFunc("GET "+p+"requests", a.requests)
+	m.HandleFunc("GET "+p+"requests/{id}", a.request)
+	m.HandleFunc("POST "+p+"requests/{id}/confirm", a.decide)
+	m.HandleFunc("POST "+p+"requests/{id}/refuse", a.decide)
 	m.HandleFunc("POST "+p+"images", a.putImage)
 	m.HandleFunc("GET "+p+"images/{sha}", a.getImage)
+	// One set, one thumbnail and "use this creative" take ?id=: a third
+	// path segment would clash with {net}/{account}/….
+	m.HandleFunc("GET "+p+"library/{what}", a.libraryList)
+	m.HandleFunc("POST "+p+"library/use", a.libraryUse)
 	m.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) { say(w, http.StatusNotFound, "endereço desconhecido") })
 	return m
 }
@@ -246,6 +270,8 @@ type many struct {
 	ToGroup   string          `json:"to_group,omitempty"`
 	Originals string          `json:"originals,omitempty"`
 	Change    *network.Change `json:"change,omitempty"`
+	Ads       []string        `json:"ads,omitempty"`
+	NewAds    []network.NewAd `json:"new_ads,omitempty"`
 }
 
 func (a *API) doMany(w http.ResponseWriter, r *http.Request, run func(many) ([]actions.Done, error)) {
@@ -276,6 +302,28 @@ func (a *API) duplicate(w http.ResponseWriter, r *http.Request) {
 func (a *API) pause(w http.ResponseWriter, r *http.Request) {
 	a.doMany(w, r, func(b many) ([]actions.Done, error) {
 		return a.l.Pause(r.Context(), who(r), r.PathValue("net"), r.PathValue("account"), b.Campaigns)
+	})
+}
+
+// next is the names the next group and campaign get in the account.
+func (a *API) next(w http.ResponseWriter, r *http.Request) {
+	n, err := a.l.Next(r.Context(), r.PathValue("net"), r.PathValue("account"))
+	if err != nil {
+		a.fail(w, err)
+		return
+	}
+	send(w, http.StatusOK, n)
+}
+
+func (a *API) addAds(w http.ResponseWriter, r *http.Request) {
+	a.doMany(w, r, func(b many) ([]actions.Done, error) {
+		return a.l.AddAds(r.Context(), who(r), r.PathValue("net"), r.PathValue("account"), b.Campaigns, b.NewAds)
+	})
+}
+
+func (a *API) pauseAds(w http.ResponseWriter, r *http.Request) {
+	a.doMany(w, r, func(b many) ([]actions.Done, error) {
+		return a.l.PauseAds(r.Context(), who(r), r.PathValue("net"), r.PathValue("account"), r.PathValue("id"), b.Ads)
 	})
 }
 

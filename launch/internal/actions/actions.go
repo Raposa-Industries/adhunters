@@ -99,11 +99,32 @@ func (l *Launch) record(ctx context.Context, c store.Change) int64 {
 	return id
 }
 
-// NewGroup makes a paused group.
+// noteItems keeps the ads a create or copy made, for launch_api.item_v1.
+func (l *Launch) noteItems(ctx context.Context, net, account string, m network.Made) {
+	items := map[string]string{}
+	for _, a := range m.Ads {
+		if a.ID != "" {
+			items[a.ID] = a.AdID
+		}
+	}
+	if err := l.st.AddItems(ctx, net, account, m.Campaign.ID, items); err != nil {
+		l.log.Error("ads made not noted", "campaign", m.Campaign.ID, "ads", len(items), "err", err)
+	}
+}
+
+// NewGroup makes a paused group. Without a name it gets the account's next
+// number (01, 02…).
 func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g network.NewGroup) (network.Group, error) {
 	n, err := l.Net(net)
 	if err != nil {
 		return network.Group{}, err
+	}
+	if strings.TrimSpace(g.Name) == "" {
+		groups, err := n.Groups(ctx, account)
+		if err != nil {
+			return network.Group{}, err
+		}
+		g.Name = NextGroupName(groups)
 	}
 	made, err := n.CreateGroup(ctx, account, g)
 	if err != nil {
@@ -111,7 +132,7 @@ func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g n
 	}
 	l.record(ctx, store.Change{
 		Who: who.Person, AskedBy: who.asked(), Network: net, Account: account, GroupID: made.ID, Kind: "new_group",
-		Summary: fmt.Sprintf("Criou o grupo %s, pausado, orçamento US$ %.2f (%s)", made.Name, made.Budget, strings.ToLower(made.BudgetModel)),
+		Summary: "Criou o grupo " + made.Name + ", pausado, " + groupBudget(made),
 		After:   raw(made), Result: "done",
 	})
 	return made, nil
@@ -121,8 +142,11 @@ func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g n
 type PairRequest struct {
 	Network string `json:"network"`
 	Account string `json:"account"`
-	// Name is the pair's; Launch adds " · Desktop" and " · Mobile".
+	// Name is the pair's; Launch adds " · Desktop" and " · Mobile". Empty:
+	// the team's names (CampaignName), numbered at send time.
 	Name string `json:"name"`
+	// Devices is desktop, mobile or both (the default): one campaign each.
+	Devices string `json:"devices"`
 	// GroupID is where both go; NewGroup makes a group for them first.
 	GroupID  string            `json:"group_id"`
 	NewGroup *network.NewGroup `json:"new_group,omitempty"`
@@ -135,10 +159,40 @@ type PairRequest struct {
 	DraftID  int64             `json:"draft_id,omitempty"`
 }
 
-// Names are the two campaigns' names.
+// Names are the campaigns' names when the request names them.
 func (r PairRequest) Names() (desktop, mobile string) {
 	n := strings.TrimSpace(r.Name)
 	return n + " · Desktop", n + " · Mobile"
+}
+
+// NextNames are the names a new group and campaign get in an account now.
+type NextNames struct {
+	Group         string `json:"group"`
+	Campaign      int    `json:"campaign"`
+	AccountNumber string `json:"account_number"`
+	Desktop       string `json:"desktop"`
+	Mobile        string `json:"mobile"`
+}
+
+// Next reads the account's groups and campaigns for the next names.
+func (l *Launch) Next(ctx context.Context, net, account string) (NextNames, error) {
+	n, err := l.Net(net)
+	if err != nil {
+		return NextNames{}, err
+	}
+	groups, err := n.Groups(ctx, account)
+	if err != nil {
+		return NextNames{}, err
+	}
+	camps, err := n.Campaigns(ctx, account)
+	if err != nil {
+		return NextNames{}, err
+	}
+	accts, _ := n.Accounts(ctx)
+	out := NextNames{Group: NextGroupName(groups), Campaign: NextCampaignNumber(camps), AccountNumber: AccountNumber(account, accts)}
+	out.Desktop = CampaignName(out.Campaign, out.AccountNumber, network.Desktop)
+	out.Mobile = CampaignName(out.Campaign, out.AccountNumber, network.Mobile)
+	return out, nil
 }
 
 // Check refuses a request before anything is sent.
@@ -146,8 +200,6 @@ func (r PairRequest) Check() error {
 	switch {
 	case strings.TrimSpace(r.Account) == "":
 		return &network.Refused{Message: "escolha a conta"}
-	case strings.TrimSpace(r.Name) == "":
-		return &network.Refused{Message: "dê um nome ao par"}
 	case r.GroupID == "" && r.NewGroup == nil:
 		return &network.Refused{Message: "escolha o grupo ou crie um novo: o Launch sempre põe as campanhas num grupo"}
 	case len(r.Ads) == 0:
@@ -192,11 +244,34 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	if err != nil {
 		return res, err
 	}
+	devices, err := Devices(r.Devices)
+	if err != nil {
+		return res, err
+	}
+	var next NextNames
+	teamNames := strings.TrimSpace(r.Name) == ""
+	if teamNames || (r.NewGroup != nil && strings.TrimSpace(r.NewGroup.Name) == "") {
+		if next, err = l.Next(ctx, r.Network, r.Account); err != nil {
+			return res, err
+		}
+	}
+	if r.NewGroup != nil && strings.TrimSpace(r.NewGroup.Name) == "" {
+		g := *r.NewGroup
+		g.Name = next.Group
+		r.NewGroup = &g
+	}
 	dName, mName := r.Names()
-	steps := []Step{
-		{Label: "Grupo"},
-		{Label: dName},
-		{Label: mName},
+	if teamNames {
+		dName, mName = next.Desktop, next.Mobile
+		r.Name = fmt.Sprintf("CMP%02d-%s", next.Campaign, next.AccountNumber)
+	}
+	steps := []Step{{Label: "Grupo"}}
+	for _, d := range devices {
+		if d == network.Desktop {
+			steps = append(steps, Step{Label: dName})
+		} else {
+			steps = append(steps, Step{Label: mName})
+		}
 	}
 	tell := func(i int, state, detail string) {
 		steps[i].State, steps[i].Detail = state, detail
@@ -228,11 +303,20 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	pair := store.Pair{Network: r.Network, Account: r.Account, GroupID: res.GroupID, Name: strings.TrimSpace(r.Name), PresetID: r.PresetID, MadeBy: who.Person}
 	up := &network.Uploads{Read: l.img.Get}
 	made := 0
-	for i, side := range []struct {
+	type side struct {
 		dev  network.Device
 		name string
 		set  *network.Settings
-	}{{network.Desktop, dName, r.Desktop}, {network.Mobile, mName, r.Mobile}} {
+	}
+	var sides []side
+	for _, d := range devices {
+		if d == network.Desktop {
+			sides = append(sides, side{d, dName, r.Desktop})
+		} else {
+			sides = append(sides, side{d, mName, r.Mobile})
+		}
+	}
+	for i, side := range sides {
 		set := r.Settings
 		if side.set != nil {
 			set = *side.set
@@ -241,6 +325,7 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 		m, err := n.CreateCampaign(ctx, r.Account, network.NewCampaign{Name: side.name, GroupID: res.GroupID, Device: side.dev, Settings: set, Ads: r.Ads}, up)
 		if m.Campaign.ID != "" {
 			made++
+			l.noteItems(ctx, r.Network, r.Account, m)
 			mm := m
 			if side.dev == network.Desktop {
 				res.Desktop, pair.DesktopID = &mm, m.Campaign.ID
@@ -261,30 +346,41 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	}
 
 	switch {
-	case made == 2 && len(res.Problems) == 0:
+	case made == len(sides) && len(res.Problems) == 0:
 		res.Result = "done"
 	case made == 0:
 		res.Result = "failed"
 	default:
 		res.Result = "partial"
 	}
-	if made > 0 {
+	if made > 0 && len(sides) == 2 {
 		if res.PairID, err = l.st.AddPair(ctx, pair); err != nil {
 			l.log.Error("pair not recorded", "desktop", pair.DesktopID, "mobile", pair.MobileID, "err", err)
 			res.Problems = append(res.Problems, "o par foi criado mas não foi anotado aqui; ele aparece como duas campanhas soltas")
 		}
 	}
+	summary := fmt.Sprintf("Criou %s e %s, pausadas: %d de 2 campanhas, %s em cada", sides[0].name, sides[len(sides)-1].name, made, ads(len(r.Ads)))
+	if len(sides) == 1 {
+		summary = fmt.Sprintf("Criou a campanha %s, pausada, com %s", sides[0].name, ads(len(r.Ads)))
+		if made == 0 {
+			summary = "Tentou criar a campanha " + sides[0].name
+		}
+	}
+	first := pair.DesktopID
+	if first == "" {
+		first = pair.MobileID
+	}
 	l.record(ctx, store.Change{
 		Who: who.Person, AskedBy: who.asked(), Network: r.Network, Account: r.Account, GroupID: res.GroupID,
-		CampaignID: pair.DesktopID, Kind: "new_pair",
-		Summary: fmt.Sprintf("Criou o par %s, pausado: %d campanhas, %s em cada", pair.Name, made, ads(len(r.Ads))),
+		CampaignID: first, Kind: "new_pair",
+		Summary: summary,
 		After:   raw(res), Result: res.Result, Problems: res.Problems,
 	})
-	if pair.MobileID != "" {
+	if pair.MobileID != "" && pair.DesktopID != "" {
 		l.record(ctx, store.Change{
 			Who: who.Person, AskedBy: who.asked(), Network: r.Network, Account: r.Account, GroupID: res.GroupID,
 			CampaignID: pair.MobileID, Kind: "new_pair",
-			Summary: fmt.Sprintf("Criou o par %s (mobile), pausado", pair.Name), Result: res.Result,
+			Summary: fmt.Sprintf("Criou %s, pausada, junto com %s", sides[1].name, sides[0].name), Result: res.Result,
 		})
 	}
 	if res.Result == "done" && r.DraftID != 0 {
@@ -298,6 +394,7 @@ type Done struct {
 	Campaign string            `json:"campaign"`
 	Copy     *network.Campaign `json:"copy,omitempty"`
 	Ads      int               `json:"ads,omitempty"`
+	Ad       string            `json:"ad,omitempty"`
 	Error    string            `json:"error,omitempty"`
 }
 
@@ -420,6 +517,7 @@ func (l *Launch) copyEach(ctx context.Context, who Who, net, account string, ids
 			continue
 		}
 		copied[id] = m
+		l.noteItems(ctx, net, account, m)
 		d.Copy, d.Ads = &m.Campaign, len(m.Ads)
 		ch := describe(c, m, n)
 		ch.Who, ch.AskedBy, ch.Network, ch.Account, ch.CampaignID = who.Person, who.asked(), net, account, id
@@ -481,6 +579,94 @@ func (l *Launch) Pause(ctx context.Context, who Who, net, account string, ids []
 	return out, nil
 }
 
+// AddAds makes the same new ads, paused, in each campaign (Realize's
+// "assign creatives"). A picture is uploaded once for all of them.
+func (l *Launch) AddAds(ctx context.Context, who Who, net, account string, campaigns []string, newAds []network.NewAd) ([]Done, error) {
+	n, err := l.Net(net)
+	if err != nil {
+		return nil, err
+	}
+	if len(campaigns) == 0 {
+		return nil, &network.Refused{Message: "escolha ao menos uma campanha"}
+	}
+	if len(newAds) == 0 {
+		return nil, &network.Refused{Message: "escolha ao menos um anúncio"}
+	}
+	for i, a := range newAds {
+		if a.Image == "" {
+			return nil, &network.Refused{Message: fmt.Sprintf("o anúncio %d não tem imagem", i+1)}
+		}
+	}
+	up := &network.Uploads{Read: l.img.Get}
+	var out []Done
+	for _, id := range campaigns {
+		d := Done{Campaign: id}
+		c, err := n.Campaign(ctx, account, id)
+		var m network.Made
+		if err == nil {
+			m, err = n.AddAds(ctx, account, id, newAds, up)
+		}
+		d.Ads = len(m.Ads)
+		if len(m.Ads) > 0 {
+			m.Campaign.ID = id
+			l.noteItems(ctx, net, account, m)
+		}
+		ch := store.Change{Who: who.Person, AskedBy: who.asked(), Network: net, Account: account, GroupID: c.GroupID, CampaignID: id,
+			Kind: "change", Summary: fmt.Sprintf("Adicionou %s, pausados, em %s", ads(len(m.Ads)), orID(c.Name, id)),
+			After: raw(m.Ads), Result: "done"}
+		if err != nil {
+			d.Error = l.Say(err)
+			ch.Problems = []string{d.Error}
+			ch.Result = "partial"
+			if len(m.Ads) == 0 {
+				ch.Result, ch.Summary = "failed", "Tentou adicionar "+ads(len(newAds))+" em "+orID(c.Name, id)
+			}
+		}
+		l.record(ctx, ch)
+		out = append(out, d)
+	}
+	return out, nil
+}
+
+// PauseAds pauses some ads of one campaign, recorded as one pause in
+// History.
+func (l *Launch) PauseAds(ctx context.Context, who Who, net, account, campaign string, ids []string) ([]Done, error) {
+	n, err := l.Net(net)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return nil, &network.Refused{Message: "escolha ao menos um anúncio"}
+	}
+	c, err := n.Campaign(ctx, account, campaign)
+	if err != nil {
+		return nil, err
+	}
+	var out []Done
+	var paused, problems []string
+	for _, id := range ids {
+		d := Done{Campaign: campaign, Ad: id}
+		if err := n.PauseAd(ctx, account, campaign, id); err != nil {
+			d.Error = l.Say(err)
+			problems = append(problems, id+": "+d.Error)
+		} else {
+			paused = append(paused, id)
+		}
+		out = append(out, d)
+	}
+	ch := store.Change{Who: who.Person, AskedBy: who.asked(), Network: net, Account: account, GroupID: c.GroupID, CampaignID: campaign,
+		Kind: "pause", Summary: "Pausou " + ads(len(paused)) + " de " + orID(c.Name, campaign),
+		Before: raw(map[string]any{"ads": ids}), After: raw(map[string]any{"paused": paused}), Result: "done", Problems: problems}
+	switch {
+	case len(paused) == 0:
+		ch.Result, ch.Summary = "failed", "Tentou pausar "+ads(len(ids))+" de "+orID(c.Name, campaign)
+	case len(problems) > 0:
+		ch.Result = "partial"
+	}
+	l.record(ctx, ch)
+	return out, nil
+}
+
 // Change changes bid, caps or name on each campaign, recording before and
 // after.
 func (l *Launch) Change(ctx context.Context, who Who, net, account string, ids []string, change network.Change) ([]Done, error) {
@@ -513,6 +699,14 @@ func (l *Launch) Change(ctx context.Context, who Who, net, account string, ids [
 		out = append(out, d)
 	}
 	return out, nil
+}
+
+func groupBudget(g network.Group) string {
+	per := map[string]string{"MONTHLY": " por mês", "ENTIRE": " no total"}[g.BudgetModel]
+	if per == "" || g.Budget == 0 {
+		return "orçamento por campanha"
+	}
+	return fmt.Sprintf("orçamento US$ %.2f%s", g.Budget, per)
 }
 
 func describeChange(c network.Campaign, ch network.Change) string {

@@ -478,6 +478,36 @@ OPS_ADDR=127.0.0.1:9116" spy
     start spy-web spy-web
 }
 
+# ---- Launch on the data box ------------------------------------------------
+
+launch_src="$repo/launch"
+
+# launch_web: Launch, the only app that writes to the ad networks
+# (launch/README.md). It owns the launch and launch_api schemas and runs their
+# migrations at start; launch_api_read must exist before the first one, which
+# grants it. Everything it makes is paused. People reach it through the
+# Cloudflare tunnel at /launch (platform/OPERATIONS.md).
+launch_web() {
+    [ -d "$launch_src/deploy" ] || { echo "$launch_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    install_bin launch-web
+    install -m 0644 "$launch_src/deploy/launch-web.service" /etc/systemd/system/launch-web.service
+    systemctl daemon-reload
+
+    say "the launch login"
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'launch_api_read') THEN CREATE ROLE launch_api_read NOLOGIN; END IF; END \$\$"
+    local launch_pw
+    launch_pw=$(login launch)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO launch"
+
+    local settings
+    settings=$(grep -E '^#?[A-Z0-9_]+=' "$launch_src/deploy/launch-web.env.example")
+    if [ -n "$launch_pw" ]; then
+        settings=$(printf '%s\n' "$settings" | sed "s|^DATABASE_URL=.*|DATABASE_URL=postgres://launch:$launch_pw@localhost:5432/adhunters?sslmode=require|")
+    fi
+    env_file launch-web "$settings" root
+    start launch-web launch-web
+}
+
 # ---- data box ---------------------------------------------------------------
 
 postgres() {
@@ -744,6 +774,7 @@ observe-bot             9107  observe-bot     -
 tracks-bridge           9108  tracks-bridge   -
 create-web              9109  create-web      -
 library                 9110  library         -
+launch-web              9111  launch-web      -
 create                  9112  create          -
 intel-collect           9113  intel-collect   -
 intel-numbers           9114  intel-numbers   -
@@ -861,6 +892,7 @@ data)
     intel_box
     desk_box
     spy_box
+    launch_web
     ;;
 esac
 alloy_agent
