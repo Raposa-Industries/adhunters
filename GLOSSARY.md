@@ -49,6 +49,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | switch-over | The minute Tracks alone scrapes and the old collector's sweeper stops, always 00:00 UTC. See `platform/SWITCH-OVER.md`. |
 | bridge | `tracks-bridge`: writes Tracks' scrapes into the old collector's database after the switch-over, so today's Spy keeps working until the new Spy launches. |
 | imported hour | An hour before the switch-over whose counts were copied from the old collector's database (`import-old`). The loader never closes it again and a replay refuses it. |
+| Frame | The shell every app's pages sit in (`shared/frame`): the app selector, page tabs, ⌘K search and account in the top bar, and a left column that holds only filters. |
 | Direction | Which way an ad is moving: rising, steady, fading or stopped, judged against its usual value. |
 
 ## Create
