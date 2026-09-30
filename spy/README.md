@@ -97,7 +97,7 @@ present.
 ### The classifier
 
 `spy/classify` puts each creative in one vertical of the list (decision
-0014), in two passes:
+0015), in two passes:
 
 - **Rules.** The list's keywords (2 points) and hints (1 point) over the
   newest ads' headlines and descriptions (weight 3), their brands (2) and

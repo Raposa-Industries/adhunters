@@ -1,5 +1,5 @@
 -- lint: new-table
--- decision: decisions/0014-spy-classifies-into-our-verticals.md
+-- decision: decisions/0015-spy-classifies-into-our-verticals.md
 -- Spy classifies creatives itself, into its own fixed list of verticals
 -- (spy/verticals/verticals.yaml), with the collector's two passes ported:
 -- keyword rules, then a model trained on what the rules are sure about

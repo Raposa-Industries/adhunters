@@ -3,7 +3,7 @@
 // vertical of each creative. The collector keeps the operators until Spy has
 // its own screens for them, so the copy is repeatable: each run replaces what
 // the last one wrote. The verticals go to spy.creative_vertical_old, only to
-// compare with Spy's own classifier (decision 0014); no number reads them.
+// compare with Spy's own classifier (decision 0015); no number reads them.
 //
 // It only reads the old database (open it with a read-only login). Accounts
 // and creatives are matched to Tracks by what both sides know: an account
