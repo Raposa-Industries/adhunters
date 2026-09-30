@@ -237,6 +237,33 @@ func (n *Net) Copy(_ context.Context, account, id string, to network.CopyTo) (ne
 	return out, nil
 }
 
+func (n *Net) AddAds(_ context.Context, account, campaign string, ads []network.NewAd, up *network.Uploads) (network.Made, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	i, err := n.find(account, campaign)
+	if err != nil {
+		return network.Made{}, err
+	}
+	if err := n.fail("AddAds", campaign); err != nil {
+		return network.Made{}, err
+	}
+	out := network.Made{Campaign: n.campaigns[account][i]}
+	for _, a := range ads {
+		url, err := up.Once(a.Image, func(string, []byte) (string, error) {
+			n.Uploaded++
+			return "https://images.fake/" + a.Image[:12] + ".jpg", nil
+		})
+		if err != nil {
+			return out, err
+		}
+		ad := network.Ad{ID: n.id(), Title: a.Title, Description: a.Description, URL: a.URL, ImageURL: url, CTA: a.CTA, AdID: a.AdID, AI: a.AI, Status: "PAUSED", Approval: "PENDING"}
+		n.ads[campaign] = append(n.ads[campaign], ad)
+		out.Ads = append(out.Ads, ad)
+	}
+	n.Calls = append(n.Calls, "AddAds "+campaign)
+	return out, nil
+}
+
 func (n *Net) Pause(_ context.Context, account, id string) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()

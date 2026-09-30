@@ -37,6 +37,8 @@ type Network interface {
 	// group or in another (how a campaign moves: a group is fixed once a
 	// campaign is made).
 	Copy(ctx context.Context, account, campaign string, to CopyTo) (Made, error)
+	// AddAds makes more ads, paused, in a campaign that exists.
+	AddAds(ctx context.Context, account, campaign string, ads []NewAd, up *Uploads) (Made, error)
 	Pause(ctx context.Context, account, campaign string) error
 	// PauseAd pauses one ad of a campaign.
 	PauseAd(ctx context.Context, account, campaign, ad string) error

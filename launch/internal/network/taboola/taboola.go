@@ -172,15 +172,9 @@ func (t *Taboola) CreateCampaign(ctx context.Context, account string, n network.
 	if n.Device != network.Desktop && n.Device != network.Mobile {
 		return network.Made{}, &network.Refused{Message: "cada campanha nova é desktop ou mobile"}
 	}
-	if len(n.Ads) == 0 {
-		return network.Made{}, &network.Refused{Message: "nenhum anúncio para criar"}
-	}
-	items := make([]write.NewItem, len(n.Ads))
-	for i, a := range n.Ads {
-		items[i] = write.NewItem{URL: a.URL, Title: a.Title, Description: a.Description, CTA: CTAType(a.CTA), CustomID: a.AdID, AI: a.AI, ThumbnailURL: "https://pending.invalid/"}
-		if err := items[i].Check(); err != nil {
-			return network.Made{}, &network.Refused{Message: "anúncio " + itoa(i+1) + ": " + write.Message(err)}
-		}
+	items, err := newItems(n.Ads)
+	if err != nil {
+		return network.Made{}, err
 	}
 	s := n.Settings
 	if strings.EqualFold(s.BidStrategy, "MAX_CONVERSIONS") {
@@ -196,17 +190,53 @@ func (t *Taboola) CreateCampaign(ctx context.Context, account string, n network.
 		return network.Made{}, err
 	}
 	made := network.Made{Campaign: campaign(cp)}
-	for i, a := range n.Ads {
+	made.Ads, err = t.addItems(ctx, account, cp.ID, n.Ads, items, up, "campanha "+cp.ID+" criada, mas ")
+	return made, err
+}
+
+// newItems checks the ads before anything is sent.
+func newItems(ads []network.NewAd) ([]write.NewItem, error) {
+	if len(ads) == 0 {
+		return nil, &network.Refused{Message: "nenhum anúncio para criar"}
+	}
+	items := make([]write.NewItem, len(ads))
+	for i, a := range ads {
+		items[i] = write.NewItem{URL: a.URL, Title: a.Title, Description: a.Description, CTA: CTAType(a.CTA), CustomID: a.AdID, AI: a.AI, ThumbnailURL: "https://pending.invalid/"}
+		if err := items[i].Check(); err != nil {
+			return nil, &network.Refused{Message: "anúncio " + itoa(i+1) + ": " + write.Message(err)}
+		}
+	}
+	return items, nil
+}
+
+// addItems uploads the pictures (once each) and makes the ads, paused.
+func (t *Taboola) addItems(ctx context.Context, account, campaign string, ads []network.NewAd, items []write.NewItem, up *network.Uploads, before string) ([]network.Ad, error) {
+	for i, a := range ads {
 		url, err := up.Once(a.Image, func(name string, data []byte) (string, error) { return t.c.UploadImage(ctx, name, data) })
 		if err != nil {
-			return made, errors.New("campanha " + cp.ID + " criada, mas a imagem do anúncio " + itoa(i+1) + " não subiu: " + write.Message(err))
+			return nil, errors.New(before + "a imagem do anúncio " + itoa(i+1) + " não subiu: " + write.Message(err))
 		}
 		items[i].ThumbnailURL = url
 	}
-	got, err := t.c.MassCreateItems(ctx, account, cp.ID, items)
+	got, err := t.c.MassCreateItems(ctx, account, campaign, items)
+	var out []network.Ad
 	for _, it := range got {
-		made.Ads = append(made.Ads, network.Ad{ID: it.ID, Title: it.Title, Status: it.Status, AdID: it.CustomID, Active: !it.Paused})
+		out = append(out, network.Ad{ID: it.ID, Title: it.Title, Status: it.Status, AdID: it.CustomID, Active: !it.Paused})
 	}
+	return out, err
+}
+
+// AddAds makes more ads, paused, in an existing campaign.
+func (t *Taboola) AddAds(ctx context.Context, account, campaign string, ads []network.NewAd, up *network.Uploads) (network.Made, error) {
+	if err := t.c.CheckCampaign(account, campaign); err != nil {
+		return network.Made{}, err
+	}
+	items, err := newItems(ads)
+	if err != nil {
+		return network.Made{}, err
+	}
+	made := network.Made{Campaign: network.Campaign{ID: campaign}}
+	made.Ads, err = t.addItems(ctx, account, campaign, ads, items, up, "")
 	return made, err
 }
 

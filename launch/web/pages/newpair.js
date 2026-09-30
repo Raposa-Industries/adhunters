@@ -153,7 +153,30 @@ export async function newPair({ main, status }) {
       h('div', { class: 'fields' }, field('Ids das campanhas', sheetIds, 'cada anúncio vai em todas')),
       h('div', { class: 'actions' }, sheetBtn), sheetOut));
 
-  main.append(where, settingsPanel, adsPanel, sendPanel);
+  // Ads only (Realize's "assign creatives"): /launch/new?account=…&to=<campaign ids>
+  // adds the ads, paused, to campaigns that exist.
+  const to = (q.get('to') || '').split(',').map((x) => x.trim()).filter((x) => /^\d+$/.test(x));
+  const adUrl = input({ type: 'url', placeholder: 'https://…', 'aria-label': 'Página dos anúncios' });
+  const adDesc = input({ placeholder: 'opcional, em inglês', 'aria-label': 'Descrição' });
+  const url = () => (to.length ? adUrl.value.trim() : set.url());
+  const description = () => (to.length ? adDesc.value.trim() : set.description());
+  if (to.length) {
+    head.querySelector('h1').textContent = 'Novos anúncios';
+    head.querySelector('p').textContent = 'Os mesmos anúncios, pausados, em cada campanha escolhida. Eles passam pela revisão do Taboola.';
+    const targets = h('ul', { class: 'lib-headlines' }, to.map((id) => h('li', { class: 'mono' }, id)));
+    main.append(h('section', { class: 'panel step' }, h('h2', {}, '1 · Campanhas'), targets,
+      h('div', { class: 'fields' }, field('Página (landing page)', adUrl, 'a mesma em todos os anúncios'), field('Descrição', adDesc))), adsPanel, sendPanel);
+    sendBtn.textContent = 'Adicionar pausados';
+    adsPanel.querySelector('h2').textContent = '2 · Anúncios';
+    sendPanel.querySelector('h2').textContent = '3 · Revisar e adicionar';
+    Promise.all(to.map((id) => api(`${s.net}/${encodeURIComponent(s.account)}/campaigns/${id}`).then((d) => d.campaign).catch(() => ({ id, name: id }))))
+      .then((cs) => {
+        targets.replaceChildren(...cs.map((c) => h('li', {}, h('a', { href: link(s.net, s.account, c.group_id || '-', c.id) }, c.name), ' ', h('span', { class: 'mono faint' }, c.id))));
+        if (!adUrl.value) adUrl.value = '';
+      });
+  } else {
+    main.append(where, settingsPanel, adsPanel, sendPanel);
+  }
 
   // ---- loading ----
   async function loadAccounts() {
@@ -356,6 +379,9 @@ export async function newPair({ main, status }) {
     const st = set.settings();
     const g = newGroup ? gForm.get().name || (next ? next.group + ' (novo)' : 'grupo novo') : groups.find((x) => x.id === groupSel.value)?.name || '';
     review.replaceChildren(...[
+      to.length ? h('dl', { class: 'summary' },
+        h('dt', {}, 'Campanhas'), h('dd', {}, plural(to.length, 'campanha', 'campanhas')),
+        h('dt', {}, 'Anúncios'), h('dd', {}, list.length ? `${list.length} em cada, ${list.length * to.length} no total, todos pausados` : '—')) :
       h('dl', { class: 'summary' },
         h('dt', {}, 'Campanhas'), h('dd', {}, campaignNames().filter(Boolean).join(' e ') || '—'),
         h('dt', {}, 'Grupo'), h('dd', {}, g || '—'),
@@ -374,6 +400,12 @@ export async function newPair({ main, status }) {
   // ---- send ----
   function problem(list) {
     if (!s.account) return 'Escolha a conta.';
+    if (to.length) {
+      if (!url()) return 'Falta o link da página.';
+      if (!list.length) return 'Escolha ao menos uma imagem, uma headline e um botão.';
+      if (!s.ai) return 'Diga se os anúncios foram feitos com IA.';
+      return '';
+    }
     if (newGroup) {
       const p = gForm.problem();
       if (p) return p;
@@ -395,6 +427,16 @@ export async function newPair({ main, status }) {
       sendOut.replaceChildren(note('fail', p));
       return;
     }
+    if (to.length) {
+      await busy(sendBtn, sendOut, async () => {
+        const res = await api(`${s.net}/${encodeURIComponent(s.account)}/add-ads`, { method: 'POST', body: { campaigns: to,
+          new_ads: list.map((a) => ({ title: a.title, description: description(), url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })) } });
+        sendBtn.hidden = true;
+        sendOut.replaceChildren(...res.done.map((d) => (d.error ? note('fail', h('b', {}, d.campaign + ': '), d.error) : note('ok', h('b', {}, d.campaign + ': '), plural(d.ads, 'anúncio adicionado', 'anúncios adicionados') + ', pausados'))),
+          h('p', {}, h('a', { href: link(s.net, s.account) }, 'Voltar às campanhas')));
+      });
+      return;
+    }
     const body = {
       network: s.net,
       account: s.account,
@@ -402,7 +444,7 @@ export async function newPair({ main, status }) {
       devices: s.devices,
       group_id: newGroup ? '' : groupSel.value,
       settings: set.settings(),
-      ads: list.map((a) => ({ title: a.title, description: set.description(), url: set.url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })),
+      ads: list.map((a) => ({ title: a.title, description: description(), url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })),
     };
     if (newGroup) body.new_group = gForm.get();
     if (presetId) body.preset_id = presetId;
@@ -506,7 +548,7 @@ export async function newPair({ main, status }) {
       const rows = adRows(list.map((a) => ({
         creativeFile: fileOf.get(a.img), title: a.title, cta: a.cta, customId: a.adId,
         adName: `${fileOf.get(a.img).replace(/\.[^.]+$/, '')} - H${a.h + 1}${T.length > 1 ? ' - ' + (a.cta || 'sem botão') : ''}`,
-      })), { campaigns: ids, url: set.url(), description: set.description(), ai: { yes: 'Yes', no: 'No' }[s.ai] || '' });
+      })), { campaigns: ids, url: url(), description: description(), ai: { yes: 'Yes', no: 'No' }[s.ai] || '' });
       const base = new Uint8Array(await (await fetch('/launch/_ads/realize-base.xlsx')).arrayBuffer());
       const sheet = await fillTemplate(base, AD_COLUMNS, rows);
       const files = [];

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -47,5 +48,33 @@ func TestTeamNames(t *testing.T) {
 	res = send("b1", "both", maxConv)
 	if res.Desktop.Campaign.Name != "CMP14-1-Desktop-pp-bl" || res.Mobile.Campaign.Name != "CMP14-1-Mobile-pp-bl" || res.Group.Name != "09" || res.PairID == 0 {
 		t.Fatalf("%+v", res)
+	}
+}
+
+func TestAddAdsToCampaigns(t *testing.T) {
+	r := setup(t)
+	img := r.upload("one.png", pngBytes(t, 3))
+	g := r.net.AddGroup(acct, network.Group{Name: "01"})
+	c1 := r.net.AddCampaign(acct, network.Campaign{Name: "CMP01-1-Desktop-pp-bl", GroupID: g.ID})
+	c2 := r.net.AddCampaign(acct, network.Campaign{Name: "CMP01-1-Mobile-pp-bl", GroupID: g.ID})
+	r.net.Fail["AddAds "+c2.ID] = &network.Refused{Message: "não deu"}
+	var out struct{ Done []actions.Done }
+	newAds := []map[string]any{{"title": "A", "url": "https://lp.test", "image": img.SHA, "ad_id": "ah-a"}, {"title": "B", "url": "https://lp.test", "image": img.SHA, "ad_id": "ah-b"}}
+	if code := r.call("POST", "taboola/"+acct+"/add-ads", map[string]any{"campaigns": []string{c1.ID, c2.ID}, "new_ads": newAds}, &out); code != 200 {
+		t.Fatalf("%d", code)
+	}
+	if len(out.Done) != 2 || out.Done[0].Ads != 2 || out.Done[1].Error != "não deu" {
+		t.Fatalf("%+v", out.Done)
+	}
+	if r.net.Uploaded != 1 {
+		t.Errorf("uploaded %d", r.net.Uploaded)
+	}
+	ads, _ := r.net.Ads(context.Background(), acct, c1.ID)
+	if len(ads) != 2 || ads[0].Status != "PAUSED" {
+		t.Errorf("%+v", ads)
+	}
+	var e map[string]string
+	if code := r.call("POST", "taboola/"+acct+"/add-ads", map[string]any{"campaigns": []string{c1.ID}}, &e); code != 400 {
+		t.Errorf("no ads: %d", code)
 	}
 }

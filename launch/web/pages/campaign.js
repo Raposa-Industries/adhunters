@@ -50,6 +50,7 @@ export async function campaign({ main, route, status }) {
       data.twin ? h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: together, onchange: (e) => { together = e.target.checked; } }), 'com o par') : null,
       h('button', { type: 'button', onclick: () => showMove() }, 'Mudar de grupo'),
       dupBtn,
+      h('a', { class: 'button', href: `/launch/new?net=${net}&account=${encodeURIComponent(account)}&to=${c.id}` }, 'Adicionar anúncios'),
       h('button', { type: 'button', onclick: () => showChange() }, 'Mudar'),
       pauseBtn)),
   panel, out);

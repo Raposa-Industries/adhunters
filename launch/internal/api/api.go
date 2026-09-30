@@ -87,6 +87,7 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("POST "+p+"{net}/{account}/duplicate", a.duplicate)
 	m.HandleFunc("POST "+p+"{net}/{account}/pause", a.pause)
 	m.HandleFunc("POST "+p+"{net}/{account}/change", a.change)
+	m.HandleFunc("POST "+p+"{net}/{account}/add-ads", a.addAds)
 	m.HandleFunc("POST "+p+"{net}/{account}/campaigns/{id}/pause-ads", a.pauseAds)
 	m.HandleFunc("POST "+p+"moves/{id}/cancel", a.cancelMove)
 	m.HandleFunc("POST "+p+"pairs", a.newPair)
@@ -270,6 +271,7 @@ type many struct {
 	Originals string          `json:"originals,omitempty"`
 	Change    *network.Change `json:"change,omitempty"`
 	Ads       []string        `json:"ads,omitempty"`
+	NewAds    []network.NewAd `json:"new_ads,omitempty"`
 }
 
 func (a *API) doMany(w http.ResponseWriter, r *http.Request, run func(many) ([]actions.Done, error)) {
@@ -311,6 +313,12 @@ func (a *API) next(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	send(w, http.StatusOK, n)
+}
+
+func (a *API) addAds(w http.ResponseWriter, r *http.Request) {
+	a.doMany(w, r, func(b many) ([]actions.Done, error) {
+		return a.l.AddAds(r.Context(), who(r), r.PathValue("net"), r.PathValue("account"), b.Campaigns, b.NewAds)
+	})
 }
 
 func (a *API) pauseAds(w http.ResponseWriter, r *http.Request) {

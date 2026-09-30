@@ -579,6 +579,55 @@ func (l *Launch) Pause(ctx context.Context, who Who, net, account string, ids []
 	return out, nil
 }
 
+// AddAds makes the same new ads, paused, in each campaign (Realize's
+// "assign creatives"). A picture is uploaded once for all of them.
+func (l *Launch) AddAds(ctx context.Context, who Who, net, account string, campaigns []string, newAds []network.NewAd) ([]Done, error) {
+	n, err := l.Net(net)
+	if err != nil {
+		return nil, err
+	}
+	if len(campaigns) == 0 {
+		return nil, &network.Refused{Message: "escolha ao menos uma campanha"}
+	}
+	if len(newAds) == 0 {
+		return nil, &network.Refused{Message: "escolha ao menos um anúncio"}
+	}
+	for i, a := range newAds {
+		if a.Image == "" {
+			return nil, &network.Refused{Message: fmt.Sprintf("o anúncio %d não tem imagem", i+1)}
+		}
+	}
+	up := &network.Uploads{Read: l.img.Get}
+	var out []Done
+	for _, id := range campaigns {
+		d := Done{Campaign: id}
+		c, err := n.Campaign(ctx, account, id)
+		var m network.Made
+		if err == nil {
+			m, err = n.AddAds(ctx, account, id, newAds, up)
+		}
+		d.Ads = len(m.Ads)
+		if len(m.Ads) > 0 {
+			m.Campaign.ID = id
+			l.noteItems(ctx, net, account, m)
+		}
+		ch := store.Change{Who: who.Person, AskedBy: who.asked(), Network: net, Account: account, GroupID: c.GroupID, CampaignID: id,
+			Kind: "change", Summary: fmt.Sprintf("Adicionou %s, pausados, em %s", ads(len(m.Ads)), orID(c.Name, id)),
+			After: raw(m.Ads), Result: "done"}
+		if err != nil {
+			d.Error = l.Say(err)
+			ch.Problems = []string{d.Error}
+			ch.Result = "partial"
+			if len(m.Ads) == 0 {
+				ch.Result, ch.Summary = "failed", "Tentou adicionar "+ads(len(newAds))+" em "+orID(c.Name, id)
+			}
+		}
+		l.record(ctx, ch)
+		out = append(out, d)
+	}
+	return out, nil
+}
+
 // PauseAds pauses some ads of one campaign, recorded as one pause in
 // History.
 func (l *Launch) PauseAds(ctx context.Context, who Who, net, account, campaign string, ids []string) ([]Done, error) {

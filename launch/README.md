@@ -25,21 +25,45 @@ All under `/launch/`; a link to any of them opens it.
 | `/launch/taboola/<account>/g/<group>` | One group's campaigns. `g/-` is campaigns without a group. |
 | `/launch/taboola/<account>/g/<group>/c/<campaign>` | One campaign: settings, ads with their review state, the pair's other half, its History, and the same actions (rename here only). |
 | `…/c/<campaign>?do=…&from=intel:<id>` | The same page with a suggested change filled in on top: `do=pause-ads&ads=<ids,…>`, `pause-campaign`, `set-daily-cap&cap=<usd>`, `set-bid&cpc=<usd>`. Only this campaign, not its pair. Nothing is sent until the person presses the button; History records `from` (only `intel:…` or `desk:…`, like `desk:step:12`) as who asked. |
-| `/launch/new` | **Novo par**: where (account, name, an existing group or a new one from a group preset), settings (from a campaign preset or typed; save them as a preset), ads (pictures uploaded or taken from the library by set, English headlines, buttons, Sortido or every combination, AI label; a library creative's AI label is the one saved with it), then review and **Criar o par pausado**. Each step of the send shows as it happens and the page may be left; the same send twice is one send. Without a network connected, or by choice, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
-| `/launch/presets` | Group and campaign presets: make, edit, delete; how many pairs used each. |
-| `/launch/history` | History, filtered by kind or text. |
-| `/launch/new?set=<id>` | Novo par with one library set's creatives and headlines already in (Create links here after saving a set). |
-| `/launch/drafts` | Drafts; opening one continues it in Novo par. |
+| `/launch/new` | **Nova campanha**, Realize's flow in one page: 1 · Grupo (account; an existing group or a new one, named with the account's next number, 01, 02…, from a group preset or typed: objective, budget per campaign (default) or the group's per day, month or in total). 2 · Campanha (devices: both, which makes a desktop and a mobile campaign alike, mobile or desktop; named CMP<n>-<account number>-<Mobile or Desktop>-pp-bl unless a name is typed; settings from a campaign preset or the team's defaults below). 3 · Anúncios (pictures uploaded or from the library, English headlines, buttons, Sortido or every combination, AI label). 4 · Revisar e **Criar pausado**. Each step of the send shows as it happens; the same send twice is one send. Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
+| `/launch/new?account=…&to=<ids>` | **Novos anúncios**: the same ads, paused, added to campaigns that exist (Realize's "assign creatives"); from **Adicionar anúncios** on the tree or a campaign. |
+| `/launch/new?set=<id>` | Nova campanha with one library set's creatives and headlines already in (Create links here after saving a set). |
+| `/launch/drafts` | Drafts; opening one continues it in Nova campanha. |
 | `/launch/requests` | **Pedidos**: changes Desk asked for, waiting ones first. |
 | `/launch/requests/<id>` | One request: what it asks, the campaigns as they are now, **Confirmar e enviar** or **Recusar**. Confirming makes the change as the person, with the request's origin as who asked. |
 
 ⌘K finds any group or campaign by name or id in every connected account.
 
+## The team's defaults
+
+A new campaign starts from these (2026-09-30), and every one can be changed
+or saved in a preset:
+
+- **Where:** United States, minus Atlanta GA, Bend OR, Biloxi MS, Idaho
+  Falls ID, Indianapolis IN, New York NY, Rochester NY, Shreveport LA and
+  Tallahassee FL. The values must be Taboola's own city names; they are
+  being checked against its US city dictionary.
+- **Budget:** US$ 500 a day, no spending limit. The ceiling
+  (`TABOOLA_MAX_DAILY_CAP`) is 500 in the example settings.
+- **Bid:** Maximize conversions (CPA), a target CPA optional; Taboola sets
+  each bid (`bid_strategy` MAX_CONVERSIONS, or TARGET_CPA with
+  `target_cpa`: to be proven on the real API).
+- **Ad delivery:** prioritize top-performing ads (`traffic_allocation_mode`
+  OPTIMIZED).
+- **Tracking code:** `src={site}&utm_medium={thumbnail}&…&ref_id={click_id}`
+  (`web/pages/presets.js`, `TEAM`).
+- **Names:** groups 01, 02… and campaigns CMP<n>-<account>-<device>-pp-bl,
+  each counted per account from the highest already there. The account's
+  number is the first number in its id (zoltagroup-1-sc is 1), or its place
+  in the login's accounts.
+- **Landing page:** any address; Funnels is not wired in.
+
 ## How the writes work
 
-- **New pair.** The group (when new), then the desktop campaign (Taboola
-  `DESK`) and the mobile one (`PHON`; tablets are not targeted), each with
-  all the ads. A picture is uploaded to Taboola once however many ads and
+- **New campaign.** The group (when new; without a group budget it is
+  `spending_limit_model` NONE, to be proven on the real API), then the
+  desktop campaign (Taboola `DESK`) and/or the mobile one (`PHON`; tablets
+  are not targeted), each with all the ads. Both devices make a pair. A picture is uploaded to Taboola once however many ads and
   campaigns use it. When one campaign fails the other is still made; the
   result says what exists. The pair is recorded (`launch.pair`) with the
   preset it came from.
@@ -99,11 +123,13 @@ or failed, 503 not connected.
 | `POST {net}/{account}/groups` | A paused group `{name, budget, budget_model, objective}`. |
 | `POST {net}/{account}/move` `duplicate` `pause` `change` | `{campaigns, to_group, originals, change}`; one result per campaign. |
 | `POST moves/{id}/cancel` | Stops waiting on a move. |
-| `POST pairs` then `GET jobs/{id}` | A new pair (`actions.PairRequest` plus `key`); the job lists each step. |
+| `POST pairs` then `GET jobs/{id}` | A new campaign or pair (`actions.PairRequest` plus `key`; `devices` both, mobile or desktop; no `name` for the team's names); the job lists each step. |
 | `GET/POST presets`, `PUT/DELETE presets/{id}` | Presets. |
 | `GET history?network=&account=&campaign=&limit=` | History and waiting moves. |
 | `GET/POST drafts`, `GET/PUT/DELETE drafts/{id}` | Drafts. |
 | `POST {net}/{account}/campaigns/{id}/pause-ads` | `{ads}`: pauses those ads of one campaign. |
+| `GET {net}/{account}/next` | The names the next group and campaign get: `{group, campaign, account_number, desktop, mobile}`. |
+| `POST {net}/{account}/add-ads` | `{campaigns, new_ads}`: the same ads, paused, in each campaign. |
 | `GET library/status` `verticals` `sets` `creatives` `headlines` | The library's lists, passed on (filters: `vertical`, `set`, `angle`, `origin`, `ai_label`, `q`, `limit`, `before`). |
 | `GET library/set?id=`, `GET library/thumb?id=` | One set with its creatives and headlines; a creative's thumbnail. |
 | `POST library/use?id=` | Copies a library creative's picture into Launch's pictures: `{image, creative}`. |

@@ -101,7 +101,7 @@ export async function tree(ctx) {
       one ? h('p', { class: 'muted' }, one.status ? badge(one.status) : null, ' ', budgetLine(one)) : h('p', { class: 'muted' }, plural(data.groups.length, 'grupo', 'grupos') + ' · ' + plural(data.campaigns.length, 'campanha', 'campanhas'))),
     h('div', { class: 'actions' },
       one ? null : h('button', { type: 'button', class: 'ghost', onclick: () => { groupBox.replaceChildren(groupForm({ net, account, onMade: (g) => location.assign(link(net, account, g.id)) })); } }, 'Novo grupo'),
-      h('a', { class: 'button primary', href: newHref }, 'Novo par'))),
+      h('a', { class: 'button primary', href: newHref }, one ? 'Nova campanha neste grupo' : 'Nova campanha'))),
   groupBox);
 
   // ---- moves waiting for their copies to start ----
@@ -207,6 +207,7 @@ export async function tree(ctx) {
       h('div', { class: 'actions' },
         h('button', { type: 'button', onclick: () => showMove() }, 'Mudar de grupo'),
         h('button', { type: 'button', onclick: () => showDuplicate() }, 'Duplicar'),
+        h('a', { class: 'button', href: `/launch/new?net=${net}&account=${encodeURIComponent(account)}&to=${ids().join(',')}` }, 'Adicionar anúncios'),
         h('button', { type: 'button', onclick: () => showChange() }, 'Mudar lance e tetos'),
         h('button', { type: 'button', onclick: () => showPause() }, 'Pausar'),
         h('button', { type: 'button', class: 'ghost', onclick: () => { chosen.clear(); draw(); } }, 'Limpar')),
