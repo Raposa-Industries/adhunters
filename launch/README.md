@@ -51,6 +51,10 @@ All under `/launch/`; a link to any of them opens it.
   once, or never, as chosen. Waiting moves can be cancelled.
 - **Copy.** The same, in the same group, named "(cópia)". Copying both
   halves of a pair makes a pair.
+- **No group delete.** Deleting a group in Taboola that still holds
+  campaigns leaves them there but out of the API's reach (404; seen
+  2026-09-30). Launch offers no delete; if it ever does, a group with
+  campaigns is refused.
 - **Pause, change.** Bid, daily cap, total limit, name (one campaign at a
   time). Some ads of one campaign can be paused too (Intel's `pause-ads`).
   Turning on is never here.
