@@ -122,24 +122,31 @@ func (w *Writer) Write(rec *Record) error {
 	if err != nil {
 		return err
 	}
+	return w.WriteLine(rec.Network, line)
+}
+
+// WriteLine appends one line, ending in a newline, to network's open file:
+// for writers of lines other than capture's records (tracks-walker).
+func (w *Writer) WriteLine(network string, line []byte) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.closed {
 		return errors.New("spool: writer is closed")
 	}
 	minute := w.now().UTC().Truncate(time.Minute)
-	of := w.open[rec.Network]
+	of := w.open[network]
 	if of != nil && !of.minute.Equal(minute) {
-		w.closeLocked(rec.Network, of)
+		w.closeLocked(network, of)
 		of = nil
 	}
 	if of == nil {
-		if of, err = w.create(rec.Network, minute); err != nil {
+		var err error
+		if of, err = w.create(network, minute); err != nil {
 			return err
 		}
-		w.open[rec.Network] = of
+		w.open[network] = of
 	}
-	_, err = of.bw.Write(line)
+	_, err := of.bw.Write(line)
 	return err
 }
 

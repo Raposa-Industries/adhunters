@@ -1,0 +1,29 @@
+# Follows running ads' saved links to their landing pages (tracks-walker).
+# Runs on the worker box, through the same proxy lines as the new capture.
+# Settings and keys are in /etc/adhunters/tracks-walker.env: DATABASE_URL
+# (the tracks_walker login), ARCHIVE, the S3_* keys, WORKERS and OPS_ADDR.
+[Unit]
+Description=Tracks walker
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=tracks
+Group=tracks
+Environment=WORKERS=2
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/tracks-walker.env
+ExecStart=/opt/adhunters/bin/tracks-walker run \
+    -lines /etc/adhunters/tracks-capture/proxies.env \
+    -spool /var/lib/tracks/walk-spool -archive ${ARCHIVE} -instance %H -workers ${WORKERS}
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/tracks
+
+[Install]
+WantedBy=multi-user.target

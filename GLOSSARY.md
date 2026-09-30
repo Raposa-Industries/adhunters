@@ -51,6 +51,11 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | shadow run | A new binary running beside the one in service on the same input, writing only its own output, to measure or compare. Nothing reads its output as real data. |
 | switch-over | The minute Tracks alone scrapes and the old collector's sweeper stops, always 00:00 UTC. See `platform/SWITCH-OVER.md`. |
 | bridge | `tracks-bridge`: writes Tracks' scrapes into the old collector's database after the switch-over, so today's Spy keeps working until the new Spy launches. |
+| landing page | The page an ad's link ends on, after the tracker's redirects. |
+| walk | `tracks-walker` following one ad's saved link, from its publisher's page, through the redirects to the landing page and one next step. Saved whole as a raw walk file first. |
+| next step | The page a landing page's main button (its call to action) leads to, often an order page. A walk takes at most one. |
+| page version | One distinct content of a page (title, headings, text, pixels, contacts), kept once however often it is seen. |
+| seller | The merchant account on a checkout platform (a ClickBank vendor, a Digistore24 product owner) that a page names. |
 | imported hour | An hour before the switch-over whose counts were copied from the old collector's database (`import-old`). The loader never closes it again and a replay refuses it. |
 | Frame | The shell every app's pages sit in (`shared/frame`): the app selector, page tabs, ⌘K search and account in the top bar, and a left column that holds only filters. |
 | Direction | Which way an ad is moving: rising, steady, fading or stopped, judged against its usual value. |
