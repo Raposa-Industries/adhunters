@@ -9,9 +9,10 @@
 // The database URL comes from DATABASE_URL; the login owns the desk
 // schemas and holds each app's <app>_api role, so Desk reads and calls what
 // a teammate's page does and nothing more. ANTHROPIC_API_KEY is the Claude
-// key. run takes no work while the stop switch is on, and no turn once the
-// day's Claude budget is spent. It stops cleanly on SIGTERM: a turn or step
-// in flight is let go and taken again later.
+// key; without it Desk is off: run only answers on /metrics and takes no
+// work. run takes no work while the stop switch is on either, and no turn
+// once the day's Claude budget is spent. It stops cleanly on SIGTERM: a turn
+// or step in flight is let go and taken again later.
 package main
 
 import (
@@ -114,9 +115,16 @@ func runCmd(args []string) error {
 	_ = fs.Parse(args)
 
 	log := logx.New("desk-agent", version)
+	srv := ops.New("desk-agent", version)
 	key := os.Getenv("ANTHROPIC_API_KEY")
 	if key == "" || key == "FILL_ME" {
-		return errors.New("ANTHROPIC_API_KEY is not set")
+		// Desk is off until it has a Claude key. The unit still runs and
+		// answers on /metrics, so an enabled unit never reads as down; it
+		// takes no work until the key is in and the unit restarted.
+		log.Warn("no ANTHROPIC_API_KEY: Desk takes no work until it is set")
+		return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
+			return srv.Serve(ctx, log, ops.Addr())
+		})
 	}
 	catalog, err := actions.Load()
 	if err != nil {
@@ -131,7 +139,6 @@ func runCmd(args []string) error {
 	}
 	defer db.Close()
 
-	srv := ops.New("desk-agent", version)
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 	m := newMetrics(srv.Registry)
 	s := store.New(db)

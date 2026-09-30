@@ -326,8 +326,8 @@ create_box() {
 desk_src="$repo/desk"
 
 # desk_box: AdHunters Desk (desk/README.md). The desk login owns the desk and
-# desk_api schemas; both units run the migrations before they start, so the
-# pages work before the Claude key is in. desk-agent waits for the key.
+# desk_api schemas; both units run the migrations before they start. Desk is
+# off until its Claude key is in: desk-agent runs but takes no work.
 desk_box() {
     [ -d "$desk_src/deploy" ] || { echo "$desk_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
     say "the desk login"
@@ -359,8 +359,14 @@ desk_box() {
         fi
         env_file "$u" "$example"
     done
+    # The first example had FILL_ME for the key, which kept desk-agent
+    # stopped, so it read as down; an empty key now means Desk is off.
+    sed -i 's/^ANTHROPIC_API_KEY=FILL_ME$/ANTHROPIC_API_KEY=/' /etc/adhunters/desk-agent.env
     start desk-web desk-web
     start desk-agent desk-agent
+    if grep -q '^ANTHROPIC_API_KEY=$' /etc/adhunters/desk-agent.env; then
+        todo+=("Desk is off: to turn it on, put the Claude key in /etc/adhunters/desk-agent.env (ANTHROPIC_API_KEY=), then systemctl restart desk-agent")
+    fi
 }
 
 # ---- data box ---------------------------------------------------------------
