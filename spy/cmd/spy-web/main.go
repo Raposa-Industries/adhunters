@@ -1,7 +1,7 @@
 // Command spy-web serves AdHunters Spy's pages and their JSON under /spy/,
 // in the shared Frame.
 //
-//	spy-web [-addr 127.0.0.1:8095]
+//	spy-web [-addr 127.0.0.1:8097]
 //
 // The database URL comes from DATABASE_URL; the login needs spy_api_read,
 // tracks_api_read and (for the Raposa parts of an ad's page) raposa_api_read
@@ -46,7 +46,7 @@ func main() {
 
 func serve(args []string) error {
 	fs := flag.NewFlagSet("spy-web", flag.ExitOnError)
-	addr := fs.String("addr", envOr("SPY_WEB_ADDR", "127.0.0.1:8095"), "where the pages listen")
+	addr := fs.String("addr", envOr("SPY_WEB_ADDR", "127.0.0.1:8097"), "where the pages listen")
 	_ = fs.Parse(args)
 
 	log := logx.New("spy-web", version)
