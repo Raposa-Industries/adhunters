@@ -1,6 +1,7 @@
-// Package files is where Raposa keeps the files of the pages it keeps whole:
-// a bucket in object storage in production, a folder in tests and on a
-// laptop. No file sits in the database.
+// Package files keeps files for a service: a bucket in object storage in
+// production, a folder in tests and on a laptop. No file sits in the
+// database. Raposa keeps the files of the pages it keeps whole here; the
+// library keeps its safe copies of creatives.
 //
 // Files are content addressed: the key is files/<md5 of the bytes>, so one
 // sales video twenty pages load is stored once, and storing the same bytes
@@ -51,7 +52,7 @@ func checkKey(key string) error {
 
 // Open opens the store a URI names:
 //
-//	file:///var/lib/raposa/files    a folder
+//	file:///var/lib/<service>/files a folder
 //	s3://bucket/prefix              object storage; endpoint and keys from
 //	                                S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY
 //	                                and S3_REGION (S3_INSECURE=1 for plain http)

@@ -18,9 +18,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/testdb"
+	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 // cloaker is a site that shows the white page to a link without the ad
