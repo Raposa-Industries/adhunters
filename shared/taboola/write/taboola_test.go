@@ -754,12 +754,20 @@ func TestGroups(t *testing.T) {
 		string(last.Body) != `{"is_active":false,"marketing_objective":"DRIVE_WEBSITE_TRAFFIC","name":"G2","spending_limit":300,"spending_limit_model":"ENTIRE"}` {
 		t.Errorf("%s %s", last.Path, last.Body)
 	}
+	if _, err := c.CreateGroup(ctx, "acme-sc", NewGroup{Name: "G3", Model: "none"}); err != nil {
+		t.Fatal(err)
+	}
+	if last := f.seen()[len(f.seen())-1]; string(last.Body) != `{"is_active":false,"marketing_objective":"DRIVE_WEBSITE_TRAFFIC","name":"G3","spending_limit_model":"NONE"}` {
+		t.Errorf("no budget: %s", last.Body)
+	}
 	before := len(f.seen())
 	for name, n := range map[string]NewGroup{
 		"no name":   {SpendingLimit: 10, Model: "MONTHLY"},
 		"no budget": {Name: "g", Model: "MONTHLY"},
 		"too much":  {Name: "g", SpendingLimit: 3001, Model: "MONTHLY"},
-		"model":     {Name: "g", SpendingLimit: 10, Model: "DAILY"},
+		"model":     {Name: "g", SpendingLimit: 10, Model: "WEEKLY"},
+		"none, sum": {Name: "g", SpendingLimit: 10, Model: "NONE"},
+		"daily":     {Name: "g", SpendingLimit: 101, Model: "DAILY"},
 	} {
 		var r *Refused
 		if _, err := c.CreateGroup(ctx, "acme-sc", n); !errors.As(err, &r) {

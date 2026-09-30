@@ -139,7 +139,11 @@ func (t *Taboola) Ads(ctx context.Context, account, campaign string) ([]network.
 }
 
 func (t *Taboola) CreateGroup(ctx context.Context, account string, g network.NewGroup) (network.Group, error) {
-	made, err := t.c.CreateGroup(ctx, account, write.NewGroup{Name: g.Name, SpendingLimit: g.Budget, Model: g.BudgetModel, MarketingObjective: g.Objective})
+	model := g.BudgetModel
+	if model == "" {
+		model = "NONE" // each campaign keeps its own budget
+	}
+	made, err := t.c.CreateGroup(ctx, account, write.NewGroup{Name: g.Name, SpendingLimit: g.Budget, Model: model, MarketingObjective: g.Objective})
 	if err != nil {
 		return network.Group{}, err
 	}

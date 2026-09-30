@@ -506,9 +506,13 @@ func (c *Client) Groups(ctx context.Context, account string) ([]Group, error) {
 // in it.
 type NewGroup struct {
 	Name string
-	// SpendingLimit is the group's budget, above 0 and at most 30 daily caps.
+	// SpendingLimit is the group's budget, above 0 and at most 30 daily
+	// caps; 0 with Model NONE.
 	SpendingLimit float64
-	// Model is MONTHLY or ENTIRE.
+	// Model is DAILY, MONTHLY or ENTIRE (lifetime), or NONE: no group
+	// budget, each campaign keeps its own (Realize's default, "Manually set
+	// budgets per campaign"). NONE and DAILY are unproven on the real API
+	// (2026-09-30).
 	Model string
 	// MarketingObjective must match its campaigns'; DRIVE_WEBSITE_TRAFFIC
 	// when empty.
@@ -532,25 +536,32 @@ func (c *Client) CreateGroup(ctx context.Context, account string, n NewGroup) (G
 		return Group{}, refuse("dê um nome ao grupo de campanhas")
 	case utf8.RuneCountInString(name) > 200 || strings.ContainsAny(name, "\r\n\t"):
 		return Group{}, refuse("nome do grupo inválido (uma linha, até 200 caracteres)")
-	case !(n.SpendingLimit > 0) || n.SpendingLimit > 30*c.s.MaxDailyCap:
+	case model == "NONE" && n.SpendingLimit != 0:
+		return Group{}, refuse("sem orçamento do grupo, não mande valor")
+	case model != "NONE" && (!(n.SpendingLimit > 0) || n.SpendingLimit > 30*c.s.MaxDailyCap):
 		return Group{}, refuse("o orçamento do grupo deve ficar entre 0 e %s", usd(30*c.s.MaxDailyCap))
-	case model != "MONTHLY" && model != "ENTIRE":
-		return Group{}, refuse("o orçamento do grupo deve ser MONTHLY ou ENTIRE")
+	case model == "DAILY" && n.SpendingLimit > c.s.MaxDailyCap:
+		return Group{}, refuse("o orçamento diário do grupo deve ficar até %s", usd(c.s.MaxDailyCap))
+	case model != "NONE" && model != "DAILY" && model != "MONTHLY" && model != "ENTIRE":
+		return Group{}, refuse("o orçamento do grupo deve ser NONE, DAILY, MONTHLY ou ENTIRE")
 	case !objectives[objective]:
 		return Group{}, refuse("objetivo %q inválido", oneLine(n.MarketingObjective, 40))
 	}
 	if err := c.checkOwnName(name, "do grupo"); err != nil {
 		return Group{}, err
 	}
-	out, err := c.sendJSON(ctx, http.MethodPost, account+"/campaigns_group/", obj{
+	body := obj{
 		"name":                 name,
 		"marketing_objective":  objective,
 		"spending_limit_model": model,
-		"spending_limit":       n.SpendingLimit,
 		// No bid_strategy: Taboola answers "Trying to modify a read-only
 		// field" for it on a group (seen 2026-09-29).
 		"is_active": false,
-	}, false)
+	}
+	if model != "NONE" {
+		body["spending_limit"] = n.SpendingLimit
+	}
+	out, err := c.sendJSON(ctx, http.MethodPost, account+"/campaigns_group/", body, false)
 	if err != nil {
 		return Group{}, err
 	}

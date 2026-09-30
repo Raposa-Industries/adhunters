@@ -68,7 +68,7 @@ export function libraryPicker(use) {
       const got = await use(chosen, lines);
       msg.replaceChildren(note(got.problems ? 'warn' : 'ok', `${plural(got.images, 'imagem nova', 'imagens novas')} e ${plural(got.headlines, 'headline nova', 'headlines novas')} no par.`,
         got.problems ? ' Veja abaixo o que não entrou.' : ''));
-    }) }, 'Usar no par');
+    }) }, 'Usar na campanha');
     body.replaceChildren(
       h('p', {}, h('button', { type: 'button', class: 'link', onclick: () => sets() }, '← Conjuntos'), ' · ', h('b', {}, d.set?.name || 'Conjunto ' + id)),
       cs.length ? h('div', { class: 'thumbs' }, cs.map(({ c, cb }) => h('figure', { class: 'thumb' },

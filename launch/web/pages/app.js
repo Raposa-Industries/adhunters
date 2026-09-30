@@ -12,7 +12,7 @@ import { requests, request } from './requests.js';
 
 const TABS = [
   { id: 'campaigns', label: 'Campanhas', href: '/launch/' },
-  { id: 'new', label: 'Novo par', href: '/launch/new' },
+  { id: 'new', label: 'Nova campanha', href: '/launch/new' },
   { id: 'presets', label: 'Presets', href: '/launch/presets' },
   { id: 'history', label: 'Histórico', href: '/launch/history' },
   { id: 'drafts', label: 'Rascunhos', href: '/launch/drafts' },

@@ -317,8 +317,9 @@ export function sortPairs(list, pairOf) {
 }
 
 export function budgetLine(g) {
-  if (!g || !g.budget) return 'sem orçamento próprio';
-  return 'orçamento ' + money(g.budget) + (g.budget_model === 'MONTHLY' ? ' por mês' : g.budget_model === 'ENTIRE' ? ' no total' : '');
+  if (!g) return '';
+  const per = { DAILY: ' por dia', MONTHLY: ' por mês', ENTIRE: ' no total' }[g.budget_model];
+  return per && g.budget ? 'orçamento ' + money(g.budget) + per : 'orçamento por campanha';
 }
 
 // doneNote says what an action did to each campaign.

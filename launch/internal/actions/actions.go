@@ -112,11 +112,19 @@ func (l *Launch) noteItems(ctx context.Context, net, account string, m network.M
 	}
 }
 
-// NewGroup makes a paused group.
+// NewGroup makes a paused group. Without a name it gets the account's next
+// number (01, 02…).
 func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g network.NewGroup) (network.Group, error) {
 	n, err := l.Net(net)
 	if err != nil {
 		return network.Group{}, err
+	}
+	if strings.TrimSpace(g.Name) == "" {
+		groups, err := n.Groups(ctx, account)
+		if err != nil {
+			return network.Group{}, err
+		}
+		g.Name = NextGroupName(groups)
 	}
 	made, err := n.CreateGroup(ctx, account, g)
 	if err != nil {
@@ -124,7 +132,7 @@ func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g n
 	}
 	l.record(ctx, store.Change{
 		Who: who.Person, AskedBy: who.asked(), Network: net, Account: account, GroupID: made.ID, Kind: "new_group",
-		Summary: fmt.Sprintf("Criou o grupo %s, pausado, orçamento US$ %.2f (%s)", made.Name, made.Budget, strings.ToLower(made.BudgetModel)),
+		Summary: "Criou o grupo " + made.Name + ", pausado, " + groupBudget(made),
 		After:   raw(made), Result: "done",
 	})
 	return made, nil
@@ -351,9 +359,12 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 			res.Problems = append(res.Problems, "o par foi criado mas não foi anotado aqui; ele aparece como duas campanhas soltas")
 		}
 	}
-	what := "o par " + pair.Name
+	summary := fmt.Sprintf("Criou o par %s, pausado: %d de 2 campanhas, %s em cada", pair.Name, made, ads(len(r.Ads)))
 	if len(sides) == 1 {
-		what = "a campanha " + sides[0].name
+		summary = fmt.Sprintf("Criou a campanha %s, pausada, com %s", sides[0].name, ads(len(r.Ads)))
+		if made == 0 {
+			summary = "Tentou criar a campanha " + sides[0].name
+		}
 	}
 	first := pair.DesktopID
 	if first == "" {
@@ -362,7 +373,7 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	l.record(ctx, store.Change{
 		Who: who.Person, AskedBy: who.asked(), Network: r.Network, Account: r.Account, GroupID: res.GroupID,
 		CampaignID: first, Kind: "new_pair",
-		Summary: fmt.Sprintf("Criou %s, pausado: %d de %d campanhas, %s em cada", what, made, len(sides), ads(len(r.Ads))),
+		Summary: summary,
 		After:   raw(res), Result: res.Result, Problems: res.Problems,
 	})
 	if pair.MobileID != "" && pair.DesktopID != "" {
@@ -639,6 +650,14 @@ func (l *Launch) Change(ctx context.Context, who Who, net, account string, ids [
 		out = append(out, d)
 	}
 	return out, nil
+}
+
+func groupBudget(g network.Group) string {
+	per := map[string]string{"DAILY": " por dia", "MONTHLY": " por mês", "ENTIRE": " no total"}[g.BudgetModel]
+	if per == "" || g.Budget == 0 {
+		return "orçamento por campanha"
+	}
+	return fmt.Sprintf("orçamento US$ %.2f%s", g.Budget, per)
 }
 
 func describeChange(c network.Campaign, ch network.Change) string {

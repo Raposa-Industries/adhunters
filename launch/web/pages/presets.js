@@ -1,7 +1,7 @@
 // Presets: settings people save and reuse, at two levels. A group preset
-// holds a new group's budget and objective; a campaign preset holds a
-// pair's settings (bid, caps, countries, link and tracking code, brand,
-// description, AI label). Nobody fixes them for the team: each person
+// holds a new group's budget and objective; a campaign preset holds a new
+// campaign's settings (bid, budget, excluded cities, delivery, link and
+// tracking code, brand, description). Nobody fixes them for the team: each person
 // saves their own, for one account or for all.
 import { api, h, note, field, input, select, segmented, busy, numberOf, money, date, plural } from './lib.js';
 import { TRACKERS, splitLink } from '/launch/_ads/tracking.js';
@@ -14,53 +14,81 @@ export const OBJECTIVES = [
   ['BRAND_AWARENESS', 'Marca'],
 ];
 
-const MODELS = [['MONTHLY', 'Por mês'], ['ENTIRE', 'Total'], ['', 'Sem orçamento próprio']];
+const MODELS = [['', 'Por campanha'], ['DAILY', 'Por dia'], ['MONTHLY', 'Por mês'], ['ENTIRE', 'Total']];
 
-// groupFields is the part of a form that describes a new group.
+// The team's defaults for a new campaign (2026-09-30).
+export const TEAM = {
+  daily_cap: 500,
+  bid_strategy: 'MAX_CONVERSIONS',
+  ad_delivery: 'OPTIMIZED',
+  countries: ['US'],
+  // Cities the team never shows in. The values must be Taboola's own
+  // (its US city dictionary); these are to be checked against it.
+  exclude_cities: ['Atlanta, GA', 'Bend, OR', 'Biloxi, MS', 'Idaho Falls, ID', 'Indianapolis, IN', 'New York, NY', 'Rochester, NY', 'Shreveport, LA', 'Tallahassee, FL'],
+  tracking_code: 'src={site}&utm_medium={thumbnail}&utm_content={title}&utm_term={cachebuster}&click_id={click_id}&cpc={cpc}&sub1={campaign_id}&utm_source=Taboola&utm_campaign={campaign_name}&sub4={campaign_item_id}&sub5={site}&sub6={title}&sub7={platform}&sub8={site_id}&sub9={thumbnail}&sub10={timestamp}&ref_id={click_id}',
+};
+
+const BIDS = [['MAX_CONVERSIONS', 'Maximizar conversões (CPA)'], ['FIXED', 'CPC fixo'], ['SMART', 'CPC Smart']];
+const DELIVERY = [['OPTIMIZED', 'Priorizar os melhores anúncios'], ['EVEN', 'Teste A/B (igual para todos)']];
+
+// groupFields is the part of a form that describes a new group. An empty
+// name gets the account's next number (01, 02…) when the group is made.
 export function groupFields(values = {}) {
-  const name = input({ placeholder: 'Memory Loss US · outubro', value: values.name || '' });
-  const budget = input({ inputmode: 'decimal', placeholder: '0 = sem orçamento', value: values.budget || '' });
-  const model = select(MODELS, values.budget_model ?? 'MONTHLY');
+  const name = input({ placeholder: 'próximo número', value: values.name || '' });
+  const budget = input({ inputmode: 'decimal', placeholder: '500', value: values.budget || '' });
+  const model = select(MODELS, values.budget_model ?? '');
   const objective = select(OBJECTIVES, values.objective || 'DRIVE_WEBSITE_TRAFFIC');
+  const budgetBox = field('Orçamento do grupo (US$)', budget, 'as campanhas do grupo gastam deste orçamento');
+  const showBudget = () => { budgetBox.hidden = !model.value; };
+  model.addEventListener('change', showBudget);
+  showBudget();
   const el = h('div', { class: 'fields' },
-    field('Nome do grupo', name),
-    field('Orçamento (US$)', budget, 'as campanhas do grupo gastam deste orçamento'),
-    field('Orçamento é', model),
-    field('Objetivo', objective, 'as campanhas do grupo têm o mesmo'));
+    field('Nome do grupo', name, 'vazio: o próximo número da conta'),
+    field('Objetivo', objective, 'as campanhas do grupo têm o mesmo'),
+    field('Orçamento', model, 'por campanha: cada campanha tem o seu (padrão)'),
+    budgetBox);
   return {
     el,
     name,
     // preset is what a group preset keeps: everything but the name.
-    preset: () => ({ budget: numberOf(budget.value) || 0, budget_model: model.value, objective: objective.value }),
+    preset: () => ({ budget: model.value ? numberOf(budget.value) || 0 : 0, budget_model: model.value, objective: objective.value }),
     set: (f) => {
       if (f.budget !== undefined) budget.value = f.budget || '';
       if (f.budget_model !== undefined) model.value = f.budget_model;
       if (f.objective) objective.value = f.objective;
+      showBudget();
     },
-    get: () => ({ name: name.value.trim(), budget: numberOf(budget.value) || 0, budget_model: model.value, objective: objective.value }),
+    get: () => ({ name: name.value.trim(), budget: model.value ? numberOf(budget.value) || 0 : 0, budget_model: model.value, objective: objective.value }),
     problem: () => {
-      if (!name.value.trim()) return 'Dê um nome ao grupo.';
-      if (Number.isNaN(numberOf(budget.value))) return 'O orçamento é um número, como 50 ou 12,50.';
+      if (model.value && !(numberOf(budget.value) > 0)) return 'Diga o orçamento do grupo, ou escolha "Por campanha".';
       return '';
     },
   };
 }
 
-// settingsForm is a pair's settings: what both campaigns share.
+// settingsForm is a new campaign's settings (both campaigns share them),
+// starting from the team's defaults.
 export function settingsForm(values = {}, limits = {}) {
-  const s = values.settings || {};
+  const s = { ...TEAM, ...(values.settings || {}) };
   const brand = input({ placeholder: 'Health Tips Daily', value: s.brand || '' });
+  let bidNow = s.bid_strategy || 'MAX_CONVERSIONS';
   const cpc = input({ inputmode: 'decimal', placeholder: '0,35', value: s.cpc || '' });
-  const bid = select([['FIXED', 'Fixo'], ['SMART', 'Smart (o Taboola ajusta)']], s.bid_strategy || 'FIXED');
-  const cap = input({ inputmode: 'decimal', placeholder: '20', value: s.daily_cap || '' });
-  const limit = input({ inputmode: 'decimal', placeholder: 'sem limite', value: s.spending_limit || '' });
-  const countries = input({ placeholder: 'US', value: (s.countries || ['US']).join(', ') });
+  const cpa = input({ inputmode: 'decimal', placeholder: 'sem alvo', value: s.target_cpa || '' });
+  const cpcBox = field('CPC (US$)', cpc, limits.max_cpc ? 'até ' + money(limits.max_cpc) : null);
+  const cpaBox = field('CPA alvo (US$)', cpa, 'opcional: vazio deixa o Taboola maximizar');
+  const showBid = () => { cpcBox.hidden = bidNow === 'MAX_CONVERSIONS'; cpaBox.hidden = bidNow !== 'MAX_CONVERSIONS'; };
+  const bid = segmented('bid-' + Math.random().toString(36).slice(2, 7), BIDS, bidNow, (v) => { bidNow = v; showBid(); });
+  const cap = input({ inputmode: 'decimal', placeholder: '500', value: s.daily_cap || '' });
+  const limit = input({ inputmode: 'decimal', placeholder: 'nenhum', value: s.spending_limit || '' });
+  let deliveryNow = s.ad_delivery || 'OPTIMIZED';
+  const delivery = segmented('delivery-' + Math.random().toString(36).slice(2, 7), DELIVERY, deliveryNow, (v) => { deliveryNow = v; });
+  const cities = h('textarea', { rows: 4, spellcheck: 'false', 'aria-label': 'Cidades fora' }, (s.exclude_cities || []).join('\n'));
   const objective = select(OBJECTIVES, s.objective || 'DRIVE_WEBSITE_TRAFFIC');
   const start = input({ type: 'date', value: s.start_date || '' });
   const end = input({ type: 'date', value: s.end_date || '' });
   let trackerId = values.tracker || 'redtrack';
   const linkBox = input({ type: 'url', placeholder: 'https://…', value: values.link || values.url || '' });
-  const tracking = h('textarea', { rows: 2, placeholder: 'sub1={campaign_id}&…', spellcheck: 'false' }, s.tracking_code || '');
+  const tracking = h('textarea', { rows: 3, placeholder: 'sub1={campaign_id}&…', spellcheck: 'false' }, s.tracking_code || '');
   const description = input({ placeholder: 'opcional, em inglês', value: values.description || '' });
   const warnBox = h('div', { class: 'warnings' });
   const hint = h('span', { class: 'hint' }, TRACKERS[trackerId].hint);
@@ -90,35 +118,50 @@ export function settingsForm(values = {}, limits = {}) {
     Object.entries(TRACKERS).map(([k, t]) => [k, t.name]), trackerId, (v) => { trackerId = v; hint.textContent = TRACKERS[v].hint; splitNow(); });
 
   const el = h('div', { class: 'settings-form' },
+    h('h3', {}, 'Configuração'),
     h('div', { class: 'fields' },
-      field('CPC (US$)', cpc, limits.max_cpc ? 'até ' + money(limits.max_cpc) : null),
-      field('Lance', bid),
-      field('Teto diário (US$)', cap, limits.max_daily_cap ? 'até ' + money(limits.max_daily_cap) : 'por campanha'),
-      field('Limite total (US$)', limit),
-      field('Países', countries, 'códigos, separados por vírgula'),
-      field('Objetivo', objective),
       field('Marca', brand, 'o nome que aparece no anúncio'),
-      field('Descrição', description, 'vai em todos os anúncios')),
+      field('Objetivo', objective),
+      field('Começa em', start, 'vazio: quando for ligada'), field('Termina em', end, 'vazio: sem fim')),
+    h('h3', {}, 'Onde'),
+    h('p', { class: 'muted' }, 'Estados Unidos, menos estas cidades (uma por linha):'),
+    cities,
+    h('h3', {}, 'Orçamento e lance'),
+    h('div', { class: 'fields' },
+      field('Orçamento diário (US$)', cap, limits.max_daily_cap ? 'até ' + money(limits.max_daily_cap) : 'por campanha'),
+      field('Limite de gasto (US$)', limit, 'vazio: nenhum')),
+    h('span', { class: 'field' }, 'Otimizar para'), bid,
+    h('div', { class: 'fields' }, cpcBox, cpaBox),
+    h('span', { class: 'field' }, 'Entrega dos anúncios'), delivery,
+    h('h3', {}, 'Página e tracking'),
     h('div', { class: 'link-part' },
       h('span', { class: 'field' }, 'Tracker'), trackers,
-      h('label', { class: 'field' }, 'Link', linkBox, hint),
+      h('label', { class: 'field' }, 'Página (landing page)', linkBox, hint),
       warnBox,
       field('Tracking code da campanha', tracking, 'o Taboola junta ao link de cada anúncio e preenche os {macros}')),
-    h('div', { class: 'fields' }, field('Começa em', start, 'vazio: quando for ligada'), field('Termina em', end, 'vazio: sem fim')));
+    h('div', { class: 'fields' }, field('Descrição', description, 'vai em todos os anúncios')));
+  showBid();
   warn();
 
-  const settings = () => ({
-    brand: brand.value.trim(),
-    cpc: numberOf(cpc.value) || 0,
-    bid_strategy: bid.value,
-    daily_cap: numberOf(cap.value) || 0,
-    spending_limit: numberOf(limit.value) || 0,
-    countries: countries.value.split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean),
-    tracking_code: tracking.value.trim(),
-    objective: objective.value,
-    start_date: start.value,
-    end_date: end.value,
-  });
+  const settings = () => {
+    const maxConv = bidNow === 'MAX_CONVERSIONS';
+    return {
+      brand: brand.value.trim(),
+      cpc: maxConv ? 0 : numberOf(cpc.value) || 0,
+      target_cpa: maxConv ? numberOf(cpa.value) || 0 : 0,
+      bid_strategy: bidNow,
+      daily_cap: numberOf(cap.value) || 0,
+      spending_limit: numberOf(limit.value) || 0,
+      countries: ['US'],
+      exclude_cities: cities.value.split(/\r?\n/).map((c) => c.trim()).filter(Boolean),
+      ad_delivery: deliveryNow,
+      tracking_code: tracking.value.trim(),
+      objective: objective.value,
+      start_date: start.value,
+      end_date: end.value,
+    };
+  };
+  const radio = (name, v) => { const r = el.querySelector(`input[name^="${name}"][value="${v}"]`); if (r) r.checked = true; };
   return {
     el,
     settings,
@@ -136,10 +179,12 @@ export function settingsForm(values = {}, limits = {}) {
       const s = f.settings || {};
       if (s.brand !== undefined) brand.value = s.brand;
       if (s.cpc !== undefined) cpc.value = s.cpc || '';
-      if (s.bid_strategy) bid.value = s.bid_strategy;
+      if (s.target_cpa !== undefined) cpa.value = s.target_cpa || '';
+      if (s.bid_strategy) { bidNow = s.bid_strategy; radio('bid-', bidNow); showBid(); }
+      if (s.ad_delivery) { deliveryNow = s.ad_delivery; radio('delivery-', deliveryNow); }
       if (s.daily_cap !== undefined) cap.value = s.daily_cap || '';
       if (s.spending_limit !== undefined) limit.value = s.spending_limit || '';
-      if (s.countries) countries.value = s.countries.join(', ');
+      if (s.exclude_cities) cities.value = s.exclude_cities.join('\n');
       if (s.tracking_code !== undefined) tracking.value = s.tracking_code;
       if (s.objective) objective.value = s.objective;
       if (s.start_date !== undefined) start.value = s.start_date;
@@ -148,17 +193,18 @@ export function settingsForm(values = {}, limits = {}) {
       if (f.description !== undefined) description.value = f.description;
       if (f.tracker && TRACKERS[f.tracker]) {
         trackerId = f.tracker;
-        const r = el.querySelector(`input[value="${f.tracker}"]`);
-        if (r) r.checked = true;
+        radio('tracker-', f.tracker);
         hint.textContent = TRACKERS[f.tracker].hint;
       }
       warn();
     },
     problem: () => {
-      for (const [box, name] of [[cpc, 'O CPC'], [cap, 'O teto diário'], [limit, 'O limite total']]) {
+      for (const [box, name] of [[cpc, 'O CPC'], [cpa, 'O CPA alvo'], [cap, 'O orçamento diário'], [limit, 'O limite de gasto']]) {
         if (Number.isNaN(numberOf(box.value))) return name + ' é um número, como 0,35.';
       }
-      if (!numberOf(cpc.value)) return 'Diga o CPC.';
+      if (bidNow !== 'MAX_CONVERSIONS' && !numberOf(cpc.value)) return 'Diga o CPC.';
+      if (!numberOf(cap.value)) return 'Diga o orçamento diário.';
+      if (!brand.value.trim()) return 'Escreva a marca.';
       if (!linkBox.value.trim()) return 'Falta o link da página.';
       return '';
     },
@@ -234,7 +280,7 @@ export async function presets({ main, status }) {
   const list = await loadPresets('taboola', '');
   for (const [level, title, about] of [
     ['group', 'Grupos', 'Orçamento e objetivo de um grupo novo.'],
-    ['campaign', 'Campanhas', 'Lance, tetos, países, link, tracking code, marca e descrição de um par.'],
+    ['campaign', 'Campanhas', 'Lance, orçamento, cidades fora, entrega, link, tracking code, marca e descrição de uma campanha nova.'],
   ]) {
     const mine = list.filter((p) => p.level === level);
     const editor = h('div');
@@ -263,10 +309,12 @@ export async function presets({ main, status }) {
 
 export function summary(level, f = {}) {
   if (level === 'group') {
-    return [f.budget ? money(f.budget) + (f.budget_model === 'MONTHLY' ? '/mês' : ' total') : 'sem orçamento', OBJECTIVES.find(([k]) => k === f.objective)?.[1]].filter(Boolean).join(' · ');
+    const per = { DAILY: '/dia', MONTHLY: '/mês', ENTIRE: ' total' }[f.budget_model];
+    return [per && f.budget ? money(f.budget) + per : 'orçamento por campanha', OBJECTIVES.find(([k]) => k === f.objective)?.[1]].filter(Boolean).join(' · ');
   }
   const s = f.settings || {};
-  return [s.cpc ? 'CPC ' + money(s.cpc) : '', s.daily_cap ? 'teto ' + money(s.daily_cap) : '', (s.countries || []).join(' '), f.tracker ? TRACKERS[f.tracker]?.name : ''].filter(Boolean).join(' · ');
+  const bid = s.bid_strategy === 'MAX_CONVERSIONS' ? 'Max. conversões' + (s.target_cpa ? ' CPA ' + money(s.target_cpa) : '') : s.cpc ? 'CPC ' + money(s.cpc) : '';
+  return [bid, s.daily_cap ? money(s.daily_cap) + '/dia' : '', (s.exclude_cities || []).length ? plural(s.exclude_cities.length, 'cidade fora', 'cidades fora') : '', f.tracker ? TRACKERS[f.tracker]?.name : ''].filter(Boolean).join(' · ');
 }
 
 function edit(level, p, editor, status) {
