@@ -143,10 +143,35 @@ func planUser(r PlanRequest, language string) string {
 	if a := strings.TrimSpace(r.Ages); a != "" {
 		fmt.Fprintf(&b, "AGE RANGE OF THE PEOPLE IN EVERY PICTURE: %s\n\n", a)
 	}
-	if n := len(r.Winners); n > 0 {
+	if n := len(r.Winners); n > 0 && len(r.Analysis) > 0 {
+		fmt.Fprintf(&b, "REFERENCE PICTURES ATTACHED: the %d picture(s) after this text are the person's references for this niche. They were already analysed: return an empty analysis and base the briefs on the pattern below, mostly close variations.\n\n", n)
+	} else if n > 0 {
 		fmt.Fprintf(&b, "REFERENCE PICTURES ATTACHED: the %d picture(s) after this text are the person's references for this niche. Analyse them first, then base the briefs on that pattern, mostly close variations.\n\n", n)
+	} else if len(r.Analysis) > 0 {
+		b.WriteString("No reference pictures are attached: return an empty analysis and base the briefs on the pattern below.\n\n")
 	} else {
 		b.WriteString("No reference pictures are attached: return an empty analysis and base the briefs on the vertical and the additional instructions.\n\n")
+	}
+	if len(r.Analysis) > 0 {
+		b.WriteString("WHAT THE PERFORMING ADS SHARE (read from them and edited by the person; keep what is FIXED in every close variation, change only what is VARIABLE):\n")
+		for _, a := range r.Analysis {
+			fmt.Fprintf(&b, "- %s. Fixed: %s Variable: %s\n", a.Aspect, a.Fixed, a.Variable)
+		}
+		b.WriteString("\n")
+	}
+	switch {
+	case r.NewAngle:
+		b.WriteString("NEW ANGLE: every brief this time is ONE new angle, the same for all of them, not a close variation and not any of these angles already tried:\n")
+		for _, a := range append(append([]string{}, r.Angles...), r.AvoidAngles...) {
+			b.WriteString("- " + a + "\n")
+		}
+		b.WriteString("\n")
+	case len(r.Angles) > 0:
+		b.WriteString("ANGLES TO TRY (the person's choice: spread the new-angle briefs over these, and use these words as their angle labels):\n")
+		for _, a := range r.Angles {
+			b.WriteString("- " + a + "\n")
+		}
+		b.WriteString("\n")
 	}
 	if r.HasReferences {
 		b.WriteString("PRODUCT PICTURES ARE ATTACHED to every image call: the product and people in them must be carried into each brief's scene and stay recognisable.\n\n")

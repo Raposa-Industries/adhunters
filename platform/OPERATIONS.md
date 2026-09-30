@@ -9,7 +9,7 @@ it in the same PR.
 | Box | Hetzner name | Type | Location | Private IP | Public IPv4 | Runs |
 |---|---|---|---|---|---|---|
 | worker | `adhunters-worker` | CX43 | Nuremberg (nbg1) | 10.20.1.10 | 2.28.193.220 (Primary IP, kept across rebuilds) | capture `@a` `@b`, shipper, Raposa |
-| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web, library |
+| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web, create, library |
 | standby | `adhunters-standby` | CX23 | Falkenstein (fsn1) | 10.20.1.30 | 2.28.138.34 (Primary IP) | capture `@standby`, shipper |
 
 All three are in one Hetzner project, created by Terraform
@@ -183,6 +183,16 @@ allowed for paused tests only, so with them the file must also carry
 `TABOOLA_ONLY_OWN=1`, and what the test made (the ids in
 `/var/lib/create-web/kept/taboola-state.json`) is deleted afterwards. Without Taboola keys the page still makes the
 bulk sheet.
+
+## Create on hunt-teste.fyi/create/
+
+`create` listens only on `127.0.0.1:8094` on the data box (create/README.md).
+It is reached on the same address and behind the same Access application as
+the launcher page: in the tunnel (Networks › Tunnels › `adhunters-data` ›
+Public hostname), add a hostname `hunt-teste.fyi` with path `^/create`,
+service `http://localhost:8094`, and move it above the one that serves the
+whole hostname. Its OpenAI key goes in `/etc/adhunters/create.env`
+(`OPENAI_API_KEY=`), then `sudo systemctl restart create`.
 
 ## The library and Google Drive
 

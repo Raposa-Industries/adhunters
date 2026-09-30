@@ -61,6 +61,10 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | angle | The kind of image an idea is: a close variation of what works, or a new way of showing the product ("Colher", "Canudo", "Reação depois de tomar"). Options are grouped by it. |
 | blocked words | The team's list of words and phrases Taboola has blocked for them in titles (a few in descriptions too). Create avoids them, warns about them and offers other words in their place; it never refuses them. |
 | option | An image or headline Create made from a brief. Nothing is used until a person chooses it. |
+| reference | A picture a brief is made from: a Spy ad, a creative in the library, or a file from the person's computer. Create keeps its bytes before reading it. |
+| analysis | What the performing ads share, aspect by aspect: what to keep and what can vary. Create writes it when it reads them; the person edits it before making options. |
+| round | One ask for options from a brief: headlines and picture ideas in one plan, then one picture per idea. "Mais 3, ângulo novo" is a round too. |
+| save | Chosen options written into the library as one set, with the person's AI label. |
 | pairing | How the chosen creatives, headlines and CTAs become ads. Mixed: the longest list once each, the shorter ones repeated in turn until it runs out (10 images, 5 headlines and 2 CTAs make 10 ads). One to one: the person picks each pair. Every combination: each creative with each headline and each CTA. |
 | CTA | The button on an ad ("Read More", "Learn More"). Taboola takes one per item, from its own list; a person may pick several and pairing spreads them. |
 | ad id | Our own id for an ad: `ah-`, then the first 10 hex characters of the creative's SHA-256, a dash, and the first 10 of the headline's. It goes in Taboola's Custom ID (30 characters at most), so results can come back to the ad. |

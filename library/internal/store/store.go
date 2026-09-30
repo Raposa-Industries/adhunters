@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -541,23 +540,7 @@ var errSameBytes = errors.New("same bytes")
 // putBytes writes b to the file store through a temporary file, since the
 // store takes a path.
 func (s *Store) putBytes(ctx context.Context, b []byte, mediaType string) (string, error) {
-	f, err := os.CreateTemp("", "library-*")
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = os.Remove(f.Name()) }()
-	if _, err := f.Write(b); err != nil {
-		_ = f.Close()
-		return "", err
-	}
-	if err := f.Close(); err != nil {
-		return "", err
-	}
-	sum, size, err := files.Sum(f.Name())
-	if err != nil {
-		return "", err
-	}
-	return s.files.Put(ctx, sum, mediaType, f.Name(), size)
+	return files.PutBytes(ctx, s.files, b, mediaType)
 }
 
 // addToSet puts a creative in a set, after what is there.

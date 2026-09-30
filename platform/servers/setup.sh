@@ -293,6 +293,34 @@ library_box() {
     fi
 }
 
+# ---- Create on the data box ---------------------------------------------------
+
+# create_box: AdHunters Create (create/README.md). It owns the create_app and
+# create_api schemas ("create" is a reserved word in SQL) and runs their
+# migrations; Desk calls create_api through create_api_read. It reads Spy
+# ads through tracks_api and saves into the library over HTTP.
+create_box() {
+    say "the create_app login"
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'create_api_read') THEN CREATE ROLE create_api_read NOLOGIN; END IF; END \$\$"
+    local create_pw
+    create_pw=$(login create_app)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO create_app"
+    psql_su -d adhunters -c "GRANT tracks_api_read TO create_app"
+    install_bin create
+    install -m 0644 "$create_src/deploy/create.service" /etc/systemd/system/create.service
+    systemctl daemon-reload
+    local example
+    example=$(grep -E '^[A-Z0-9_]+=' "$create_src/deploy/create.env.example")
+    if [ -n "$create_pw" ]; then
+        example=$(printf '%s\n' "$example" | sed "s|^DATABASE_URL=FILL_ME\$|DATABASE_URL=postgres://create_app:$create_pw@localhost:5432/adhunters?sslmode=require|")
+    fi
+    env_file create "$example"
+    start create create
+    if grep -q '^OPENAI_API_KEY=$' /etc/adhunters/create.env; then
+        todo+=("to make options in Create: put the OpenAI key in /etc/adhunters/create.env (OPENAI_API_KEY=), then systemctl restart create")
+    fi
+}
+
 # ---- data box ---------------------------------------------------------------
 
 postgres() {
@@ -550,7 +578,8 @@ raposa-web              9106  raposa-web      -
 observe-bot             9107  observe-bot     -
 tracks-bridge           9108  tracks-bridge   -
 create-web              9109  create-web      -
-library                 9110  library         -'
+library                 9110  library         -
+create                  9111  create          -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
@@ -653,6 +682,7 @@ standby) capture_box standby:1:9101 ;;
 data)
     data_box && backups
     library_box
+    create_box
     create_web
     ;;
 esac
