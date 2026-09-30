@@ -1,0 +1,23 @@
+# Serves Spy's pages and their JSON under /spy/. Settings are in
+# /etc/adhunters/spy-web.env. It only reads published views (and asks Raposa
+# for investigations), so it runs no migrations.
+[Unit]
+Description=Spy pages
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=spy
+Group=spy
+EnvironmentFile=/etc/adhunters/spy-web.env
+ExecStart=/opt/adhunters/bin/spy-web
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

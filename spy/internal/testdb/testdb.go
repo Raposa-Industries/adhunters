@@ -105,6 +105,9 @@ CREATE TABLE tracks_api.publisher_v1 (id INTEGER PRIMARY KEY, network_id SMALLIN
 CREATE TABLE tracks_api.brand_v1 (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
 CREATE TABLE tracks_api.account_v1 (id INTEGER PRIMARY KEY, network_id SMALLINT NOT NULL DEFAULT 1, external_id TEXT NOT NULL,
     org_external_id TEXT, first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE tracks_api.campaign_v1 (id INTEGER PRIMARY KEY, network_id SMALLINT NOT NULL DEFAULT 1, external_id TEXT NOT NULL,
+    name TEXT, account_id INTEGER, parent_external_id TEXT, parent_name TEXT, objective TEXT,
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE tracks_api.creative_v1 (id INTEGER PRIMARY KEY, creative_key TEXT NOT NULL, image_url TEXT NOT NULL DEFAULT '',
     format_type TEXT, video_duration INTEGER, thumb_dimensions TEXT, language TEXT,
     first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
