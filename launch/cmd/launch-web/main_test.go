@@ -16,6 +16,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/launch/internal/actions"
 	"github.com/Raposa-Industries/adhunters/launch/internal/api"
 	"github.com/Raposa-Industries/adhunters/launch/internal/images"
+	"github.com/Raposa-Industries/adhunters/launch/internal/library"
 	"github.com/Raposa-Industries/adhunters/launch/internal/network"
 	"github.com/Raposa-Industries/adhunters/launch/internal/network/fake"
 	"github.com/Raposa-Industries/adhunters/launch/internal/store"
@@ -33,7 +34,8 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 	bp := n.AddGroup("acme-sc", network.Group{Name: "Blood Pressure US", Status: "PAUSED", Budget: 150, BudgetModel: "MONTHLY"})
 	set := network.Settings{Brand: "Health Daily", CPC: 0.32, DailyCap: 25, Countries: []string{"US"}, TrackingCode: "sub1={campaign_id}&sub4={campaign_item_id}", Objective: "DRIVE_WEBSITE_TRAFFIC"}
 	ad := network.Ad{Title: "Doctors Surprised By This Morning Habit", ImageURL: "", CTA: "LEARN_MORE", Status: "RUNNING", Approval: "APPROVED", Active: true, AdID: "ah-4f2a91c0de-77b1c2a9e0"}
-	d := n.AddCampaign("acme-sc", network.Campaign{Name: "Memory Loss US · Desktop", GroupID: mem.ID, Device: network.Desktop, Status: "RUNNING", Active: true, Settings: set}, ad)
+	d := n.AddCampaign("acme-sc", network.Campaign{Name: "Memory Loss US · Desktop", GroupID: mem.ID, Device: network.Desktop, Status: "RUNNING", Active: true, Settings: set}, ad,
+		network.Ad{Title: "The 10-Second Trick For Sharper Memory", CTA: "READ_MORE", Status: "RUNNING", Approval: "APPROVED", Active: true, AdID: "ah-4f2a91c0de-0c9d2e71aa"})
 	m := n.AddCampaign("acme-sc", network.Campaign{Name: "Memory Loss US · Mobile", GroupID: mem.ID, Device: network.Mobile, Status: "RUNNING", Active: true, Settings: set}, ad)
 	n.AddCampaign("acme-sc", network.Campaign{Name: "Memory old test", GroupID: mem.ID, Device: network.Both, Status: "PAUSED", Settings: set})
 	n.AddCampaign("acme-sc", network.Campaign{Name: "BP Seniors · Desktop", GroupID: bp.ID, Device: network.Desktop, Status: "PENDING_APPROVAL", Settings: set})
@@ -41,10 +43,20 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 	if _, err := st.AddPair(context.Background(), store.Pair{Network: "taboola", Account: "acme-sc", GroupID: mem.ID, Name: "Memory Loss US", DesktopID: d.ID, MobileID: m.ID, MadeBy: "ana@team.test"}); err != nil {
 		t.Fatal(err)
 	}
+	dAds, _ := n.Ads(context.Background(), "acme-sc", d.ID)
+	for _, q := range [][3]string{
+		{"change", `{"network":"taboola","account":"acme-sc","campaigns":["` + d.ID + `","` + m.ID + `"],"change":{"cpc":0.28}}`, "desk:41"},
+		{"pause_ads", `{"network":"taboola","account":"acme-sc","campaigns":["` + d.ID + `"],"ads":["` + dAds[1].ID + `"]}`, "desk:42"},
+	} {
+		if _, err := db.Exec(context.Background(), `SELECT launch_api.new_request_v1($1, $2, 'ana@team.test', $3)`, q[0], q[1], q[2]); err != nil {
+			t.Fatal(err)
+		}
+	}
 	img := &images.Store{Dir: t.TempDir()}
 	l := actions.New(st, img, log, func(err error) string { _, m := classify(err); return m }, n)
 	a := api.New(context.Background(), l, img, log, classify)
-	a.Limits = map[string]any{"max_cpc": 1, "max_daily_cap": 100, "only_own": true}
+	a.Limits = map[string]any{"max_cpc": 1, "max_daily_cap": 500, "only_own": true}
+	a.Library = library.New(demoLibrary(t).URL)
 	return handler(a), n, l
 }
 
@@ -82,6 +94,7 @@ func TestRoutes(t *testing.T) {
 		{"GET", "/launch/_ads/pairing.js", "", "mixedN", 200},
 		{"GET", "/launch/_ads/realize-base.xlsx", "", "", 200},
 		{"GET", "/launch/api/accounts/taboola", "", "Acme Health", 200},
+		{"GET", "/launch/api/library/set?id=1", "", "Memory morning habit", 200},
 		{"POST", "/launch/api/taboola/acme-sc/pause", "https://evil.test", "outro site", 403},
 	} {
 		req := httptest.NewRequest(c.method, c.path, strings.NewReader(`{"campaigns":["1"]}`))

@@ -237,6 +237,33 @@ func (n *Net) Copy(_ context.Context, account, id string, to network.CopyTo) (ne
 	return out, nil
 }
 
+func (n *Net) AddAds(_ context.Context, account, campaign string, ads []network.NewAd, up *network.Uploads) (network.Made, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	i, err := n.find(account, campaign)
+	if err != nil {
+		return network.Made{}, err
+	}
+	if err := n.fail("AddAds", campaign); err != nil {
+		return network.Made{}, err
+	}
+	out := network.Made{Campaign: n.campaigns[account][i]}
+	for _, a := range ads {
+		url, err := up.Once(a.Image, func(string, []byte) (string, error) {
+			n.Uploaded++
+			return "https://images.fake/" + a.Image[:12] + ".jpg", nil
+		})
+		if err != nil {
+			return out, err
+		}
+		ad := network.Ad{ID: n.id(), Title: a.Title, Description: a.Description, URL: a.URL, ImageURL: url, CTA: a.CTA, AdID: a.AdID, AI: a.AI, Status: "PAUSED", Approval: "PENDING"}
+		n.ads[campaign] = append(n.ads[campaign], ad)
+		out.Ads = append(out.Ads, ad)
+	}
+	n.Calls = append(n.Calls, "AddAds "+campaign)
+	return out, nil
+}
+
 func (n *Net) Pause(_ context.Context, account, id string) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -250,6 +277,25 @@ func (n *Net) Pause(_ context.Context, account, id string) error {
 	n.campaigns[account][i].Active, n.campaigns[account][i].Status = false, "PAUSED"
 	n.Calls = append(n.Calls, "Pause "+id)
 	return nil
+}
+
+func (n *Net) PauseAd(_ context.Context, account, campaign, ad string) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if _, err := n.find(account, campaign); err != nil {
+		return err
+	}
+	if err := n.fail("PauseAd", ad); err != nil {
+		return err
+	}
+	for i, a := range n.ads[campaign] {
+		if a.ID == ad {
+			n.ads[campaign][i].Active, n.ads[campaign][i].Status = false, "PAUSED"
+			n.Calls = append(n.Calls, "PauseAd "+campaign+" "+ad)
+			return nil
+		}
+	}
+	return &network.Refused{Message: "anúncio " + ad + " não existe na campanha " + campaign}
 }
 
 func (n *Net) Change(_ context.Context, account, id string, ch network.Change) (network.Campaign, error) {

@@ -1,5 +1,6 @@
 // Package store is Launch's own records in the launch schema: presets,
-// pairs, History, moves and drafts (migrations/sql). The campaigns
+// pairs, History, moves, drafts, the ads it made and other services'
+// requests (migrations/sql). The campaigns
 // themselves live on the ad network.
 package store
 
@@ -321,4 +322,94 @@ func nullJSON(b json.RawMessage) any {
 		return nil
 	}
 	return b
+}
+
+// AddItems notes the ads Launch made in one campaign, with our ad ids.
+func (s *Store) AddItems(ctx context.Context, network, account, campaign string, items map[string]string) error {
+	if len(items) == 0 {
+		return nil
+	}
+	b := &pgx.Batch{}
+	for item, adID := range items {
+		b.Queue(`INSERT INTO launch.item (network, account, campaign_id, item_id, ad_id) VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (network, account, campaign_id, item_id) DO UPDATE SET ad_id = EXCLUDED.ad_id`,
+			network, account, campaign, item, adID)
+	}
+	return s.db.SendBatch(ctx, b).Close()
+}
+
+// Request is a change another service asked for (launch_api.new_request_v1).
+type Request struct {
+	ID          int64           `json:"id"`
+	Kind        string          `json:"kind"`
+	Input       json.RawMessage `json:"input"`
+	RequestedBy string          `json:"requested_by"`
+	Origin      string          `json:"origin"`
+	State       string          `json:"state"`
+	ConfirmedBy string          `json:"confirmed_by"`
+	Result      json.RawMessage `json:"result"`
+	MadeAt      time.Time       `json:"made_at"`
+	DecidedAt   *time.Time      `json:"decided_at"`
+}
+
+const requestCols = `id, kind, input, requested_by, origin, state, confirmed_by, COALESCE(result, 'null'), made_at, decided_at`
+
+func scanRequest(row pgx.Row) (Request, error) {
+	var r Request
+	err := row.Scan(&r.ID, &r.Kind, &r.Input, &r.RequestedBy, &r.Origin, &r.State, &r.ConfirmedBy, &r.Result, &r.MadeAt, &r.DecidedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return r, ErrNotFound
+	}
+	return r, err
+}
+
+// Request reads one request.
+func (s *Store) Request(ctx context.Context, id int64) (Request, error) {
+	return scanRequest(s.db.QueryRow(ctx, `SELECT `+requestCols+` FROM launch.request WHERE id = $1`, id))
+}
+
+// Requests lists the waiting requests first, then the latest decided ones.
+func (s *Store) Requests(ctx context.Context, limit int) ([]Request, error) {
+	rows, err := s.db.Query(ctx, `SELECT `+requestCols+` FROM launch.request
+		ORDER BY state <> 'waiting', COALESCE(decided_at, made_at) DESC LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Request{}
+	for rows.Next() {
+		r, err := scanRequest(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// ErrDecided is a request someone already confirmed or refused.
+var ErrDecided = errors.New("store: request already decided")
+
+// Decide moves a waiting request to confirmed or refused, once: a second
+// person pressing at the same time gets ErrDecided.
+func (s *Store) Decide(ctx context.Context, id int64, state, who string) (Request, error) {
+	r, err := scanRequest(s.db.QueryRow(ctx, `UPDATE launch.request SET state = $2, confirmed_by = $3, decided_at = now()
+		WHERE id = $1 AND state = 'waiting' RETURNING `+requestCols, id, state, who))
+	if errors.Is(err, ErrNotFound) {
+		if _, err := s.Request(ctx, id); err != nil {
+			return r, err
+		}
+		return r, ErrDecided
+	}
+	return r, err
+}
+
+// Finish records how a confirmed request went: sent or failed.
+func (s *Store) Finish(ctx context.Context, id int64, state string, result any) error {
+	b, err := json.Marshal(result)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(ctx, `UPDATE launch.request SET state = $2, result = $3 WHERE id = $1 AND state = 'confirmed'`, id, state, b)
+	return err
 }

@@ -79,3 +79,7 @@ details.sheet summary { cursor: pointer; color: var(--ink-2); }
   dl.summary { grid-template-columns: 1fr; }
   dl.summary dd { margin-bottom: 6px; }
 }
+details.library { margin-bottom: 14px; border: 1px solid var(--line-subtle); border-radius: 12px; padding: 10px 14px; }
+details.library summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+ul.lib-sets, ul.lib-headlines { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+button.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }

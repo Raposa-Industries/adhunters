@@ -310,6 +310,26 @@ func TestCampaignBody(t *testing.T) {
 			}
 			return ""
 		}},
+		{"max conversions, cities, delivery", NewCampaign{Name: "x", Brand: "b", DailyCap: 100, BidStrategy: "max_conversions", ExcludeCities: []string{" 3 ", "2132"}, AdDelivery: "optimized"}, func(b map[string]any) string {
+			_, hasCPC := b["cpc"]
+			switch {
+			case b["bid_strategy"] != "MAX_CONVERSIONS" || hasCPC:
+				return "bid"
+			case fmt.Sprint(b["city_targeting"]) != "map[type:EXCLUDE value:[3 2132]]":
+				return "cities"
+			case b["traffic_allocation_mode"] != "OPTIMIZED":
+				return "delivery"
+			case b["marketing_objective"] != "ONLINE_PURCHASES":
+				return "objective"
+			}
+			return ""
+		}},
+		{"target cpa", NewCampaign{Name: "x", Brand: "b", DailyCap: 100, BidStrategy: "MAX_CONVERSIONS", TargetCPA: 35}, func(b map[string]any) string {
+			if b["bid_strategy"] != "TARGET_CPA" || b["target_cpa"] != 35.0 {
+				return "target cpa"
+			}
+			return ""
+		}},
 	} {
 		before := len(f.seen())
 		cp, err := c.CreateCampaign(ctx, "acme-sc", tc.in)
@@ -346,7 +366,13 @@ func TestCampaignBody(t *testing.T) {
 		"platform":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, Platforms: []string{"TV"}},
 		"tracking code":    {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, TrackingCode: "a b"},
 		"objective":        {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, MarketingObjective: "APP_INSTALLS"},
-		"bid":              {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "MAX_CONVERSIONS"},
+		"bid":              {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "TARGET_ROAS"},
+		"cpc with maxconv": {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "MAX_CONVERSIONS"},
+		"maxconv traffic":  {Name: "x", Brand: "b", DailyCap: 10, BidStrategy: "MAX_CONVERSIONS", MarketingObjective: "DRIVE_WEBSITE_TRAFFIC"},
+		"cpa without":      {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, TargetCPA: 20},
+		"delivery":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, AdDelivery: "FAST"},
+		"empty city":       {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, ExcludeCities: []string{" "}},
+		"city by name":     {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, ExcludeCities: []string{"Atlanta"}},
 		"smart over":       {Name: "x", Brand: "b", CPC: 1.5, DailyCap: 10, BidStrategy: "SMART"},
 		"bad date":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "01/10/2026"},
 		"end first":        {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "2026-10-02", EndDate: "2026-10-01"},
@@ -732,12 +758,20 @@ func TestGroups(t *testing.T) {
 		string(last.Body) != `{"is_active":false,"marketing_objective":"DRIVE_WEBSITE_TRAFFIC","name":"G2","spending_limit":300,"spending_limit_model":"ENTIRE"}` {
 		t.Errorf("%s %s", last.Path, last.Body)
 	}
+	if _, err := c.CreateGroup(ctx, "acme-sc", NewGroup{Name: "G3", Model: "none"}); err != nil {
+		t.Fatal(err)
+	}
+	if last := f.seen()[len(f.seen())-1]; string(last.Body) != `{"is_active":false,"marketing_objective":"DRIVE_WEBSITE_TRAFFIC","name":"G3","spending_limit_model":"NONE"}` {
+		t.Errorf("no budget: %s", last.Body)
+	}
 	before := len(f.seen())
 	for name, n := range map[string]NewGroup{
 		"no name":   {SpendingLimit: 10, Model: "MONTHLY"},
 		"no budget": {Name: "g", Model: "MONTHLY"},
 		"too much":  {Name: "g", SpendingLimit: 3001, Model: "MONTHLY"},
-		"model":     {Name: "g", SpendingLimit: 10, Model: "DAILY"},
+		"model":     {Name: "g", SpendingLimit: 10, Model: "WEEKLY"},
+		"none, sum": {Name: "g", SpendingLimit: 10, Model: "NONE"},
+		"daily":     {Name: "g", SpendingLimit: 10, Model: "DAILY"},
 	} {
 		var r *Refused
 		if _, err := c.CreateGroup(ctx, "acme-sc", n); !errors.As(err, &r) {

@@ -47,6 +47,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/launch/internal/actions"
 	"github.com/Raposa-Industries/adhunters/launch/internal/api"
 	"github.com/Raposa-Industries/adhunters/launch/internal/images"
+	"github.com/Raposa-Industries/adhunters/launch/internal/library"
 	"github.com/Raposa-Industries/adhunters/launch/internal/network"
 	tbnet "github.com/Raposa-Industries/adhunters/launch/internal/network/taboola"
 	"github.com/Raposa-Industries/adhunters/launch/internal/store"
@@ -117,6 +118,9 @@ func serve(args []string) error {
 	l := actions.New(st, img, log, tbnet.Message, tbnet.New(tb))
 	a := api.New(ctx, l, img, log, classify)
 	a.Limits = map[string]any{"max_cpc": tbSet.MaxCPC, "max_daily_cap": tbSet.MaxDailyCap, "only_own": tbSet.OnlyOwn}
+	if lib := envOr("LAUNCH_LIBRARY_URL", "http://127.0.0.1:8093"); lib != "off" {
+		a.Library = library.New(lib)
+	}
 
 	srv := ops.New("launch-web", version)
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })

@@ -37,7 +37,11 @@ type Network interface {
 	// group or in another (how a campaign moves: a group is fixed once a
 	// campaign is made).
 	Copy(ctx context.Context, account, campaign string, to CopyTo) (Made, error)
+	// AddAds makes more ads, paused, in a campaign that exists.
+	AddAds(ctx context.Context, account, campaign string, ads []NewAd, up *Uploads) (Made, error)
 	Pause(ctx context.Context, account, campaign string) error
+	// PauseAd pauses one ad of a campaign.
+	PauseAd(ctx context.Context, account, campaign, ad string) error
 	Change(ctx context.Context, account, campaign string, ch Change) (Campaign, error)
 }
 
@@ -92,6 +96,13 @@ type Settings struct {
 	Objective     string   `json:"objective"`
 	StartDate     string   `json:"start_date"`
 	EndDate       string   `json:"end_date"`
+	// TargetCPA, with bid strategy MAX_CONVERSIONS, is the cost per
+	// conversion to aim for; 0 lets the network maximize conversions.
+	TargetCPA float64 `json:"target_cpa,omitempty"`
+	// ExcludeCities are the network's city values not to show in.
+	ExcludeCities []string `json:"exclude_cities,omitempty"`
+	// AdDelivery is OPTIMIZED (the best ads get more) or EVEN (A/B).
+	AdDelivery string `json:"ad_delivery,omitempty"`
 }
 
 // Ad is one ad in a campaign (Taboola's item).
