@@ -11,6 +11,7 @@ import { clean, hasHidden, headlineWarnings, imageWarnings, looksAIMade } from '
 import { CTAS, AD_COLUMNS, MAX_ADS, adId, adRows, uniqueNames, campaignIds } from '/launch/_ads/sheet.js';
 import { fillTemplate } from '/launch/_ads/template.js';
 import { zip } from '/launch/_ads/zip.js';
+import { libraryPicker } from './library.js';
 
 // Portuguese in a headline: accents Portuguese uses and English does not,
 // and a few common words. Headlines always go out in English.
@@ -90,6 +91,7 @@ export async function newPair({ main, status }) {
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); });
   const upNote = h('div');
+  const lib = libraryPicker(fromLibrary);
 
   const paste = h('textarea', { rows: 4, placeholder: 'Uma headline por linha, em inglês', spellcheck: 'true' });
   const hlList = h('ol', { class: 'headlines' });
@@ -112,7 +114,7 @@ export async function newPair({ main, status }) {
   const aiBox = h('div');
   const pairing = h('p', { class: 'muted' });
   const adsPanel = h('section', { class: 'panel step' }, h('h2', {}, '3 · Anúncios'),
-    h('h3', {}, 'Imagens'), drop, fileIn, upNote, imgGrid,
+    lib.el, h('h3', {}, 'Imagens'), drop, fileIn, upNote, imgGrid,
     h('h3', {}, 'Headlines'), h('p', { class: 'faint' }, 'Sempre em inglês. Os avisos são do Taboola e não impedem o envio.'), paste, h('div', { class: 'actions' }, addHl), hlList,
     h('h3', {}, 'Botão'), ctaBox,
     h('h3', {}, 'Combinação'), h('div', { class: 'actions' }, modeBox, reshuffle), pairing,
@@ -194,6 +196,44 @@ export async function newPair({ main, status }) {
     drawImages();
     update();
   }
+  // fromLibrary brings a library set's chosen creatives and headlines in.
+  // A creative's AI label is the one saved with it; an unlabelled one is
+  // looked at like an upload.
+  async function fromLibrary(creatives, lines) {
+    const problems = [];
+    let nI = 0;
+    let nH = 0;
+    for (const c of creatives) {
+      try {
+        const r = await api('library/use?id=' + encodeURIComponent(c.id), { method: 'POST' });
+        if (s.images.some((x) => x.sha256 === r.image.sha256)) continue;
+        let ai = c.ai_label === 'ai';
+        if (c.ai_label !== 'ai' && c.ai_label !== 'not_ai') {
+          const res = await fetch('/launch/api/images/' + r.image.sha256).catch(() => null);
+          if (res?.ok) ai = looksAIMade(new Uint8Array(await res.arrayBuffer()));
+        }
+        s.images.push({ ...r.image, ai, on: true, library: c.id });
+        nI++;
+      } catch (e) {
+        problems.push(`${c.name || 'criativo ' + c.id}: ${e.message}`);
+      }
+    }
+    const known = new Set(s.headlines.map((x) => clean(x.text).toLowerCase()));
+    for (const x of lines) {
+      const t = clean(x.text || '');
+      if (!t || known.has(t.toLowerCase())) continue;
+      known.add(t.toLowerCase());
+      s.headlines.push({ text: t, on: true, library: x.id, ai: x.ai_label === 'ai' });
+      nH++;
+    }
+    if (!s.ai && (s.images.some((x) => x.on && x.ai) || s.headlines.some((x) => x.on && x.ai))) s.ai = 'yes';
+    upNote.replaceChildren(...problems.map((p) => note('fail', p)));
+    drawImages();
+    drawHeadlines();
+    update();
+    return { images: nI, headlines: nH, problems: problems.length };
+  }
+
   function drawImages() {
     imgGrid.replaceChildren(...s.images.map((img, i) => {
       const warn = imageWarnings({ width: img.width, height: img.height, size: img.bytes, type: img.type });
@@ -459,6 +499,8 @@ export async function newPair({ main, status }) {
   drawHeadlines();
   drawCTAs();
   update();
+  // Create sends people here with the set they just saved: /launch/new?set=7.
+  if (/^\d+$/.test(q.get('set') || '')) lib.open(q.get('set'), true);
   for (const el of [where, settingsPanel]) {
     el.addEventListener('input', () => update());
     el.addEventListener('change', () => update());

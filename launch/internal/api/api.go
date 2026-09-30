@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/Raposa-Industries/adhunters/launch/internal/library"
 	"io"
 	"log/slog"
 	"net/http"
@@ -39,6 +40,9 @@ type API struct {
 	base context.Context
 	// Limits are shown on the page (the network's ceilings).
 	Limits map[string]any
+	// Library is the team's library, for a new pair's pictures and
+	// headlines; nil when there is none.
+	Library *library.Client
 
 	mu   sync.Mutex
 	jobs map[string]*job
@@ -98,6 +102,10 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("DELETE "+p+"drafts/{id}", a.deleteDraft)
 	m.HandleFunc("POST "+p+"images", a.putImage)
 	m.HandleFunc("GET "+p+"images/{sha}", a.getImage)
+	// One set, one thumbnail and "use this creative" take ?id=: a third
+	// path segment would clash with {net}/{account}/….
+	m.HandleFunc("GET "+p+"library/{what}", a.libraryList)
+	m.HandleFunc("POST "+p+"library/use", a.libraryUse)
 	m.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) { say(w, http.StatusNotFound, "endereço desconhecido") })
 	return m
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/launch/internal/actions"
 	"github.com/Raposa-Industries/adhunters/launch/internal/api"
 	"github.com/Raposa-Industries/adhunters/launch/internal/images"
+	"github.com/Raposa-Industries/adhunters/launch/internal/library"
 	"github.com/Raposa-Industries/adhunters/launch/internal/network"
 	"github.com/Raposa-Industries/adhunters/launch/internal/network/fake"
 	"github.com/Raposa-Industries/adhunters/launch/internal/store"
@@ -46,6 +47,7 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 	l := actions.New(st, img, log, func(err error) string { _, m := classify(err); return m }, n)
 	a := api.New(context.Background(), l, img, log, classify)
 	a.Limits = map[string]any{"max_cpc": 1, "max_daily_cap": 100, "only_own": true}
+	a.Library = library.New(demoLibrary(t).URL)
 	return handler(a), n, l
 }
 
@@ -83,6 +85,7 @@ func TestRoutes(t *testing.T) {
 		{"GET", "/launch/_ads/pairing.js", "", "mixedN", 200},
 		{"GET", "/launch/_ads/realize-base.xlsx", "", "", 200},
 		{"GET", "/launch/api/accounts/taboola", "", "Acme Health", 200},
+		{"GET", "/launch/api/library/set?id=1", "", "Memory morning habit", 200},
 		{"POST", "/launch/api/taboola/acme-sc/pause", "https://evil.test", "outro site", 403},
 	} {
 		req := httptest.NewRequest(c.method, c.path, strings.NewReader(`{"campaigns":["1"]}`))

@@ -43,6 +43,7 @@ type rig struct {
 	srv *httptest.Server
 	net *fake.Net
 	l   *actions.Launch
+	api *API
 }
 
 func setup(t *testing.T) *rig {
@@ -55,7 +56,7 @@ func setup(t *testing.T) *rig {
 	a := New(context.Background(), l, img, log, classify)
 	srv := httptest.NewServer(a.Handler())
 	t.Cleanup(srv.Close)
-	return &rig{t: t, srv: srv, net: n, l: l}
+	return &rig{t: t, srv: srv, net: n, l: l, api: a}
 }
 
 // call sends a request as ana@team.test and decodes the answer into out.
