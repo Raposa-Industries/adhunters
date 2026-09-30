@@ -1,4 +1,4 @@
-package taboola
+package write
 
 import (
 	"bytes"
@@ -16,13 +16,14 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/keep"
+	"github.com/Raposa-Industries/adhunters/kit/keep"
 )
 
 var quiet = slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -158,7 +159,7 @@ func TestTokenCachedAndRefreshedOn401(t *testing.T) {
 	if last := s[len(s)-1]; last.Auth != "Bearer tok-2" {
 		t.Errorf("repeat sent %q", last.Auth)
 	}
-	if len(list) != 1 || list[0] != (Campaign{ID: "101", Name: "One", Status: "RUNNING", IsActive: true, BrandingText: "Health", CPC: 0.3, DailyCap: 20, BidStrategy: "FIXED", TrackingCode: "s={site}"}) {
+	if len(list) != 1 || !reflect.DeepEqual(list[0], Campaign{ID: "101", Name: "One", Status: "RUNNING", IsActive: true, BrandingText: "Health", CPC: 0.3, DailyCap: 20, BidStrategy: "FIXED", TrackingCode: "s={site}"}) {
 		t.Errorf("%+v", list)
 	}
 }
@@ -691,11 +692,18 @@ func TestDuplicateCampaign(t *testing.T) {
 	if _, err := c.DuplicateCampaign(ctx, "acme-sc", "10x", NewCampaign{Name: "copy"}); !errors.As(err, &r) {
 		t.Errorf("bad source id: %v", err)
 	}
-	if _, err := c.DuplicateCampaign(ctx, "acme-sc", "101", NewCampaign{Name: "copy", GroupID: "7"}); !errors.As(err, &r) {
-		t.Errorf("a copy into another group: %v", err)
-	}
 	if len(f.seen()) != 1 {
 		t.Errorf("a refused copy reached Taboola")
+	}
+	// A copy into another group is how a campaign moves.
+	if _, err := c.DuplicateCampaign(ctx, "acme-sc", "101", NewCampaign{Name: "moved", GroupID: "7"}); err != nil {
+		t.Fatal(err)
+	}
+	s = f.seen()
+	b = nil
+	_ = json.Unmarshal(s[len(s)-1].Body, &b)
+	if b["campaign_group_id"] != "7" || b["is_active"] != false {
+		t.Errorf("copy into group 7 sent %v", b)
 	}
 }
 
@@ -878,5 +886,85 @@ func TestOnlyOwnNeedsState(t *testing.T) {
 	_ = os.WriteFile(bad, []byte("{"), 0o640)
 	if _, err := New(Settings{OnlyOwn: true, NamePrefix: "AH", StateFile: bad}, nil, quiet); err == nil {
 		t.Errorf("broken state file accepted")
+	}
+}
+
+func TestAdsPauseAndChange(t *testing.T) {
+	f := newFake(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
+		p := strings.TrimPrefix(r.URL.Path, apiPrefix)
+		switch {
+		case r.Method == "GET" && p == "acme-sc/campaigns/101/items/":
+			io.WriteString(w, `{"results":[
+				{"id":"1","title":"T","url":"https://x.test/a","thumbnail_url":"https://cdn.test/1.jpg","cta":{"cta_type":"READ_MORE"},"custom_data":{"custom_id":"ah-1-2"},"ai_disclosure":{"status":"AI_GENERATED"},"status":"PAUSED","approval_state":"APPROVED","is_active":false},
+				{"id":"2","status":"TERMINATED"}]}`)
+		case r.Method == "POST" && p == "acme-sc/campaigns/101/":
+			var b map[string]any
+			_ = json.Unmarshal(body, &b)
+			b["id"] = "101"
+			if _, ok := b["is_active"]; !ok {
+				b["is_active"] = false
+			}
+			_ = json.NewEncoder(w).Encode(b)
+		default:
+			io.WriteString(w, `{"id":"9","is_active":false}`)
+		}
+	})
+	c, _ := client(t, f.srv.URL)
+	ads, err := c.Ads(ctx, "acme-sc", "101")
+	if err != nil || len(ads) != 1 {
+		t.Fatalf("%v %v", ads, err)
+	}
+	if a := ads[0]; a.CTA != "READ_MORE" || a.CustomID != "ah-1-2" || !a.AI || a.Approval != "APPROVED" {
+		t.Errorf("%+v", a)
+	}
+	if it := ads[0].NewItem(); it.ThumbnailURL != "https://cdn.test/1.jpg" || it.Check() != nil {
+		t.Errorf("%+v", it)
+	}
+	if err := c.PauseCampaign(ctx, "acme-sc", "101"); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.PauseAd(ctx, "acme-sc", "101", "x"); err == nil {
+		t.Error("a bad item id was sent")
+	}
+	cp, err := c.ChangeCampaign(ctx, "acme-sc", "101", Change{CPC: 0.35, DailyCap: 20})
+	if err != nil || cp.CPC != 0.35 {
+		t.Fatalf("%+v %v", cp, err)
+	}
+	s := f.seen()
+	if last := string(s[len(s)-1].Body); last != `{"cpc":0.35,"daily_cap":20}` {
+		t.Errorf("change sent %s", last)
+	}
+	before := len(f.seen())
+	for name, ch := range map[string]Change{
+		"nothing":     {},
+		"cpc":         {CPC: 2},
+		"cap":         {DailyCap: 500},
+		"cap > total": {DailyCap: 50, SpendingLimit: 40},
+	} {
+		var r *Refused
+		if _, err := c.ChangeCampaign(ctx, "acme-sc", "101", ch); !errors.As(err, &r) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	if len(f.seen()) != before {
+		t.Error("a refused change reached Taboola")
+	}
+}
+
+func TestSettingsFromEnv(t *testing.T) {
+	env := map[string]string{"TABOOLA_ACCOUNTS": " a-sc, ,b-sc", "TABOOLA_ONLY_OWN": "1", "TABOOLA_MAX_CPC": "0.5"}
+	s, err := SettingsFromEnv(func(k string) string { return env[k] }, "/x/state.json")
+	if err != nil || fmt.Sprint(s.Accounts) != "[a-sc b-sc]" || !s.OnlyOwn || s.MaxCPC != 0.5 || s.MaxDailyCap != 100 || s.StateFile != "/x/state.json" || s.Base != DefaultBase {
+		t.Fatalf("%+v %v", s, err)
+	}
+	for k, v := range map[string]string{"TABOOLA_ACCOUNTS": "z-network", "TABOOLA_ONLY_OWN": "yes", "TABOOLA_MAX_DAILY_CAP": "-1"} {
+		if _, err := SettingsFromEnv(func(key string) string {
+			if key == k {
+				return v
+			}
+			return ""
+		}, ""); err == nil {
+			t.Errorf("%s=%s accepted", k, v)
+		}
 	}
 }

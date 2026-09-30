@@ -1,7 +1,7 @@
 // realize-base makes the launcher's built-in Realize template from a real
 // one, with every trace of the account it came from taken out:
 //
-//   node create/web/tools/realize-base.mjs Downloaded-Template.xlsx create/web/launcher/realize-base.xlsx
+//   node shared/adsweb/tools/realize-base.mjs Downloaded-Template.xlsx shared/adsweb/assets/realize-base.xlsx
 //
 // A Realize template is one fixed base (the tabs, headers, dropdowns and
 // Taboola's own code lists) plus the account's data: its name and download
@@ -9,11 +9,11 @@
 // Predictive Audiences and Campaign Groups lists. Those lists are emptied
 // here, every string no remaining cell uses is blanked, and the page fills
 // the account's part back from the Taboola API when it builds a sheet
-// (launcher/template.js). Nothing else in the file is changed.
+// (assets/template.js). Nothing else in the file is changed.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { deflateRawSync } from "node:zlib";
-import { unzip, inflate, zip, concat, crc32 } from "../launcher/zip.js";
+import { unzip, inflate, zip, concat, crc32 } from "../assets/zip.js";
 
 const [,, src, dst] = process.argv;
 if (!src || !dst) {

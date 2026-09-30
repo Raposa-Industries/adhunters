@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/keep"
+	"github.com/Raposa-Industries/adhunters/kit/keep"
 )
 
 const defaultBaseURL = "https://api.openai.com"

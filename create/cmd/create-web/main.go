@@ -58,13 +58,14 @@ import (
 	"time"
 
 	"github.com/Raposa-Industries/adhunters/create/internal/api"
-	"github.com/Raposa-Industries/adhunters/create/internal/keep"
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
-	"github.com/Raposa-Industries/adhunters/create/internal/taboola"
 	"github.com/Raposa-Industries/adhunters/create/web"
+	"github.com/Raposa-Industries/adhunters/kit/keep"
 	"github.com/Raposa-Industries/adhunters/kit/logx"
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/run"
+	"github.com/Raposa-Industries/adhunters/shared/adsweb"
+	taboola "github.com/Raposa-Industries/adhunters/shared/taboola/write"
 )
 
 // version is set at build time: -ldflags "-X main.version=…".
@@ -96,7 +97,7 @@ func serve(args []string) error {
 		return fmt.Errorf("CREATE_IMAGE_QUALITY must be low, medium or high, not %q", set.ImageQuality)
 	}
 
-	tbSet, err := taboolaSettings(*keepDir)
+	tbSet, err := taboola.SettingsFromEnv(os.Getenv, filepath.Join(*keepDir, "taboola-state.json"))
 	if err != nil {
 		return err
 	}
@@ -121,6 +122,8 @@ func serve(args []string) error {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", web.Handler())
+	// The code the ad pages share with Launch (pairing, warnings, the bulk sheet).
+	mux.Handle("/_ads/", http.StripPrefix("/_ads", adsweb.Handler()))
 	mux.Handle("/api/", api.New(client, log).WithTaboola(tb).Handler())
 	// The API spends money, so a request another site makes the browser
 	// send (a form posted cross-origin) is refused; the page's own fetches
@@ -213,54 +216,6 @@ func settings() (openai.Settings, error) {
 				return s, fmt.Errorf("%s must be a price in USD per million tokens, not %q", p.key, v)
 			}
 			*p.to = f
-		}
-	}
-	return s, nil
-}
-
-// taboolaSettings reads the Taboola login. Unset credentials leave Taboola
-// off; a network account or a bad ceiling stops the boot.
-func taboolaSettings(keepDir string) (taboola.Settings, error) {
-	s := taboola.Settings{
-		Base:         envOr("TABOOLA_BASE_URL", taboola.DefaultBase),
-		ClientID:     os.Getenv("TABOOLA_CLIENT_ID"),
-		ClientSecret: os.Getenv("TABOOLA_CLIENT_SECRET"),
-		NamePrefix:   strings.TrimSpace(os.Getenv("TABOOLA_NAME_PREFIX")),
-		StateFile:    envOr("TABOOLA_STATE_FILE", filepath.Join(keepDir, "taboola-state.json")),
-	}
-	switch v := os.Getenv("TABOOLA_ONLY_OWN"); v {
-	case "", "0", "false":
-	case "1", "true":
-		s.OnlyOwn = true
-	default:
-		return s, fmt.Errorf("TABOOLA_ONLY_OWN must be 1 or 0, not %q", v)
-	}
-	for _, a := range strings.Split(os.Getenv("TABOOLA_ACCOUNTS"), ",") {
-		a = strings.TrimSpace(a)
-		if a == "" {
-			continue
-		}
-		if strings.HasSuffix(a, "-network") {
-			return s, fmt.Errorf("TABOOLA_ACCOUNTS must hold advertiser accounts, not the network account %q", a)
-		}
-		s.Accounts = append(s.Accounts, a)
-	}
-	limits := []struct {
-		key string
-		def float64
-		to  *float64
-	}{
-		{"TABOOLA_MAX_CPC", 1, &s.MaxCPC},
-		{"TABOOLA_MAX_DAILY_CAP", 100, &s.MaxDailyCap},
-	}
-	for _, l := range limits {
-		*l.to = l.def
-		if v := os.Getenv(l.key); v != "" {
-			f, err := strconv.ParseFloat(v, 64)
-			if err != nil || !(f > 0) {
-				return s, fmt.Errorf("%s must be an amount in USD above 0, not %q", l.key, v)
-			}
-			*l.to = f
 		}
 	}
 	return s, nil

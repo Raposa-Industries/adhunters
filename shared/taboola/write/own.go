@@ -1,4 +1,4 @@
-package taboola
+package write
 
 import (
 	"encoding/json"

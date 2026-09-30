@@ -1,4 +1,4 @@
-package taboola
+package write
 
 import (
 	"context"
@@ -108,6 +108,23 @@ type Campaign struct {
 	MarketingObjective string  `json:"marketing_objective"`
 	StartDate          string  `json:"start_date"`
 	EndDate            string  `json:"end_date"`
+	// Countries and Platforms are the included ones (empty: everywhere).
+	Countries []string `json:"countries"`
+	Platforms []string `json:"platforms"`
+}
+
+// included reads Taboola's {"type":"INCLUDE","value":[…]} targeting.
+func included(v any) []string {
+	t, _ := v.(obj)
+	if str(t["type"]) != "INCLUDE" {
+		return nil
+	}
+	vals, _ := t["value"].([]any)
+	out := []string{}
+	for _, x := range vals {
+		out = append(out, str(x))
+	}
+	return out
 }
 
 func campaignFrom(o obj) Campaign {
@@ -127,6 +144,8 @@ func campaignFrom(o obj) Campaign {
 		MarketingObjective: str(o["marketing_objective"]),
 		StartDate:          str(o["start_date"]),
 		EndDate:            str(o["end_date"]),
+		Countries:          included(o["country_targeting"]),
+		Platforms:          included(o["platform_targeting"]),
 	}
 }
 
@@ -178,8 +197,8 @@ type NewCampaign struct {
 	// GroupID puts the campaign in a campaign group, which may then carry the
 	// budget. Taboola lets it be set only when the campaign is made
 	// (campaign_group_id is final); proven on the real API on 2026-09-29.
-	// A copy (DuplicateCampaign) stays in its original's group, so it takes
-	// no GroupID.
+	// A copy (DuplicateCampaign) stays in its original's group unless
+	// GroupID names another.
 	GroupID string
 }
 
@@ -354,16 +373,16 @@ func (c *Client) CreateCampaign(ctx context.Context, account string, n NewCampai
 // paused campaign named n.Name, with whatever else n sets in place of the
 // copy's. Proven on the real API on 2026-09-29: the copy took the new name,
 // brand, CPC and daily cap, came back paused, and stayed in the original's
-// campaign group, which is why n may not name another one.
+// campaign group. With n.GroupID the copy lands in that group instead: the
+// only way to move a campaign, since Taboola refuses a group change on an
+// existing one ("read-only field"). Proven on 2026-09-30: the copy arrives
+// paused in the new group, with a new id.
 func (c *Client) DuplicateCampaign(ctx context.Context, account, from string, n NewCampaign) (Campaign, error) {
 	if err := c.CheckAccount(account); err != nil {
 		return Campaign{}, err
 	}
 	if err := CheckCampaignID(from); err != nil {
 		return Campaign{}, err
-	}
-	if strings.TrimSpace(n.GroupID) != "" {
-		return Campaign{}, refuse("uma cópia fica no grupo da campanha copiada: não escolha outro grupo")
 	}
 	b, err := n.body(c.s.MaxCPC, c.s.MaxDailyCap, false)
 	if err != nil {
@@ -384,7 +403,7 @@ func (c *Client) DuplicateCampaign(ctx context.Context, account, from string, n 
 	if err := c.rememberOrSay(account, cp.ID, ""); err != nil {
 		return cp, err
 	}
-	c.log.Info("taboola campaign copied", "account", account, "from", from, "campaign", cp.ID, "active", cp.IsActive)
+	c.log.Info("taboola campaign copied", "account", account, "from", from, "campaign", cp.ID, "active", cp.IsActive, "group", cp.CampaignGroupID)
 	return cp, nil
 }
 

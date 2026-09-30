@@ -1,10 +1,14 @@
-// Package taboola is Create's Taboola Backstage client: the advertiser
-// accounts the page may use, their campaigns, a new campaign, image uploads
-// and ads (Taboola's items) made in bulk.
+// Package write is the Taboola Backstage client that changes things: the
+// advertiser accounts a login may use, their groups and campaigns, a new
+// campaign, a copy, image uploads and ads (Taboola's items) made in bulk.
+// AdHunters Launch is the one app that writes to Taboola; create-web's
+// launcher page uses it too until Launch replaces it. The walls check lets
+// no other module import it (scripts/check-walls.sh).
 //
 // The token, sending, retries and the image form come from shared/taboola,
-// which Intel's clients use too (decision 0013). The guards, the keep folder
-// and the pt-BR messages are Create's own and live here. What the write tests
+// which Intel's read-only client uses too (decision 0013). The guards and
+// their pt-BR messages live here with the writes they guard, so both apps
+// refuse the same things the same way. What the write tests
 // of 2026-09-29 learned is kept, with the reason next to it.
 //
 // Guards, checked before a request leaves (do):
@@ -26,7 +30,7 @@
 // Every request and answer (never the token, never the secret) is kept raw in
 // the keep folder before anything reads it. A reply that cannot be kept is
 // not handed back (ErrKeep), as in package openai.
-package taboola
+package write
 
 import (
 	"context"
@@ -41,7 +45,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/keep"
+	"github.com/Raposa-Industries/adhunters/kit/keep"
 	api "github.com/Raposa-Industries/adhunters/shared/taboola"
 )
 

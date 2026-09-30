@@ -1,6 +1,7 @@
-// Package keep saves every OpenAI reply Create uses before the service hands
-// it back, so nothing that was paid for exists only in a browser tab (the
-// repo's "saved raw before parsing" rule).
+// Package keep saves what a service receives from outside (an OpenAI reply,
+// a Taboola answer) before the service reads it or hands it back, so nothing
+// that was paid for or changed exists only in a browser tab (the repo's
+// "saved raw before parsing" rule).
 //
 // A folder holds one sub-folder per UTC day. An image is <time>-<random>.jpg
 // with a <time>-<random>.json sidecar beside it; a plan is <time>-<random>-plan.json.

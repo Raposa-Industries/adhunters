@@ -1,6 +1,6 @@
 // A minimal .xlsx writer, for tests: it builds small workbooks shaped like
 // Realize's template for fillTemplate to fill.
-import { zip, concat } from "../launcher/zip.js";
+import { zip, concat } from "../assets/zip.js";
 
 // --- xlsx ------------------------------------------------------------------
 

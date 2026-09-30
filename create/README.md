@@ -73,8 +73,8 @@ bulk sheet is the way out.
 that is not in its template's shape (a home-made one got "Invalid number of
 library creatives"): the template carries hidden METADATA tabs naming the
 account and the field behind each column. The page carries that template
-with no account in it (`launcher/realize-base.xlsx`, the US one, made from a
-downloaded template by `web/tools/realize-base.mjs`, which empties the
+with no account in it (`shared/adsweb/assets/realize-base.xlsx`, the US one, made from a
+downloaded template by `shared/adsweb/tools/realize-base.mjs`, which empties the
 Accounts, Conversion Events, audience and Campaign Groups lists and blanks
 every string only they used). When it builds a sheet it writes the
 account's part back from the API (`GET /api/taboola/workbook`: the network
@@ -85,7 +85,7 @@ upload only creates (rows with no id) or updates (rows with an id); the page
 writes no ids, so a sheet can only add ads. The page writes one row
 per ad into its Ads tab from row 3, finding columns by their header in row
 2 and leaving every other file in the workbook as Realize wrote it
-(`launcher/template.js`). "Campaign ID" takes several ids as `123; 456`.
+(`shared/adsweb/assets/template.js`). "Campaign ID" takes several ids as `123; 456`.
 Status is Paused on every ad. The Ads tab runs to row 500, so
 one sheet holds 498 ads. "Copiar linhas" copies the same rows to paste at A3
 by hand.
@@ -242,10 +242,17 @@ sudo apt-get update && sudo apt-get install -y cloudflared
 sudo cloudflared service install TOKEN
 ```
 
+## Code shared with Launch
+
+The page's ad code (pairing, checks, the bulk sheet, the tracker link split,
+the ZIP) is `shared/adsweb`, served at `/_ads/`, and its Taboola client is
+`shared/taboola/write`: Launch (`launch/`) uses both and takes over every
+Taboola write; this page keeps working until Launch replaces it.
+
 ## Tests
 
 ```
-node --test create/web/test/*.test.js     # pairing, checks, tracking, zip, xlsx (needs python3)
+node --test shared/adsweb/test/*.test.js  # pairing, checks, tracking, zip, xlsx (needs python3)
 cd create && go test ./...
 ```
 

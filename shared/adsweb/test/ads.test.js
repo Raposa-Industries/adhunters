@@ -1,4 +1,4 @@
-// Tests for the launcher page's logic: node --test create/web/test/
+// Tests for the ad pages' shared logic: node --test shared/adsweb/test/
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -6,12 +6,12 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { mixed, every, uses, seeded, mixedN, everyN, usesN } from "../launcher/pairing.js";
-import { clean, hasHidden, headlineWarnings, blockedWords, blockedWarnings, blockedHits, swapBlocked, imageWarnings, urlWarnings, looksAIMade } from "../launcher/checks.js";
-import { zip, concat, crc32, unzip, inflate } from "../launcher/zip.js";
-import { AD_COLUMNS, CTAS, adRows, campaignIds, ctaType, safeName, uniqueNames, adId, tsv } from "../launcher/sheet.js";
-import { readTemplate, fillTemplate } from "../launcher/template.js";
-import { splitLink, TRACKERS } from "../launcher/tracking.js";
+import { mixed, every, uses, seeded, mixedN, everyN, usesN } from "../assets/pairing.js";
+import { clean, hasHidden, headlineWarnings, blockedWords, blockedWarnings, blockedHits, swapBlocked, imageWarnings, urlWarnings, looksAIMade } from "../assets/checks.js";
+import { zip, concat, crc32, unzip, inflate } from "../assets/zip.js";
+import { AD_COLUMNS, CTAS, adRows, campaignIds, ctaType, safeName, uniqueNames, adId, tsv } from "../assets/sheet.js";
+import { readTemplate, fillTemplate } from "../assets/template.js";
+import { splitLink, TRACKERS } from "../assets/tracking.js";
 import { xlsx } from "./xlsx.js";
 
 test("mixed: 10 creatives and 5 headlines make 10 ads, each headline twice", () => {
@@ -104,7 +104,7 @@ test("headline warnings follow Taboola's title rules", () => {
 });
 
 // The team's list, read the way the server reads it.
-const BLOCKED = readFileSync(new URL("../../internal/openai/rules/blocked.txt", import.meta.url), "utf8")
+const BLOCKED = readFileSync(new URL("../../../create/internal/openai/rules/blocked.txt", import.meta.url), "utf8")
   .split("\n").filter((l) => l.trim() && !l.startsWith("#"))
   .map((l) => { const [where, text] = l.split("\t"); return { text: text.trim(), description: where === "title+description" }; });
 
@@ -125,7 +125,7 @@ test("the team's blocked words are found, with their endings, and named once", (
 });
 
 // The replacements offered on the page, read the way the server reads them.
-const SYNONYMS = new Map(readFileSync(new URL("../../internal/openai/rules/synonyms.txt", import.meta.url), "utf8")
+const SYNONYMS = new Map(readFileSync(new URL("../../../create/internal/openai/rules/synonyms.txt", import.meta.url), "utf8")
   .split("\n").filter((l) => l.trim() && !l.startsWith("#"))
   .map((l) => { const [word, opts] = l.split("\t"); return [word.trim().toLowerCase(), opts.split("|").map((o) => o.trim())]; }));
 const WITH_SYNONYMS = BLOCKED.map((b) => ({ ...b, alternatives: SYNONYMS.get(b.text.toLowerCase()) || [] }));
@@ -265,7 +265,7 @@ for row in sheet.find("m:sheetData", ns):
 
 // The built-in base: Realize's template with no account in it, which the
 // page fills with the account read from the API.
-const BASE = new URL("../launcher/realize-base.xlsx", import.meta.url);
+const BASE = new URL("../assets/realize-base.xlsx", import.meta.url);
 
 test("the built-in base carries no account, and gets one when filled", async () => {
   const base = new Uint8Array(readFileSync(BASE));
