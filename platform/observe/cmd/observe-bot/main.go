@@ -11,6 +11,7 @@
 //	observe-bot policy              crawl the policy pages now and print the changes, sending nothing
 //	observe-bot policy -list | -from CRAWL [-to CRAWL]
 //	                                list the saved crawls, or compare two of them again
+//	observe-bot sentry-test         send one test error to Sentry, to try SENTRY_DSN
 //	observe-bot version
 //
 // Settings come from the environment (/etc/adhunters/observe-bot.env):
@@ -66,6 +67,8 @@ func main() {
 		err = creditsCmd(os.Args[2:])
 	case "policy":
 		err = policyCmd(os.Args[2:])
+	case "sentry-test":
+		err = sentryTestCmd()
 	case "version":
 		fmt.Println(version)
 	default:
@@ -78,7 +81,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: observe-bot run|digest|credits|policy|version [flags]")
+	fmt.Fprintln(os.Stderr, "usage: observe-bot run|digest|credits|policy|sentry-test|version [flags]")
 	os.Exit(2)
 }
 

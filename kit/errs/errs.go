@@ -43,6 +43,10 @@ func Init(service, version string) (bool, error) {
 		// No request bodies, cookies or user IPs: errors only.
 		SendDefaultPII: false,
 		Tags:           map[string]string{"service": service},
+		// The newer telemetry buffer can let Flush return before an event
+		// queued just before it is sent, which loses the last error of a
+		// process that is exiting. The plain transport's Flush waits for it.
+		DisableTelemetryBuffer: true,
 	})
 	if err != nil {
 		return false, fmt.Errorf("sentry: %w", err)

@@ -51,6 +51,8 @@ and, optionally, `THROTTLE` (the wait after each scrape, default `150ms`).
 and standby boxes share with the data box (the object storage keys and the
 `tracks_shipper` and `raposa` database URLs) without showing them; see
 [../OPERATIONS.md](../OPERATIONS.md).
+`set-sentry-dsn.sh`, the same way, puts the Sentry DSN in every box's
+`observe.env` and restarts only the running units that read it.
 
 ### Raposa on the worker box
 
