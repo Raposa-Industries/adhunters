@@ -1,6 +1,8 @@
-// Package files is where Raposa keeps the files of the pages it keeps whole:
-// a bucket in object storage in production, a folder in tests and on a
-// laptop. No file sits in the database.
+// Package files keeps files for a service: a bucket in object storage in
+// production, a folder in tests and on a laptop. No file sits in the
+// database. Raposa keeps the files of the pages it keeps whole here; the
+// library keeps its safe copies of creatives; Create keeps its references
+// and the pictures it made.
 //
 // Files are content addressed: the key is files/<md5 of the bytes>, so one
 // sales video twenty pages load is stored once, and storing the same bytes
@@ -51,7 +53,7 @@ func checkKey(key string) error {
 
 // Open opens the store a URI names:
 //
-//	file:///var/lib/raposa/files    a folder
+//	file:///var/lib/<service>/files a folder
 //	s3://bucket/prefix              object storage; endpoint and keys from
 //	                                S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY
 //	                                and S3_REGION (S3_INSECURE=1 for plain http)
@@ -85,6 +87,24 @@ func Sum(path string) (string, int64, error) {
 		return "", 0, err
 	}
 	return hex.EncodeToString(h.Sum(nil)), n, nil
+}
+
+// PutBytes stores b through a temporary file and returns its key.
+func PutBytes(ctx context.Context, st Store, b []byte, mediaType string) (string, error) {
+	f, err := os.CreateTemp("", "files-*")
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = os.Remove(f.Name()) }()
+	if _, err := f.Write(b); err != nil {
+		_ = f.Close()
+		return "", err
+	}
+	if err := f.Close(); err != nil {
+		return "", err
+	}
+	sum := md5.Sum(b)
+	return st.Put(ctx, hex.EncodeToString(sum[:]), mediaType, f.Name(), int64(len(b)))
 }
 
 // Dir keeps files in a local folder.

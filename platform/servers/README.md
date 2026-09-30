@@ -13,7 +13,7 @@ How to get onto a box and copy the build there: [../OPERATIONS.md](../OPERATIONS
 `DIR` holds the binaries, built on any machine from the repository root:
 
 ```
-GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" -o DIR/ ./tracks/cmd/... ./raposa/cmd/... ./desk/cmd/... ./platform/observe/cmd/...
+GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" -o DIR/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./platform/observe/cmd/...
 ```
 
 The script runs from a checkout of the repository: it takes the units in

@@ -42,6 +42,15 @@ type PlanRequest struct {
 	// They are not kept with the request (the person has them already); the
 	// kept record says how many there were.
 	Winners []Reference `json:"-"`
+	// Analysis is what the performing ads share, already read and edited by
+	// the person: the plan follows it instead of reading them again.
+	Analysis []Aspect `json:"analysis,omitempty"`
+	// Angles are the angles the person wants tried, in the team's words.
+	Angles []string `json:"angles,omitempty"`
+	// NewAngle asks for pictures of an angle not tried yet: none of Angles,
+	// none of AvoidAngles.
+	NewAngle    bool     `json:"new_angle,omitempty"`
+	AvoidAngles []string `json:"avoid_angles,omitempty"`
 }
 
 // Plan is an analysis, headlines and image briefs from one text call.
@@ -217,7 +226,7 @@ func ParsePlan(content string, r PlanRequest) (Plan, error) {
 		shown[CleanLine(a)] = true
 	}
 	plan := Plan{Analysis: []Aspect{}, Headlines: tidy(answer.Headlines, r.Headlines, shown), Briefs: []Brief{}}
-	if len(r.Winners) > 0 {
+	if len(r.Winners) > 0 && len(r.Analysis) == 0 {
 		for _, a := range answer.Analysis {
 			a = Aspect{Aspect: CleanLine(a.Aspect), Fixed: CleanLine(a.Fixed), Variable: CleanLine(a.Variable)}
 			if a.Aspect != "" {
