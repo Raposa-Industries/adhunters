@@ -1,0 +1,23 @@
+# Desk's pages under /desk/. Settings in /etc/adhunters/desk-web.env.
+# Listens on localhost (DESK_WEB_ADDR); people reach it through the
+# Cloudflare tunnel, behind Cloudflare Access, which says who is asking.
+[Unit]
+Description=Desk web
+Wants=network-online.target desk-agent.service
+After=network-online.target desk-agent.service
+
+[Service]
+DynamicUser=yes
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/desk-web.env
+ExecStart=/opt/adhunters/bin/desk-web
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

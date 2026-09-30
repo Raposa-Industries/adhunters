@@ -1,0 +1,92 @@
+{{define "timeline"}}
+{{range .Items}}
+{{if .Plan}}{{template "plan" .}}
+{{else if .Choice}}{{template "choice" .}}
+{{else if eq .Msg.Kind "event"}}
+<p class="event" id="m{{.Msg.ID}}"><span class="faint">{{when .Msg.At}}</span> {{linkify .Msg.Body}}</p>
+{{else}}
+<div class="msg {{if eq .Msg.Author "desk"}}from-desk{{else}}from-person{{end}}" id="m{{.Msg.ID}}">
+  <div class="who"><b>{{if eq .Msg.Author "desk"}}Desk{{else}}{{.Msg.Author}}{{end}}</b> <span class="faint">{{when .Msg.At}}</span></div>
+  <div class="body">{{linkify .Msg.Body}}</div>
+</div>
+{{end}}
+{{end}}
+{{if .Conv.WantsTurn}}{{if eq .Conv.State "open"}}<p class="event thinking">Desk está respondendo…</p>{{end}}{{end}}
+{{end}}
+
+{{define "plan"}}
+<section class="panel plan" id="plan-{{.Plan.ID}}">
+  <div class="plan-head">
+    <h2>Plano: {{.Plan.Goal}}</h2>
+    <span class="badge {{.Plan.State}}">{{stateword .Plan.State}}</span>
+  </div>
+  <ol class="steps">
+  {{range .Plan.Steps}}
+    <li class="step" id="step-{{.ID}}">
+      <div class="step-head">
+        <span>{{.Says}}</span>
+        <span class="badge {{.State}}">{{stateword .State}}</span>
+      </div>
+      <div class="step-what faint">
+        {{if eq .Kind "action"}}{{.App}}: {{.Does}}{{else if eq .Kind "choose"}}Você escolhe entre linhas de {{.Action}}{{if .Pick}} (até {{.Pick}}){{end}}{{else}}A fazer para uma pessoa{{end}}
+      </div>
+      {{if or .Inputs .Uses}}
+      <dl class="inputs">
+        {{range .Inputs}}<dt>{{.K}}</dt><dd>{{.V}}</dd>{{end}}
+        {{range .Uses}}<dt>usa</dt><dd>{{.}}</dd>{{end}}
+      </dl>
+      {{end}}
+      {{if .Link}}<div><a href="{{.Link}}">{{.Link}}</a></div>{{end}}
+      {{if .Error}}<p class="note fail">{{.Error}}</p>{{end}}
+    </li>
+  {{end}}
+  </ol>
+  {{if .Plan.CanDecide}}
+  <form class="actions" method="post" action="/desk/p/{{.Plan.ID}}/decide">
+    <input type="hidden" name="fp" value="{{.Plan.Fingerprint}}">
+    <button class="primary" type="submit" name="answer" value="ok">OK, pode seguir</button>
+    <button type="submit" name="answer" value="no">Não</button>
+    <span class="faint">Nada roda antes do seu OK. Para mudar algo, diga ao Desk abaixo.</span>
+  </form>
+  {{end}}
+  {{if .Plan.Note}}<p class="faint">{{.Plan.Note}}</p>{{end}}
+</section>
+{{end}}
+
+{{define "choice"}}
+<section class="panel choice" id="choice-{{.Choice.Step.ID}}">
+  <div class="plan-head">
+    <h2>{{.Choice.Step.Says}}</h2>
+    <span class="badge {{.Choice.Step.State}}">{{if .Choice.Open}}escolha{{else}}{{stateword .Choice.Step.State}}{{end}}</span>
+  </div>
+  {{if .Choice.Open}}
+  <form method="post" action="/desk/s/{{.Choice.Step.ID}}/choose">
+    <p class="faint">{{if .Choice.Suggested}}Desk marcou as que sugere.{{else}}Desk não sugeriu desta vez.{{end}}{{if .Choice.Step.Pick}} Escolha até {{.Choice.Step.Pick}}.{{end}}</p>
+    <div class="thumbs">
+    {{$c := .Choice}}
+    {{range .Choice.Result.Candidates}}
+      <label class="thumb pickable{{if index $c.Suggested .ID}} chosen{{end}}">
+        {{if .Image}}<img src="{{.Image}}" alt="" loading="lazy">{{end}}
+        <figcaption>
+          <span class="check"><input type="checkbox" name="pick" value="{{.ID}}" data-keep{{if index $c.Suggested .ID}} checked{{end}}> <span class="mono">#{{.ID}}</span></span>
+          {{if .Text}}<span>{{.Text}}</span>{{end}}
+          {{with index $c.Result.Why .ID}}<span class="why">Desk: {{.}}</span>{{end}}
+        </figcaption>
+      </label>
+    {{end}}
+    </div>
+    <div class="actions"><button class="primary" type="submit">Escolher</button></div>
+  </form>
+  {{else}}
+  <div class="thumbs">
+  {{$c := .Choice}}
+  {{range .Choice.Result.Candidates}}
+    <figure class="thumb{{if index $c.Chosen .ID}} chosen{{end}}">
+      {{if .Image}}<img src="{{.Image}}" alt="" loading="lazy">{{end}}
+      <figcaption><span class="mono">#{{.ID}}</span> {{.Text}}{{if index $c.Chosen .ID}} <b>· escolhida</b>{{end}}</figcaption>
+    </figure>
+  {{end}}
+  </div>
+  {{end}}
+</section>
+{{end}}

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { APPS, apps, tail, switchTo, Chord, typing, fold, score, rank, marks, initials } from '../assets/core.js';
 
 test('apps are in the order the team works, each with its own key', () => {
-  assert.deepEqual(APPS.map((a) => a.id), ['spy', 'create', 'launch', 'intel', 'funnels', 'raposa']);
+  assert.deepEqual(APPS.map((a) => a.id), ['spy', 'create', 'launch', 'intel', 'funnels', 'raposa', 'desk']);
   assert.equal(new Set(APPS.map((a) => a.key)).size, APPS.length);
   assert.equal(apps({ intel: true }).find((a) => a.id === 'intel').ready, true);
   assert.equal(APPS.find((a) => a.id === 'intel').ready, false, 'the list itself is not changed');

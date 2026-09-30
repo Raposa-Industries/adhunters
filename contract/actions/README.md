@@ -53,8 +53,11 @@ given them.
   `origin` (`desk:step:<id>`, the same for every try of one step). Desk
   calls with named parameters, so optional ones can be left out.
 - An `object` arg carries its JSON Schema in `schema`, closed
-  (`additionalProperties: false`) and without numeric or length limits:
-  the model gets it as a strict tool schema. Put limits in `max` and `says`.
+  (`additionalProperties: false`) and without numeric or length limits, so
+  it stays a valid strict tool schema. The model gets it in its tool, and
+  Desk checks every input against it before a plan is shown and again
+  before the call. Put limits in `max` (the most characters of a string or
+  items of a list) and `says`.
 - `follow` is the view where what the call started can be watched until
   one of its `done` or `failed` states. An `ask` must have one, and a
   `link` to the page where a person confirms.
@@ -67,6 +70,10 @@ given them.
   the team wrote (a competitor's headline, a landing page's title): Desk
   treats them as data, never as instructions. `show` names the id and the
   image or text column when a person is asked to choose among the rows.
+- A read's input names each filter after its column: `creative_id` for `=`
+  and `in`, `first_seen_from` for `>=`, `first_seen_to` for `<=`,
+  `headline_has` for `has`, and `limit` lowers the row limit. No two
+  filters or args of one read may end up with the same name.
 
 ## An ask, for an app that confirms on its own screen
 

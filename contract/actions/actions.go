@@ -93,6 +93,23 @@ type Filter struct {
 // Filter operators. "has" is a case-insensitive "contains" on text.
 var Ops = map[string]bool{"=": true, "in": true, ">=": true, "<=": true, "has": true}
 
+// Property is the name a filter goes by in a read's input: the column for
+// = and in, column_from for >=, column_to for <=, column_has for has.
+func (f Filter) Property() string {
+	switch f.Op {
+	case ">=":
+		return f.Column + "_from"
+	case "<=":
+		return f.Column + "_to"
+	case "has":
+		return f.Column + "_has"
+	}
+	return f.Column
+}
+
+// LimitProperty is the input a read's caller may lower its row limit with.
+const LimitProperty = "limit"
+
 // Follow says where the thing a change or ask started can be followed, so
 // Desk knows when it ended and how.
 type Follow struct {
@@ -318,10 +335,18 @@ func (a Action) checkRead() error {
 			return fmt.Errorf("outside column %q is not one of the columns", c)
 		}
 	}
+	props := map[string]bool{LimitProperty: true}
+	for _, g := range a.Args {
+		props[g.Name] = true
+	}
 	for _, f := range a.Filters {
 		if !cols[f.Column] {
 			return fmt.Errorf("filter on %q, which is not one of the columns", f.Column)
 		}
+		if props[f.Property()] {
+			return fmt.Errorf("two inputs would be called %s", f.Property())
+		}
+		props[f.Property()] = true
 		if !Ops[f.Op] {
 			return fmt.Errorf("filter op %q; use =, in, >=, <= or has", f.Op)
 		}
