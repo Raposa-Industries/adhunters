@@ -6,7 +6,8 @@
 // Every minute it asks for the last 24 hours, which rebuild only when Tracks
 // closed a new hour (or closed one again). Every 5 minutes it runs the
 // classifier (spy/classify), rebuilds the read model, which reads its
-// verticals, then Direction, which reads the read model's junk flags. A job
+// verticals, then Direction, which reads the read model's junk flags. Every
+// hour it sums today's and yesterday's auction prices again. A job
 // that fails is logged and counted; the next tick tries again.
 package numbers
 
@@ -30,6 +31,7 @@ const (
 	JobClassify  = "classify"
 	JobReadModel = "read_model"
 	JobDirection = "direction"
+	JobPrices    = "prices"
 )
 
 // Config says how often each part runs. Zero values take the defaults.
@@ -51,6 +53,7 @@ var Promises = map[string]time.Duration{
 	JobClassify:  20 * time.Minute,
 	JobReadModel: 20 * time.Minute,
 	JobDirection: 20 * time.Minute,
+	JobPrices:    90 * time.Minute,
 }
 
 // Runner runs the jobs.
@@ -145,6 +148,11 @@ func (r *Runner) Direction(ctx context.Context, rebuild bool) (int64, error) {
 	return r.job(ctx, JobDirection, `SELECT spy.refresh_direction($1, $2)`, r.cfg.Now(), rebuild)
 }
 
+// Prices sums today's and yesterday's auction prices again.
+func (r *Runner) Prices(ctx context.Context) (int64, error) {
+	return r.job(ctx, JobPrices, `SELECT spy.refresh_prices($1)`, r.cfg.Now())
+}
+
 // All runs every job once, in order, and returns the errors.
 func (r *Runner) All(ctx context.Context, rebuild bool) error {
 	var errs []error
@@ -158,6 +166,9 @@ func (r *Runner) All(ctx context.Context, rebuild bool) error {
 		errs = append(errs, err)
 	}
 	if _, err := r.Direction(ctx, rebuild); err != nil {
+		errs = append(errs, err)
+	}
+	if _, err := r.Prices(ctx); err != nil {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
@@ -224,6 +235,9 @@ func (r *Runner) Run(ctx context.Context) error {
 			_, _ = r.Classify(ctx)
 			_, _ = r.ReadModel(ctx)
 			_, _ = r.Direction(ctx, false)
+		}
+		if tick%(12*r.cfg.Every) == 0 {
+			_, _ = r.Prices(ctx)
 		}
 		if ctx.Err() != nil {
 			return ctx.Err()

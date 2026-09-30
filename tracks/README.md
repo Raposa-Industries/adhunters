@@ -163,7 +163,7 @@ targets file.
 | `raw_file` | forever (one row per archived minute file) |
 | `scrape` | 35 days, daily partitions |
 | `sighting` | 3 days, daily partitions, BRIN on `seen_at` (the CX43 run's suggestion) |
-| `auction` | 14 days, daily partitions |
+| `auction` | 14 days, daily partitions; published as `tracks_api.auction_v1`, which Spy sums per day and keeps |
 | `ad_hourly`, `ad_account_brand_hourly`, `publisher_hourly` | monthly partitions, all kept for now |
 | `ad_hourly_open`, `publisher_hourly_open` | the hours not closed yet |
 | `ad_daily`, `ad_account_daily`, `placement_daily`, `campaign_daily`, `creative_link_daily`, `creative_campaign_daily` | forever |
