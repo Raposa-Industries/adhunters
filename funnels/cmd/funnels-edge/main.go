@@ -2,7 +2,7 @@
 // landing sites, the page script at /ah.js and the collector at /e, which
 // writes every beacon as received to the spool.
 //
-//	funnels-edge run      [-addr 127.0.0.1:8095] [-sites /var/lib/funnels/sites] [-spool /var/lib/funnels/spool] [-instance a] [-trust-cloudflare]
+//	funnels-edge run      [-addr 127.0.0.1:8098] [-sites /var/lib/funnels/sites] [-spool /var/lib/funnels/spool] [-instance a] [-trust-cloudflare]
 //	funnels-edge publish  [-sites …] -site lp.example.com ./folder
 //	funnels-edge versions [-sites …] -site lp.example.com
 //	funnels-edge serve    [-sites …] -site lp.example.com -version 20260930T200000Z
@@ -36,7 +36,7 @@ import (
 var version = "dev"
 
 const usage = `usage:
-  funnels-edge run      [-addr 127.0.0.1:8095] [-sites DIR] [-spool DIR] [-instance a] [-trust-cloudflare]
+  funnels-edge run      [-addr 127.0.0.1:8098] [-sites DIR] [-spool DIR] [-instance a] [-trust-cloudflare]
   funnels-edge publish  [-sites DIR] -site HOST FOLDER
   funnels-edge versions [-sites DIR] -site HOST
   funnels-edge serve    [-sites DIR] -site HOST -version VERSION
@@ -73,7 +73,7 @@ func sitesFlag(fs *flag.FlagSet) *string {
 
 func runEdge(args []string) error {
 	fs := flag.NewFlagSet("run", flag.ExitOnError)
-	addr := fs.String("addr", envOr("FUNNELS_EDGE_ADDR", "127.0.0.1:8095"), "where visitors' requests arrive (cloudflared points here)")
+	addr := fs.String("addr", envOr("FUNNELS_EDGE_ADDR", "127.0.0.1:8098"), "where visitors' requests arrive (cloudflared points here)")
 	sites := sitesFlag(fs)
 	spoolDir := fs.String("spool", envOr("FUNNELS_SPOOL", "/var/lib/funnels/spool"), "where raw files are written")
 	instance := fs.String("instance", "a", "this edge's name in raw file names")

@@ -186,7 +186,7 @@ bulk sheet.
 
 ## Landing sites (Funnels)
 
-`funnels-edge` listens only on `127.0.0.1:8095` on the data box and serves
+`funnels-edge` listens only on `127.0.0.1:8098` on the data box and serves
 every hosted landing site, the page script (`/ah.js`) and the collector
 (`/e`). Visitors reach it through the same Cloudflare tunnel as Create's page,
 with **no** Cloudflare Access: landing pages are public. Because the tunnel is
@@ -197,7 +197,7 @@ For each landing domain, once:
 
 1. The domain's DNS is on Cloudflare (Websites › Add a site).
 2. In the `adhunters-data` tunnel, Public hostname: the domain (and `www.`
-   if wanted), service `http://localhost:8095`.
+   if wanted), service `http://localhost:8098`.
 3. On the data box, publish its pages:
    `sudo -u funnels /opt/adhunters/bin/funnels-edge publish -site DOMAIN ./folder`.
 4. Clarity (optional): make a project at clarity.microsoft.com for the

@@ -119,7 +119,7 @@ and names starting with `_` or `.` are never served. HTML is `no-cache`, the
 rest is cached 5 minutes.
 
 A site's domain reaches the edge through the Cloudflare tunnel on the data
-box, as a public hostname pointing at `http://127.0.0.1:8095`, with no
+box, as a public hostname pointing at `http://127.0.0.1:8098`, with no
 Cloudflare Access (landing pages are public). See platform/OPERATIONS.md.
 
 ## Raw files

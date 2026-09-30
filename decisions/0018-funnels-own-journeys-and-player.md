@@ -1,4 +1,4 @@
-# 0015 · Funnels: our own journey tracking and VSL player
+# 0018 · Funnels: our own journey tracking and VSL player
 
 **Decided:** 29 Sep 2026 by Marcos (own VSL player like Vturb), built 30 Sep 2026.
 
