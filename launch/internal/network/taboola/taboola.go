@@ -114,6 +114,7 @@ func campaign(c write.Campaign) network.Campaign {
 			Brand: c.BrandingText, CPC: c.CPC, BidStrategy: c.BidStrategy, DailyCap: c.DailyCap,
 			SpendingLimit: c.SpendingLimit, Countries: c.Countries, TrackingCode: c.TrackingCode,
 			Objective: c.MarketingObjective, StartDate: c.StartDate, EndDate: c.EndDate,
+			TargetCPA: c.TargetCPA, ExcludeCities: c.ExcludedCities, AdDelivery: c.TrafficAllocation,
 		},
 	}
 }
@@ -178,11 +179,14 @@ func (t *Taboola) CreateCampaign(ctx context.Context, account string, n network.
 		}
 	}
 	s := n.Settings
+	if strings.EqualFold(s.BidStrategy, "MAX_CONVERSIONS") {
+		s.CPC = 0 // the network sets each bid
+	}
 	cp, err := t.c.CreateCampaign(ctx, account, write.NewCampaign{
 		Name: n.Name, Brand: s.Brand, CPC: s.CPC, DailyCap: s.DailyCap, SpendingLimit: s.SpendingLimit,
 		Countries: s.Countries, Platforms: platforms(n.Device), TrackingCode: s.TrackingCode,
 		MarketingObjective: s.Objective, BidStrategy: s.BidStrategy, StartDate: s.StartDate, EndDate: s.EndDate,
-		GroupID: n.GroupID,
+		GroupID: n.GroupID, TargetCPA: s.TargetCPA, ExcludeCities: s.ExcludeCities, AdDelivery: s.AdDelivery,
 	})
 	if err != nil {
 		return network.Made{}, err

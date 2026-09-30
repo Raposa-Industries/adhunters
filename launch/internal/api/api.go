@@ -80,6 +80,7 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("GET "+p+"search", a.search)
 	m.HandleFunc("GET "+p+"accounts/{net}", a.accounts)
 	m.HandleFunc("GET "+p+"{net}/{account}/tree", a.tree)
+	m.HandleFunc("GET "+p+"{net}/{account}/next", a.next)
 	m.HandleFunc("GET "+p+"{net}/{account}/campaigns/{id}", a.campaign)
 	m.HandleFunc("POST "+p+"{net}/{account}/groups", a.newGroup)
 	m.HandleFunc("POST "+p+"{net}/{account}/move", a.move)
@@ -300,6 +301,16 @@ func (a *API) pause(w http.ResponseWriter, r *http.Request) {
 	a.doMany(w, r, func(b many) ([]actions.Done, error) {
 		return a.l.Pause(r.Context(), who(r), r.PathValue("net"), r.PathValue("account"), b.Campaigns)
 	})
+}
+
+// next is the names the next group and campaign get in the account.
+func (a *API) next(w http.ResponseWriter, r *http.Request) {
+	n, err := a.l.Next(r.Context(), r.PathValue("net"), r.PathValue("account"))
+	if err != nil {
+		a.fail(w, err)
+		return
+	}
+	send(w, http.StatusOK, n)
 }
 
 func (a *API) pauseAds(w http.ResponseWriter, r *http.Request) {

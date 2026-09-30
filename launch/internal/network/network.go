@@ -94,6 +94,13 @@ type Settings struct {
 	Objective     string   `json:"objective"`
 	StartDate     string   `json:"start_date"`
 	EndDate       string   `json:"end_date"`
+	// TargetCPA, with bid strategy MAX_CONVERSIONS, is the cost per
+	// conversion to aim for; 0 lets the network maximize conversions.
+	TargetCPA float64 `json:"target_cpa,omitempty"`
+	// ExcludeCities are the network's city values not to show in.
+	ExcludeCities []string `json:"exclude_cities,omitempty"`
+	// AdDelivery is OPTIMIZED (the best ads get more) or EVEN (A/B).
+	AdDelivery string `json:"ad_delivery,omitempty"`
 }
 
 // Ad is one ad in a campaign (Taboola's item).

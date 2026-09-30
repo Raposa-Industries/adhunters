@@ -310,6 +310,24 @@ func TestCampaignBody(t *testing.T) {
 			}
 			return ""
 		}},
+		{"max conversions, cities, delivery", NewCampaign{Name: "x", Brand: "b", DailyCap: 100, BidStrategy: "max_conversions", ExcludeCities: []string{" Atlanta ", "Bend"}, AdDelivery: "optimized"}, func(b map[string]any) string {
+			_, hasCPC := b["cpc"]
+			switch {
+			case b["bid_strategy"] != "MAX_CONVERSIONS" || hasCPC:
+				return "bid"
+			case fmt.Sprint(b["city_targeting"]) != "map[type:EXCLUDE value:[Atlanta Bend]]":
+				return "cities"
+			case b["traffic_allocation_mode"] != "OPTIMIZED":
+				return "delivery"
+			}
+			return ""
+		}},
+		{"target cpa", NewCampaign{Name: "x", Brand: "b", DailyCap: 100, BidStrategy: "MAX_CONVERSIONS", TargetCPA: 35}, func(b map[string]any) string {
+			if b["bid_strategy"] != "TARGET_CPA" || b["target_cpa"] != 35.0 {
+				return "target cpa"
+			}
+			return ""
+		}},
 	} {
 		before := len(f.seen())
 		cp, err := c.CreateCampaign(ctx, "acme-sc", tc.in)
@@ -346,7 +364,11 @@ func TestCampaignBody(t *testing.T) {
 		"platform":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, Platforms: []string{"TV"}},
 		"tracking code":    {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, TrackingCode: "a b"},
 		"objective":        {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, MarketingObjective: "APP_INSTALLS"},
-		"bid":              {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "MAX_CONVERSIONS"},
+		"bid":              {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "TARGET_ROAS"},
+		"cpc with maxconv": {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "MAX_CONVERSIONS"},
+		"cpa without":      {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, TargetCPA: 20},
+		"delivery":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, AdDelivery: "FAST"},
+		"empty city":       {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, ExcludeCities: []string{" "}},
 		"smart over":       {Name: "x", Brand: "b", CPC: 1.5, DailyCap: 10, BidStrategy: "SMART"},
 		"bad date":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "01/10/2026"},
 		"end first":        {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, StartDate: "2026-10-02", EndDate: "2026-10-01"},

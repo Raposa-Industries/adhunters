@@ -111,12 +111,20 @@ type Campaign struct {
 	// Countries and Platforms are the included ones (empty: everywhere).
 	Countries []string `json:"countries"`
 	Platforms []string `json:"platforms"`
+	// ExcludedCities are the cities it does not show in.
+	ExcludedCities []string `json:"excluded_cities"`
+	TargetCPA      float64  `json:"target_cpa"`
+	// TrafficAllocation is how its ads share traffic: OPTIMIZED or EVEN.
+	TrafficAllocation string `json:"traffic_allocation_mode"`
 }
 
 // included reads Taboola's {"type":"INCLUDE","value":[…]} targeting.
-func included(v any) []string {
+func included(v any) []string { return targeted(v, "INCLUDE") }
+
+// targeted reads one kind (INCLUDE, EXCLUDE) of Taboola's targeting.
+func targeted(v any, kind string) []string {
 	t, _ := v.(obj)
-	if str(t["type"]) != "INCLUDE" {
+	if str(t["type"]) != kind {
 		return nil
 	}
 	vals, _ := t["value"].([]any)
@@ -146,6 +154,9 @@ func campaignFrom(o obj) Campaign {
 		EndDate:            str(o["end_date"]),
 		Countries:          included(o["country_targeting"]),
 		Platforms:          included(o["platform_targeting"]),
+		ExcludedCities:     targeted(o["city_targeting"], "EXCLUDE"),
+		TargetCPA:          num(o["target_cpa"]),
+		TrafficAllocation:  str(o["traffic_allocation_mode"]),
 	}
 }
 
@@ -189,9 +200,20 @@ type NewCampaign struct {
 	TrackingCode string
 	// MarketingObjective is DRIVE_WEBSITE_TRAFFIC when empty.
 	MarketingObjective string
-	// BidStrategy is FIXED (the default) or SMART; both take CPC, under the
-	// same ceiling.
+	// BidStrategy is FIXED (the default) or SMART, which take CPC under the
+	// ceiling, or MAX_CONVERSIONS (Realize's "Maximize conversions"), where
+	// Taboola sets each bid and CPC is not sent; with TargetCPA it becomes
+	// TARGET_CPA. Unproven on the real API yet (2026-09-30).
 	BidStrategy string
+	// TargetCPA is the cost per conversion to aim for (USD), with
+	// MAX_CONVERSIONS only.
+	TargetCPA float64
+	// ExcludeCities are Taboola's city values (its US city dictionary) the
+	// campaign does not show in.
+	ExcludeCities []string
+	// AdDelivery is OPTIMIZED (Realize's "Prioritize top-performing ads")
+	// or EVEN (A/B testing); empty leaves Taboola's default.
+	AdDelivery string
 	// StartDate and EndDate are "YYYY-MM-DD", or empty for none.
 	StartDate, EndDate string
 	// GroupID puts the campaign in a campaign group, which may then carry the
@@ -213,7 +235,8 @@ var (
 	countryCode = regexp.MustCompile(`^[A-Z]{2}$`)
 	platforms   = map[string]bool{"DESK": true, "PHON": true, "TBLT": true}
 	objectives  = map[string]bool{"DRIVE_WEBSITE_TRAFFIC": true, "LEADS_GENERATION": true, "ONLINE_PURCHASES": true, "BRAND_AWARENESS": true}
-	bids        = map[string]bool{"FIXED": true, "SMART": true}
+	bids        = map[string]bool{"FIXED": true, "SMART": true, "MAX_CONVERSIONS": true}
+	deliveries  = map[string]bool{"OPTIMIZED": true, "EVEN": true}
 	digits      = regexp.MustCompile(`^[0-9]{1,20}$`)
 )
 
@@ -224,6 +247,11 @@ var (
 func (n NewCampaign) body(maxCPC, maxDailyCap float64, full bool) (obj, error) {
 	name := strings.TrimSpace(n.Name)
 	brand := strings.TrimSpace(n.Brand)
+	bid := strings.ToUpper(strings.TrimSpace(n.BidStrategy))
+	if bid == "" && full {
+		bid = "FIXED"
+	}
+	maxConv := bid == "MAX_CONVERSIONS"
 	switch {
 	case name == "":
 		return nil, refuse("dê um nome à campanha")
@@ -233,7 +261,13 @@ func (n NewCampaign) body(maxCPC, maxDailyCap float64, full bool) (obj, error) {
 		return nil, refuse("escreva a marca (branding text) da campanha")
 	case utf8.RuneCountInString(brand) > maxBrand || strings.ContainsAny(brand, "\r\n\t"):
 		return nil, refuse("a marca pode ter no máximo 25 caracteres")
-	case (full || n.CPC != 0) && (!(n.CPC > 0) || n.CPC > maxCPC):
+	case maxConv && n.CPC != 0:
+		return nil, refuse("com Maximizar conversões o Taboola define o lance: não mande CPC")
+	case !maxConv && n.TargetCPA != 0:
+		return nil, refuse("CPA alvo só vale com Maximizar conversões")
+	case n.TargetCPA < 0 || n.TargetCPA > maxDailyCap:
+		return nil, refuse("o CPA alvo deve ficar entre 0 e %s", usd(maxDailyCap))
+	case !maxConv && (full || n.CPC != 0) && (!(n.CPC > 0) || n.CPC > maxCPC):
 		return nil, refuse("o CPC deve ficar entre 0 e %s", usd(maxCPC))
 	case (full || n.DailyCap != 0) && (!(n.DailyCap > 0) || n.DailyCap > maxDailyCap):
 		return nil, refuse("o limite diário deve ficar entre 0 e %s", usd(maxDailyCap))
@@ -273,15 +307,32 @@ func (n NewCampaign) body(maxCPC, maxDailyCap float64, full bool) (obj, error) {
 		}
 		b["marketing_objective"] = obj0
 	}
-	bid := strings.ToUpper(strings.TrimSpace(n.BidStrategy))
-	if bid == "" && full {
-		bid = "FIXED"
-	}
 	if bid != "" {
 		if !bids[bid] {
-			return nil, refuse("estratégia de lance %q inválida: use FIXED ou SMART", oneLine(n.BidStrategy, 40))
+			return nil, refuse("estratégia de lance %q inválida: use FIXED, SMART ou MAX_CONVERSIONS", oneLine(n.BidStrategy, 40))
 		}
 		b["bid_strategy"] = bid
+		if maxConv && n.TargetCPA > 0 {
+			b["bid_strategy"] = "TARGET_CPA"
+			b["target_cpa"] = n.TargetCPA
+		}
+	}
+	if d := strings.ToUpper(strings.TrimSpace(n.AdDelivery)); d != "" {
+		if !deliveries[d] {
+			return nil, refuse("entrega dos anúncios %q inválida: use OPTIMIZED ou EVEN", oneLine(n.AdDelivery, 20))
+		}
+		b["traffic_allocation_mode"] = d
+	}
+	if len(n.ExcludeCities) > 0 {
+		cities := make([]string, 0, len(n.ExcludeCities))
+		for _, c := range n.ExcludeCities {
+			c = strings.TrimSpace(c)
+			if c == "" || utf8.RuneCountInString(c) > 100 || strings.ContainsAny(c, "\r\n\t") {
+				return nil, refuse("cidade %q inválida", oneLine(c, 40))
+			}
+			cities = append(cities, c)
+		}
+		b["city_targeting"] = obj{"type": "EXCLUDE", "value": cities}
 	}
 
 	countries := append([]string(nil), n.Countries...)

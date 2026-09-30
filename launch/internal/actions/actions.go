@@ -134,8 +134,11 @@ func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g n
 type PairRequest struct {
 	Network string `json:"network"`
 	Account string `json:"account"`
-	// Name is the pair's; Launch adds " · Desktop" and " · Mobile".
+	// Name is the pair's; Launch adds " · Desktop" and " · Mobile". Empty:
+	// the team's names (CampaignName), numbered at send time.
 	Name string `json:"name"`
+	// Devices is desktop, mobile or both (the default): one campaign each.
+	Devices string `json:"devices"`
 	// GroupID is where both go; NewGroup makes a group for them first.
 	GroupID  string            `json:"group_id"`
 	NewGroup *network.NewGroup `json:"new_group,omitempty"`
@@ -148,10 +151,40 @@ type PairRequest struct {
 	DraftID  int64             `json:"draft_id,omitempty"`
 }
 
-// Names are the two campaigns' names.
+// Names are the campaigns' names when the request names them.
 func (r PairRequest) Names() (desktop, mobile string) {
 	n := strings.TrimSpace(r.Name)
 	return n + " · Desktop", n + " · Mobile"
+}
+
+// NextNames are the names a new group and campaign get in an account now.
+type NextNames struct {
+	Group         string `json:"group"`
+	Campaign      int    `json:"campaign"`
+	AccountNumber string `json:"account_number"`
+	Desktop       string `json:"desktop"`
+	Mobile        string `json:"mobile"`
+}
+
+// Next reads the account's groups and campaigns for the next names.
+func (l *Launch) Next(ctx context.Context, net, account string) (NextNames, error) {
+	n, err := l.Net(net)
+	if err != nil {
+		return NextNames{}, err
+	}
+	groups, err := n.Groups(ctx, account)
+	if err != nil {
+		return NextNames{}, err
+	}
+	camps, err := n.Campaigns(ctx, account)
+	if err != nil {
+		return NextNames{}, err
+	}
+	accts, _ := n.Accounts(ctx)
+	out := NextNames{Group: NextGroupName(groups), Campaign: NextCampaignNumber(camps), AccountNumber: AccountNumber(account, accts)}
+	out.Desktop = CampaignName(out.Campaign, out.AccountNumber, network.Desktop)
+	out.Mobile = CampaignName(out.Campaign, out.AccountNumber, network.Mobile)
+	return out, nil
 }
 
 // Check refuses a request before anything is sent.
@@ -159,8 +192,6 @@ func (r PairRequest) Check() error {
 	switch {
 	case strings.TrimSpace(r.Account) == "":
 		return &network.Refused{Message: "escolha a conta"}
-	case strings.TrimSpace(r.Name) == "":
-		return &network.Refused{Message: "dê um nome ao par"}
 	case r.GroupID == "" && r.NewGroup == nil:
 		return &network.Refused{Message: "escolha o grupo ou crie um novo: o Launch sempre põe as campanhas num grupo"}
 	case len(r.Ads) == 0:
@@ -205,11 +236,34 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	if err != nil {
 		return res, err
 	}
+	devices, err := Devices(r.Devices)
+	if err != nil {
+		return res, err
+	}
+	var next NextNames
+	teamNames := strings.TrimSpace(r.Name) == ""
+	if teamNames || (r.NewGroup != nil && strings.TrimSpace(r.NewGroup.Name) == "") {
+		if next, err = l.Next(ctx, r.Network, r.Account); err != nil {
+			return res, err
+		}
+	}
+	if r.NewGroup != nil && strings.TrimSpace(r.NewGroup.Name) == "" {
+		g := *r.NewGroup
+		g.Name = next.Group
+		r.NewGroup = &g
+	}
 	dName, mName := r.Names()
-	steps := []Step{
-		{Label: "Grupo"},
-		{Label: dName},
-		{Label: mName},
+	if teamNames {
+		dName, mName = next.Desktop, next.Mobile
+		r.Name = fmt.Sprintf("CMP%02d-%s", next.Campaign, next.AccountNumber)
+	}
+	steps := []Step{{Label: "Grupo"}}
+	for _, d := range devices {
+		if d == network.Desktop {
+			steps = append(steps, Step{Label: dName})
+		} else {
+			steps = append(steps, Step{Label: mName})
+		}
 	}
 	tell := func(i int, state, detail string) {
 		steps[i].State, steps[i].Detail = state, detail
@@ -241,11 +295,20 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	pair := store.Pair{Network: r.Network, Account: r.Account, GroupID: res.GroupID, Name: strings.TrimSpace(r.Name), PresetID: r.PresetID, MadeBy: who.Person}
 	up := &network.Uploads{Read: l.img.Get}
 	made := 0
-	for i, side := range []struct {
+	type side struct {
 		dev  network.Device
 		name string
 		set  *network.Settings
-	}{{network.Desktop, dName, r.Desktop}, {network.Mobile, mName, r.Mobile}} {
+	}
+	var sides []side
+	for _, d := range devices {
+		if d == network.Desktop {
+			sides = append(sides, side{d, dName, r.Desktop})
+		} else {
+			sides = append(sides, side{d, mName, r.Mobile})
+		}
+	}
+	for i, side := range sides {
 		set := r.Settings
 		if side.set != nil {
 			set = *side.set
@@ -275,26 +338,34 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	}
 
 	switch {
-	case made == 2 && len(res.Problems) == 0:
+	case made == len(sides) && len(res.Problems) == 0:
 		res.Result = "done"
 	case made == 0:
 		res.Result = "failed"
 	default:
 		res.Result = "partial"
 	}
-	if made > 0 {
+	if made > 0 && len(sides) == 2 {
 		if res.PairID, err = l.st.AddPair(ctx, pair); err != nil {
 			l.log.Error("pair not recorded", "desktop", pair.DesktopID, "mobile", pair.MobileID, "err", err)
 			res.Problems = append(res.Problems, "o par foi criado mas não foi anotado aqui; ele aparece como duas campanhas soltas")
 		}
 	}
+	what := "o par " + pair.Name
+	if len(sides) == 1 {
+		what = "a campanha " + sides[0].name
+	}
+	first := pair.DesktopID
+	if first == "" {
+		first = pair.MobileID
+	}
 	l.record(ctx, store.Change{
 		Who: who.Person, AskedBy: who.asked(), Network: r.Network, Account: r.Account, GroupID: res.GroupID,
-		CampaignID: pair.DesktopID, Kind: "new_pair",
-		Summary: fmt.Sprintf("Criou o par %s, pausado: %d campanhas, %s em cada", pair.Name, made, ads(len(r.Ads))),
+		CampaignID: first, Kind: "new_pair",
+		Summary: fmt.Sprintf("Criou %s, pausado: %d de %d campanhas, %s em cada", what, made, len(sides), ads(len(r.Ads))),
 		After:   raw(res), Result: res.Result, Problems: res.Problems,
 	})
-	if pair.MobileID != "" {
+	if pair.MobileID != "" && pair.DesktopID != "" {
 		l.record(ctx, store.Change{
 			Who: who.Person, AskedBy: who.asked(), Network: r.Network, Account: r.Account, GroupID: res.GroupID,
 			CampaignID: pair.MobileID, Kind: "new_pair",
