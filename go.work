@@ -6,6 +6,7 @@ use (
 	./desk
 	./intel
 	./kit
+	./launch
 	./platform/observe
 	./raposa
 	./shared

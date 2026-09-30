@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/taboola"
+	taboola "github.com/Raposa-Industries/adhunters/shared/taboola/write"
 )
 
 // Limits of the Taboola requests.

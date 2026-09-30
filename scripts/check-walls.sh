@@ -21,5 +21,15 @@ while read -r mod dir; do
   fi
 done < <(go list -m -f '{{.Path}} {{.Dir}}')
 
-[[ $fail == 0 ]] && echo "walls ok: no module imports another service's code"
+# Only Launch writes to Taboola; create-web's launcher page too, until Launch
+# replaces it. Every other module reads Taboola through shared/taboola.
+write=$repo/shared/taboola/write
+while read -r mod dir; do
+  case $mod in $repo/launch | $repo/create | $repo/shared) continue ;; esac
+  if (cd "$dir" && go list -deps -f '{{.ImportPath}}' ./... | grep -qx "$write"); then
+    echo "wall breach in $mod: only launch (and create-web, until Launch replaces it) may import $write"; fail=1
+  fi
+done < <(go list -m -f '{{.Path}} {{.Dir}}')
+
+[[ $fail == 0 ]] && echo "walls ok: no module imports another service's code, and only launch writes to Taboola"
 exit $fail

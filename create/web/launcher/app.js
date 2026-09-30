@@ -4,12 +4,12 @@
 // connected). Everything but generation and the Taboola calls runs in the
 // browser.
 
-import { mixedN, everyN, usesN, seeded } from "./pairing.js";
-import { clean, hasHidden, headlineWarnings, blockedWarnings, blockedHits, swapBlocked, imageWarnings, urlWarnings, looksAIMade } from "./checks.js";
-import { zip } from "./zip.js";
-import { AD_COLUMNS, CTAS, MAX_ADS, adRows, campaignIds, ctaType, uniqueNames, fingerprint, adId, tsv } from "./sheet.js";
-import { readTemplate, fillTemplate } from "./template.js";
-import { TRACKERS, splitLink } from "./tracking.js";
+import { mixedN, everyN, usesN, seeded } from "./_ads/pairing.js";
+import { clean, hasHidden, headlineWarnings, blockedWarnings, blockedHits, swapBlocked, imageWarnings, urlWarnings, looksAIMade } from "./_ads/checks.js";
+import { zip } from "./_ads/zip.js";
+import { AD_COLUMNS, CTAS, MAX_ADS, adRows, campaignIds, ctaType, uniqueNames, fingerprint, adId, tsv } from "./_ads/sheet.js";
+import { readTemplate, fillTemplate } from "./_ads/template.js";
+import { TRACKERS, splitLink } from "./_ads/tracking.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -1454,7 +1454,7 @@ function renderTemplate() {
 async function fetchBuiltinTemplate() {
   if (builtinTemplate) return builtinTemplate;
   try {
-    const res = await fetch("realize-base.xlsx");
+    const res = await fetch("_ads/realize-base.xlsx");
     if (res.ok) builtinTemplate = new Uint8Array(await res.arrayBuffer());
   } catch { /* offline or not served: the person picks a template */ }
   return builtinTemplate;
