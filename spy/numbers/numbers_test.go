@@ -113,8 +113,9 @@ func TestReadModel(t *testing.T) {
 	b.ad(11, 110, 500, "fallback-x", "Default title")
 	b.exec(`INSERT INTO tracks_api.account_v1 (id, external_id) VALUES (500, 'today55-sc'), (501, 'other-sc')`)
 	b.exec(`INSERT INTO spy.account_operator VALUES (500, 7)`)
-	b.exec(`INSERT INTO spy.creative_vertical (creative_id, vertical, subvertical, shown_vertical, confidence, unsure)
-		VALUES (10, 'health', 'Weight Management & Metabolic Health', 'Weight Management & Metabolic Health', 0.9, false)`)
+	b.exec(`INSERT INTO spy.creative_class (creative_id, category_id, vertical_id, confidence, source, rules_hash,
+		    input_ad_id, classified_at, needs_model)
+		VALUES (10, 'metabolism', 'weight-loss', 0.9, 'ad', '', 0, now(), false)`)
 	b.day(today, 100, 1, 2, 30)
 	b.day(today.AddDate(0, 0, -1), 101, 2, 1, 20)
 	b.day(today.AddDate(0, 0, -10), 100, 1, 1, 50)
@@ -149,7 +150,7 @@ func TestReadModel(t *testing.T) {
 	if got := b.float(`SELECT count(*) FROM spy.creative_day WHERE creative_id = 10`); got != 3 {
 		t.Errorf("%v creative days, want 3", got)
 	}
-	if got := b.text(`SELECT vertical FROM spy.creative_stats WHERE creative_id = 10`); got != "Weight Management & Metabolic Health" {
+	if got := b.text(`SELECT vertical FROM spy.creative_stats WHERE creative_id = 10`); got != "weight-loss" {
 		t.Errorf("vertical %s", got)
 	}
 	if got := b.text(`SELECT is_junk::text FROM spy.creative_stats WHERE creative_id = 11`); got != "true" {

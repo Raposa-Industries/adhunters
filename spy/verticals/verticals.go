@@ -4,7 +4,9 @@
 package verticals
 
 import (
+	"crypto/sha256"
 	_ "embed"
+	"encoding/hex"
 	"fmt"
 
 	"gopkg.in/yaml.v3"
@@ -77,4 +79,11 @@ func (l List) Vertical(id string) (Vertical, bool) {
 		}
 	}
 	return Vertical{}, false
+}
+
+// Hash names this version of the file: when it changes, the classifier reads
+// every creative again.
+func Hash() string {
+	h := sha256.Sum256(file)
+	return hex.EncodeToString(h[:8])
 }

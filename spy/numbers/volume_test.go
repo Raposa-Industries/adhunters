@@ -51,8 +51,9 @@ func TestVolume(t *testing.T) {
 		INSERT INTO tracks_api.account_v1 (id, external_id) SELECT g, 'acc-' || g FROM generate_series(1, 2000) g;
 		INSERT INTO spy.operator (id, name, display_name) SELECT g, 'op ' || g, 'op ' || g FROM generate_series(8, 300) g;
 		INSERT INTO spy.account_operator SELECT g, 8 + g % 293 FROM generate_series(1, 2000) g;
-		INSERT INTO spy.creative_vertical (creative_id, vertical, shown_vertical, confidence, unsure)
-		SELECT g, 'v' || g % 25, 'v' || g % 25, 0.9, false FROM generate_series(1, 12000) g;
+		INSERT INTO spy.creative_class (creative_id, category_id, vertical_id, confidence, source, rules_hash,
+		    input_ad_id, classified_at, needs_model)
+		SELECT g, 'c', 'v' || g % 25, 0.9, 'ad', '', 0, now(), false FROM generate_series(1, 12000) g;
 		INSERT INTO tracks_api.ad_v1 (id, creative_id, headline, account_id, first_seen_at, last_seen_at)
 		SELECT g, 1 + (g * 7919) % 12000, 'headline ' || g, 1 + g % 2000,
 		       $1::timestamptz - make_interval(days => 1 + (1 + (g * 7919) % 12000) % 60), $1

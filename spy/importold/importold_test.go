@@ -70,7 +70,7 @@ func TestRun(t *testing.T) {
 	}
 	if err := db.QueryRow(ctx, `
 		SELECT string_agg(format('%s:%s/%s/%s', creative_id, vertical, subvertical, shown_vertical), ' | ' ORDER BY creative_id)
-		FROM spy.creative_vertical`).Scan(&got); err != nil {
+		FROM spy.creative_vertical_old`).Scan(&got); err != nil {
 		t.Fatal(err)
 	}
 	want := "11:health/Weight Management & Metabolic Health/Weight Loss | 12:health/Vision & Eye Health/Pets | " +
@@ -101,7 +101,7 @@ func TestRun(t *testing.T) {
 		t.Fatal("an empty grouping was copied")
 	}
 	var n int
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM spy.creative_vertical`).Scan(&n); err != nil || n != 4 {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM spy.creative_vertical_old`).Scan(&n); err != nil || n != 4 {
 		t.Errorf("verticals after a refused run: %d (%v)", n, err)
 	}
 }

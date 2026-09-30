@@ -1,6 +1,7 @@
 // Command spy-numbers keeps Spy's derived numbers: the last 24 hours, the
-// read model, and Size and Direction. The numbers for any other range are
-// SQL functions the apps call through spy_api; they need nothing running.
+// verticals, the read model, and Size and Direction. The numbers for any
+// other range are SQL functions the apps call through spy_api; they need
+// nothing running.
 //
 //	spy-numbers migrate
 //	spy-numbers run
@@ -20,6 +21,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"text/tabwriter"
@@ -32,6 +34,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
+	"github.com/Raposa-Industries/adhunters/spy/classify"
 	"github.com/Raposa-Industries/adhunters/spy/importold"
 	"github.com/Raposa-Industries/adhunters/spy/migrations"
 	"github.com/Raposa-Industries/adhunters/spy/numbers"
@@ -119,7 +122,11 @@ func runCmd() error {
 	defer db.Close()
 
 	srv := ops.New("spy-numbers", version)
-	r := numbers.New(db, log, numbers.Config{Tasks: srv.Tasks()}, srv.Registry)
+	cl, err := classifier(db, log)
+	if err != nil {
+		return err
+	}
+	r := numbers.New(db, log, numbers.Config{Tasks: srv.Tasks(), Classify: cl}, srv.Registry)
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 	srv.AddCheck("numbers", r.Healthy)
 
@@ -151,7 +158,27 @@ func refreshCmd(args []string) error {
 		return err
 	}
 	defer db.Close()
-	return numbers.New(db, log, numbers.Config{}, nil).All(ctx, *rebuild)
+	cl, err := classifier(db, log)
+	if err != nil {
+		return err
+	}
+	return numbers.New(db, log, numbers.Config{Classify: cl}, nil).All(ctx, *rebuild)
+}
+
+// classifier is the classifier as a numbers job: it counts the creatives read
+// and answered.
+func classifier(db *pgxpool.Pool, log *slog.Logger) (func(context.Context) (int64, error), error) {
+	c, err := classify.New(db, log, classify.Config{})
+	if err != nil {
+		return nil, err
+	}
+	return func(ctx context.Context) (int64, error) {
+		res, err := c.Run(ctx)
+		if res.Read+res.Answered > 0 || res.Trained {
+			log.Info("classifier ran", "read", res.Read, "trained", res.Trained, "answered", res.Answered, "declined", res.Declined)
+		}
+		return int64(res.Read + res.Answered + res.Declined), err
+	}, nil
 }
 
 func importCmd() error {

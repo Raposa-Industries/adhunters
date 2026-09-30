@@ -1,11 +1,12 @@
 // Package numbers runs Spy's derived numbers on a schedule: the last 24
-// hours, the read model, and Size and Direction. The numbers themselves are
+// hours, the classifier, the read model, and Size and Direction. The numbers themselves are
 // SQL functions in the spy schema (migrations/sql); this package decides when
 // each runs, times it and reports it.
 //
 // Every minute it asks for the last 24 hours, which rebuild only when Tracks
-// closed a new hour (or closed one again). Every 5 minutes it rebuilds the
-// read model, then Direction, which reads the read model's junk flags. A job
+// closed a new hour (or closed one again). Every 5 minutes it runs the
+// classifier (spy/classify), rebuilds the read model, which reads its
+// verticals, then Direction, which reads the read model's junk flags. A job
 // that fails is logged and counted; the next tick tries again.
 package numbers
 
@@ -26,6 +27,7 @@ import (
 // Jobs, in the order a 5-minute tick runs them.
 const (
 	JobRecent    = "recent"
+	JobClassify  = "classify"
 	JobReadModel = "read_model"
 	JobDirection = "direction"
 )
@@ -37,12 +39,16 @@ type Config struct {
 	Now       func() time.Time // the clock, for tests
 	StaleWarn time.Duration    // health fails when a job has not succeeded for this long (20 minutes)
 	Tasks     *ops.Tasks       // when set, each job is reported as a task with its promise (Promises)
+	// Classify runs the classifier; nil leaves it out (tests of the numbers
+	// alone). It returns how many creatives it read or answered.
+	Classify func(context.Context) (int64, error)
 }
 
 // Promises is how often each job must succeed before the TaskLate alert:
 // the last 24 hours follow Tracks' closed hours, which come hourly.
 var Promises = map[string]time.Duration{
 	JobRecent:    90 * time.Minute,
+	JobClassify:  20 * time.Minute,
 	JobReadModel: 20 * time.Minute,
 	JobDirection: 20 * time.Minute,
 }
@@ -107,6 +113,9 @@ func New(db *pgxpool.Pool, log *slog.Logger, cfg Config, reg prometheus.Register
 	}
 	if cfg.Tasks != nil {
 		for job, every := range Promises {
+			if job == JobClassify && cfg.Classify == nil {
+				continue
+			}
 			cfg.Tasks.Promise(job, every)
 		}
 	}
@@ -116,6 +125,14 @@ func New(db *pgxpool.Pool, log *slog.Logger, cfg Config, reg prometheus.Register
 // Recent rebuilds the last 24 hours if Tracks closed a new hour.
 func (r *Runner) Recent(ctx context.Context) (int64, error) {
 	return r.job(ctx, JobRecent, `SELECT spy.refresh_recent($1)`, r.cfg.Now())
+}
+
+// Classify runs the classifier, when there is one.
+func (r *Runner) Classify(ctx context.Context) (int64, error) {
+	if r.cfg.Classify == nil {
+		return 0, nil
+	}
+	return r.run(ctx, JobClassify, r.cfg.Classify)
 }
 
 // ReadModel rebuilds creative_stats, operator_stats and publisher_stats.
@@ -128,10 +145,13 @@ func (r *Runner) Direction(ctx context.Context, rebuild bool) (int64, error) {
 	return r.job(ctx, JobDirection, `SELECT spy.refresh_direction($1, $2)`, r.cfg.Now(), rebuild)
 }
 
-// All runs the three once, in order, and returns the first error.
+// All runs every job once, in order, and returns the errors.
 func (r *Runner) All(ctx context.Context, rebuild bool) error {
 	var errs []error
 	if _, err := r.Recent(ctx); err != nil {
+		errs = append(errs, err)
+	}
+	if _, err := r.Classify(ctx); err != nil {
 		errs = append(errs, err)
 	}
 	if _, err := r.ReadModel(ctx); err != nil {
@@ -144,9 +164,16 @@ func (r *Runner) All(ctx context.Context, rebuild bool) error {
 }
 
 func (r *Runner) job(ctx context.Context, name, query string, args ...any) (int64, error) {
+	return r.run(ctx, name, func(ctx context.Context) (int64, error) {
+		var n int64
+		err := r.db.QueryRow(ctx, query, args...).Scan(&n)
+		return n, err
+	})
+}
+
+func (r *Runner) run(ctx context.Context, name string, do func(context.Context) (int64, error)) (int64, error) {
 	start := time.Now()
-	var n int64
-	err := r.db.QueryRow(ctx, query, args...).Scan(&n)
+	n, err := do(ctx)
 	took := time.Since(start)
 	r.seconds.WithLabelValues(name).Observe(took.Seconds())
 	if err != nil {
@@ -194,6 +221,7 @@ func (r *Runner) Run(ctx context.Context) error {
 	for tick := 0; ; tick++ {
 		_, _ = r.Recent(ctx)
 		if tick%r.cfg.Every == 0 {
+			_, _ = r.Classify(ctx)
 			_, _ = r.ReadModel(ctx)
 			_, _ = r.Direction(ctx, false)
 		}
