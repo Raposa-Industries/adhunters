@@ -203,14 +203,15 @@ type NewCampaign struct {
 	// BidStrategy is FIXED (the default) or SMART, which take CPC under the
 	// ceiling, or MAX_CONVERSIONS (Realize's "Maximize conversions"), where
 	// Taboola sets each bid and CPC is not sent; with TargetCPA it becomes
-	// TARGET_CPA. Unproven on the real API yet (2026-09-30).
+	// TARGET_CPA. MAX_CONVERSIONS was accepted on the real API on 2026-09-30;
+	// TARGET_CPA is not tried yet.
 	BidStrategy string
 	// TargetCPA is the cost per conversion to aim for (USD), with
 	// MAX_CONVERSIONS only.
 	TargetCPA float64
 	// ExcludeCities are the ids (the "name" field) of cities in Taboola's
 	// dictionary (resources/countries/US/cities) the campaign does not show
-	// in. The EXCLUDE shape is unproven on the real API (2026-09-30).
+	// in. The EXCLUDE shape was accepted on the real API on 2026-09-30.
 	ExcludeCities []string
 	// AdDelivery is OPTIMIZED (Realize's "Prioritize top-performing ads")
 	// or EVEN (A/B testing); empty leaves Taboola's default.
@@ -520,8 +521,8 @@ type NewGroup struct {
 	// Model is MONTHLY or ENTIRE (lifetime), or NONE: no group budget,
 	// each campaign keeps its own (Realize's default, "Manually set budgets
 	// per campaign"). Taboola's spending-limit-model dictionary lists NONE,
-	// MONTHLY, ENTIRE and SCHEDULED; NONE on a group is unproven
-	// (2026-09-30).
+	// MONTHLY, ENTIRE and SCHEDULED; NONE on a group was accepted on the real
+	// API on 2026-09-30.
 	Model string
 	// MarketingObjective must match its campaigns'; DRIVE_WEBSITE_TRAFFIC
 	// when empty.
