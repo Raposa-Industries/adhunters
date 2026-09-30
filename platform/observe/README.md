@@ -34,7 +34,9 @@ Nothing here creates an account or holds a secret. Every secret is a
    `adhunters-go`; all Go services report there, told apart by the `service`
    tag. Note its DSN and your organization's slug. In Settings > Custom
    Integrations, create an internal integration with Issue & Event: Read and
-   note its token, for observe-bot.
+   note its token, for observe-bot. An organization in the EU data region
+   answers on `https://de.sentry.io`, so observe-bot's `SENTRY_URL` is that
+   instead of `https://sentry.io`.
 3. **Better Stack** (betterstack.com, free). In Uptime, create one heartbeat,
    "Grafana alerting", expected every 1 minute with a 5-minute grace, alerting
    you by call and email. Note its URL.
@@ -54,8 +56,12 @@ On each box, after `setup.sh` has run once:
 - `/etc/adhunters/alloy.env`: the Grafana Cloud URLs, users and the `boxes`
   token (see `alloy/alloy.env.example`). Then `systemctl restart alloy`. On
   the data box, `POSTGRES_MONITOR_URL` is filled in by `setup.sh`.
-- `/etc/adhunters/observe.env`: `SENTRY_DSN`. Then restart the services
-  (one capture instance at a time). Empty leaves Sentry off.
+- `/etc/adhunters/observe.env`: `SENTRY_DSN`. Empty leaves Sentry off.
+  `platform/servers/set-sentry-dsn.sh`, run from your computer, asks for it
+  once (hidden), writes it on every box and restarts only what is already
+  running, capture one instance at a time. On the data box,
+  `observe-bot sentry-test` (with `observe.env` and `observe-bot.env`
+  loaded) sends one test error, to see it arrive.
 - Data box: `/etc/adhunters/observe-bot.env` (Telegram, the `bot` token,
   Sentry's organization and integration token), then
   `systemctl restart observe-bot`. `observe-bot digest` prints today's
@@ -76,8 +82,11 @@ cp platform/observe/observe.env.example platform/observe/observe.env   # fill it
 platform/observe/push.sh push
 ```
 
-Push the rules once collection runs on the new boxes: `CaptureStopped` pages
-while no box scrapes, which is true until then.
+`CaptureStopped` pages while no box scrapes, so push once at least one
+capture instance runs on the new boxes (the worker's `tracks-capture@a` has
+since 29 Sep 2026). While only test lines run, the capture chat alerts may
+say collection is low; silence them in Grafana (Alerting, Silences) until
+the switch-over.
 
 ## Credits
 
