@@ -12,7 +12,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/Raposa-Industries/adhunters/tracks/archive"
+	"github.com/Raposa-Industries/adhunters/shared/archive"
 	"github.com/Raposa-Industries/adhunters/tracks/capture/spool"
 	"github.com/Raposa-Industries/adhunters/tracks/internal/rawtest"
 	"github.com/Raposa-Industries/adhunters/tracks/internal/testdb"
