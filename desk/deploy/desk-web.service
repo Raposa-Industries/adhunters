@@ -2,7 +2,7 @@
 # Listens on localhost (DESK_WEB_ADDR); people reach it through the
 # Cloudflare tunnel, behind Cloudflare Access, which says who is asking.
 # Desk's migrations run before each start (desk-agent's run them too, under
-# the same lock), so the pages work before desk-agent has its Claude key.
+# the same lock), so the pages work while Desk is off (no Claude key).
 [Unit]
 Description=Desk web
 Wants=network-online.target

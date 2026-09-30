@@ -214,10 +214,10 @@ library works and every creative waits to be copied.
 Access application as the launcher page: in the tunnel (Networks › Tunnels ›
 `adhunters-data` › Public hostname), add a hostname `hunt-teste.fyi` with
 path `^/desk`, service `http://localhost:8092`, and move it above the one
-that serves the whole hostname. Desk answers once its Claude key is in
-`/etc/adhunters/desk-agent.env` (`ANTHROPIC_API_KEY=`), then
-`sudo systemctl restart desk-agent`. Its daily Claude limit and stop switch
-are on its settings page.
+that serves the whole hostname. Desk is off (desk-agent runs but takes no
+work) until its Claude key is in `/etc/adhunters/desk-agent.env`
+(`ANTHROPIC_API_KEY=`) and `sudo systemctl restart desk-agent` has run. Its
+daily Claude limit and stop switch are on its settings page.
 
 ## Intel on hunt-teste.fyi/intel/
 
