@@ -13,9 +13,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/keep"
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
-	"github.com/Raposa-Industries/adhunters/create/internal/taboola"
+	"github.com/Raposa-Industries/adhunters/kit/keep"
+	taboola "github.com/Raposa-Industries/adhunters/shared/taboola/write"
 )
 
 // backstage is a fake Taboola Backstage that records what reaches it.

@@ -5,6 +5,7 @@ use (
 	./create
 	./intel
 	./kit
+	./launch
 	./library
 	./platform/observe
 	./raposa

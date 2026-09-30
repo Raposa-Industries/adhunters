@@ -83,6 +83,18 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | minted name | A creative's name from its vertical's code, the network letter and a counter that only goes up (`BPT43`), given when an app saves it. Never given twice. |
 | hidden | Taken out of the library's lists by a person. Nothing in the library is deleted. |
 
+## Launch
+
+| Word | Means |
+|---|---|
+| group | Short for campaign group, in Launch's tree (Network > Account > Group > Campaign > Ads). On NewsBreak, its campaign. |
+| pair | One desktop and one mobile campaign Launch made together, with the same settings and the same ads, in one group. Named "<name> · Desktop" and "<name> · Mobile". Mobile means phones only. |
+| preset | Settings a person saved to reuse, at one of two levels: a group preset (budget and objective) or a campaign preset (bid, caps, countries, link and tracking code, brand, description). For one account or all. Nobody fixes them for the team. |
+| copy | A new, paused campaign with another's settings and ads (Taboola's duplicate with its items; the ads get new ids and go through review again). It has its own id. |
+| move | Putting a campaign in another group. Taboola fixes a campaign's group when it is made, so a move is a copy in the new group; the original is paused when a person starts the copy (or at once, or never, as the person chose). |
+| draft | A new pair saved on the server to finish later. It is deleted when the pair is made. |
+| History | Everything Launch did on a network, one row per change: who did it, who asked (a person, or later Intel or Desk), before and after, and the result. |
+
 ## Intel
 
 | Word | Means |
