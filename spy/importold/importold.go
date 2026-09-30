@@ -1,8 +1,9 @@
 // Package importold copies Spy's groupings from the collector's database:
 // which operator each account belongs to, the operators themselves, and the
-// vertical of each creative. The collector keeps the operators until Spy has
-// its own screens for them, so the copy is repeatable: each run replaces what
-// the last one wrote. The verticals go to spy.creative_vertical_old, only to
+// vertical of each creative. The copy is repeatable: each run replaces what
+// the last one wrote. Once the setting operators_from is 'grouping', Spy
+// groups operators itself (spy.regroup_operators) and the operators are no
+// longer copied. The verticals go to spy.creative_vertical_old, only to
 // compare with Spy's own classifier (decision 0015); no number reads them.
 //
 // It only reads the old database (open it with a read-only login). Accounts
@@ -38,6 +39,15 @@ type Result struct {
 // records each in spy.import_mark.
 func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, error) {
 	var res Result
+	var from string
+	if err := db.QueryRow(ctx, `
+		SELECT COALESCE((SELECT text_value FROM spy.setting WHERE name = 'operators_from'), 'import')`).Scan(&from); err != nil {
+		return res, err
+	}
+	copyOps := from == "import"
+	if !copyOps {
+		log.Info("operators come from Spy's own grouping; copying the verticals only")
+	}
 	ops, err := read(ctx, old, `SELECT id, name, display_name, kind, vertical FROM spy.operator`, 5)
 	if err != nil {
 		return res, fmt.Errorf("old operators: %w", err)
@@ -64,7 +74,7 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 
 	// An empty grouping means the wrong database or a broken collector;
 	// copying it would wipe Spy's.
-	if len(ops) == 0 || len(accs) == 0 || len(verts) == 0 {
+	if (copyOps && (len(ops) == 0 || len(accs) == 0)) || len(verts) == 0 {
 		return res, fmt.Errorf("the old database has %d operators, %d grouped accounts and %d verticals; refusing to copy an empty grouping",
 			len(ops), len(accs), len(verts))
 	}
@@ -95,48 +105,50 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 		}
 	}
 
-	// Operators keep their ids, so OP123 stays OP123. One the collector no
-	// longer has is removed with its accounts.
 	var n int64
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO spy.operator (id, name, display_name, kind, vertical, updated_at)
-		SELECT id, COALESCE(name, 'OP' || id), display_name,
-		       CASE WHEN kind IN ('direct', 'affiliate', 'arbitrage') THEN kind ELSE 'direct' END, vertical, now()
-		FROM old_operator WHERE id IS NOT NULL
-		ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, display_name = EXCLUDED.display_name,
-		    kind = EXCLUDED.kind, vertical = EXCLUDED.vertical, updated_at = now()
-		WHERE (spy.operator.name, spy.operator.display_name, spy.operator.kind, spy.operator.vertical)
-		      IS DISTINCT FROM (EXCLUDED.name, EXCLUDED.display_name, EXCLUDED.kind, EXCLUDED.vertical)`); err != nil {
-		return res, fmt.Errorf("operators: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `DELETE FROM spy.operator o WHERE NOT EXISTS (SELECT 1 FROM old_operator x WHERE x.id = o.id)`); err != nil {
-		return res, fmt.Errorf("operators: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `
-		SELECT setval(pg_get_serial_sequence('spy.operator', 'id'), GREATEST((SELECT max(id) FROM spy.operator), 1))`); err != nil {
-		return res, fmt.Errorf("operator ids: %w", err)
-	}
-	res.Operators = Counts{Copied: len(ops)}
+	if copyOps {
+		// Operators keep their ids, so OP123 stays OP123. One the collector no
+		// longer has is removed with its accounts.
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO spy.operator (id, name, display_name, kind, vertical, updated_at)
+			SELECT id, COALESCE(name, 'OP' || id), display_name,
+			       CASE WHEN kind IN ('direct', 'affiliate', 'arbitrage') THEN kind ELSE 'direct' END, vertical, now()
+			FROM old_operator WHERE id IS NOT NULL
+			ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, display_name = EXCLUDED.display_name,
+			    kind = EXCLUDED.kind, vertical = EXCLUDED.vertical, updated_at = now()
+			WHERE (spy.operator.name, spy.operator.display_name, spy.operator.kind, spy.operator.vertical)
+			      IS DISTINCT FROM (EXCLUDED.name, EXCLUDED.display_name, EXCLUDED.kind, EXCLUDED.vertical)`); err != nil {
+			return res, fmt.Errorf("operators: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `DELETE FROM spy.operator o WHERE NOT EXISTS (SELECT 1 FROM old_operator x WHERE x.id = o.id)`); err != nil {
+			return res, fmt.Errorf("operators: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `
+			SELECT setval(pg_get_serial_sequence('spy.operator', 'id'), GREATEST((SELECT max(id) FROM spy.operator), 1))`); err != nil {
+			return res, fmt.Errorf("operator ids: %w", err)
+		}
+		res.Operators = Counts{Copied: len(ops)}
 
-	// Accounts: replaced whole. An account Tracks has not seen, or whose
-	// operator is gone, is skipped.
-	if _, err := tx.Exec(ctx, `DELETE FROM spy.account_operator`); err != nil {
-		return res, fmt.Errorf("accounts: %w", err)
+		// Accounts: replaced whole. An account Tracks has not seen, or whose
+		// operator is gone, is skipped.
+		if _, err := tx.Exec(ctx, `DELETE FROM spy.account_operator`); err != nil {
+			return res, fmt.Errorf("accounts: %w", err)
+		}
+		if err := tx.QueryRow(ctx, `
+			WITH ins AS (
+			    INSERT INTO spy.account_operator (account_id, operator_id)
+			    SELECT DISTINCT ON (a.id) a.id, x.operator_id
+			    FROM old_account x
+			    JOIN tracks_api.network_v1 nw ON nw.code = x.network
+			    JOIN tracks_api.account_v1 a ON a.network_id = nw.id AND a.external_id = x.external_id
+			    JOIN spy.operator o ON o.id = x.operator_id
+			    ORDER BY a.id, x.operator_id
+			    RETURNING 1)
+			SELECT count(*) FROM ins`).Scan(&n); err != nil {
+			return res, fmt.Errorf("accounts: %w", err)
+		}
+		res.Accounts = Counts{Copied: int(n), Skipped: len(accs) - int(n)}
 	}
-	if err := tx.QueryRow(ctx, `
-		WITH ins AS (
-		    INSERT INTO spy.account_operator (account_id, operator_id)
-		    SELECT DISTINCT ON (a.id) a.id, x.operator_id
-		    FROM old_account x
-		    JOIN tracks_api.network_v1 nw ON nw.code = x.network
-		    JOIN tracks_api.account_v1 a ON a.network_id = nw.id AND a.external_id = x.external_id
-		    JOIN spy.operator o ON o.id = x.operator_id
-		    ORDER BY a.id, x.operator_id
-		    RETURNING 1)
-		SELECT count(*) FROM ins`).Scan(&n); err != nil {
-		return res, fmt.Errorf("accounts: %w", err)
-	}
-	res.Accounts = Counts{Copied: int(n), Skipped: len(accs) - int(n)}
 
 	// Verticals: replaced whole, matched by creative key.
 	if _, err := tx.Exec(ctx, `DELETE FROM spy.creative_vertical_old`); err != nil {
@@ -157,7 +169,11 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 	}
 	res.Verticals = Counts{Copied: int(n), Skipped: len(verts) - int(n)}
 
-	for what, c := range map[string]Counts{"operators": res.Operators, "accounts": res.Accounts, "verticals": res.Verticals} {
+	marks := map[string]Counts{"verticals": res.Verticals}
+	if copyOps {
+		marks["operators"], marks["accounts"] = res.Operators, res.Accounts
+	}
+	for what, c := range marks {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO spy.import_mark (what, done_at, copied, skipped) VALUES ($1, now(), $2, $3)
 			ON CONFLICT (what) DO UPDATE SET done_at = now(), copied = $2, skipped = $3`, what, c.Copied, c.Skipped); err != nil {

@@ -118,6 +118,12 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | launch | An operator's creative first seen in a range. |
 | hit rate | The share of an operator's launches with an outcome that ran 15 days or more, past a Taboola A/B test's 14 (a hit), rather than ending sooner (a miss). |
 | Size | A subject's share and rank in its vertical over 24 hours and 7 days. Scaled: among the few creatives that make half their vertical. |
+| site | Where an operator's landing pages are: a registrable domain, or the whole host on a hosting domain (`shop.myshopify.com`). A checkout platform is never a site. |
+| clue | Something a site's pages carry that names who runs them: a pixel id, an email, a company name. A strong clue is one business's; the others are hints and group nothing. |
+| grouping | Spy's own answer to which sites and accounts make one operator (`spy.regroup_operators`). Proposed until the `operators_from` setting says `grouping`. |
+| hand fix | A person's correction to the grouping: join a site or account to an operator, or keep it out of every group. It always wins. |
+| agency | An account name root whose accounts buy for 3 or more operators' sites. Its accounts are not grouped by the root. |
+| kind | An operator's business: arbitrage (an account buys for 3 or more site groups), affiliate (sells through an affiliate network) or direct. |
 | stage | Retired: the collector's blend of counts into test, scaling and winner. Use momentum, lifespan and new. |
 
 ## Raposa

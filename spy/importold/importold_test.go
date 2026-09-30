@@ -93,6 +93,20 @@ func TestRun(t *testing.T) {
 		t.Errorf("new operator id %d, want 41", id)
 	}
 
+	// Once Spy groups operators itself, only the verticals are copied.
+	if _, err := db.Exec(ctx, `UPDATE spy.setting SET text_value = 'grouping' WHERE name = 'operators_from';
+		DELETE FROM spy.account_operator WHERE account_id = 3`); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Run(ctx, old, db, log)
+	if err != nil || res != (Result{Verticals: Counts{4, 1}}) {
+		t.Fatalf("with grouping on: %+v, %v", res, err)
+	}
+	if err := db.QueryRow(ctx, `SELECT string_agg(code, ' ' ORDER BY id) || ' ' || (SELECT count(*) FROM spy.account_operator)
+		FROM spy.operator`).Scan(&got); err != nil || got != "OP12 OP40 OP41 2" {
+		t.Errorf("with grouping on, operators and accounts changed: %s (%v)", got, err)
+	}
+
 	// An empty old grouping is refused and changes nothing.
 	if _, err := old.Exec(ctx, `DELETE FROM spy.creative_vertical`); err != nil {
 		t.Fatal(err)
