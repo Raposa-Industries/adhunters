@@ -48,7 +48,12 @@ func LaunchPath(s Suggestion, id int64) string {
 	if v, ok := s.Values["daily_cap"]; ok {
 		q.Set("cap", fmt.Sprint(v))
 	}
-	return fmt.Sprintf("/launch/taboola/%s/g/%d/c/%d?%s", url.PathEscape(s.Account), s.Group, s.Campaign, q.Encode())
+	// Launch writes a campaign with no group as g/-.
+	group := "-"
+	if s.Group != 0 {
+		group = strconv.FormatInt(s.Group, 10)
+	}
+	return fmt.Sprintf("/launch/taboola/%s/g/%s/c/%d?%s", url.PathEscape(s.Account), group, s.Campaign, q.Encode())
 }
 
 // Suggest works out the suggestions that hold now.

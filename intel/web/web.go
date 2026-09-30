@@ -196,9 +196,12 @@ func (h *handler) account(w http.ResponseWriter, r *http.Request) {
 	var group int64
 	if g := r.PathValue("group"); g != "" {
 		var err error
-		if group, err = strconv.ParseInt(g, 10, 64); err != nil {
+		if group, err = parseGroup(g); err != nil {
 			http.NotFound(w, r)
 			return
+		}
+		if group == 0 {
+			group = noGroup
 		}
 	}
 	p, err := h.base(r, account, "home")
@@ -217,7 +220,10 @@ func (h *handler) account(w http.ResponseWriter, r *http.Request) {
 	}
 	p.Account, p.Group = account, group
 	p.Crumbs = []crumb{{"Intel", "/intel/"}, {account, accountPath(account)}}
-	if group != 0 {
+	if group == noGroup {
+		p.Title = "Sem grupo"
+		p.Crumbs = append(p.Crumbs, crumb{p.Title, ""})
+	} else if group != 0 {
 		p.Title = fmt.Sprintf("Grupo %d", group)
 		p.Crumbs = append(p.Crumbs, crumb{p.Title, ""})
 	} else {
@@ -232,7 +238,7 @@ func (h *handler) account(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) campaign(w http.ResponseWriter, r *http.Request) {
 	account := r.PathValue("account")
-	group, err1 := strconv.ParseInt(r.PathValue("group"), 10, 64)
+	group, err1 := parseGroup(r.PathValue("group"))
 	id, err2 := strconv.ParseInt(r.PathValue("campaign"), 10, 64)
 	if err1 != nil || err2 != nil {
 		http.NotFound(w, r)
@@ -264,7 +270,7 @@ func (h *handler) campaign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.Account, p.Group, p.Campaign = account, c.GroupID, c
-	p.Crumbs = []crumb{{"Intel", "/intel/"}, {account, accountPath(account)}, {fmt.Sprintf("Grupo %d", c.GroupID), groupPath(account, c.GroupID)}, {c.Name, ""}}
+	p.Crumbs = []crumb{{"Intel", "/intel/"}, {account, accountPath(account)}, {groupName(c.GroupID), groupPath(account, c.GroupID)}, {c.Name, ""}}
 	if p.Results, err = h.st.results(ctx, id); err == nil {
 		if p.Ads, err = h.st.ads(ctx, id, p.Window); err == nil {
 			if p.Line, err = h.st.line(ctx, id); err == nil {
@@ -345,12 +351,38 @@ func (h *handler) search(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(found)
 }
 
+func groupName(g int64) string {
+	if g == 0 {
+		return "Sem grupo"
+	}
+	return fmt.Sprintf("Grupo %d", g)
+}
+
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 
 func accountPath(account string) string { return "/intel/taboola/" + url.PathEscape(account) }
 
+// groupSeg is a group in a path; a campaign with no group is g/-, as in
+// Launch.
+func groupSeg(group int64) string {
+	if group == 0 {
+		return "-"
+	}
+	return itoa(group)
+}
+
+// noGroup asks a list for the campaigns with no group.
+const noGroup = -1
+
+func parseGroup(s string) (int64, error) {
+	if s == "-" {
+		return 0, nil
+	}
+	return strconv.ParseInt(s, 10, 64)
+}
+
 func groupPath(account string, group int64) string {
-	return accountPath(account) + "/g/" + itoa(group)
+	return accountPath(account) + "/g/" + groupSeg(group)
 }
 
 func campaignPath(account string, group, id int64) string {
@@ -359,7 +391,7 @@ func campaignPath(account string, group, id int64) string {
 
 // launchPath opens the same campaign in Launch.
 func launchPath(account string, group, id int64) string {
-	return "/launch/taboola/" + url.PathEscape(account) + "/g/" + itoa(group) + "/c/" + itoa(id)
+	return "/launch/taboola/" + url.PathEscape(account) + "/g/" + groupSeg(group) + "/c/" + itoa(id)
 }
 
 type cards struct {
@@ -375,8 +407,14 @@ var funcs = template.FuncMap{
 	"groupPath":    groupPath,
 	"campaignPath": campaignPath,
 	"launchPath":   launchPath,
-	"windowName":   func(w string) string { return windowNames[w] },
-	"money":        money,
+	"launchGroup": func(account string, group int64) string {
+		if group == noGroup {
+			group = 0
+		}
+		return "/launch/taboola/" + url.PathEscape(account) + "/g/" + groupSeg(group)
+	},
+	"windowName": func(w string) string { return windowNames[w] },
+	"money":      money,
 	"moneyp": func(v *float64) string {
 		if v == nil {
 			return "–"

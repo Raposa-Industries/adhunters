@@ -214,6 +214,13 @@ func TestNoSaleOdds(t *testing.T) {
 	}
 }
 
+func TestLaunchPathNoGroup(t *testing.T) {
+	p := judge.LaunchPath(judge.Suggestion{Account: "acme-sc", Campaign: 5, Kind: "pause-campaign"}, 7)
+	if !strings.HasPrefix(p, "/launch/taboola/acme-sc/g/-/c/5?") {
+		t.Fatalf("got %s", p)
+	}
+}
+
 func TestLaunchPathNeedsAccount(t *testing.T) {
 	if p := judge.LaunchPath(judge.Suggestion{Account: "redtrack:team", Kind: "pause-ads"}, 1); p != "" {
 		t.Fatalf("a RedTrack-only campaign got a Launch link: %s", p)

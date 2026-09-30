@@ -180,7 +180,7 @@ func (s store) campaigns(ctx context.Context, account string, group int64, windo
 		       c.cpc::float8, c.daily_cap::float8, c.gone_at IS NOT NULL, `+resultCols+`
 		FROM intel.tb_campaign c
 		LEFT JOIN intel.campaign_result r ON r.campaign_id = c.campaign_id AND r.time_window = $1
-		WHERE ($2 = '' OR c.account = $2) AND ($3 = 0 OR c.group_id = $3)
+		WHERE ($2 = '' OR c.account = $2) AND ($3 = 0 OR c.group_id = $3 OR ($3 = -1 AND c.group_id IS NULL))
 		  AND (c.gone_at IS NULL OR r.spent > 0)
 		ORDER BY r.spent DESC NULLS LAST, c.campaign_id DESC`, window, account, group)
 	if err != nil {

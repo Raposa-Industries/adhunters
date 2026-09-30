@@ -20,7 +20,8 @@ func TestPages(t *testing.T) {
 		`INSERT INTO intel.tb_account VALUES ('acme-sc', 'main', 1, 'Acme', 'PARTNER', 'USD', 'US/Eastern', now())`,
 		`INSERT INTO intel.tb_campaign (campaign_id, account, group_id, name, status, is_active, daily_cap, cpc, settings, first_seen_at, fetched_at)
 			VALUES (1, 'acme-sc', 10, 'BP mobile', 'RUNNING', true, 100, 0.3, '{}', now(), now()),
-			       (2, 'acme-sc', 20, 'BP mobile (moved)', 'PAUSED', false, 50, 0.3, '{}', now(), now())`,
+			       (2, 'acme-sc', 20, 'BP mobile (moved)', 'PAUSED', false, 50, 0.3, '{}', now(), now()),
+			       (3, 'acme-sc', NULL, 'No group', 'PAUSED', false, 50, 0.3, '{}', now(), now())`,
 		`INSERT INTO intel.campaign_link VALUES (1, 2, 'acme-sc', now(), 'launch')`,
 		`INSERT INTO intel.tb_item (item_id, campaign_id, account, title, status, is_active, approval_state, settings, first_seen_at, fetched_at)
 			VALUES (11, 1, 'acme-sc', 'Sip This at Breakfast', 'RUNNING', true, 'APPROVED', '{}', now(), now())`,
@@ -68,6 +69,8 @@ func TestPages(t *testing.T) {
 	get("/intel/taboola/acme-sc/g/10/c/1", "Sip This at Breakfast", "pior", "com certeza", "0.80%",
 		`href="/launch/taboola/acme-sc/g/10/c/1"`, "BP mobile (moved)", "depois")
 	get("/intel/taboola/acme-sc/g/20/c/2", "antes", "BP mobile")
+	get("/intel/taboola/acme-sc/g/-", "No group", `href="/launch/taboola/acme-sc/g/-"`)
+	get("/intel/taboola/acme-sc/g/-/c/3", "No group", `href="/launch/taboola/acme-sc/g/-/c/3"`)
 	get("/intel/suggestions", "Pause 1 ad")
 	get("/intel/alerts", "spent $300 today")
 	get("/intel/_frame/frame.js", "mountFrame")
