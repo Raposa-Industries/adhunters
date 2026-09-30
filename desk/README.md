@@ -53,6 +53,12 @@ for its Claude key. Units and example settings are in [deploy/](deploy/).
    Each step's news is an event in the conversation. When the plan ends,
    Desk takes a turn to say what came of it, with the links.
 
+For example, "faz um brief de Tinnitus com 6 imagens e me mostra as
+melhores" becomes a plan of three steps: `create.new_brief` (Create makes
+the options), a choice among that brief's `create.options`, and
+`create.save_set` with the ids the person picked, which puts them in the
+library as one set for Launch.
+
 A step that waits is looked at again every 30 s; a pick or a to-do marked
 done moves it at once. An app that refuses a call (its own check, a
 constraint), or a function Desk may not call, fails the step and the plan
@@ -132,8 +138,8 @@ refused.
 ## What it reads and publishes
 
 Reads and calls only what `contract/actions` lists, through each app's
-`<app>_api`: the login holds each app's `<app>_api_read` role (Raposa, Spy
-and Tracks today) and owns the `desk` schemas.
+`<app>_api`: the login holds each app's `<app>_api_read` role (Raposa, Spy,
+Tracks, Create and the library today) and owns the `desk` schemas.
 
 Publishes `desk_api` (granted to `desk_api_read`), with a copy of each
 definition in [contract/sql/desk](../contract/sql/desk): `todo_v1`, the
@@ -142,11 +148,10 @@ list (Launch asking a person to start a pair in Taboola, say).
 
 ## Not done yet
 
-- **Launch's and Create's actions.** Desk makes creatives and pairs once
-  `contract/actions/launch.json` and `create.json` list them, after Launch
-  and Create publish their `_api` functions (`launch_api.new_request_v1`
-  and the like). Until then Desk reads Spy, Raposa and Tracks and asks for
-  Raposa investigations.
+- **Launch's actions.** Desk asks Launch for pairs, copies, moves and
+  pauses once `contract/actions/launch.json` lists them, after Launch
+  publishes `launch_api.new_request_v1`. Until then Desk gives the person
+  the link that opens a saved set in Launch (`/launch/new?set=<id>`).
 - **Deploy.** Not deployed; that needs the owner's word.
   `platform/servers/setup.sh` sets Desk up on the data box: the `desk`
   login, the `desk_api_read` role, the `_api_read` role of each app in

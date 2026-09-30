@@ -1,7 +1,8 @@
 # The action catalog
 
-What each app lets a teammate do, one file per app (`<app>.json`), so Desk
-can do the same through the same door. Each action is one view or function
+What each app lets a teammate do, one file per app (`<app>.json`; the
+library Create and Launch share has one for its reads), so Desk can do the
+same through the same door. Each action is one view or function
 the app already publishes in `contract/sql/<app>/`, and the app's own
 button calls the same one. `go test ./actions/` checks every entry against
 those files: the view or function exists, each argument is one of its
