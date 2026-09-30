@@ -359,7 +359,7 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 			res.Problems = append(res.Problems, "o par foi criado mas não foi anotado aqui; ele aparece como duas campanhas soltas")
 		}
 	}
-	summary := fmt.Sprintf("Criou o par %s, pausado: %d de 2 campanhas, %s em cada", pair.Name, made, ads(len(r.Ads)))
+	summary := fmt.Sprintf("Criou %s e %s, pausadas: %d de 2 campanhas, %s em cada", sides[0].name, sides[len(sides)-1].name, made, ads(len(r.Ads)))
 	if len(sides) == 1 {
 		summary = fmt.Sprintf("Criou a campanha %s, pausada, com %s", sides[0].name, ads(len(r.Ads)))
 		if made == 0 {
@@ -380,7 +380,7 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 		l.record(ctx, store.Change{
 			Who: who.Person, AskedBy: who.asked(), Network: r.Network, Account: r.Account, GroupID: res.GroupID,
 			CampaignID: pair.MobileID, Kind: "new_pair",
-			Summary: fmt.Sprintf("Criou o par %s (mobile), pausado", pair.Name), Result: res.Result,
+			Summary: fmt.Sprintf("Criou %s, pausada, junto com %s", sides[1].name, sides[0].name), Result: res.Result,
 		})
 	}
 	if res.Result == "done" && r.DraftID != 0 {
