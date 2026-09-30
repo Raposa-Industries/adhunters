@@ -5,6 +5,7 @@ rule_files:
   - ../rules/services.yaml
   - ../rules/boxes.yaml
   - ../rules/credits.yaml
+  - ../rules/funnels.yaml
 
 evaluation_interval: 1m
 
@@ -215,4 +216,26 @@ tests:
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/out-of-credit.md
       - eval_time: 45m
         alertname: OutOfCredit
+        exp_alerts: []
+
+  # The edge's spool refuses a write, then recovers after 3 minutes: a page
+  # only once it has failed for 2 minutes, and none after it recovers.
+  - interval: 1m
+    input_series:
+      - series: 'funnels_edge_spool_failing{service="funnels-edge",instance="adhunters-data"}'
+        values: '0x5 1x3 0x5'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: FunnelsSpoolFailing
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: FunnelsSpoolFailing
+        exp_alerts:
+          - exp_labels:
+              tier: page
+            exp_annotations:
+              summary: funnels-edge cannot write beacons to its spool; visitor events are being lost.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/funnels-spool-failing.md
+      - eval_time: 11m
+        alertname: FunnelsSpoolFailing
         exp_alerts: []

@@ -263,6 +263,54 @@ create_web() {
     start create-web create-web
 }
 
+# ---- Funnels on the data box -----------------------------------------------
+
+funnels_src="$repo/funnels"
+
+# funnels_example NAME: the settings lines of funnels/deploy/NAME.env.example.
+funnels_example() {
+    grep -E '^[A-Z0-9_]+=' "$funnels_src/deploy/$1.env.example" || true
+}
+
+# funnels_box: the edge (hosted landing sites, /ah.js, /e) and the loader
+# (funnels/README.md). Visitors reach the edge through the Cloudflare tunnel
+# (platform/OPERATIONS.md). The edge needs no database, so it starts first.
+funnels_box() {
+    [ -d "$funnels_src/deploy" ] || { echo "$funnels_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "funnels: the funnels user, folders, the funnels login"
+    id funnels >/dev/null 2>&1 || useradd --system --home-dir /var/lib/funnels --shell /usr/sbin/nologin funnels
+    install -d -m 0750 -o funnels -g funnels /var/lib/funnels /var/lib/funnels/spool /var/lib/funnels/sites
+    install_bin funnels-edge
+    install_bin funnels-loader
+    for u in funnels-edge.service funnels-loader.service; do
+        install -m 0644 "$funnels_src/deploy/$u" "/etc/systemd/system/$u"
+    done
+    systemctl daemon-reload
+
+    # The key that hashes visitors' addresses: made once, never shown.
+    env_file funnels-edge "$(funnels_example funnels-edge | sed "s|^FUNNELS_IP_KEY=FILL_ME\$|FUNNELS_IP_KEY=$(openssl rand -hex 24)|")" funnels
+    start funnels-edge funnels-edge
+
+    # funnels-loader owns the funnels and funnels_api schemas and runs their
+    # migrations; funnels_api_read must exist before the first one.
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'funnels_api_read') THEN CREATE ROLE funnels_api_read NOLOGIN; END IF; END \$\$"
+    local pw k v f=/etc/adhunters/funnels-loader.env
+    pw=$(login funnels)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO funnels"
+    env_file funnels-loader "$(funnels_example funnels-loader)" funnels
+    if [ -n "$pw" ]; then
+        sed -i "s|^DATABASE_URL=FILL_ME\$|DATABASE_URL=postgres://funnels:$pw@localhost:5432/adhunters?sslmode=require|" "$f"
+    fi
+    # The same object storage keys as Tracks' loader.
+    for k in S3_ACCESS_KEY S3_SECRET_KEY; do
+        v=$(grep -E "^$k=" /etc/adhunters/tracks-loader.env 2>/dev/null | cut -d= -f2- || true)
+        if [ -n "$v" ] && [ "$v" != FILL_ME ]; then
+            sed -i "s|^$k=FILL_ME\$|$k=$v|" "$f"
+        fi
+    done
+    start funnels-loader funnels-loader
+}
+
 # ---- data box ---------------------------------------------------------------
 
 postgres() {
@@ -519,7 +567,9 @@ raposa-engine           9105  raposa-engine   -
 raposa-web              9106  raposa-web      -
 observe-bot             9107  observe-bot     -
 tracks-bridge           9108  tracks-bridge   -
-create-web              9109  create-web      -'
+create-web              9109  create-web      -
+funnels-edge            9112  funnels-edge    -
+funnels-loader          9113  funnels-loader  -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
@@ -622,6 +672,7 @@ standby) capture_box standby:1:9101 ;;
 data)
     data_box && backups
     create_web
+    funnels_box
     ;;
 esac
 alloy_agent

@@ -1,0 +1,33 @@
+groups:
+  - name: funnels
+    interval: 1m
+    rules:
+      # A beacon the edge cannot write is lost: the page script does not
+      # send it again.
+      - alert: FunnelsSpoolFailing
+        expr: max(funnels_edge_spool_failing) > 0
+        for: 2m
+        labels:
+          tier: page
+        annotations:
+          summary: funnels-edge cannot write beacons to its spool; visitor events are being lost.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/funnels-spool-failing.md
+
+      - alert: FunnelsFileQuarantined
+        expr: max(funnels_loader_files_quarantined) > 0
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $value }} Funnels raw file(s) are quarantined and wait for a fix and a replay.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/funnels-file-quarantined.md
+
+      - alert: FunnelsBeaconsUnparsed
+        expr: |
+          sum(rate(funnels_loader_beacons_total{outcome="bad"}[30m]))
+            / sum(rate(funnels_loader_beacons_total[30m])) > 0.05
+        for: 30m
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $value | humanizePercentage }} of beacons no longer parse. The page script or a page sending to /e may have changed.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/funnels-beacons-unparsed.md
