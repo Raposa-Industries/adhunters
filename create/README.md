@@ -100,8 +100,8 @@ from another site's page is refused.
 
 `deploy/create.env.example`: `DATABASE_URL` (the `create_app` login; it
 runs the migrations on start), `OPENAI_API_KEY` (empty: the pages work and
-making is off), `CREATE_ADDR` (`127.0.0.1:8094`), `OPS_ADDR`
-(`127.0.0.1:9111`), `CREATE_FILES`, `CREATE_KEEP_DIR`, `LIBRARY_URL`
+making is off), `CREATE_ADDR` (`127.0.0.1:8095`), `OPS_ADDR`
+(`127.0.0.1:9112`), `CREATE_FILES`, `CREATE_KEEP_DIR`, `LIBRARY_URL`
 (`http://127.0.0.1:8093`), `CREATE_WORKERS` (3), and the same model and
 price settings as create-web (below).
 
@@ -110,7 +110,7 @@ price settings as create-web (below).
 ```
 DATABASE_URL=postgres://… CREATE_FILES=file:///tmp/create/files CREATE_KEEP_DIR=/tmp/create/kept \
   OPENAI_API_KEY=… go run ./create/cmd/create
-open http://127.0.0.1:8094/create/
+open http://127.0.0.1:8095/create/
 ```
 
 ## The campaign launcher (`create-web`)

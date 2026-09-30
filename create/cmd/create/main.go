@@ -96,7 +96,7 @@ func (s openAIStatus) OpenAIWhy() string { return s.c.Why() }
 
 func serve(args []string) error {
 	fs := flag.NewFlagSet("create", flag.ExitOnError)
-	addr := fs.String("addr", envOr("CREATE_ADDR", "127.0.0.1:8094"), "where the pages listen")
+	addr := fs.String("addr", envOr("CREATE_ADDR", "127.0.0.1:8095"), "where the pages listen")
 	filesURI := fs.String("files", envOr("CREATE_FILES", "file:///var/lib/create/files"), "where references and made pictures are kept: file:///path or s3://bucket/prefix")
 	keepDir := fs.String("keep", envOr("CREATE_KEEP_DIR", "/var/lib/create/kept"), "where every OpenAI reply is kept as it came")
 	libraryURL := fs.String("library", envOr("LIBRARY_URL", "http://127.0.0.1:8093"), "the library's API")

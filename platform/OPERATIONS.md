@@ -186,11 +186,11 @@ bulk sheet.
 
 ## Create on hunt-teste.fyi/create/
 
-`create` listens only on `127.0.0.1:8094` on the data box (create/README.md).
+`create` listens only on `127.0.0.1:8095` on the data box (create/README.md).
 It is reached on the same address and behind the same Access application as
 the launcher page: in the tunnel (Networks › Tunnels › `adhunters-data` ›
 Public hostname), add a hostname `hunt-teste.fyi` with path `^/create`,
-service `http://localhost:8094`, and move it above the one that serves the
+service `http://localhost:8095`, and move it above the one that serves the
 whole hostname. Its OpenAI key goes in `/etc/adhunters/create.env`
 (`OPENAI_API_KEY=`), then `sudo systemctl restart create`.
 

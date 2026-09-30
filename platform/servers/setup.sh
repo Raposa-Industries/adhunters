@@ -579,7 +579,7 @@ observe-bot             9107  observe-bot     -
 tracks-bridge           9108  tracks-bridge   -
 create-web              9109  create-web      -
 library                 9110  library         -
-create                  9111  create          -'
+create                  9112  create          -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
