@@ -299,12 +299,19 @@ func (n NewCampaign) body(maxCPC, maxDailyCap float64, full bool) (obj, error) {
 	}
 
 	obj0 := strings.ToUpper(strings.TrimSpace(n.MarketingObjective))
-	if obj0 == "" && full {
+	switch {
+	case obj0 == "" && maxConv:
+		// Maximize conversions needs a conversion objective.
+		obj0 = "ONLINE_PURCHASES"
+	case obj0 == "" && full:
 		obj0 = "DRIVE_WEBSITE_TRAFFIC"
 	}
 	if obj0 != "" {
 		if !objectives[obj0] {
 			return nil, refuse("objetivo %q inválido: use DRIVE_WEBSITE_TRAFFIC, LEADS_GENERATION, ONLINE_PURCHASES ou BRAND_AWARENESS", oneLine(n.MarketingObjective, 40))
+		}
+		if maxConv && obj0 != "ONLINE_PURCHASES" && obj0 != "LEADS_GENERATION" {
+			return nil, refuse("maximizar conversões pede o objetivo LEADS_GENERATION ou ONLINE_PURCHASES")
 		}
 		b["marketing_objective"] = obj0
 	}

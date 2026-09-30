@@ -44,12 +44,15 @@ or saved in a preset:
   Tallahassee FL, sent as their ids in Taboola's US city dictionary (3,
   2132, 2038, 995, 140, 57, 125, 189, 847; read 2026-09-30, see
   research/taboola-api/lookups-2026-09-30 in the project files). The
-  `city_targeting` EXCLUDE shape is to be proven on the first paused create.
+  `city_targeting` EXCLUDE shape (string ids) is how Taboola shows campaign
+  50549004, made in Realize; our create sending it is still to be proven.
 - **Budget:** US$ 500 a day, no spending limit. The ceiling
   (`TABOOLA_MAX_DAILY_CAP`) is 500 in the example settings.
 - **Bid:** Maximize conversions (CPA), a target CPA optional; Taboola sets
-  each bid (`bid_strategy` MAX_CONVERSIONS, or TARGET_CPA with
-  `target_cpa`: to be proven on the real API).
+  each bid (`bid_strategy` MAX_CONVERSIONS, no `cpc`, or TARGET_CPA with
+  `target_cpa`: to be proven on the real API). It needs a conversion
+  objective, so the objective starts at Online Purchases (as on 50549004);
+  Maximize conversions with Website traffic or Brand awareness is refused.
 - **Ad delivery:** prioritize top-performing ads (`traffic_allocation_mode`
   OPTIMIZED).
 - **Tracking code:** `src={site}&utm_medium={thumbnail}&…&ref_id={click_id}`

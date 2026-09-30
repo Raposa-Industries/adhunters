@@ -18,6 +18,9 @@ const MODELS = [['', 'Por campanha'], ['MONTHLY', 'Por mês'], ['ENTIRE', 'Total
 
 // The team's defaults for a new campaign (2026-09-30).
 export const TEAM = {
+  // Maximize conversions needs a conversion objective; the team's campaigns
+  // are Online Purchases (like campaign 50549004, made in Realize).
+  objective: 'ONLINE_PURCHASES',
   daily_cap: 500,
   bid_strategy: 'MAX_CONVERSIONS',
   ad_delivery: 'OPTIMIZED',
@@ -33,6 +36,8 @@ export const CITY = { 3: 'Atlanta (Georgia)', 2132: 'Bend (Oregon)', 2038: 'Bilo
 const cityLines = (ids) => (ids || []).map((id) => (CITY[id] ? `${id} ${CITY[id]}` : id)).join('\n');
 const cityIds = (text) => text.split(/\r?\n/).map((l) => (l.trim().match(/^\d+/) || [''])[0]).filter(Boolean);
 
+// CONVERSIONS are the objectives Taboola allows Maximize conversions on.
+const CONVERSIONS = { LEADS_GENERATION: true, ONLINE_PURCHASES: true };
 const BIDS = [['MAX_CONVERSIONS', 'Maximizar conversões (CPA)'], ['FIXED', 'CPC fixo'], ['SMART', 'CPC Smart']];
 const DELIVERY = [['OPTIMIZED', 'Priorizar os melhores anúncios'], ['EVEN', 'Teste A/B (igual para todos)']];
 
@@ -42,7 +47,7 @@ export function groupFields(values = {}) {
   const name = input({ placeholder: 'próximo número', value: values.name || '' });
   const budget = input({ inputmode: 'decimal', placeholder: '500', value: values.budget || '' });
   const model = select(MODELS, values.budget_model ?? '');
-  const objective = select(OBJECTIVES, values.objective || 'DRIVE_WEBSITE_TRAFFIC');
+  const objective = select(OBJECTIVES, values.objective || TEAM.objective);
   const budgetBox = field('Orçamento do grupo (US$)', budget, 'as campanhas do grupo gastam deste orçamento');
   const showBudget = () => { budgetBox.hidden = !model.value; };
   model.addEventListener('change', showBudget);
@@ -88,7 +93,7 @@ export function settingsForm(values = {}, limits = {}) {
   let deliveryNow = s.ad_delivery || 'OPTIMIZED';
   const delivery = segmented('delivery-' + Math.random().toString(36).slice(2, 7), DELIVERY, deliveryNow, (v) => { deliveryNow = v; });
   const cities = h('textarea', { rows: 5, spellcheck: 'false', 'aria-label': 'Cidades fora' }, cityLines(s.exclude_cities));
-  const objective = select(OBJECTIVES, s.objective || 'DRIVE_WEBSITE_TRAFFIC');
+  const objective = select(OBJECTIVES, s.objective || TEAM.objective);
   const start = input({ type: 'date', value: s.start_date || '' });
   const end = input({ type: 'date', value: s.end_date || '' });
   let trackerId = values.tracker || 'redtrack';
@@ -208,6 +213,7 @@ export function settingsForm(values = {}, limits = {}) {
         if (Number.isNaN(numberOf(box.value))) return name + ' é um número, como 0,35.';
       }
       if (bidNow !== 'MAX_CONVERSIONS' && !numberOf(cpc.value)) return 'Diga o CPC.';
+      if (bidNow === 'MAX_CONVERSIONS' && !CONVERSIONS[objective.value]) return 'Maximizar conversões pede o objetivo Leads ou Compras.';
       if (!numberOf(cap.value)) return 'Diga o orçamento diário.';
       if (!brand.value.trim()) return 'Escreva a marca.';
       if (!linkBox.value.trim()) return 'Falta o link da página.';

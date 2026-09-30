@@ -319,6 +319,8 @@ func TestCampaignBody(t *testing.T) {
 				return "cities"
 			case b["traffic_allocation_mode"] != "OPTIMIZED":
 				return "delivery"
+			case b["marketing_objective"] != "ONLINE_PURCHASES":
+				return "objective"
 			}
 			return ""
 		}},
@@ -366,6 +368,7 @@ func TestCampaignBody(t *testing.T) {
 		"objective":        {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, MarketingObjective: "APP_INSTALLS"},
 		"bid":              {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "TARGET_ROAS"},
 		"cpc with maxconv": {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, BidStrategy: "MAX_CONVERSIONS"},
+		"maxconv traffic":  {Name: "x", Brand: "b", DailyCap: 10, BidStrategy: "MAX_CONVERSIONS", MarketingObjective: "DRIVE_WEBSITE_TRAFFIC"},
 		"cpa without":      {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, TargetCPA: 20},
 		"delivery":         {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, AdDelivery: "FAST"},
 		"empty city":       {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, ExcludeCities: []string{" "}},
