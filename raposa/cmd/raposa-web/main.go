@@ -25,8 +25,8 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
-	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/web"
+	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 // version is set at build time: -ldflags "-X main.version=…".

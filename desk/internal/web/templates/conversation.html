@@ -1,0 +1,26 @@
+{{template "top" .}}
+<nav class="crumbs"><a href="/desk/">Conversas</a><span class="sep">/</span><span aria-current="page">{{.Conv.Title}}</span></nav>
+
+<div id="timeline" class="timeline" data-conv="{{.Conv.ID}}" data-v="{{.V}}" aria-live="polite">
+{{template "timeline" .}}
+</div>
+
+<div id="end"></div>
+{{if eq .Conv.State "stopped"}}
+<p class="note">Conversa parada. Escreva de novo para retomar.</p>
+{{end}}
+<form class="panel composer" method="post" action="/desk/c/{{.Conv.ID}}/say">
+  <label class="field" for="text">Mensagem
+    <textarea id="text" name="text" rows="3" maxlength="8000" required></textarea>
+  </label>
+  <div class="actions">
+    <button class="primary" type="submit">Enviar</button>
+  </div>
+</form>
+{{if eq .Conv.State "open"}}
+<form class="stop" method="post" action="/desk/c/{{.Conv.ID}}/stop">
+  <button class="ghost small" type="submit">Parar esta conversa</button>
+  <span class="faint">Desk para de responder aqui, e o plano que estiver rodando para antes do próximo passo.</span>
+</form>
+{{end}}
+{{template "bottom" .}}

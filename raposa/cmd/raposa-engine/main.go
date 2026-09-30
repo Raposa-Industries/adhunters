@@ -35,10 +35,10 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/engine"
-	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/importold"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
 	"github.com/Raposa-Industries/adhunters/raposa/migrations"
+	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 // version is set at build time: -ldflags "-X main.version=…".

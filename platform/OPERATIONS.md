@@ -9,7 +9,7 @@ it in the same PR.
 | Box | Hetzner name | Type | Location | Private IP | Public IPv4 | Runs |
 |---|---|---|---|---|---|---|
 | worker | `adhunters-worker` | CX43 | Nuremberg (nbg1) | 10.20.1.10 | 2.28.193.220 (Primary IP, kept across rebuilds) | capture `@a` `@b`, shipper, Raposa |
-| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web |
+| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web, create, library, Desk |
 | standby | `adhunters-standby` | CX23 | Falkenstein (fsn1) | 10.20.1.30 | 2.28.138.34 (Primary IP) | capture `@standby`, shipper |
 
 All three are in one Hetzner project, created by Terraform
@@ -106,7 +106,7 @@ Build on your computer (Go 1.25), from the repository root:
 ```
 git checkout main && git pull
 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" \
-  -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./platform/observe/cmd/...
+  -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./platform/observe/cmd/...
 ```
 
 Copy the checkout with the binaries to a box and run the setup there:
@@ -183,6 +183,41 @@ allowed for paused tests only, so with them the file must also carry
 `TABOOLA_ONLY_OWN=1`, and what the test made (the ids in
 `/var/lib/create-web/kept/taboola-state.json`) is deleted afterwards. Without Taboola keys the page still makes the
 bulk sheet.
+
+## Create on hunt-teste.fyi/create/
+
+`create` listens only on `127.0.0.1:8095` on the data box (create/README.md).
+It is reached on the same address and behind the same Access application as
+the launcher page: in the tunnel (Networks › Tunnels › `adhunters-data` ›
+Public hostname), add a hostname `hunt-teste.fyi` with path `^/create`,
+service `http://localhost:8095`, and move it above the one that serves the
+whole hostname. Its OpenAI key goes in `/etc/adhunters/create.env`
+(`OPENAI_API_KEY=`), then `sudo systemctl restart create`.
+
+## The library and Google Drive
+
+`library` listens only on `127.0.0.1:8093` on the data box; Create and Launch
+call it there (library/README.md). Its safe copies go in their own bucket:
+create `adhunters-library` in the Hetzner Console (Object Storage, fsn1,
+private) and put the object storage keys in `/etc/adhunters/library.env`.
+
+The Drive copy needs, once: the Google client id and secret of the
+`adhunters-library` project in the same file, `sudo systemctl restart
+library`, then `sudo /opt/adhunters/bin/library drive-login` (it prints a
+link to open and asks for the address the browser ends on). Without it the
+library works and every creative waits to be copied.
+
+## Desk on hunt-teste.fyi/desk/
+
+`desk-web` listens only on `127.0.0.1:8092` on the data box
+(desk/README.md). It is reached on the same address and behind the same
+Access application as the launcher page: in the tunnel (Networks › Tunnels ›
+`adhunters-data` › Public hostname), add a hostname `hunt-teste.fyi` with
+path `^/desk`, service `http://localhost:8092`, and move it above the one
+that serves the whole hostname. Desk answers once its Claude key is in
+`/etc/adhunters/desk-agent.env` (`ANTHROPIC_API_KEY=`), then
+`sudo systemctl restart desk-agent`. Its daily Claude limit and stop switch
+are on its settings page.
 
 ## Not yet
 

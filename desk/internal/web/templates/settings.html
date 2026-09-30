@@ -1,0 +1,63 @@
+{{template "top" .}}
+<div class="page-head">
+  <div>
+    <h1>Ajustes</h1>
+    <p class="lead">Hoje Desk gastou {{usd .Spent}} de {{usd .Cap}} com o Claude.</p>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Parar o Desk</h2>
+  <p class="muted">Parado, Desk não chama o Claude e não roda nenhum passo, em nenhuma conversa, até alguém ligar de novo. Qualquer um do time pode parar e ligar.</p>
+  <form class="actions" method="post" action="/desk/switch">
+    {{if .Stopped}}
+    <button class="primary" type="submit" name="to" value="start">Ligar o Desk</button>
+    {{else}}
+    <button class="primary" type="submit" name="to" value="stop">Parar o Desk agora</button>
+    {{end}}
+  </form>
+</section>
+
+<form class="panel" method="post" action="/desk/settings">
+  <h2>Como Desk trabalha</h2>
+  {{if .Saved}}<p class="note ok">Salvo.</p>{{end}}
+  <div class="fields">
+  {{range .Settings}}
+    {{if eq .Key "model"}}<label class="field">Modelo <input name="model" value="{{.Value}}" pattern="claude-[a-z0-9-]+"><span class="hint">{{.Says}}</span></label>{{end}}
+    {{if eq .Key "effort"}}<label class="field">Esforço
+      <select name="effort">
+        {{$v := .Value}}
+        <option value="low"{{if eq $v "low"}} selected{{end}}>low</option>
+        <option value="medium"{{if eq $v "medium"}} selected{{end}}>medium</option>
+        <option value="high"{{if eq $v "high"}} selected{{end}}>high</option>
+        <option value="xhigh"{{if eq $v "xhigh"}} selected{{end}}>xhigh</option>
+        <option value="max"{{if eq $v "max"}} selected{{end}}>max</option>
+      </select><span class="hint">{{.Says}}</span></label>{{end}}
+    {{if eq .Key "daily_usd"}}<label class="field">Limite por dia (US$) <input name="daily_usd" value="{{.Value}}" inputmode="decimal"><span class="hint">{{.Says}}</span></label>{{end}}
+    {{if eq .Key "turn_calls"}}<label class="field">Chamadas por vez <input name="turn_calls" value="{{.Value}}" inputmode="numeric"><span class="hint">{{.Says}}</span></label>{{end}}
+  {{end}}
+  </div>
+  <div class="actions"><button type="submit">Salvar</button></div>
+</form>
+
+<section class="panel">
+  <h2>O que Desk pode fazer</h2>
+  <p class="muted">Cada ação é a mesma porta que o botão do app usa. Leituras rodam à vontade; mudanças e pedidos só como passo de um plano que alguém aprovou.</p>
+  {{range .Apps}}
+  <h3 class="section">{{.App}}</h3>
+  <div class="table-wrap">
+  <table class="list">
+    <tbody>
+    {{range .Actions}}
+    <tr>
+      <td class="mono">{{.Name}}</td>
+      <td><span class="badge{{if eq .Kind "read"}}{{else if eq .Kind "ask"}} paused{{else}} review{{end}}">{{if eq .Kind "read"}}lê{{else if eq .Kind "ask"}}pede{{else}}muda{{end}}</span></td>
+      <td>{{.Says}}{{if .PerDay}} <span class="faint">Até {{.PerDay}} por dia.</span>{{end}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{end}}
+</section>
+{{template "bottom" .}}

@@ -19,10 +19,12 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/keep"
+	"github.com/Raposa-Industries/adhunters/kit/keep"
 )
 
 const defaultBaseURL = "https://api.openai.com"
@@ -225,4 +227,53 @@ func truncate(s string, max int) string {
 		return string(runes[:max]) + "…"
 	}
 	return s
+}
+
+// SettingsFromEnv reads the settings from the environment: OPENAI_API_KEY,
+// OPENAI_BASE_URL, CREATE_IMAGE_MODEL, CREATE_IMAGE_QUALITY,
+// CREATE_TEXT_MODEL, CREATE_TEXT_REASONING (set but empty: no
+// reasoning_effort is sent) and the four CREATE_*_PRICE_* in USD per
+// million tokens.
+func SettingsFromEnv() (Settings, error) {
+	env := func(key, def string) string {
+		if v := os.Getenv(key); v != "" {
+			return v
+		}
+		return def
+	}
+	s := Settings{
+		APIKey:        os.Getenv("OPENAI_API_KEY"),
+		BaseURL:       os.Getenv("OPENAI_BASE_URL"),
+		ImageModel:    env("CREATE_IMAGE_MODEL", "gpt-image-2.5-flare"),
+		ImageQuality:  env("CREATE_IMAGE_QUALITY", "medium"),
+		TextModel:     env("CREATE_TEXT_MODEL", "gpt-5-mini"),
+		TextReasoning: "low",
+	}
+	if !ValidQuality(s.ImageQuality) {
+		return s, fmt.Errorf("CREATE_IMAGE_QUALITY must be low, medium or high, not %q", s.ImageQuality)
+	}
+	if v, ok := os.LookupEnv("CREATE_TEXT_REASONING"); ok {
+		s.TextReasoning = v
+	}
+	prices := []struct {
+		key string
+		def float64
+		to  *float64
+	}{
+		{"CREATE_IMAGE_PRICE_IN", 10, &s.ImagePriceIn},
+		{"CREATE_IMAGE_PRICE_OUT", 30, &s.ImagePriceOut},
+		{"CREATE_TEXT_PRICE_IN", 0.25, &s.TextPriceIn},
+		{"CREATE_TEXT_PRICE_OUT", 2, &s.TextPriceOut},
+	}
+	for _, p := range prices {
+		*p.to = p.def
+		if v := os.Getenv(p.key); v != "" {
+			f, err := strconv.ParseFloat(v, 64)
+			if err != nil || f < 0 {
+				return s, fmt.Errorf("%s must be a price in USD per million tokens, not %q", p.key, v)
+			}
+			*p.to = f
+		}
+	}
+	return s, nil
 }
