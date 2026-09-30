@@ -47,6 +47,19 @@ const MaxLine = 64 << 20
 // ReadRecords decompresses a sealed raw file and calls fn with each record
 // in order. The record passed to fn is fresh each call.
 func ReadRecords(r io.Reader, fn func(line int, rec *Record) error) error {
+	return ReadLines(r, func(n int, b []byte) error {
+		rec := &Record{}
+		if err := json.Unmarshal(b, rec); err != nil {
+			return fmt.Errorf("spool: line %d: %w", n, err)
+		}
+		return fn(n, rec)
+	})
+}
+
+// ReadLines decompresses a sealed raw file and calls fn with each non-empty
+// line, for files whose lines are not capture's records (tracks-walker's
+// walks). The bytes passed to fn are only valid during the call.
+func ReadLines(r io.Reader, fn func(line int, b []byte) error) error {
 	dec, err := zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxMemory(1<<30))
 	if err != nil {
 		return err
@@ -60,11 +73,7 @@ func ReadRecords(r io.Reader, fn func(line int, rec *Record) error) error {
 		if len(sc.Bytes()) == 0 {
 			continue
 		}
-		rec := &Record{}
-		if err := json.Unmarshal(sc.Bytes(), rec); err != nil {
-			return fmt.Errorf("spool: line %d: %w", n, err)
-		}
-		if err := fn(n, rec); err != nil {
+		if err := fn(n, sc.Bytes()); err != nil {
 			return err
 		}
 	}

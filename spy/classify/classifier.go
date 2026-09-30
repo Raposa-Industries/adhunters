@@ -115,11 +115,16 @@ type textRow struct {
 	text       Text
 	adID       int32
 	evidenceID int64
+	pageAt     *time.Time
 }
 
+// bodyChars is how much of a landing page's visible text the rules read.
+const bodyChars = 3000
+
 // texts reads what the classifier reads about each creative: the headlines
-// and descriptions of its 10 newest ads, their brands, and the titles of the
-// landing pages Raposa reached from it.
+// and descriptions of its 10 newest ads, their brands, its newest walked
+// landing page (title, h1 and h2, description, and the start of its text),
+// and the titles of the landing pages Raposa reached from it.
 func (c *Classifier) texts(ctx context.Context, ids []int32, pages bool) ([]textRow, error) {
 	page := `SELECT ''::text AS txt, 0::bigint AS max_id`
 	if pages {
@@ -131,7 +136,8 @@ func (c *Classifier) texts(ctx context.Context, ids []int32, pages bool) ([]text
 		batch := ids[start:min(start+textBatch, len(ids))]
 		rows, err := c.db.Query(ctx, `
 			SELECT t.id, COALESCE(ads.txt, ''), COALESCE(ads.brands, ''), COALESCE(ads.max_id, 0),
-			       COALESCE(pg.txt, ''), COALESCE(pg.max_id, 0)
+			       concat_ws(' . ', NULLIF(wk.head, ''), NULLIF(pg.txt, '')), COALESCE(pg.max_id, 0),
+			       COALESCE(wk.body, ''), wk.changed_at
 			FROM unnest($1::int[]) t(id)
 			LEFT JOIN LATERAL (
 			    SELECT string_agg(x.headline || COALESCE(' . ' || NULLIF(x.description, ''), ''), ' . ' ORDER BY x.id DESC) AS txt,
@@ -141,13 +147,23 @@ func (c *Classifier) texts(ctx context.Context, ids []int32, pages bool) ([]text
 			          WHERE a.creative_id = t.id ORDER BY a.id DESC LIMIT 10) x
 			    LEFT JOIN tracks_api.brand_v1 b ON b.id = x.brand_id
 			) ads ON TRUE
-			LEFT JOIN LATERAL (`+page+`) pg ON TRUE`, batch)
+			LEFT JOIN LATERAL (`+page+`) pg ON TRUE
+			LEFT JOIN LATERAL (
+			    SELECT concat_ws(' . ', NULLIF(v.title, ''),
+			               (SELECT string_agg(h, ' . ') FROM jsonb_each(v.headings) e,
+			                    jsonb_array_elements_text(CASE WHEN jsonb_typeof(e.value) = 'array' THEN e.value ELSE '[]' END) h
+			                WHERE e.key IN ('h1', 'h2')),
+			               COALESCE(v.meta->>'description', v.meta->>'og:description')) AS head,
+			           left(v.text, $2) AS body, cp.changed_at
+			    FROM spy.creative_page cp JOIN tracks_api.page_version_v1 v ON v.hash = cp.version_hash
+			    WHERE cp.creative_id = t.id
+			) wk ON TRUE`, batch, bodyChars)
 		if err != nil {
 			return nil, err
 		}
 		for rows.Next() {
 			var r textRow
-			if err := rows.Scan(&r.id, &r.text.Ad, &r.text.Brand, &r.adID, &r.text.Page, &r.evidenceID); err != nil {
+			if err := rows.Scan(&r.id, &r.text.Ad, &r.text.Brand, &r.adID, &r.text.Page, &r.evidenceID, &r.text.Body, &r.pageAt); err != nil {
 				rows.Close()
 				return nil, err
 			}
@@ -169,8 +185,9 @@ func ids(ctx context.Context, db *pgxpool.Pool, query string, args ...any) ([]in
 	return pgx.CollectRows(rows, pgx.RowTo[int32])
 }
 
-// rulesPass reads the creatives never read, with a newer ad or landing page,
-// or read under another version of the list; the most recently seen first.
+// rulesPass reads the creatives never read, with a newer ad, a changed
+// landing page or new Raposa evidence, or read under another version of the
+// list; the most recently seen first.
 func (c *Classifier) rulesPass(ctx context.Context) (int, error) {
 	pages := c.pages(ctx)
 	newPage := ""
@@ -182,6 +199,8 @@ func (c *Classifier) rulesPass(ctx context.Context) (int, error) {
 		LEFT JOIN spy.creative_class k ON k.creative_id = c.id
 		WHERE k.creative_id IS NULL OR k.rules_hash <> $1
 		   OR EXISTS (SELECT 1 FROM tracks_api.ad_v1 a WHERE a.creative_id = c.id AND a.id > k.input_ad_id)
+		   OR EXISTS (SELECT 1 FROM spy.creative_page cp WHERE cp.creative_id = c.id
+		              AND cp.changed_at > COALESCE(k.input_page_at, '-infinity'))
 		   `+newPage+`
 		ORDER BY c.last_seen_at DESC, c.id
 		LIMIT $2`, c.hash, c.cfg.PerRun)
@@ -196,13 +215,14 @@ func (c *Classifier) rulesPass(ctx context.Context) (int, error) {
 	var (
 		cid, adID            = make([]int32, n), make([]int32, n)
 		evID                 = make([]int64, n)
+		pageAt               = make([]*time.Time, n)
 		cat, vert, src, evid = make([]string, n), make([]string, n), make([]string, n), make([]string, n)
 		conf                 = make([]float64, n)
 	)
 	for i, t := range texts {
 		a := c.rules.Classify(t.text)
 		ev, _ := json.Marshal(map[string]any{"points": a.Points, "hits": a.Hits})
-		cid[i], adID[i], evID[i] = t.id, t.adID, t.evidenceID
+		cid[i], adID[i], evID[i], pageAt[i] = t.id, t.adID, t.evidenceID, t.pageAt
 		cat[i], vert[i], src[i], evid[i], conf[i] = a.Category, a.Vertical, a.Source, string(ev), a.Confidence
 	}
 	// A model answer stays while the rules are still unsure; the model is
@@ -210,12 +230,13 @@ func (c *Classifier) rulesPass(ctx context.Context) (int, error) {
 	_, err = c.db.Exec(ctx, `
 		INSERT INTO spy.creative_class AS k (creative_id, category_id, vertical_id, confidence, source, evidence,
 		    rules_category_id, rules_vertical_id, rules_confidence, rules_source, rules_hash, input_ad_id,
-		    input_evidence_id, classified_at, needs_model, model_id, model_at)
+		    input_evidence_id, input_page_at, classified_at, needs_model, model_id, model_at)
 		SELECT u.id, NULLIF(u.cat, ''), NULLIF(u.vert, ''), u.conf, NULLIF(u.src, ''), u.ev::jsonb,
-		       NULLIF(u.cat, ''), NULLIF(u.vert, ''), u.conf, NULLIF(u.src, ''), $1, u.ad, u.evid,
+		       NULLIF(u.cat, ''), NULLIF(u.vert, ''), u.conf, NULLIF(u.src, ''), $1, u.ad, u.evid, u.pg,
 		       now(), u.conf < 0.6, NULL, NULL
-		FROM unnest($2::int[], $3::text[], $4::text[], $5::numeric[], $6::text[], $7::text[], $8::int[], $9::bigint[])
-		     AS u(id, cat, vert, conf, src, ev, ad, evid)
+		FROM unnest($2::int[], $3::text[], $4::text[], $5::numeric[], $6::text[], $7::text[], $8::int[], $9::bigint[],
+		            $10::timestamptz[])
+		     AS u(id, cat, vert, conf, src, ev, ad, evid, pg)
 		ON CONFLICT (creative_id) DO UPDATE SET
 		    category_id = CASE WHEN k.source = 'model' AND EXCLUDED.needs_model THEN k.category_id ELSE EXCLUDED.category_id END,
 		    vertical_id = CASE WHEN k.source = 'model' AND EXCLUDED.needs_model THEN k.vertical_id ELSE EXCLUDED.vertical_id END,
@@ -229,10 +250,11 @@ func (c *Classifier) rulesPass(ctx context.Context) (int, error) {
 		    rules_hash = EXCLUDED.rules_hash,
 		    input_ad_id = EXCLUDED.input_ad_id,
 		    input_evidence_id = EXCLUDED.input_evidence_id,
+		    input_page_at = EXCLUDED.input_page_at,
 		    classified_at = EXCLUDED.classified_at,
 		    needs_model = EXCLUDED.needs_model,
 		    model_at = NULL`,
-		c.hash, cid, cat, vert, conf, src, evid, adID, evID)
+		c.hash, cid, cat, vert, conf, src, evid, adID, evID, pageAt)
 	if err != nil {
 		return 0, err
 	}

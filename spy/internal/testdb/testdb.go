@@ -158,4 +158,15 @@ CREATE TABLE tracks_api.creative_campaign_daily_v1 (day DATE NOT NULL, creative_
     sightings INTEGER NOT NULL, first_seen_at TIMESTAMPTZ NOT NULL, last_seen_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (day, creative_id, campaign_id));
 CREATE INDEX ON tracks_api.creative_campaign_daily_v1 (campaign_id, day);
+CREATE TABLE tracks_api.walk_page_v1 (walk_id BIGINT NOT NULL, at TIMESTAMPTZ NOT NULL, ad_id INTEGER NOT NULL,
+    creative_id INTEGER NOT NULL, account_id INTEGER, link_id INTEGER NOT NULL DEFAULT 0, publisher_id INTEGER,
+    outcome TEXT NOT NULL DEFAULT 'ok', step SMALLINT NOT NULL DEFAULT 0, url TEXT NOT NULL DEFAULT '', final_url TEXT, host TEXT,
+    status INTEGER, hops SMALLINT NOT NULL DEFAULT 0, page_type TEXT, checkout_platform TEXT, seller_account TEXT,
+    version_hash UUID, PRIMARY KEY (walk_id, step));
+CREATE INDEX ON tracks_api.walk_page_v1 (at);
+CREATE TABLE tracks_api.page_version_v1 (hash UUID PRIMARY KEY, title TEXT, word_count INTEGER NOT NULL DEFAULT 0,
+    headings JSONB NOT NULL DEFAULT '{}', meta JSONB NOT NULL DEFAULT '{}', favicon_url TEXT, pixels JSONB NOT NULL DEFAULT '{}',
+    emails TEXT[] NOT NULL DEFAULT '{}', phones TEXT[] NOT NULL DEFAULT '{}', companies TEXT[] NOT NULL DEFAULT '{}',
+    disclaimers TEXT[] NOT NULL DEFAULT '{}', vsl JSONB NOT NULL DEFAULT '{}', text TEXT NOT NULL DEFAULT '',
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
 `
