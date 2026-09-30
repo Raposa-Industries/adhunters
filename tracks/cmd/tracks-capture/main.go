@@ -99,9 +99,9 @@ func runCmd(args []string) error {
 	srv.Registry.MustRegister(sealedBytes, sealedRows)
 
 	w, err := spool.Open(*spoolDir, *instance, log, spool.Options{OnSealed: func(s spool.Sealed) {
-		sealedBytes.WithLabelValues(s.Network, "raw").Add(float64(s.RawBytes))
-		sealedBytes.WithLabelValues(s.Network, "zst").Add(float64(s.ZstBytes))
-		sealedRows.WithLabelValues(s.Network).Add(float64(s.Rows))
+		sealedBytes.WithLabelValues(s.Stream, "raw").Add(float64(s.RawBytes))
+		sealedBytes.WithLabelValues(s.Stream, "zst").Add(float64(s.ZstBytes))
+		sealedRows.WithLabelValues(s.Stream).Add(float64(s.Rows))
 	}})
 	if err != nil {
 		return err

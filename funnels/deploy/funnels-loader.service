@@ -1,0 +1,27 @@
+# Funnels' loader: archives the edge's raw files, loads them into events and
+# closes each hour into journeys and counts. Settings in
+# /etc/adhunters/funnels-loader.env. Its start applies the funnels
+# migrations first.
+[Unit]
+Description=Funnels loader
+Wants=network-online.target postgresql.service
+After=network-online.target postgresql.service
+
+[Service]
+User=funnels
+Group=funnels
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/funnels-loader.env
+ExecStartPre=/opt/adhunters/bin/funnels-loader migrate
+ExecStart=/opt/adhunters/bin/funnels-loader run
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/funnels/spool
+
+[Install]
+WantedBy=multi-user.target

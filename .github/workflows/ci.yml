@@ -54,6 +54,8 @@ jobs:
         run: node --test shared/adsweb/test/*.test.js
       - name: frame tests
         run: node --test shared/frame/test/*.test.js
+      - name: funnels page script tests
+        run: node --test funnels/web/test/*.test.js
 
   terraform:
     runs-on: ubuntu-24.04

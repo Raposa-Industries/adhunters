@@ -9,7 +9,7 @@ it in the same PR.
 | Box | Hetzner name | Type | Location | Private IP | Public IPv4 | Runs |
 |---|---|---|---|---|---|---|
 | worker | `adhunters-worker` | CX43 | Nuremberg (nbg1) | 10.20.1.10 | 2.28.193.220 (Primary IP, kept across rebuilds) | capture `@a` `@b`, shipper, Raposa |
-| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web, create, library, Desk, launch-web |
+| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web, create, library, Desk, launch-web, funnels-edge, funnels-loader |
 | standby | `adhunters-standby` | CX23 | Falkenstein (fsn1) | 10.20.1.30 | 2.28.138.34 (Primary IP) | capture `@standby`, shipper |
 
 All three are in one Hetzner project, created by Terraform
@@ -21,7 +21,7 @@ Object Storage, same Hetzner project, Falkenstein, private, endpoint
 
 | Bucket | Holds |
 |---|---|
-| `adhunters-raw` | every raw file capture wrote (Tracks' archive) |
+| `adhunters-raw` | every raw file capture wrote (Tracks' archive), and under `funnels/` every beacon funnels-edge received |
 | `adhunters-raposa` | Raposa's captured files |
 | `adhunters-backups` | Postgres WAL and base backups (pgBackRest) |
 
@@ -106,7 +106,7 @@ Build on your computer (Go 1.25), from the repository root:
 ```
 git checkout main && git pull
 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" \
-  -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./intel/cmd/... ./platform/observe/cmd/...
+  -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./intel/cmd/... ./launch/cmd/... ./spy/cmd/... ./funnels/cmd/... ./platform/observe/cmd/...
 ```
 
 Copy the checkout with the binaries to a box and run the setup there:
@@ -184,6 +184,28 @@ allowed for paused tests only, so with them the file must also carry
 `/var/lib/create-web/kept/taboola-state.json`) is deleted afterwards. Without Taboola keys the page still makes the
 bulk sheet.
 
+## Landing sites (Funnels)
+
+`funnels-edge` listens only on `127.0.0.1:8098` on the data box and serves
+every hosted landing site, the page script (`/ah.js`) and the collector
+(`/e`). Visitors reach it through the same Cloudflare tunnel as Create's page,
+with **no** Cloudflare Access: landing pages are public. Because the tunnel is
+the only way in, the edge trusts Cloudflare's address and country headers
+(`FUNNELS_TRUST_CLOUDFLARE=1`).
+
+For each landing domain, once:
+
+1. The domain's DNS is on Cloudflare (Websites › Add a site).
+2. In the `adhunters-data` tunnel, Public hostname: the domain (and `www.`
+   if wanted), service `http://localhost:8098`.
+3. On the data box, publish its pages:
+   `sudo -u funnels /opt/adhunters/bin/funnels-edge publish -site DOMAIN ./folder`.
+4. Clarity (optional): make a project at clarity.microsoft.com for the
+   domain, then `sudo -u funnels /opt/adhunters/bin/funnels-edge site -site DOMAIN -clarity PROJECT_ID`.
+
+Beacons land in `/var/lib/funnels/spool` even while Postgres is down;
+`funnels-loader` archives them to `adhunters-raw/funnels/` with the same keys
+as Tracks' loader (setup.sh copies them). See funnels/README.md.
 ## Create on hunt-teste.fyi/create/
 
 `create` listens only on `127.0.0.1:8095` on the data box (create/README.md).

@@ -1,7 +1,6 @@
 package spool
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/klauspost/compress/zstd"
+	rawspool "github.com/Raposa-Industries/adhunters/shared/spool"
 )
 
 // Key is what a sealed raw file's path says about it. The path under the
@@ -40,9 +39,8 @@ func ParseKey(key string) (Key, error) {
 	return Key{Network: m[1], Instance: m[6], Minute: t}, nil
 }
 
-// MaxLine is the longest record a raw file can hold: an 8 MB answer, escaped
-// or in base64, plus the rest of the record.
-const MaxLine = 64 << 20
+// MaxLine is the longest record a raw file can hold (shared/spool).
+const MaxLine = rawspool.MaxLine
 
 // ReadRecords decompresses a sealed raw file and calls fn with each record
 // in order. The record passed to fn is fresh each call.
@@ -60,25 +58,5 @@ func ReadRecords(r io.Reader, fn func(line int, rec *Record) error) error {
 // line, for files whose lines are not capture's records (tracks-walker's
 // walks). The bytes passed to fn are only valid during the call.
 func ReadLines(r io.Reader, fn func(line int, b []byte) error) error {
-	dec, err := zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxMemory(1<<30))
-	if err != nil {
-		return err
-	}
-	defer dec.Close()
-	sc := bufio.NewScanner(dec)
-	sc.Buffer(make([]byte, 0, 1<<20), MaxLine)
-	n := 0
-	for sc.Scan() {
-		n++
-		if len(sc.Bytes()) == 0 {
-			continue
-		}
-		if err := fn(n, sc.Bytes()); err != nil {
-			return err
-		}
-	}
-	if err := sc.Err(); err != nil {
-		return fmt.Errorf("spool: after line %d: %w", n, err)
-	}
-	return nil
+	return rawspool.ReadLines(r, fn)
 }

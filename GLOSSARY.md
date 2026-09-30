@@ -219,3 +219,22 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | keep | Storing one version whole, once, after the visits: the HTML after its scripts ran, its files and its video. The result is the kept copy. |
 | kept copy | A version kept whole, with its files in object storage. |
 | evidence | A landing page an investigation reached, with what it proves about who runs the ad: account, checkout, seller, pixels. Published in raposa_api.evidence_v1. |
+
+## Funnels
+
+| Word | Means |
+|---|---|
+| landing site | A domain whose pages Funnels hosts, served by `funnels-edge` from its published versions. |
+| landing page | One page of a landing site or of a page we don't host, named by its `ah-lp` meta tag or its path (`lp` in code). |
+| tracker click id | The id the tracker gives each click (RedTrack's `clickid`), passed to the landing page in its URL. Joins a journey to its conversions. Not Taboola's click id. |
+| journey | One person's way through our landing pages from one tracker click: every page, step and video second, until they stop. A landing URL with a new tracker click id starts a new one. (Raposa's visit is something else.) |
+| beacon | One batch of events the page script sends to the collector. The edge saves each one as received. |
+| step | A point in a journey: a page loaded (`view`), a scroll mark, 10 s in view, a part of the page marked with `data-ah-step`, a counted click or form, or the video's play, pitch and end. |
+| drop-off | The journeys whose last step was this one: where they stopped. |
+| VSL | A video sales letter: the long video a landing page sells with. Ours play in our own player. |
+| play | A journey that unmuted the autoplaying video or pressed play. Muted autoplay alone is not a play. |
+| watched seconds | The seconds of a video a journey heard, each counted once; seeking ahead leaves a gap. |
+| retention curve | For each second of a video, the plays that heard it. |
+| pitch | The second a video starts selling. Set per video; the buy button can appear then. |
+| arm | One of the choices an A/B test splits journeys between (a video, a pitch time). A journey always gets the same arm. |
+| bot suspect | A journey that looks automated: the browser says so, its user agent is missing or a bot's, or it had no input and under 1 s in view. Kept and flagged, left out of the counts. |

@@ -20,7 +20,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
-	"github.com/Raposa-Industries/adhunters/tracks/archive"
+	"github.com/Raposa-Industries/adhunters/shared/archive"
 	"github.com/Raposa-Industries/adhunters/tracks/load"
 	"github.com/Raposa-Industries/adhunters/tracks/ship"
 )

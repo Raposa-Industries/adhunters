@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Raposa-Industries/adhunters/tracks/archive"
+	"github.com/Raposa-Industries/adhunters/shared/archive"
 	"github.com/Raposa-Industries/adhunters/tracks/capture/spool"
 	"github.com/Raposa-Industries/adhunters/tracks/internal/testdb"
 )
