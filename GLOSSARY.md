@@ -19,6 +19,9 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | tracking code | The query string an account adds to every link in a campaign. The ad network fills its macros (`{campaign_id}`, `{campaign_item_id}`, `{site_id}`, `{cpc}` and so on) on each click, which is how links carry these ids. |
 | bid | What an account offers in an auction: `bval` on a Taboola card, `{cpc}` in a link, the bid `price` in a NewsBreak answer. |
 | clearing price | What the winning ad paid in one Taboola auction (`auctionPrice` on the card). Its unit is not confirmed yet. |
+| auction | One ad slot sold on a publisher: Taboola puts its id, clearing price, the winning bid and cap on each card it shows. Tracks keeps every one a check saw. |
+| second price | What the next bid was in a NewsBreak auction (`second_price` in its answer). |
+| typical price | The middle of the daily medians over a range, weighted by each day's auctions. Beside the average, it is what a usual auction cost. |
 | stopped | A creative not seen for 6 hours while its usual publishers were scraped. (Not "deactivated".) |
 | closed hour | An hour whose raw files are all loaded, 5 minutes after it ended. Counts are computed once per closed hour. |
 | open hour | The current hour, rewritten every 5 minutes. |
@@ -131,8 +134,11 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 |---|---|
 | check | One scrape, seen from Spy: one look at one publisher on one device. Rates are per check. |
 | presence | Sightings per 100 checks of the network. How often you would see the ad if you looked now. |
+| sparkline | A small line of a creative's presence per day, beside it in a list. |
 | vertical | The market a creative sells into ("Blood Pressure", "Joint Pain"), one of the fixed list in [spy/verticals](spy/verticals/verticals.yaml). Never a name a classifier made up. |
 | category | A group of verticals ("Heart", "Pain"), for filtering: a category first, then its verticals. |
+| catch-all | A vertical that takes what fits nowhere else in its category ("Other health"). The classifier picks it only when no specific vertical scored. |
+| unsure | A vertical answer with confidence under 0.6. Lists show it with a question mark; the model may replace it. |
 | share of voice | A subject's share of all the network's sightings (or its vertical's) in a range. |
 | range | Any start and end a number is asked for. Read to the hour when recent, in whole UTC days when older. |
 | usual | What a range is compared with: the same hours 1 to 3 weeks before, the weeks just before, or a period the person chooses. Direction's usual value is the same idea for right now. |

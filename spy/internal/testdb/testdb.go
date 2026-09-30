@@ -105,6 +105,9 @@ CREATE TABLE tracks_api.publisher_v1 (id INTEGER PRIMARY KEY, network_id SMALLIN
 CREATE TABLE tracks_api.brand_v1 (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
 CREATE TABLE tracks_api.account_v1 (id INTEGER PRIMARY KEY, network_id SMALLINT NOT NULL DEFAULT 1, external_id TEXT NOT NULL,
     org_external_id TEXT, first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE tracks_api.campaign_v1 (id INTEGER PRIMARY KEY, network_id SMALLINT NOT NULL DEFAULT 1, external_id TEXT NOT NULL,
+    name TEXT, account_id INTEGER, parent_external_id TEXT, parent_name TEXT, objective TEXT,
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE tracks_api.creative_v1 (id INTEGER PRIMARY KEY, creative_key TEXT NOT NULL, image_url TEXT NOT NULL DEFAULT '',
     format_type TEXT, video_duration INTEGER, thumb_dimensions TEXT, language TEXT,
     first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
@@ -120,6 +123,9 @@ CREATE TABLE tracks_api.sighting_v1 (seen_at TIMESTAMPTZ NOT NULL, scrape_id BIG
     campaign_id INTEGER, link_id INTEGER, account_id INTEGER, brand_id INTEGER, site_id INTEGER, ecpa_percentile REAL,
     feed_position SMALLINT, block_position SMALLINT, bid_price REAL, second_price REAL);
 CREATE INDEX ON tracks_api.sighting_v1 (ad_id, seen_at);
+CREATE TABLE tracks_api.auction_v1 (seen_at TIMESTAMPTZ NOT NULL, scrape_id BIGINT NOT NULL DEFAULT 0, ad_id INTEGER NOT NULL,
+    publisher_id INTEGER NOT NULL, device_id SMALLINT NOT NULL, auction_id TEXT NOT NULL, placement TEXT,
+    clearing_price REAL, bid_value REAL, cap_auction_price REAL, currency TEXT, winning_seat TEXT, is_rtb BOOLEAN NOT NULL);
 CREATE TABLE tracks_api.ad_hourly_v1 (hour TIMESTAMPTZ NOT NULL, ad_id INTEGER NOT NULL, publisher_id INTEGER NOT NULL,
     device_id SMALLINT NOT NULL, sightings INTEGER NOT NULL, scrapes INTEGER NOT NULL DEFAULT 0,
     feed_position_sum BIGINT NOT NULL DEFAULT 0, feed_position_min SMALLINT, feed_position_max SMALLINT,
