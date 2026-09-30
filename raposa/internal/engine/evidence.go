@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/Raposa-Industries/adhunters/raposa/internal/page"
+	"github.com/Raposa-Industries/adhunters/shared/page"
 )
 
 // isEvidence says whether a visit's landing page belongs to the operator. A

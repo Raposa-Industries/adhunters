@@ -167,3 +167,43 @@ func TestClassifierPages(t *testing.T) {
 		t.Errorf("after the page: %+v %+v", res, got)
 	}
 }
+
+// A creative whose ads say nothing is classified from its walked landing
+// page, and read again when the page changes.
+func TestClassifierReadsWalkedPage(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	seed(t, db, 1, "", "You won't believe what happened next")
+	if _, err := db.Exec(ctx, `
+		INSERT INTO tracks_api.page_version_v1 (hash, title, headings, text) VALUES
+		    ('00000000-0000-0000-0000-000000000001', 'A doctor''s story', '{"h1": ["The ringing in your ears"]}',
+		     'Tinnitus keeps millions awake. This tinnitus routine takes a minute.'),
+		    ('00000000-0000-0000-0000-000000000002', 'Blood pressure breakthrough', '{}', 'Hypertension and blood pressure.');
+		INSERT INTO spy.creative_page (creative_id, version_hash, walked_at, changed_at)
+		VALUES (1, '00000000-0000-0000-0000-000000000001', now(), now() - interval '1 hour');`); err != nil {
+		t.Fatal(err)
+	}
+	c, err := New(db, log, Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, db, 1); got.vertical != "tinnitus" || (got.source != "body" && got.source != "page") {
+		t.Fatalf("from the page: %+v", got)
+	}
+	if res, err := c.Run(ctx); err != nil || res.Read != 0 {
+		t.Fatalf("nothing changed, yet %d read (%v)", res.Read, err)
+	}
+	if _, err := db.Exec(ctx, `UPDATE spy.creative_page SET version_hash = '00000000-0000-0000-0000-000000000002', changed_at = now()`); err != nil {
+		t.Fatal(err)
+	}
+	if res, err := c.Run(ctx); err != nil || res.Read != 1 {
+		t.Fatalf("the page changed, %d read (%v)", res.Read, err)
+	}
+	if got := read(t, db, 1); got.vertical != "blood-pressure" {
+		t.Errorf("after the page changed: %+v", got)
+	}
+}

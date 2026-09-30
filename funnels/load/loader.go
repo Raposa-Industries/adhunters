@@ -1,7 +1,6 @@
 package load
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/md5"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/Raposa-Industries/adhunters/funnels/edge"
 	"github.com/Raposa-Industries/adhunters/shared/archive"
+	"github.com/Raposa-Industries/adhunters/shared/spool"
 )
 
 // Marker is the suffix of the empty file that says a raw file is archived.
@@ -288,25 +288,19 @@ func (l *Loader) read(ctx context.Context, key, sum string) ([]Event, int, int, 
 	if s := sha256.Sum256(b); hex.EncodeToString(s[:]) != sum {
 		return nil, 0, 0, errForever{fmt.Errorf("sha256 does not match the one recorded")}
 	}
-	dec, err := zstd.NewReader(bytes.NewReader(b))
-	if err != nil {
-		return nil, 0, 0, errForever{err}
-	}
-	defer dec.Close()
-	sc := bufio.NewScanner(dec)
-	sc.Buffer(nil, 4<<20)
 	var out []Event
 	bad, n := 0, 0
-	for sc.Scan() {
-		n++
-		evs, err := Parse(sc.Bytes(), n)
+	err = spool.ReadLines(bytes.NewReader(b), func(line int, text []byte) error {
+		n = line
+		evs, err := Parse(text, line)
 		if err != nil {
 			bad++
-			continue
+			return nil
 		}
 		out = append(out, evs...)
-	}
-	if err := sc.Err(); err != nil {
+		return nil
+	})
+	if err != nil {
 		return nil, 0, 0, errForever{err}
 	}
 	return out, n, bad, nil

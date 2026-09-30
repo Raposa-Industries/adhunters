@@ -1,6 +1,7 @@
 package spool
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -39,5 +40,21 @@ func TestWriteLineNamesFilesByPrefixAndStream(t *testing.T) {
 	}
 	if len(sealed) != 1 || sealed[0].Stream != "events" || sealed[0].Rows != 1 {
 		t.Errorf("sealed = %+v", sealed)
+	}
+
+	f, err := os.Open(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	var got []string
+	if err := ReadLines(f, func(n int, b []byte) error {
+		got = append(got, fmt.Sprintf("%d:%s", n, b))
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != `1:{"a":1}` {
+		t.Errorf("read back %q", got)
 	}
 }

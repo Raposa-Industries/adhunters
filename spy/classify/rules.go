@@ -9,13 +9,15 @@ import (
 )
 
 // Part weights: a headline names the product more surely than a landing
-// page title, and a brand only sometimes says what it sells. Ported from the
-// collector's rules (migration 030), which weighed headlines 3 and page
-// titles 2; the brand is new.
+// page title, a brand only sometimes says what it sells, and a page's body
+// text mentions much besides its product. Ported from the collector's rules
+// (migration 030), which weighed headlines 3 and page titles 2; the brand and
+// the body are new.
 const (
 	weightAd    = 3
 	weightBrand = 2
 	weightPage  = 2
+	weightBody  = 1
 	// partCap caps a vertical's points in one part before its weight, so one
 	// long page repeating a word does not outvote the headline.
 	partCap = 6
@@ -28,11 +30,12 @@ const (
 type Text struct {
 	Ad    string // headlines and descriptions of its newest ads
 	Brand string // the brands those ads show
-	Page  string // titles of the landing pages Raposa reached from it
+	Page  string // the landing page's title, headings and description, and the titles of the pages Raposa reached
+	Body  string // the start of the landing page's visible text
 }
 
 // Doc is the model's view of the text: the brand counts as ad text.
-func (t Text) Doc() Doc { return Doc{Ad: t.Ad + " . " + t.Brand, Page: t.Page} }
+func (t Text) Doc() Doc { return Doc{Ad: t.Ad + " . " + t.Brand, Page: t.Page + " . " + t.Body} }
 
 // Answer is what the rules (or the model) say about one creative.
 type Answer struct {
@@ -158,7 +161,7 @@ func (r *Rules) Classify(t Text) Answer {
 		text   string
 		weight float64
 	}
-	parts := []part{{"ad", t.Ad, weightAd}, {"brand", t.Brand, weightBrand}, {"page", t.Page, weightPage}}
+	parts := []part{{"ad", t.Ad, weightAd}, {"brand", t.Brand, weightBrand}, {"page", t.Page, weightPage}, {"body", t.Body, weightBody}}
 	found := make([]map[*rule]bool, len(parts))
 	strongCat := map[string]bool{}
 	for i, p := range parts {
