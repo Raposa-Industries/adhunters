@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Raposa-Industries/adhunters/platform/observe/internal/sentry"
-	"github.com/Raposa-Industries/adhunters/platform/observe/internal/telegram"
+	"github.com/Raposa-Industries/adhunters/shared/telegram"
 )
 
 func TestNextAt(t *testing.T) {
