@@ -62,7 +62,7 @@ func Who(r *http.Request) string {
 
 // asker is who else asked for a change: "intel:311" when a person opened
 // one of Intel's one-tap actions, "desk:42" for a Desk request.
-var asker = regexp.MustCompile(`^(intel|desk):[A-Za-z0-9_-]{1,40}$`)
+var asker = regexp.MustCompile(`^(intel|desk):[A-Za-z0-9_:-]{1,60}$`)
 
 func who(r *http.Request) actions.Who {
 	w := actions.Who{Person: Who(r)}

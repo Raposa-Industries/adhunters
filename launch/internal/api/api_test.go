@@ -370,7 +370,7 @@ func TestPauseAdsAskedByIntel(t *testing.T) {
 		network.Ad{ID: "13", Title: "c", Active: true, Status: "RUNNING"})
 	r.net.Fail["PauseAd 13"] = &network.Refused{Message: "não deu"}
 	var out struct{ Done []actions.Done }
-	r.call("POST", "taboola/"+acct+"/campaigns/"+c.ID+"/pause-ads?from=intel:311", map[string]any{"ads": []string{"11", "13"}}, &out)
+	r.call("POST", "taboola/"+acct+"/campaigns/"+c.ID+"/pause-ads?from=desk:step:311", map[string]any{"ads": []string{"11", "13"}}, &out)
 	if len(out.Done) != 2 || out.Done[0].Error != "" || out.Done[1].Error != "não deu" {
 		t.Fatalf("%+v", out.Done)
 	}
@@ -380,7 +380,7 @@ func TestPauseAdsAskedByIntel(t *testing.T) {
 	}
 	var hist struct{ History []store.Change }
 	r.call("GET", "history?campaign="+c.ID, nil, &hist)
-	if len(hist.History) != 1 || hist.History[0].Result != "partial" || hist.History[0].AskedBy != "intel:311" || hist.History[0].Summary != "Pausou 1 anúncio de C" {
+	if len(hist.History) != 1 || hist.History[0].Result != "partial" || hist.History[0].AskedBy != "desk:step:311" || hist.History[0].Summary != "Pausou 1 anúncio de C" {
 		t.Errorf("%+v", hist.History)
 	}
 

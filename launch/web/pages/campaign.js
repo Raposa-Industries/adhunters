@@ -26,7 +26,7 @@ export async function campaign({ main, route, status }) {
   // person confirms, and then only to this campaign, not its pair.
   const q = new URLSearchParams(location.search);
   const asked = q.get('do') || '';
-  const from = /^(intel|desk):[\w-]{1,40}$/.test(q.get('from') || '') ? q.get('from') : '';
+  const from = /^(intel|desk):[\w:-]{1,60}$/.test(q.get('from') || '') ? q.get('from') : '';
   let together = !!data.twin && !asked;
   const ids = () => (together && data.twin ? [c.id, data.twin.id] : [c.id]);
   const byId = new Map([[c.id, c], ...(data.twin ? [[data.twin.id, data.twin]] : [])]);
