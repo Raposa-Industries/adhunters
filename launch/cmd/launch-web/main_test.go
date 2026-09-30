@@ -43,6 +43,15 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 	if _, err := st.AddPair(context.Background(), store.Pair{Network: "taboola", Account: "acme-sc", GroupID: mem.ID, Name: "Memory Loss US", DesktopID: d.ID, MobileID: m.ID, MadeBy: "ana@team.test"}); err != nil {
 		t.Fatal(err)
 	}
+	dAds, _ := n.Ads(context.Background(), "acme-sc", d.ID)
+	for _, q := range [][3]string{
+		{"change", `{"network":"taboola","account":"acme-sc","campaigns":["` + d.ID + `","` + m.ID + `"],"change":{"cpc":0.28}}`, "desk:41"},
+		{"pause_ads", `{"network":"taboola","account":"acme-sc","campaigns":["` + d.ID + `"],"ads":["` + dAds[1].ID + `"]}`, "desk:42"},
+	} {
+		if _, err := db.Exec(context.Background(), `SELECT launch_api.new_request_v1($1, $2, 'ana@team.test', $3)`, q[0], q[1], q[2]); err != nil {
+			t.Fatal(err)
+		}
+	}
 	img := &images.Store{Dir: t.TempDir()}
 	l := actions.New(st, img, log, func(err error) string { _, m := classify(err); return m }, n)
 	a := api.New(context.Background(), l, img, log, classify)

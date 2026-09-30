@@ -100,6 +100,10 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("POST "+p+"drafts", a.saveDraft)
 	m.HandleFunc("PUT "+p+"drafts/{id}", a.saveDraft)
 	m.HandleFunc("DELETE "+p+"drafts/{id}", a.deleteDraft)
+	m.HandleFunc("GET "+p+"requests", a.requests)
+	m.HandleFunc("GET "+p+"requests/{id}", a.request)
+	m.HandleFunc("POST "+p+"requests/{id}/confirm", a.decide)
+	m.HandleFunc("POST "+p+"requests/{id}/refuse", a.decide)
 	m.HandleFunc("POST "+p+"images", a.putImage)
 	m.HandleFunc("GET "+p+"images/{sha}", a.getImage)
 	// One set, one thumbnail and "use this creative" take ?id=: a third

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"image"
 	"image/color"
 	"image/png"
@@ -44,6 +45,7 @@ type rig struct {
 	net *fake.Net
 	l   *actions.Launch
 	api *API
+	db  *pgxpool.Pool
 }
 
 func setup(t *testing.T) *rig {
@@ -56,7 +58,7 @@ func setup(t *testing.T) *rig {
 	a := New(context.Background(), l, img, log, classify)
 	srv := httptest.NewServer(a.Handler())
 	t.Cleanup(srv.Close)
-	return &rig{t: t, srv: srv, net: n, l: l, api: a}
+	return &rig{t: t, srv: srv, net: n, l: l, api: a, db: db}
 }
 
 // call sends a request as ana@team.test and decodes the answer into out.

@@ -99,6 +99,19 @@ func (l *Launch) record(ctx context.Context, c store.Change) int64 {
 	return id
 }
 
+// noteItems keeps the ads a create or copy made, for launch_api.item_v1.
+func (l *Launch) noteItems(ctx context.Context, net, account string, m network.Made) {
+	items := map[string]string{}
+	for _, a := range m.Ads {
+		if a.ID != "" {
+			items[a.ID] = a.AdID
+		}
+	}
+	if err := l.st.AddItems(ctx, net, account, m.Campaign.ID, items); err != nil {
+		l.log.Error("ads made not noted", "campaign", m.Campaign.ID, "ads", len(items), "err", err)
+	}
+}
+
 // NewGroup makes a paused group.
 func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g network.NewGroup) (network.Group, error) {
 	n, err := l.Net(net)
@@ -241,6 +254,7 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 		m, err := n.CreateCampaign(ctx, r.Account, network.NewCampaign{Name: side.name, GroupID: res.GroupID, Device: side.dev, Settings: set, Ads: r.Ads}, up)
 		if m.Campaign.ID != "" {
 			made++
+			l.noteItems(ctx, r.Network, r.Account, m)
 			mm := m
 			if side.dev == network.Desktop {
 				res.Desktop, pair.DesktopID = &mm, m.Campaign.ID
@@ -421,6 +435,7 @@ func (l *Launch) copyEach(ctx context.Context, who Who, net, account string, ids
 			continue
 		}
 		copied[id] = m
+		l.noteItems(ctx, net, account, m)
 		d.Copy, d.Ads = &m.Campaign, len(m.Ads)
 		ch := describe(c, m, n)
 		ch.Who, ch.AskedBy, ch.Network, ch.Account, ch.CampaignID = who.Person, who.asked(), net, account, id
