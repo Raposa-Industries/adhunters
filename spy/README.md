@@ -16,8 +16,8 @@ model and Direction were ported.
 
 | Binary | Does | Listens |
 |---|---|---|
-| `spy-numbers run` | Every minute, the last 24 hours (rebuilt only when Tracks closes an hour). Every 5 minutes, the new landing page walks, the classifier, the read model, then Size and Direction; every 15, operator grouping. Every hour, auction prices. | ops on `OPS_ADDR` (9107) |
-| `spy-web` | Spy's pages and their JSON under `/spy/`, behind Cloudflare Access. Reads only published views. | `SPY_WEB_ADDR` (127.0.0.1:8095), ops on 9111 |
+| `spy-numbers run` | Every minute, the last 24 hours (rebuilt only when Tracks closes an hour). Every 5 minutes, the new landing page walks, the classifier, the read model, then Size and Direction; every 15, operator grouping. Every hour, auction prices. | ops on `OPS_ADDR` (9122) |
+| `spy-web` | Spy's pages and their JSON under `/spy/`, behind Cloudflare Access. Reads only published views. | `SPY_WEB_ADDR` (127.0.0.1:8097), ops on 9116 |
 
 ```
 spy-numbers migrate                applies the migrations (the unit runs it before each start)
@@ -36,7 +36,8 @@ alert covers them. `/metrics` has `spy_numbers_runs_total{job,outcome}`,
 `spy_numbers_seconds{job}`, `spy_numbers_rows{job}`,
 `spy_numbers_last_success_timestamp_seconds{job}` and
 `spy_recent_window_end_timestamp_seconds`. The unit and example settings
-are in [deploy/](deploy/); nothing deploys them yet.
+are in [deploy/](deploy/); `platform/servers/setup.sh data` installs both on
+the data box.
 
 Any other range needs nothing running: the range functions compute it when
 asked, from Tracks' counts.
@@ -141,7 +142,7 @@ present.
 ### The classifier
 
 `spy/classify` puts each creative in one vertical of the list (decision
-0015), in two passes:
+0017), in two passes:
 
 - **Rules.** The list's keywords (2 points) and hints (1 point) over the
   newest ads' headlines and descriptions (weight 3), their brands (2), the
@@ -203,12 +204,14 @@ Cloudflare Access token (RS256, our audience and team, not expired); the
 email in it is who asked. Without them spy-web refuses to listen beyond
 localhost.
 
-Setting it up (the owner's step; nothing here runs it): a login
-`spy_web` with `spy_api_read`, `tracks_api_read`, `raposa_api_read` and
-EXECUTE on `raposa_api.request_investigation_v1`; an Access application for
-the address; then [deploy/spy-web.service](deploy/spy-web.service) with
-[deploy/spy-web.env.example](deploy/spy-web.env.example). Without the Raposa
-grants the ad page leaves Raposa out. Once it answers, `shared/frame/core.js`
+Setting it up: `platform/servers/setup.sh data` makes the `spy` login (owns
+the spy schemas; `tracks_api_read`, `raposa_api_read`) and the `spy_web`
+login (`spy_api_read`, `tracks_api_read`, `raposa_api_read`, which carries
+EXECUTE on `raposa_api.request_investigation_v1`), writes
+`/etc/adhunters/spy-numbers.env` and `spy-web.env`, and starts both units.
+spy-web waits until `ACCESS_TEAM` and `ACCESS_AUD` are filled in from an
+Access application for the address. Without the Raposa grants the ad page
+leaves Raposa out. Once it answers, `shared/frame/core.js`
 can mark Spy ready so other apps' menus link to it.
 
 ## What it reads and publishes

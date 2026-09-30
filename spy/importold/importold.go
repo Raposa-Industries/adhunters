@@ -4,7 +4,7 @@
 // the last one wrote. Once the setting operators_from is 'grouping', Spy
 // groups operators itself (spy.regroup_operators) and the operators are no
 // longer copied. The verticals go to spy.creative_vertical_old, only to
-// compare with Spy's own classifier (decision 0015); no number reads them.
+// compare with Spy's own classifier (decision 0017); no number reads them.
 //
 // It only reads the old database (open it with a read-only login). Accounts
 // and creatives are matched to Tracks by what both sides know: an account

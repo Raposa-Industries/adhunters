@@ -1,4 +1,4 @@
-# 0015 · Spy classifies creatives into our own verticals
+# 0017 · Spy classifies creatives into our own verticals
 
 **Decided:** 30 Sep 2026. The owner fixed the vertical list on 29 Sep
 (`spy/verticals/verticals.yaml`) and asked on 30 Sep for Spy to be built on

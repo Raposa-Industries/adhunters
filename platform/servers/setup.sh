@@ -179,7 +179,7 @@ S3_REGION=fsn1
 S3_ACCESS_KEY=FILL_ME
 S3_SECRET_KEY=FILL_ME
 WORKERS=2
-OPS_ADDR=127.0.0.1:9112'
+OPS_ADDR=127.0.0.1:9119'
     if [ ! -s /etc/adhunters/tracks-capture/proxies.env ]; then
         systemctl enable tracks-walker >/dev/null
         todo+=("copy proxies.env into /etc/adhunters/tracks-capture/, then: systemctl restart tracks-walker")
@@ -288,6 +288,50 @@ create_web() {
     systemctl daemon-reload
     env_file create-web "$(grep -E '^[A-Z0-9_]+=' "$create_src/deploy/create-web.env.example")"
     start create-web create-web
+}
+
+# ---- Spy on the data box ---------------------------------------------------
+
+spy_src="$repo/spy"
+
+# spy_box: spy-numbers (Spy's numbers, grouping and classifier; it owns the
+# spy schemas and runs their migrations before each start) and spy-web (the
+# pages, read only). Both reach Postgres on this box. spy_api_read must
+# exist before spy-numbers' first migration, which grants it.
+spy_box() {
+    [ -d "$spy_src/deploy" ] || { echo "$spy_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "spy: the spy user, logins, units"
+    id spy >/dev/null 2>&1 || useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin spy
+    install_bin spy-numbers
+    install_bin spy-web
+    local u
+    for u in spy-numbers.service spy-web.service; do
+        install -m 0644 "$spy_src/deploy/$u" "/etc/systemd/system/$u"
+    done
+    systemctl daemon-reload
+
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'spy_api_read') THEN CREATE ROLE spy_api_read NOLOGIN; END IF; END \$\$"
+    local spy_pw web_pw
+    spy_pw=$(login spy)
+    web_pw=$(login spy_web)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO spy"
+    psql_su -d adhunters -c "GRANT tracks_api_read, raposa_api_read TO spy"
+    psql_su -d adhunters -c "GRANT spy_api_read, tracks_api_read, raposa_api_read TO spy_web"
+
+    env_file spy-numbers "# spy-numbers settings (spy/README.md). OLD_DATABASE_URL is only for
+# spy-numbers import-old: a read-only login on the collector's database.
+DATABASE_URL=postgres://spy:${spy_pw:-FILL_ME}@localhost:5432/adhunters?sslmode=require
+OLD_DATABASE_URL=
+OPS_ADDR=127.0.0.1:9122" spy
+    env_file spy-web "# spy-web settings (spy/README.md). ACCESS_TEAM is the team's address
+# (https://<team>.cloudflareaccess.com), ACCESS_AUD the Access application's AUD tag.
+DATABASE_URL=postgres://spy_web:${web_pw:-FILL_ME}@localhost:5432/adhunters?sslmode=require
+SPY_WEB_ADDR=127.0.0.1:8097
+ACCESS_TEAM=FILL_ME
+ACCESS_AUD=FILL_ME
+OPS_ADDR=127.0.0.1:9116" spy
+    start spy-numbers spy-numbers
+    start spy-web spy-web
 }
 
 # ---- data box ---------------------------------------------------------------
@@ -555,7 +599,9 @@ raposa-web              9106  raposa-web      -
 observe-bot             9107  observe-bot     -
 tracks-bridge           9108  tracks-bridge   -
 create-web              9109  create-web      -
-tracks-walker           9112  tracks-walker   -'
+tracks-walker           9119  tracks-walker   -
+spy-web                 9116  spy-web         -
+spy-numbers             9122  spy-numbers     -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
@@ -659,6 +705,7 @@ standby) capture_box standby:1:9101 ;;
 data)
     data_box && backups
     create_web
+    spy_box
     ;;
 esac
 alloy_agent

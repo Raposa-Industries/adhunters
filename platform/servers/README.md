@@ -29,7 +29,7 @@ with a list of what is still to do.
 |---|---|
 | worker | `tracks-capture@a` and `@b` (4 workers each), `tracks-shipper`, `tracks-walker` (2 workers, capture's proxy lines); Raposa: `raposa-browser`, `raposa-engine`, `raposa-web` |
 | standby | `tracks-capture@standby` (1 worker), `tracks-shipper` |
-| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `tracks_walker`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), `observe-bot` (the 08:00 digest, the Sentry relay, the credit checks and the Taboola policy watch), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in |
+| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `tracks_walker`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), Spy (`spy-numbers` and `spy-web`, with the `spy` and `spy_web` logins and the `spy_api_read` role), `observe-bot` (the 08:00 digest, the Sentry relay, the credit checks and the Taboola policy watch), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in |
 
 Every box: timezone UTC, the `tracks` user, `/var/lib/tracks/spool`, the
 binaries in `/opt/adhunters/bin`, and Grafana Alloy (from Grafana's apt
