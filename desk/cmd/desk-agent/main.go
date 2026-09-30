@@ -115,7 +115,7 @@ func runCmd(args []string) error {
 
 	log := logx.New("desk-agent", version)
 	key := os.Getenv("ANTHROPIC_API_KEY")
-	if key == "" {
+	if key == "" || key == "FILL_ME" {
 		return errors.New("ANTHROPIC_API_KEY is not set")
 	}
 	catalog, err := actions.Load()

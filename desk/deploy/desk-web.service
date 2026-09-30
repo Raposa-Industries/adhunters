@@ -1,15 +1,18 @@
 # Desk's pages under /desk/. Settings in /etc/adhunters/desk-web.env.
 # Listens on localhost (DESK_WEB_ADDR); people reach it through the
 # Cloudflare tunnel, behind Cloudflare Access, which says who is asking.
+# Desk's migrations run before each start (desk-agent's run them too, under
+# the same lock), so the pages work before desk-agent has its Claude key.
 [Unit]
 Description=Desk web
-Wants=network-online.target desk-agent.service
-After=network-online.target desk-agent.service
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 DynamicUser=yes
 EnvironmentFile=-/etc/adhunters/observe.env
 EnvironmentFile=/etc/adhunters/desk-web.env
+ExecStartPre=/opt/adhunters/bin/desk-agent migrate
 ExecStart=/opt/adhunters/bin/desk-web
 Restart=always
 RestartSec=5

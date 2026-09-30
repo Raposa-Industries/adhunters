@@ -16,8 +16,9 @@ research/agent-guardrails/ in the project files.
 | `desk-agent run` | Answers the conversations waiting for it, on Claude (`-turns`, 2 at once), and moves OK'd plans forward one step at a time. | ops on `OPS_ADDR` (9120) |
 | `desk-web` | The pages under `/desk/`, in the Frame: conversations, plans to OK, choices, the to-do list, and the settings with the stop switch. | `127.0.0.1:8092`, ops on 9121 |
 
-`desk-agent migrate` applies the migrations (the unit runs it before each
-start). Units and example settings are in [deploy/](deploy/).
+`desk-agent migrate` applies the migrations; both units run it before each
+start, under the migrations' lock, so the pages work while desk-agent waits
+for its Claude key. Units and example settings are in [deploy/](deploy/).
 
 ## How a request moves
 
@@ -146,15 +147,14 @@ list (Launch asking a person to start a pair in Taboola, say).
   and Create publish their `_api` functions (`launch_api.new_request_v1`
   and the like). Until then Desk reads Spy, Raposa and Tracks and asks for
   Raposa investigations.
-- **Deploy.** Not deployed, and not in `platform/servers/setup.sh` yet.
-  Deploying needs the owner's word, then: a `desk` login and the
-  `desk_api_read` role, the `raposa_api_read`, `spy_api_read` and
-  `tracks_api_read` roles granted to it, the two units, `ops_ports` lines
-  (`desk-agent 9120`, `desk-web 9121`), the Claude key in
-  `/etc/adhunters/desk-agent.env`, and in the tunnel the path `desk/*` on
-  the apps' hostname to `http://localhost:8092`, behind the same Access
-  application. Then Desk's `ready` becomes true in the Frame
-  (`shared/frame/assets/core.js`).
+- **Deploy.** Not deployed; that needs the owner's word.
+  `platform/servers/setup.sh` sets Desk up on the data box: the `desk`
+  login, the `desk_api_read` role, the `_api_read` role of each app in
+  `contract/actions` granted to it, the two units and their `/metrics`.
+  Then the Claude key goes in `/etc/adhunters/desk-agent.env`, and the
+  tunnel sends `^/desk` on the apps' hostname to `http://localhost:8092`,
+  behind the same Access application (platform/OPERATIONS.md). After that,
+  Desk's `ready` becomes true in the Frame (`shared/frame/assets/core.js`).
 - **Open decisions** (asked 2026-09-30; Desk is built on the first answer
   of each): its own app, not a panel in every app nor inside Launch; a
   person confirms Desk's pairs on Launch's review page, not in the chat;
