@@ -8,4 +8,7 @@
 //
 // sql/tracks holds tracks_api's views and functions, one file each. Tracks'
 // migrations create them word for word, and a test there checks it.
+//
+// actions/ is the action catalog: what each app lets a teammate do, as the
+// views and functions above, so Desk can do the same with the same rights.
 package contract

@@ -1,0 +1,85 @@
+{
+  "app": "spy",
+  "actions": [
+    {
+      "name": "spy.creatives_now",
+      "version": 1,
+      "kind": "read",
+      "says": "Creatives over the last 24 closed hours, most momentum first: presence, share of voice, momentum and its word, vertical, lifespan. Words and numbers as in spy/METRICS.md.",
+      "view": "spy_api.creative_recent_v1",
+      "columns": ["creative_id", "network_id", "sightings", "presence", "share_pct", "rank", "momentum", "momentum_word", "momentum_sure",
+                  "momentum_rank", "vertical", "vertical_share_pct", "vertical_rank", "scaled", "running", "first_seen_at", "last_seen_at",
+                  "lifespan_days", "operator_id", "is_junk"],
+      "filters": [
+        {"column": "vertical", "op": "=", "type": "string", "says": "one of the fixed verticals, e.g. Memory Loss"},
+        {"column": "network_id", "op": "=", "type": "integer", "says": "1 Taboola, 2 NewsBreak"},
+        {"column": "momentum_word", "op": "in", "type": "string", "enum": ["rising", "fading", "steady", "unclear", "new", "too_little"]},
+        {"column": "creative_id", "op": "=", "type": "integer"},
+        {"column": "operator_id", "op": "=", "type": "integer"},
+        {"column": "running", "op": "=", "type": "boolean"},
+        {"column": "is_junk", "op": "=", "type": "boolean"}
+      ],
+      "order": "momentum_rank",
+      "limit": 50
+    },
+    {
+      "name": "spy.creatives_in_range",
+      "version": 1,
+      "kind": "read",
+      "says": "Creatives over any range, compared with their usual period, most momentum first. Same columns as spy.creatives_now.",
+      "call": "spy_api.creative_range_v1",
+      "args": [
+        {"name": "from", "type": "time", "says": "the range's start, UTC"},
+        {"name": "to", "type": "time", "says": "the range's end, UTC"}
+      ],
+      "columns": ["creative_id", "network_id", "sightings", "presence", "share_pct", "rank", "momentum", "momentum_word", "momentum_sure",
+                  "momentum_rank", "vertical", "vertical_share_pct", "vertical_rank", "scaled", "running", "first_seen_at", "last_seen_at",
+                  "lifespan_days", "operator_id", "is_junk"],
+      "filters": [
+        {"column": "vertical", "op": "=", "type": "string"},
+        {"column": "network_id", "op": "=", "type": "integer"},
+        {"column": "momentum_word", "op": "in", "type": "string", "enum": ["rising", "fading", "steady", "unclear", "new", "too_little"]},
+        {"column": "creative_id", "op": "=", "type": "integer"},
+        {"column": "operator_id", "op": "=", "type": "integer"}
+      ],
+      "order": "momentum_rank",
+      "limit": 50
+    },
+    {
+      "name": "spy.creative_facts",
+      "version": 1,
+      "kind": "read",
+      "says": "Facts per creative, refreshed every 5 minutes: sightings today, over 7 and 30 days, ads and publishers, its top ad's headline, operator and vertical.",
+      "view": "spy_api.creative_stats_v1",
+      "columns": ["creative_id", "sightings_today", "sightings_7d", "sightings_30d", "active_days", "ads_count", "publishers_count",
+                  "is_new", "running", "top_ad_id", "headline", "brand_id", "operator_id", "vertical", "first_seen_at", "last_seen_at"],
+      "outside": ["headline"],
+      "filters": [
+        {"column": "creative_id", "op": "=", "type": "integer"},
+        {"column": "vertical", "op": "=", "type": "string"},
+        {"column": "operator_id", "op": "=", "type": "integer"},
+        {"column": "running", "op": "=", "type": "boolean"},
+        {"column": "headline", "op": "has", "type": "string", "says": "words the headline contains"}
+      ],
+      "order": "sightings_7d DESC",
+      "limit": 50,
+      "show": {"id": "creative_id", "text": "headline"}
+    },
+    {
+      "name": "spy.operators",
+      "version": 1,
+      "kind": "read",
+      "says": "Operators: who runs ads, as Spy groups accounts, brands and landing sites.",
+      "view": "spy_api.operator_v1",
+      "columns": ["id", "code", "name", "display_name", "kind", "vertical"],
+      "outside": ["name", "display_name"],
+      "filters": [
+        {"column": "id", "op": "=", "type": "integer"},
+        {"column": "name", "op": "has", "type": "string"},
+        {"column": "vertical", "op": "=", "type": "string"}
+      ],
+      "order": "id",
+      "limit": 50
+    }
+  ]
+}
