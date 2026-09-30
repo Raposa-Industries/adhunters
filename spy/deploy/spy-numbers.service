@@ -9,6 +9,7 @@ After=network-online.target
 [Service]
 User=spy
 Group=spy
+EnvironmentFile=-/etc/adhunters/observe.env
 EnvironmentFile=/etc/adhunters/spy-numbers.env
 ExecStartPre=/opt/adhunters/bin/spy-numbers migrate
 ExecStart=/opt/adhunters/bin/spy-numbers run

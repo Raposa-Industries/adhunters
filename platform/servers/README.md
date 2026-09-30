@@ -13,7 +13,7 @@ How to get onto a box and copy the build there: [../OPERATIONS.md](../OPERATIONS
 `DIR` holds the binaries, built on any machine from the repository root:
 
 ```
-GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" -o DIR/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./platform/observe/cmd/...
+GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" -o DIR/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./spy/cmd/... ./platform/observe/cmd/...
 ```
 
 The script runs from a checkout of the repository: it takes the units in
@@ -30,7 +30,7 @@ with a list of what is still to do.
 |---|---|
 | worker | `tracks-capture@a` and `@b` (4 workers each), `tracks-shipper`; Raposa: `raposa-browser`, `raposa-engine`, `raposa-web` |
 | standby | `tracks-capture@standby` (1 worker), `tracks-shipper` |
-| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), `observe-bot` (the 08:00 digest, the Sentry relay, the credit checks and the Taboola policy watch), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in; Desk: the `desk` login (owner of the `desk` schemas, member of the `_api_read` role of each app in `contract/actions`), the `desk_api_read` role, `desk-web` and `desk-agent` (both run Desk's migrations before they start; `desk-agent` waits for its Claude key) |
+| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), Spy (`spy-numbers` and `spy-web`, with the `spy` and `spy_web` logins and the `spy_api_read` role), `observe-bot` (the 08:00 digest, the Sentry relay, the credit checks and the Taboola policy watch), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in; Desk: the `desk` login (owner of the `desk` schemas, member of the `_api_read` role of each app in `contract/actions`), the `desk_api_read` role, `desk-web` and `desk-agent` (both run Desk's migrations before they start; Desk stays off, `desk-agent` taking no work, until its Claude key is in) |
 
 Every box: timezone UTC, the `tracks` user, `/var/lib/tracks/spool`, the
 binaries in `/opt/adhunters/bin`, and Grafana Alloy (from Grafana's apt
@@ -72,6 +72,18 @@ network. `raposa-web` listens on `127.0.0.1:8090`.
 The data box gets the `raposa` login (owner of the `raposa` and `raposa_api`
 schemas, member of `tracks_api_read`), the `raposa_api_read` role, and a
 `pg_hba` line for it from the worker box. Set up the data box first.
+
+### Intel on the data box
+
+The `intel` login (owner of the `intel` and `intel_api` schemas, member of
+`launch_api_read`), the `intel_api_read` and `launch_api_read` roles, the
+three units from `intel/deploy/`, and their settings in
+`/etc/adhunters/intel-*.env`, written once from the examples with the new
+login's password in `DATABASE_URL`. `intel-numbers` migrates before each
+start and `intel-web` listens on `127.0.0.1:8096`; both start at once.
+`intel-collect` starts once its Taboola and RedTrack keys are filled in.
+Alerts reach Telegram once `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are
+set in `intel-numbers.env` (the same values as `observe-bot.env`).
 
 **Nothing has been run on a real box.** Not built yet: raising the standby's
 workers when the worker box goes quiet, the monthly restore test, and a

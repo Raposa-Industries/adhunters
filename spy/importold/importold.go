@@ -1,8 +1,9 @@
 // Package importold copies Spy's groupings from the collector's database:
 // which operator each account belongs to, the operators themselves, and the
-// vertical of each creative. The collector keeps them until Spy has its own
-// screens for them, so the copy is repeatable: each run replaces what the
-// last one wrote.
+// vertical of each creative. The collector keeps the operators until Spy has
+// its own screens for them, so the copy is repeatable: each run replaces what
+// the last one wrote. The verticals go to spy.creative_vertical_old, only to
+// compare with Spy's own classifier (decision 0017); no number reads them.
 //
 // It only reads the old database (open it with a read-only login). Accounts
 // and creatives are matched to Tracks by what both sides know: an account
@@ -138,12 +139,12 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 	res.Accounts = Counts{Copied: int(n), Skipped: len(accs) - int(n)}
 
 	// Verticals: replaced whole, matched by creative key.
-	if _, err := tx.Exec(ctx, `DELETE FROM spy.creative_vertical`); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM spy.creative_vertical_old`); err != nil {
 		return res, fmt.Errorf("verticals: %w", err)
 	}
 	if err := tx.QueryRow(ctx, `
 		WITH ins AS (
-		    INSERT INTO spy.creative_vertical (creative_id, vertical, subvertical, shown_vertical, confidence, unsure,
+		    INSERT INTO spy.creative_vertical_old (creative_id, vertical, subvertical, shown_vertical, confidence, unsure,
 		                                       source, health_from_funnel)
 		    SELECT DISTINCT ON (c.id) c.id, x.vertical, x.subvertical, x.shown_vertical,
 		           LEAST(COALESCE(x.confidence, 0), 9.99), COALESCE(x.unsure, TRUE), x.source, COALESCE(x.health_from_funnel, FALSE)

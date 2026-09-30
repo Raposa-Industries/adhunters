@@ -19,6 +19,9 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | tracking code | The query string an account adds to every link in a campaign. The ad network fills its macros (`{campaign_id}`, `{campaign_item_id}`, `{site_id}`, `{cpc}` and so on) on each click, which is how links carry these ids. |
 | bid | What an account offers in an auction: `bval` on a Taboola card, `{cpc}` in a link, the bid `price` in a NewsBreak answer. |
 | clearing price | What the winning ad paid in one Taboola auction (`auctionPrice` on the card). Its unit is not confirmed yet. |
+| auction | One ad slot sold on a publisher: Taboola puts its id, clearing price, the winning bid and cap on each card it shows. Tracks keeps every one a check saw. |
+| second price | What the next bid was in a NewsBreak auction (`second_price` in its answer). |
+| typical price | The middle of the daily medians over a range, weighted by each day's auctions. Beside the average, it is what a usual auction cost. |
 | stopped | A creative not seen for 6 hours while its usual publishers were scraped. (Not "deactivated".) |
 | closed hour | An hour whose raw files are all loaded, 5 minutes after it ended. Counts are computed once per closed hour. |
 | open hour | The current hour, rewritten every 5 minutes. |
@@ -42,7 +45,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | policy change | A policy page that appeared, went away or whose text changed between two crawls. Each one is posted to "AdHunters alerts". |
 | renewal | The day a subscription we depend on renews or must be paid, for services with no balance to read (the datacenter and ISP lines). |
 | task | Work a service does on a schedule (an hour close, a refresh, a pull). Each promises how often it succeeds; one past its promise is late. |
-| spool | Capture's local folder of raw files not yet archived. Capture writes there and nowhere else. |
+| spool | A collector's local folder of what it received and has not handed on yet: Capture's raw files not yet archived, intel-collect's answers not yet in the database. The collector writes there first, so it keeps working while the database or archive is away. |
 | sealed | A raw file whose minute has ended, compressed with zstd, ready to archive. |
 | shared code | Code several services need, kept in one shared module (`kit`, `contract` or `shared/`) that each imports, never copied between services or imported from another service's folder. See [decision 0013](decisions/0013-shared-code.md). |
 | shadow run | A new binary running beside the one in service on the same input, writing only its own output, to measure or compare. Nothing reads its output as real data. |
@@ -106,6 +109,22 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | conversion | One sale (or other event) the offer reported back to the tracker for one click, with its payout. |
 | cost | What the ad network charged for clicks, as the tracker knows it: filled from the `{cpc}` in each link or pulled from the network's API. |
 | revenue | What conversions paid, as the tracker counts it. Profit is revenue minus cost. |
+| answer | One reply from Taboola or RedTrack to one request, kept as received (intel.answer) before anything reads it. Intel's tables are parsed from answers and can be parsed again over any range. |
+| window | The stretch of whole days a result covers, in the account's time zone: today (so far), yesterday, 7 days or 30 days (both ending today). |
+| result | A campaign's or ad's numbers over one window: Taboola's impressions, clicks and spend; the tracker's clicks, landing page views and clicks, sales and revenue; and rates with their likely range. |
+| step rates | The rates from impression to sale, one step at a time: CTR (clicks per impression), landing page click rate (landing page clicks per tracker click) and sale rate (sales per landing page click). |
+| profit per 1,000 | Profit per 1,000 impressions: how Intel compares an ad with its campaign, since it counts both what a click costs and what it earns. Measured from an ad's own sales once it has 10; estimated from its step rates, with the sale rate borrowed from its campaign, before that. |
+| verdict | How an ad compares with its campaign on profit per 1,000, in Spy's words: better, worse, usual (within 20% of the campaign), unclear or too little data; better and worse are clear or likely. |
+| spend to tell | For an unclear ad, about how much more spend would make its verdict clear, if it kept its present rates. |
+| usual cost per sale | An account's spend over its tracker sales in the last 30 days. Runaway alerts and pause suggestions ask how often an ad that sells at this cost would go this far without a sale. |
+| runaway | A campaign spending today with no sale, past what an ad at the usual cost per sale would reach without one 1 time in 50 (and past $20). Spend from the last hour is left out: its sales may not be in yet. |
+| tracking gap | The tracker counted under half the clicks the network counted in the last full hour: links lose their tracking or the tracker is down. |
+| landing page gap | The tracker's landing page views were under 30% of its clicks in the last full hour: the page does not open, or its script does not fire. |
+| postback gap | The network counted under half the tracker's sales yesterday: sales are not reaching the network, so its own optimisation works blind. |
+| delivery status | A campaign's state on the ad network, as Taboola's "Delivery Status" shows it: running, paused, pending approval, rejected, depleted (its budget is spent), expired, terminated, frozen; deleted when it leaves the network's list. Intel sends each change to "AdHunters alerts". |
+| suggestion | A change Intel proposes (pause these ads, pause this campaign, lower the daily cap), with why. Intel never makes it: its button opens Launch with the change filled in, and a person makes it there. |
+| not now | A person setting a suggestion aside. It does not come back for a day, and comes back after that only if its reason still holds. |
+| campaign line | A campaign and every copy made of it. Moving a campaign to another group makes a copy with a new id (Taboola cannot change a campaign's group), so Intel keeps the line to follow its history across ids. |
 
 ## Spy
 
@@ -115,8 +134,11 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 |---|---|
 | check | One scrape, seen from Spy: one look at one publisher on one device. Rates are per check. |
 | presence | Sightings per 100 checks of the network. How often you would see the ad if you looked now. |
+| sparkline | A small line of a creative's presence per day, beside it in a list. |
 | vertical | The market a creative sells into ("Blood Pressure", "Joint Pain"), one of the fixed list in [spy/verticals](spy/verticals/verticals.yaml). Never a name a classifier made up. |
 | category | A group of verticals ("Heart", "Pain"), for filtering: a category first, then its verticals. |
+| catch-all | A vertical that takes what fits nowhere else in its category ("Other health"). The classifier picks it only when no specific vertical scored. |
+| unsure | A vertical answer with confidence under 0.6. Lists show it with a question mark; the model may replace it. |
 | share of voice | A subject's share of all the network's sightings (or its vertical's) in a range. |
 | range | Any start and end a number is asked for. Read to the hour when recent, in whole UTC days when older. |
 | usual | What a range is compared with: the same hours 1 to 3 weeks before, the weeks just before, or a period the person chooses. Direction's usual value is the same idea for right now. |

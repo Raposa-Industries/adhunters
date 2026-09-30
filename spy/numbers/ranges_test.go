@@ -251,8 +251,9 @@ func TestLifespanAndHitRate(t *testing.T) {
 	for c := 1; c <= 21; c++ {
 		b.ad(c, c, 500, fmt.Sprintf("ck-%d", c), "Headline")
 		b.exec(`UPDATE tracks_api.creative_v1 SET first_seen_at = $2 WHERE id = $1`, c, first)
-		b.exec(`INSERT INTO spy.creative_vertical (creative_id, vertical, shown_vertical, confidence, unsure)
-			VALUES ($1, 'health', 'Health', 0.9, false)`, c)
+		b.exec(`INSERT INTO spy.creative_class (creative_id, category_id, vertical_id, confidence, source, rules_hash,
+			    input_ad_id, classified_at, needs_model)
+			VALUES ($1, 'general-health', 'other-health', 0.9, 'ad', '', 0, now(), false)`, c)
 		for d := 0; d < 4; d++ {
 			if c <= 10 && d > 2 {
 				break
@@ -279,8 +280,8 @@ func TestLifespanAndHitRate(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Of 21, 10 ended at 2 days: 10 of 21 ended younger than 19 days.
-	if days != 19 || !close3(pct, 47.6) || curve != "health" || !running {
-		t.Errorf("lifespan %d days, %v%% ended younger (curve %s, running %v); want 19, 47.6, health, true", days, pct, curve, running)
+	if days != 19 || !close3(pct, 47.6) || curve != "other-health" || !running {
+		t.Errorf("lifespan %d days, %v%% ended younger (curve %s, running %v); want 19, 47.6, other-health, true", days, pct, curve, running)
 	}
 
 	var launches, hits, misses, testing int
@@ -297,7 +298,7 @@ func TestLifespanAndHitRate(t *testing.T) {
 	}
 
 	var verticals int
-	if err := b.db.QueryRow(b.ctx, `SELECT count(*) FROM spy.subject_range('vertical', $1, $2, NULL, NULL, $3) WHERE key = 'health'`,
+	if err := b.db.QueryRow(b.ctx, `SELECT count(*) FROM spy.subject_range('vertical', $1, $2, NULL, NULL, $3) WHERE key = 'other-health'`,
 		first, first.AddDate(0, 0, 4), now).Scan(&verticals); err != nil || verticals != 1 {
 		t.Errorf("vertical range: %d rows, err %v", verticals, err)
 	}
