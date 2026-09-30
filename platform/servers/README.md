@@ -27,9 +27,9 @@ with a list of what is still to do.
 
 | Role | What it gets |
 |---|---|
-| worker | `tracks-capture@a` and `@b` (4 workers each), `tracks-shipper`; Raposa: `raposa-browser`, `raposa-engine`, `raposa-web` |
+| worker | `tracks-capture@a` and `@b` (4 workers each), `tracks-shipper`, `tracks-walker` (2 workers, capture's proxy lines); Raposa: `raposa-browser`, `raposa-engine`, `raposa-web` |
 | standby | `tracks-capture@standby` (1 worker), `tracks-shipper` |
-| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), `observe-bot` (the 08:00 digest, the Sentry relay, the credit checks and the Taboola policy watch), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in |
+| data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `tracks_walker`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), `observe-bot` (the 08:00 digest, the Sentry relay, the credit checks and the Taboola policy watch), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in |
 
 Every box: timezone UTC, the `tracks` user, `/var/lib/tracks/spool`, the
 binaries in `/opt/adhunters/bin`, and Grafana Alloy (from Grafana's apt
@@ -49,7 +49,7 @@ and, optionally, `THROTTLE` (the wait after each scrape, default `150ms`).
 
 `share-secrets.sh`, run on the owner's computer, fills in what the worker
 and standby boxes share with the data box (the object storage keys and the
-`tracks_shipper` and `raposa` database URLs) without showing them; see
+`tracks_shipper`, `raposa` and `tracks_walker` database URLs) without showing them; see
 [../OPERATIONS.md](../OPERATIONS.md).
 `set-sentry-dsn.sh`, the same way, puts the Sentry DSN in every box's
 `observe.env` and restarts only the running units that read it.

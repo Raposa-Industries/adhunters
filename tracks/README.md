@@ -220,8 +220,9 @@ applied when the role exists). The archive's keys are set as for
 `tracks-shipper`. Metrics: `tracks_walker_walks_total{outcome,step}`,
 `tracks_walker_walk_seconds`, `tracks_walker_due`,
 `tracks_walker_files_archived_total`. The unit is
-[`tracks-walker.service`](../platform/servers/units/tracks-walker.service);
-`setup.sh` does not install it yet.
+[`tracks-walker.service`](../platform/servers/units/tracks-walker.service),
+installed on the worker box by `setup.sh` (settings in
+`/etc/adhunters/tracks-walker.env`, ops on 9112).
 
 ## tracks-bridge
 

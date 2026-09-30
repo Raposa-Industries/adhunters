@@ -10,7 +10,6 @@ After=network-online.target
 [Service]
 User=tracks
 Group=tracks
-Environment=WORKERS=2
 EnvironmentFile=-/etc/adhunters/observe.env
 EnvironmentFile=/etc/adhunters/tracks-walker.env
 ExecStart=/opt/adhunters/bin/tracks-walker run \

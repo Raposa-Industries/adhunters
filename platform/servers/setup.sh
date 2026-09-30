@@ -161,6 +161,33 @@ capture_box() { # capture_box INSTANCE:WORKERS:PORT...
     done
 }
 
+# ---- tracks-walker (worker box) ---------------------------------------------
+
+# walker_box: tracks-walker walks running ads' links to their landing pages
+# (tracks/README.md), through capture's proxy lines file. Its DATABASE_URL
+# comes from the data box setup.
+walker_box() {
+    install_bin tracks-walker
+    install_unit tracks-walker.service
+    systemctl daemon-reload
+    install -d -m 0750 -o tracks -g tracks /var/lib/tracks/walk-spool
+    env_file tracks-walker '# tracks-walker settings. DATABASE_URL comes from the data box setup.
+DATABASE_URL=FILL_ME
+ARCHIVE=s3://adhunters-raw
+S3_ENDPOINT=fsn1.your-objectstorage.com
+S3_REGION=fsn1
+S3_ACCESS_KEY=FILL_ME
+S3_SECRET_KEY=FILL_ME
+WORKERS=2
+OPS_ADDR=127.0.0.1:9112'
+    if [ ! -s /etc/adhunters/tracks-capture/proxies.env ]; then
+        systemctl enable tracks-walker >/dev/null
+        todo+=("copy proxies.env into /etc/adhunters/tracks-capture/, then: systemctl restart tracks-walker")
+        return
+    fi
+    start tracks-walker tracks-walker
+}
+
 # ---- raposa (worker box) ----------------------------------------------------
 
 raposa_src="$repo/raposa"
@@ -303,7 +330,8 @@ shared_preload_libraries = 'pg_stat_statements'"
     local line
     for line in "hostssl adhunters tracks_shipper $worker_ip/32 scram-sha-256" \
         "hostssl adhunters tracks_shipper $standby_ip/32 scram-sha-256" \
-        "hostssl adhunters raposa $worker_ip/32 scram-sha-256"; do
+        "hostssl adhunters raposa $worker_ip/32 scram-sha-256" \
+        "hostssl adhunters tracks_walker $worker_ip/32 scram-sha-256"; do
         grep -qxF "$line" "$hba" || { echo "$line" >>"$hba"; restart=1; }
     done
     systemctl enable postgresql >/dev/null
@@ -340,9 +368,11 @@ data_box() {
     psql_su -d adhunters -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements"
     psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'tracks_api_read') THEN CREATE ROLE tracks_api_read NOLOGIN; END IF; END \$\$"
 
-    local loader_pw shipper_pw
+    local loader_pw shipper_pw walker_pw
     loader_pw=$(login tracks_loader)
     shipper_pw=$(login tracks_shipper)
+    # Before the loader starts: its migrations grant the walker its tables.
+    walker_pw=$(login tracks_walker)
     # Alloy's read-only login for Postgres metrics.
     observe_pw=$(login observe)
     psql_su -c "GRANT pg_monitor TO observe"
@@ -371,6 +401,11 @@ OPS_ADDR=127.0.0.1:9104"
     if [ -n "$shipper_pw" ]; then
         todo+=("put this line in /etc/adhunters/tracks-shipper.env on the worker and standby boxes (shown once):
     DATABASE_URL=postgres://tracks_shipper:$shipper_pw@$data_ip:5432/adhunters?sslmode=require")
+    fi
+
+    if [ -n "$walker_pw" ]; then
+        todo+=("put this line in /etc/adhunters/tracks-walker.env on the worker box (shown once):
+    DATABASE_URL=postgres://tracks_walker:$walker_pw@$data_ip:5432/adhunters?sslmode=require")
     fi
 
     env_file tracks-bridge "# tracks-bridge settings (platform/SWITCH-OVER.md). The database
@@ -519,7 +554,8 @@ raposa-engine           9105  raposa-engine   -
 raposa-web              9106  raposa-web      -
 observe-bot             9107  observe-bot     -
 tracks-bridge           9108  tracks-bridge   -
-create-web              9109  create-web      -'
+create-web              9109  create-web      -
+tracks-walker           9112  tracks-walker   -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
@@ -616,6 +652,7 @@ common
 case "$role" in
 worker)
     capture_box a:4:9101 b:4:9102
+    walker_box
     raposa_box
     ;;
 standby) capture_box standby:1:9101 ;;
