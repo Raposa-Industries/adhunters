@@ -18,8 +18,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/Raposa-Industries/adhunters/raposa/internal/files"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
+	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 // Config is what one engine needs.

@@ -1,9 +1,119 @@
 # AdHunters Create
 
-Images and headlines for our ads. Was auto-creative (images only), which
-stays as it is; this folder is the new Create.
+Images and headlines for our ads, made with OpenAI from a brief, and saved
+into the library that Launch makes ads from. Was auto-creative (images
+only), which stays as it is. Two binaries live here:
 
-## What runs today: the campaign launcher (`create-web`)
+- `create`: Create itself, rebuilt on auto-creative's steps (below,
+  [decision 0015](../decisions/0015-create-briefs.md)).
+- `create-web`: the campaign launcher page, which is becoming Launch. It
+  runs until Launch replaces it on the server.
+
+## Create (`create`)
+
+Pages under `/create/` on the shared shell (the Frame), in Portuguese;
+headlines are always in English. Tabs: **Novo brief**, **Briefs**,
+**Biblioteca**, **Regras**.
+
+1. **A brief.** The vertical, the age of the people, how many images (up to
+   12) and headlines (up to 30), the angles to try (the team's list plus any
+   typed), reference headlines, extra instructions. Every field is saved as
+   it is typed. A link can open it with references: `/create/new?ref=spy:ad:81234`
+   (a Spy ad, the ad id in `tracks_api.ad_v1`) or `?ref=library:creative:43`.
+2. **Performing ads** (optional): Spy ads, library creatives or files from
+   the computer. Create keeps each picture before reading it (a Spy ad's is
+   downloaded from its address in `tracks_api.creative_v1`). They are never
+   sent to the image model.
+3. **Ler anúncios** reads them into what they share, seven aspects with what
+   to keep and what can vary. The person edits any line.
+4. **Criar opções** asks for a round: one plan (headlines and one idea per
+   picture, following the edited analysis and the angles), then one picture
+   per idea, three at a time. A picture that fails fails alone. The making
+   log ("Fazendo") shows each step with its cost.
+5. **Choose.** Tick and star pictures and headlines, filter by angle, edit a
+   headline in place. Every headline shows Taboola's warnings (hidden
+   characters, length, capitals, cure claims, disease names, amounts, the
+   team's blocked words with a swap button); they never block. **De novo,
+   com uma nota** makes a picture again from it with the person's change.
+   **Mais 3, mesmo brief, ângulo novo** asks for three pictures of an angle
+   not tried yet.
+6. **Save.** The chosen options go into the library as one set, with the
+   person's AI label (on by default, with a warning when switched off).
+   **Salvar e abrir no Launch** then opens `/launch/new?set=<set id>`.
+
+The **Biblioteca** tab browses the library (creatives, headlines, sets)
+through Create's server, and "Fazer parecido no Create" starts a brief from
+a creative. **Regras** lists the rules and the team's blocked words.
+
+### How it works
+
+Rows are in `create_app` (`create` is a reserved word in SQL): briefs,
+references, options, saves, a job table and the making log. Every button
+writes rows and a job; a worker in the same binary runs the jobs (reads,
+plans, pictures, saves), `CREATE_WORKERS` at a time, and a page asks again
+every 2 seconds while something runs. At a start, a picture left running by
+a stop is failed (it may have been paid for: the person presses De novo),
+anything else runs again. Every OpenAI reply is kept on disk as it came
+(`CREATE_KEEP_DIR`) before it is read; references and pictures are kept in
+`CREATE_FILES`. A save writes the set in the library and remembers its id
+at once, so a retry adds to the same set.
+
+### For Desk and other apps: `create_api`
+
+`contract/sql/create/`: views `brief_v1` (state draft, reading, making,
+ready or failed), `option_v1` (a picture's `image_url` is its path on
+Create's address), `save_v1` (`library_set_id` once saved), and two
+functions, the same rows the pages write:
+
+- `create_api.new_brief_v1(p_input JSONB, p_requested_by TEXT, p_origin TEXT) RETURNS BIGINT`:
+  a brief and its first round. `p_input`: `name`, `vertical_id`,
+  `vertical_name`, `ages`, `images` (default 6), `headlines` (default 10),
+  `angles`, `own_headlines`, `extra`, `references` (`[{"kind": "spy_ad" |
+  "library_creative", "id"}]`). The same `p_origin` again returns the same
+  brief.
+- `create_api.save_set_v1(p_brief_id, p_option_ids BIGINT[], p_name, p_requested_by, p_origin, p_ai_label DEFAULT 'ai') RETURNS BIGINT`:
+  a save of done options of that brief; its set id appears on `save_v1`.
+
+Callers log in with a role granted `create_api_read`.
+
+### Create's API (for its pages)
+
+Under `/create/api/`, JSON, errors `{"error": "<pt-BR line>"}`. The person
+is Cloudflare Access's `Cf-Access-Authenticated-User-Email`; a change sent
+from another site's page is refused.
+
+- `GET status`, `GET rules`.
+- `GET briefs?before=&limit=`, `POST briefs` (the fields, plus `refs`),
+  `GET briefs/{id}` (the brief, references, options with warnings, saves,
+  log), `PATCH briefs/{id}`.
+- `POST briefs/{id}/references` (`{"ref": "spy:ad:123"}` or a multipart
+  `file`), `DELETE references/{id}`.
+- `POST briefs/{id}/read`, `POST briefs/{id}/make` (no body: the brief's
+  counts; or `{"images", "headlines", "new_angle"}`).
+- `PATCH options/{id}` (`chosen`, `starred`, `text` for a headline),
+  `POST options/{id}/again` (`{"note"}`).
+- `POST briefs/{id}/save` (`{"option_ids", "name", "ai_label"}`), `GET saves/{id}`.
+- `GET /create/files/options/{id}`, `/create/files/references/{id}`: the
+  pictures. `GET /create/library-api/…`: the library's reads.
+
+### Settings
+
+`deploy/create.env.example`: `DATABASE_URL` (the `create_app` login; it
+runs the migrations on start), `OPENAI_API_KEY` (empty: the pages work and
+making is off), `CREATE_ADDR` (`127.0.0.1:8095`), `OPS_ADDR`
+(`127.0.0.1:9112`), `CREATE_FILES`, `CREATE_KEEP_DIR`, `LIBRARY_URL`
+(`http://127.0.0.1:8093`), `CREATE_WORKERS` (3), and the same model and
+price settings as create-web (below).
+
+### Run it
+
+```
+DATABASE_URL=postgres://… CREATE_FILES=file:///tmp/create/files CREATE_KEEP_DIR=/tmp/create/kept \
+  OPENAI_API_KEY=… go run ./create/cmd/create
+open http://127.0.0.1:8095/create/
+```
+
+## The campaign launcher (`create-web`)
 
 One page, in Portuguese, for the team that puts ads on Taboola by hand. The
 ads themselves (headlines, descriptions, CTAs) are always in English. It is
