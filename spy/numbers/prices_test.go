@@ -44,3 +44,20 @@ func TestPrices(t *testing.T) {
 		t.Errorf("after a second run: %v auctions, want 4", got)
 	}
 }
+
+func TestSeries(t *testing.T) {
+	b := newBench(t)
+	b.ad(10, 100, 0, "ck-10", "Headline")
+	today := now.Truncate(24 * time.Hour)
+	b.hour(today.Add(-24*time.Hour+3*time.Hour), 1, 2, 50, true, map[int]int{100: 10})
+	b.hour(today.Add(-48*time.Hour+3*time.Hour), 1, 2, 40, true, map[int]int{})
+	b.day(today.AddDate(0, 0, -1), 100, 1, 2, 10)
+	if _, err := b.r.ReadModel(b.ctx); err != nil {
+		t.Fatal(err)
+	}
+	got := b.text(`SELECT string_agg(format('%s:%s', day - $2::date, COALESCE(presence::text, '-')), ' ' ORDER BY day)
+		FROM spy_api.creative_series_v1(ARRAY[10], 3, $1)`, now, today)
+	if got != "-2:0.0000 -1:20.0000 0:-" {
+		t.Errorf("series: %s", got)
+	}
+}
