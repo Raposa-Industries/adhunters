@@ -359,6 +359,48 @@ create_box() {
     fi
 }
 
+# ---- Desk on the data box ---------------------------------------------------
+
+desk_src="$repo/desk"
+
+# desk_box: AdHunters Desk (desk/README.md). The desk login owns the desk and
+# desk_api schemas; both units run the migrations before they start, so the
+# pages work before the Claude key is in. desk-agent waits for the key.
+desk_box() {
+    [ -d "$desk_src/deploy" ] || { echo "$desk_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "the desk login"
+    # desk_api_read must exist before Desk's first migration, which grants it.
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'desk_api_read') THEN CREATE ROLE desk_api_read NOLOGIN; END IF; END \$\$"
+    local desk_pw
+    desk_pw=$(login desk)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO desk"
+    # Desk reads and calls each app in contract/actions through that app's
+    # <app>_api_read role. A role made here before its app is set up gets its
+    # rights from the app's first migration.
+    local f r
+    for f in "$repo"/contract/actions/*.json; do
+        r="$(basename "$f" .json)_api_read"
+        psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '$r') THEN CREATE ROLE $r NOLOGIN; END IF; END \$\$"
+        psql_su -d adhunters -c "GRANT $r TO desk"
+    done
+    install_bin desk-agent
+    install_bin desk-web
+    local u example
+    for u in desk-agent desk-web; do
+        install -m 0644 "$desk_src/deploy/$u.service" "/etc/systemd/system/$u.service"
+    done
+    systemctl daemon-reload
+    for u in desk-agent desk-web; do
+        example=$(grep -E '^[A-Z0-9_]+=' "$desk_src/deploy/$u.env.example")
+        if [ -n "$desk_pw" ]; then
+            example=$(printf '%s\n' "$example" | sed "s|^DATABASE_URL=FILL_ME\$|DATABASE_URL=postgres://desk:$desk_pw@localhost:5432/adhunters?sslmode=require|")
+        fi
+        env_file "$u" "$example"
+    done
+    start desk-web desk-web
+    start desk-agent desk-agent
+}
+
 # ---- data box ---------------------------------------------------------------
 
 postgres() {
@@ -620,7 +662,9 @@ library                 9110  library         -
 create                  9112  create          -
 intel-collect           9113  intel-collect   -
 intel-numbers           9114  intel-numbers   -
-intel-web               9115  intel-web       -'
+intel-web               9115  intel-web       -
+desk-agent              9120  desk-agent      -
+desk-web                9121  desk-web        -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
@@ -726,6 +770,7 @@ data)
     create_box
     create_web
     intel_box
+    desk_box
     ;;
 esac
 alloy_agent

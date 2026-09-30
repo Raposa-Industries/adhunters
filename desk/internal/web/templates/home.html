@@ -1,0 +1,36 @@
+{{template "top" .}}
+<div class="page-head">
+  <div>
+    <h1>Desk</h1>
+    <p class="lead">Peça trabalho conversando. Desk lê os apps à vontade; o que muda alguma coisa vira um plano que você aprova antes.</p>
+  </div>
+  <div class="actions"><a class="button" href="/desk/todos">A fazer{{if .OpenTodos}} · {{.OpenTodos}}{{end}}</a></div>
+</div>
+
+<form class="panel composer" method="post" action="/desk/c">
+  <label class="field" for="first">Novo pedido
+    <textarea id="first" name="text" rows="3" maxlength="8000" required placeholder="Ex.: faz um brief de Tinnitus com 6 imagens, me mostra as melhores e prepara um pair na conta acme"></textarea>
+  </label>
+  <div class="actions"><button class="primary" type="submit">Começar</button></div>
+</form>
+
+<h3 class="section">Suas conversas</h3>
+{{if .Conversations}}
+<div class="table-wrap">
+<table class="list">
+  <thead><tr><th>Conversa</th><th>Última mensagem</th><th>Estado</th></tr></thead>
+  <tbody>
+  {{range .Conversations}}
+  <tr>
+    <td><a href="/desk/c/{{.ID}}">{{.Title}}</a></td>
+    <td class="muted">{{when .LastAt}}</td>
+    <td>{{if eq .State "stopped"}}<span class="badge rejected">parada</span>{{else if .WantsTurn}}<span class="badge review">Desk vai responder</span>{{else}}<span class="badge">aberta</span>{{end}}</td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{else}}
+<p class="empty">Nenhuma conversa ainda. Escreva o primeiro pedido acima.</p>
+{{end}}
+{{template "bottom" .}}

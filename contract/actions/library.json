@@ -1,0 +1,97 @@
+{
+  "app": "library",
+  "actions": [
+    {
+      "name": "library.verticals",
+      "version": 1,
+      "kind": "read",
+      "says": "The verticals the library files creatives under: Spy's vertical id, the name people read, and the code that starts each creative's name.",
+      "view": "library_api.vertical_v1",
+      "columns": ["id", "name", "code", "network_letter"],
+      "filters": [
+        {"column": "id", "op": "=", "type": "string"},
+        {"column": "name", "op": "has", "type": "string"}
+      ],
+      "order": "name",
+      "limit": 100
+    },
+    {
+      "name": "library.sets",
+      "version": 1,
+      "kind": "read",
+      "says": "Sets: creatives and headlines made or uploaded together (one brief in Create). Launch makes ads from a set at /launch/new?set=<id>.",
+      "view": "library_api.set_v1",
+      "columns": ["id", "name", "vertical_id", "origin", "origin_ref", "made_by", "created_at"],
+      "filters": [
+        {"column": "id", "op": "=", "type": "integer"},
+        {"column": "vertical_id", "op": "=", "type": "string"},
+        {"column": "made_by", "op": "=", "type": "string"},
+        {"column": "name", "op": "has", "type": "string"}
+      ],
+      "order": "id DESC",
+      "limit": 20
+    },
+    {
+      "name": "library.set_creatives",
+      "version": 1,
+      "kind": "read",
+      "says": "The creatives of each set, in order.",
+      "view": "library_api.set_creative_v1",
+      "columns": ["set_id", "creative_id", "position"],
+      "filters": [
+        {"column": "set_id", "op": "=", "type": "integer"},
+        {"column": "creative_id", "op": "=", "type": "integer"}
+      ],
+      "order": "set_id DESC, position",
+      "limit": 100
+    },
+    {
+      "name": "library.set_headlines",
+      "version": 1,
+      "kind": "read",
+      "says": "The headlines of each set, in order.",
+      "view": "library_api.set_headline_v1",
+      "columns": ["set_id", "headline_id", "position"],
+      "filters": [
+        {"column": "set_id", "op": "=", "type": "integer"},
+        {"column": "headline_id", "op": "=", "type": "integer"}
+      ],
+      "order": "set_id DESC, position",
+      "limit": 100
+    },
+    {
+      "name": "library.creatives",
+      "version": 1,
+      "kind": "read",
+      "says": "Creatives the team keeps: name, vertical, the angle and idea behind each, where it came from, the person's AI label, and whether it is copied to Drive. hidden_at set: taken out of the lists by a person.",
+      "view": "library_api.creative_v1",
+      "columns": ["id", "name", "vertical_id", "angle", "idea", "origin", "origin_ref", "ai_label", "made_by", "width", "height",
+                  "in_drive", "hidden_at", "created_at"],
+      "filters": [
+        {"column": "id", "op": "=", "type": "integer"},
+        {"column": "vertical_id", "op": "=", "type": "string"},
+        {"column": "angle", "op": "has", "type": "string"},
+        {"column": "made_by", "op": "=", "type": "string"}
+      ],
+      "order": "id DESC",
+      "limit": 50
+    },
+    {
+      "name": "library.headlines",
+      "version": 1,
+      "kind": "read",
+      "says": "Headlines the team keeps, in English, with their vertical, angle, origin and the person's AI label.",
+      "view": "library_api.headline_v1",
+      "columns": ["id", "text", "vertical_id", "angle", "origin", "origin_ref", "ai_label", "made_by", "hidden_at", "created_at"],
+      "outside": ["text"],
+      "filters": [
+        {"column": "id", "op": "=", "type": "integer"},
+        {"column": "vertical_id", "op": "=", "type": "string"},
+        {"column": "text", "op": "has", "type": "string"},
+        {"column": "angle", "op": "has", "type": "string"}
+      ],
+      "order": "id DESC",
+      "limit": 50
+    }
+  ]
+}
