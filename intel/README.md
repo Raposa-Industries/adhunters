@@ -25,6 +25,7 @@ Launch):
 | Job | Every | Reads |
 |---|---|---|
 | realtime | 5 min | The last hour of 5-minute buckets per campaign (what runaway and the gaps are judged on). |
+| status | 5 min | Each account's campaign list alone, so a change of delivery status is seen within minutes. |
 | settings | hour | Campaigns, then each campaign's items. |
 | reports | hour | Yesterday and today by campaign, by campaign and site, and by item (one call a day: the item report has no day split). |
 | month | day | The month so far the same way (and the month before until the 5th). |
@@ -48,6 +49,13 @@ How the numbers are judged:
   campaign so that small ads are not judged on luck.
 - **Alerts:** runaway, tracking gap, landing page gap, postback gap and
   rejected item, each open while it holds and sent once.
+- **Delivery status:** every change of a campaign's status (Taboola's
+  "Delivery Status": running, paused, pending approval, rejected, depleted…,
+  and deleted when it leaves the list), in every account of every login,
+  goes to "AdHunters alerts", grouped into one message per round. A campaign
+  that appears in an account Intel already reads is sent as new. Changes
+  older than `status_alert_max_age_hours` (6) when found are recorded but
+  not sent, so a reload or a first run sends nothing old.
 - **Suggestions:** pause ads that would not reach their spend without a sale
   1 time in 20 at the account's usual cost per sale (and spent $10 or more);
   pause the campaign when that is every running ad; halve the daily cap of a

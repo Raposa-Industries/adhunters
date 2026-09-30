@@ -153,6 +153,14 @@ func (r *rounds) round(ctx context.Context) error {
 		return err
 	}
 	start = time.Now()
+	if _, err = judge.FindStatusChanges(ctx, r.db, d.Now); err == nil {
+		n, err = judge.SendStatusChanges(ctx, r.db, r.log, s, d.Now, r.send, r.base)
+	}
+	r.done("status", start, int64(n), err)
+	if err != nil {
+		return err
+	}
+	start = time.Now()
 	list, err := judge.Suggest(ctx, r.db, d, s, found)
 	if err == nil {
 		n, err = judge.Keep(ctx, r.db, list, d.Now)
@@ -196,7 +204,7 @@ func runCmd() error {
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 	r := newRounds(db, log)
 	r.tasks = srv.Tasks()
-	for _, t := range []string{"load", "results", "alerts", "suggestions"} {
+	for _, t := range []string{"load", "results", "alerts", "status", "suggestions"} {
 		r.tasks.Promise(t, 3*every+time.Minute)
 	}
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {

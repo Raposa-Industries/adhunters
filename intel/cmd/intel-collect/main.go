@@ -4,7 +4,7 @@
 // rarely changes and a deploy of the rest never pauses collection.
 //
 //	intel-collect run          collect until SIGTERM
-//	intel-collect once JOB     run one job now (accounts, settings, reports,
+//	intel-collect once JOB     run one job now (accounts, settings, status, reports,
 //	                           month, realtime, history, rt-reports,
 //	                           rt-week, rt-conversions), then drain the spool
 //	intel-collect version
@@ -141,6 +141,7 @@ func (s *setup) jobs() []collect.Job {
 			collect.Job{Name: p + "realtime", Every: 5 * time.Minute, Delay: stagger + 10*time.Second, Run: t.Realtime},
 			collect.Job{Name: p + "reports", Every: time.Hour, Delay: stagger + 30*time.Second, Run: func(ctx context.Context) error { return t.Reports(ctx, 2) }},
 			collect.Job{Name: p + "settings", Every: time.Hour, Delay: stagger + 2*time.Minute, Run: t.Settings},
+			collect.Job{Name: p + "status", Every: 5 * time.Minute, Delay: stagger + 20*time.Second, Run: t.Statuses},
 			collect.Job{Name: p + "history", Every: time.Hour, Delay: stagger + 4*time.Minute, Run: t.History},
 			collect.Job{Name: p + "month", Every: 24 * time.Hour, Delay: stagger + 20*time.Minute, Run: t.Month},
 		)
@@ -219,6 +220,8 @@ func onceCmd(job string) error {
 			errs = append(errs, t.Accounts(ctx))
 		case "settings":
 			errs = append(errs, t.Settings(ctx))
+		case "status":
+			errs = append(errs, t.Statuses(ctx))
 		case "reports":
 			errs = append(errs, t.Reports(ctx, 2))
 		case "month":

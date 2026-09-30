@@ -243,3 +243,46 @@ func TestLinkMoves(t *testing.T) {
 		t.Fatalf("linked %d, want 1: %v", n, err)
 	}
 }
+
+func TestStatusChanges(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	t0 := now.Add(-3 * time.Hour)
+	exec(t, db, `INSERT INTO intel.tb_campaign (campaign_id, account, group_id, name, status, is_active, settings, first_seen_at, fetched_at)
+		VALUES (1, 'acme-sc', 10, 'BP <mobile>', 'RUNNING', true, '{}', $1, $1)`, t0)
+	// The first list sets where each starts; then 1 goes Paused → Running,
+	// a new campaign 2 appears, and an old change is past sending.
+	exec(t, db, `INSERT INTO intel.tb_campaign_status VALUES
+		(1, $1, 'acme-sc', 'PAUSED'), (1, $2, 'acme-sc', 'RUNNING'), (2, $2, 'acme-sc', 'PENDING_APPROVAL'),
+		(3, $1, 'acme-sc', 'RUNNING'), (3, $3, 'acme-sc', 'DEPLETED')`, t0, now.Add(-time.Minute), t0.Add(time.Minute))
+	n, err := judge.FindStatusChanges(ctx, db, now)
+	if err != nil || n != 3 {
+		t.Fatalf("found %d, want 3: %v", n, err)
+	}
+	if n, _ := judge.FindStatusChanges(ctx, db, now); n != 0 {
+		t.Fatalf("found %d again", n)
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	s := judge.Settings{"status_alert_max_age_hours": 2}
+	// No Telegram yet: nothing is marked sent.
+	if n, err := judge.SendStatusChanges(ctx, db, log, s, now, nil, ""); err != nil || n != 0 {
+		t.Fatalf("sent %d without a sender: %v", n, err)
+	}
+	sent := &fakeSender{}
+	if n, err := judge.SendStatusChanges(ctx, db, log, s, now, sent, "https://app.example"); err != nil || n != 2 {
+		t.Fatalf("sent %d, want 2: %v", n, err)
+	}
+	msg := sent.msgs[0]
+	for _, want := range []string{"2 changes", "BP &lt;mobile&gt; (acme-sc · 1): <b>Paused → Running</b>",
+		"https://app.example/intel/taboola/acme-sc/g/10/c/1", "campaign 2 (acme-sc · 2): <b>new, Pending approval</b>"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("no %q in\n%s", want, msg)
+		}
+	}
+	if strings.Contains(msg, "Depleted") {
+		t.Errorf("sent a change older than the limit:\n%s", msg)
+	}
+	if n, _ := judge.SendStatusChanges(ctx, db, log, s, now, sent, ""); n != 0 || len(sent.msgs) != 1 {
+		t.Fatalf("sent again")
+	}
+}

@@ -92,6 +92,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | tracking gap | The tracker counted under half the clicks the network counted in the last full hour: links lose their tracking or the tracker is down. |
 | landing page gap | The tracker's landing page views were under 30% of its clicks in the last full hour: the page does not open, or its script does not fire. |
 | postback gap | The network counted under half the tracker's sales yesterday: sales are not reaching the network, so its own optimisation works blind. |
+| delivery status | A campaign's state on the ad network, as Taboola's "Delivery Status" shows it: running, paused, pending approval, rejected, depleted (its budget is spent), expired, terminated, frozen; deleted when it leaves the network's list. Intel sends each change to "AdHunters alerts". |
 | suggestion | A change Intel proposes (pause these ads, pause this campaign, lower the daily cap), with why. Intel never makes it: its button opens Launch with the change filled in, and a person makes it there. |
 | not now | A person setting a suggestion aside. It does not come back for a day, and comes back after that only if its reason still holds. |
 | campaign line | A campaign and every copy made of it. Moving a campaign to another group makes a copy with a new id (Taboola cannot change a campaign's group), so Intel keeps the line to follow its history across ids. |

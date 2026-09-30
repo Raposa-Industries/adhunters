@@ -100,14 +100,29 @@ func tbCampaigns(ctx context.Context, tx pgx.Tx, a answer, body []byte) error {
 				               WHERE campaign_id = $1 AND valid_from <= $2 ORDER BY valid_from DESC LIMIT 1) last
 				WHERE last.settings = $3::jsonb)
 			ON CONFLICT DO NOTHING`, id, a.FetchedAt, settings)
+		b.Queue(`
+			INSERT INTO intel.tb_campaign_status (campaign_id, valid_from, account, status)
+			SELECT $1, $2, $3, $4
+			WHERE $4 <> '' AND NOT EXISTS (
+				SELECT 1 FROM (SELECT status FROM intel.tb_campaign_status
+				               WHERE campaign_id = $1 AND valid_from <= $2 ORDER BY valid_from DESC LIMIT 1) last
+				WHERE last.status = $4)
+			ON CONFLICT DO NOTHING`, id, a.FetchedAt, a.Account, r.str("status"))
 	}
 	if ids == nil {
 		ids = []int64{}
 	}
 	// Taboola lists no deleted campaign; one we knew that this list lacks is
 	// gone as of this answer.
-	b.Queue(`UPDATE intel.tb_campaign SET gone_at = $3
-		WHERE account = $1 AND gone_at IS NULL AND fetched_at < $3 AND NOT (campaign_id = ANY($2))`,
+	b.Queue(`
+		WITH gone AS (
+			UPDATE intel.tb_campaign SET gone_at = $3
+			WHERE account = $1 AND gone_at IS NULL AND fetched_at < $3 AND NOT (campaign_id = ANY($2))
+			RETURNING campaign_id
+		)
+		INSERT INTO intel.tb_campaign_status (campaign_id, valid_from, account, status)
+		SELECT campaign_id, $3, $1, 'DELETED' FROM gone
+		ON CONFLICT DO NOTHING`,
 		a.Account, ids, a.FetchedAt)
 	return tx.SendBatch(ctx, b).Close()
 }

@@ -427,3 +427,40 @@ func (s store) search(ctx context.Context, q string) ([]Found, error) {
 	}
 	return out, rows.Err()
 }
+
+// StatusChange is a campaign's delivery status moving from one to another.
+type StatusChange struct {
+	CampaignID int64
+	Account    string
+	GroupID    int64
+	Name       string
+	Known      bool
+	Old, New   string
+	ChangedAt  time.Time
+	Sent       bool
+}
+
+// statusChanges lists the last 7 days' delivery status changes, newest
+// first; campaign 0 means every campaign.
+func (s store) statusChanges(ctx context.Context, campaign int64) ([]StatusChange, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT c.campaign_id, c.account, COALESCE(t.group_id, 0), COALESCE(t.name, ''), t.campaign_id IS NOT NULL,
+		       c.old_status, c.new_status, c.changed_at, c.sent_at IS NOT NULL
+		FROM intel.status_change c LEFT JOIN intel.tb_campaign t ON t.campaign_id = c.campaign_id
+		WHERE ($1 = 0 OR c.campaign_id = $1) AND c.changed_at > now() - interval '7 days'
+		ORDER BY c.changed_at DESC, c.id DESC
+		LIMIT 200`, campaign)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []StatusChange
+	for rows.Next() {
+		var c StatusChange
+		if err := rows.Scan(&c.CampaignID, &c.Account, &c.GroupID, &c.Name, &c.Known, &c.Old, &c.New, &c.ChangedAt, &c.Sent); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}

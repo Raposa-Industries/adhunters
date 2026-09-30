@@ -16,6 +16,7 @@
 </section>{{end}}
 
 {{if .Alerts}}<section class="block"><h3>Alertas abertos</h3>{{template "alertRows" .Alerts}}</section>{{end}}
+{{if .Statuses}}<section class="block"><h3>Status de entrega · 7 dias</h3>{{template "statusRows" .Statuses}}</section>{{end}}
 {{if .Suggestions}}<section class="block"><h3>Sugestões</h3><div class="cards">{{template "suggestionCards" (cards .Suggestions (printf "%s?w=%s" .Path .Window))}}</div></section>{{end}}
 
 <section class="block"><h3>Resultado</h3>

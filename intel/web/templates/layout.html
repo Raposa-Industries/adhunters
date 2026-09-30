@@ -82,3 +82,15 @@
   <p class="muted">{{.Detail}}</p>
 </article>{{end}}
 {{end}}
+
+{{define "statusRows"}}
+<div class="table-wrap"><table class="list">
+<thead><tr><th>Quando</th><th>Campanha</th><th>De</th><th>Para</th><th>Telegram</th></tr></thead>
+<tbody>{{range .}}<tr>
+  <td class="mono">{{when .ChangedAt}}</td>
+  <td>{{if .Known}}<a href="{{campaignPath .Account .GroupID .CampaignID}}">{{.Name}}</a>{{else}}<span class="mono">{{.CampaignID}}</span>{{end}}<div class="faint small-text">{{.Account}} · {{.CampaignID}}</div></td>
+  <td>{{status .Old}}</td><td><b>{{status .New}}</b></td>
+  <td class="faint">{{if .Sent}}enviado{{else}}–{{end}}</td>
+</tr>{{end}}</tbody>
+</table></div>
+{{end}}

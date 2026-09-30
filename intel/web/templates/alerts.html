@@ -2,4 +2,8 @@
 <header class="page-head"><div><h1>Alertas</h1>
 <p class="lead">Abertos enquanto o problema continua; cada um vai uma vez para o grupo do Telegram. Os fechados ficam aqui por 7 dias.</p></div></header>
 {{if .Alerts}}{{template "alertRows" .Alerts}}{{else}}<p class="empty">Nenhum alerta nos últimos 7 dias.</p>{{end}}
+<section class="block"><h3>Status de entrega</h3>
+<p class="lead">Cada mudança de status de uma campanha (o "Delivery Status" da Taboola), vista a cada 5 minutos e enviada ao Telegram.</p>
+{{if .Statuses}}{{template "statusRows" .Statuses}}{{else}}<p class="empty">Nenhuma mudança nos últimos 7 dias.</p>{{end}}
+</section>
 {{template "bottom" .}}{{end}}

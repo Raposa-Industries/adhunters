@@ -88,6 +88,7 @@ func TestLoad(t *testing.T) {
 		{`SELECT hour || ' ' || lp_views FROM intel.rt_campaign_hour`, "14 18"},
 		{`SELECT click_id || ' ' || payout || ' ' || type FROM intel.rt_conversion`, "k1 49.0000 Purchase"},
 		{`SELECT count(*)::text FROM intel.tb_campaign_version`, "1"},
+		{`SELECT string_agg(status, ',') FROM intel.tb_campaign_status`, "RUNNING"},
 	}
 	for _, c := range checks {
 		var got string
@@ -113,6 +114,11 @@ func TestLoad(t *testing.T) {
 	db.QueryRow(ctx, `SELECT gone_at IS NOT NULL FROM intel.tb_campaign`).Scan(&gone)
 	if clicks != 148 || !gone {
 		t.Fatalf("clicks %d (want 148), gone %v", clicks, gone)
+	}
+	var statuses string
+	db.QueryRow(ctx, `SELECT string_agg(status, ',' ORDER BY valid_from) FROM intel.tb_campaign_status`).Scan(&statuses)
+	if statuses != "RUNNING,DELETED" {
+		t.Fatalf("statuses %q", statuses)
 	}
 
 	// Reloading everything ends in the same tables.

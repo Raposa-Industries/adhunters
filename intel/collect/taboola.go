@@ -109,10 +109,41 @@ func (t *Taboola) Known(ctx context.Context) ([]TbAccount, error) {
 // Settings reads every account's campaigns, then each listed campaign's
 // items. Taboola drops deleted campaigns from the list; the loader notices.
 func (t *Taboola) Settings(ctx context.Context) error {
+	lists, err := t.campaignLists(ctx)
+	var errs []error
+	if err != nil {
+		errs = append(errs, err)
+	}
+	for _, l := range lists {
+		for _, id := range l.ids {
+			path := url.PathEscape(l.account) + "/campaigns/" + url.PathEscape(id) + "/items/"
+			if _, err := t.get(ctx, KindTbItems, l.account, path, nil, map[string]any{"campaign_id": id}); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// Statuses reads every account's campaign list alone, often, so a change
+// of delivery status is seen within minutes (one request per account).
+func (t *Taboola) Statuses(ctx context.Context) error {
+	_, err := t.campaignLists(ctx)
+	return err
+}
+
+type campaignList struct {
+	account string
+	ids     []string
+}
+
+// campaignLists reads each account's campaigns and remembers their ids.
+func (t *Taboola) campaignLists(ctx context.Context) ([]campaignList, error) {
 	accs, err := t.Known(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	var out []campaignList
 	var errs []error
 	for _, acc := range accs {
 		a, err := t.get(ctx, KindTbCampaigns, acc.ID, url.PathEscape(acc.ID)+"/campaigns", nil, nil)
@@ -137,14 +168,9 @@ func (t *Taboola) Settings(ctx context.Context) error {
 		}
 		t.campaigns[acc.ID] = ids
 		t.mu.Unlock()
-		for _, id := range ids {
-			path := url.PathEscape(acc.ID) + "/campaigns/" + url.PathEscape(id) + "/items/"
-			if _, err := t.get(ctx, KindTbItems, acc.ID, path, nil, map[string]any{"campaign_id": id}); err != nil {
-				errs = append(errs, err)
-			}
-		}
+		out = append(out, campaignList{account: acc.ID, ids: ids})
 	}
-	return errors.Join(errs...)
+	return out, errors.Join(errs...)
 }
 
 // Reports reads the daily reports for the last days days (today included):

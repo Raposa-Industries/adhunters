@@ -36,6 +36,8 @@ func TestPages(t *testing.T) {
 		`INSERT INTO intel.alert (key, kind, account, campaign_id, title, detail, opened_at, seen_at)
 			VALUES ('r', 'runaway', 'acme-sc', 1, 'BP mobile spent $300 today with no sale', 'x', now(), now())`,
 		`INSERT INTO intel.job_mark VALUES ('round', now(), '')`,
+		`INSERT INTO intel.status_change (campaign_id, account, old_status, new_status, changed_at, found_at)
+			VALUES (1, 'acme-sc', 'PAUSED', 'RUNNING', now(), now())`,
 	} {
 		if _, err := db.Exec(ctx, sql); err != nil {
 			t.Fatalf("%v\n%s", err, sql)
@@ -67,12 +69,12 @@ func TestPages(t *testing.T) {
 	get("/intel/taboola/acme-sc?w=7d", "BP mobile")
 	get("/intel/taboola/acme-sc/g/10", "BP mobile")
 	get("/intel/taboola/acme-sc/g/10/c/1", "Sip This at Breakfast", "pior", "com certeza", "0.80%",
-		`href="/launch/taboola/acme-sc/g/10/c/1"`, "BP mobile (moved)", "depois")
+		`href="/launch/taboola/acme-sc/g/10/c/1"`, "BP mobile (moved)", "depois", "rodando")
 	get("/intel/taboola/acme-sc/g/20/c/2", "antes", "BP mobile")
 	get("/intel/taboola/acme-sc/g/-", "No group", `href="/launch/taboola/acme-sc/g/-"`)
 	get("/intel/taboola/acme-sc/g/-/c/3", "No group", `href="/launch/taboola/acme-sc/g/-/c/3"`)
 	get("/intel/suggestions", "Pause 1 ad")
-	get("/intel/alerts", "spent $300 today")
+	get("/intel/alerts", "spent $300 today", "Status de entrega", "pausada", "rodando")
 	get("/intel/_frame/frame.js", "mountFrame")
 	get("/intel/_intel/intel.js", "mountFrame")
 	get("/intel/api/search?q=moved", `"href":"/intel/taboola/acme-sc/g/20/c/2"`)

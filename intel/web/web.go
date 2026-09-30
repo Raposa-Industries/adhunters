@@ -127,6 +127,7 @@ type page struct {
 	Line        []LineCampaign
 	Suggestions []Suggestion
 	Alerts      []Alert
+	Statuses    []StatusChange
 	Recent      bool
 }
 
@@ -275,7 +276,9 @@ func (h *handler) campaign(w http.ResponseWriter, r *http.Request) {
 		if p.Ads, err = h.st.ads(ctx, id, p.Window); err == nil {
 			if p.Line, err = h.st.line(ctx, id); err == nil {
 				if p.Suggestions, err = h.st.suggestions(ctx, id, false); err == nil {
-					p.Alerts, err = h.st.alerts(ctx, id, false)
+					if p.Alerts, err = h.st.alerts(ctx, id, false); err == nil {
+						p.Statuses, err = h.st.statusChanges(ctx, id)
+					}
 				}
 			}
 		}
@@ -308,7 +311,10 @@ func (h *handler) alertsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.Recent = true
-	if p.Alerts, err = h.st.alerts(r.Context(), 0, true); err != nil {
+	if p.Alerts, err = h.st.alerts(r.Context(), 0, true); err == nil {
+		p.Statuses, err = h.st.statusChanges(r.Context(), 0)
+	}
+	if err != nil {
 		h.fail(w, err)
 		return
 	}
@@ -456,6 +462,7 @@ var funcs = template.FuncMap{
 		return money(v)
 	},
 	"word":      func(w string) string { return wordNames[w] },
+	"status":    statusName,
 	"wordClass": func(w string) string { return wordClasses[w] },
 	"sureness":  func(s string) string { return surenessNames[s] },
 	"kind":      func(k string) string { return kindNames[k] },
@@ -564,4 +571,27 @@ func ago(t time.Time) string {
 	default:
 		return fmt.Sprintf("há %d dias", int(d.Hours()/24))
 	}
+}
+
+// statusName is a delivery status in the page's words.
+func statusName(s string) string {
+	if n, ok := statusNames[s]; ok {
+		return n
+	}
+	return strings.ReplaceAll(strings.ToLower(s), "_", " ")
+}
+
+var statusNames = map[string]string{
+	"":                   "nova",
+	"RUNNING":            "rodando",
+	"PAUSED":             "pausada",
+	"PENDING_APPROVAL":   "aguardando aprovação",
+	"PENDING_START_DATE": "agendada",
+	"REJECTED":           "rejeitada",
+	"DEPLETED":           "orçamento esgotado",
+	"DEPLETED_MONTHLY":   "orçamento do mês esgotado",
+	"EXPIRED":            "expirada",
+	"TERMINATED":         "encerrada",
+	"FROZEN":             "congelada",
+	"DELETED":            "apagada",
 }
