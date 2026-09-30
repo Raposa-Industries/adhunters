@@ -1,0 +1,25 @@
+# Reads Taboola and RedTrack on a schedule and keeps every answer as
+# received: first in the spool (/var/lib/intel-collect/spool), then in
+# intel.answer. Only reads. Settings and keys in
+# /etc/adhunters/intel-collect.env.
+[Unit]
+Description=Intel collect
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+DynamicUser=yes
+StateDirectory=intel-collect
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/intel-collect.env
+ExecStart=/opt/adhunters/bin/intel-collect run
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

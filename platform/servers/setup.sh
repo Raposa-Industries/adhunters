@@ -263,6 +263,44 @@ create_web() {
     start create-web create-web
 }
 
+# ---- Intel on the data box -------------------------------------------------
+
+intel_src="$repo/intel"
+
+# intel_box: Intel's three services (intel/README.md), next to its database.
+# intel-numbers owns the intel and intel_api schemas and migrates them before
+# each start; it reads Launch's moves through launch_api_read. intel-collect
+# waits for its Taboola and RedTrack keys; intel-web listens on localhost for
+# the Cloudflare tunnel.
+intel_box() {
+    [ -d "$intel_src/deploy" ] || { echo "$intel_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "the intel login"
+    local r
+    for r in intel_api_read launch_api_read; do
+        psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '$r') THEN CREATE ROLE $r NOLOGIN; END IF; END \$\$"
+    done
+    local intel_pw url
+    intel_pw=$(login intel)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO intel"
+    psql_su -d adhunters -c "GRANT launch_api_read TO intel"
+    url=FILL_ME
+    [ -n "$intel_pw" ] && url="postgres://intel:$intel_pw@localhost:5432/adhunters?sslmode=require"
+
+    local b
+    for b in intel-collect intel-numbers intel-web; do
+        install_bin "$b"
+        install -m 0644 "$intel_src/deploy/$b.service" "/etc/systemd/system/$b.service"
+        # The login's password goes in once, when it is made; the settings
+        # file is the owner's after that.
+        env_file "$b" "$(grep -E '^[A-Z0-9_]+=' "$intel_src/deploy/$b.env.example" |
+            sed -e "s|^DATABASE_URL=.*|DATABASE_URL=$url|")"
+    done
+    systemctl daemon-reload
+    start intel-numbers intel-numbers
+    start intel-web intel-web
+    start intel-collect intel-collect
+}
+
 # ---- the library on the data box -------------------------------------------
 
 library_src="$repo/library"
@@ -622,6 +660,9 @@ tracks-bridge           9108  tracks-bridge   -
 create-web              9109  create-web      -
 library                 9110  library         -
 create                  9112  create          -
+intel-collect           9113  intel-collect   -
+intel-numbers           9114  intel-numbers   -
+intel-web               9115  intel-web       -
 desk-agent              9120  desk-agent      -
 desk-web                9121  desk-web        -'
 
@@ -728,6 +769,7 @@ data)
     library_box
     create_box
     create_web
+    intel_box
     desk_box
     ;;
 esac

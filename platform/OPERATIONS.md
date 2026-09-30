@@ -106,7 +106,7 @@ Build on your computer (Go 1.25), from the repository root:
 ```
 git checkout main && git pull
 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" \
-  -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./platform/observe/cmd/...
+  -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./intel/cmd/... ./platform/observe/cmd/...
 ```
 
 Copy the checkout with the binaries to a box and run the setup there:
@@ -218,6 +218,20 @@ that serves the whole hostname. Desk answers once its Claude key is in
 `/etc/adhunters/desk-agent.env` (`ANTHROPIC_API_KEY=`), then
 `sudo systemctl restart desk-agent`. Its daily Claude limit and stop switch
 are on its settings page.
+
+## Intel on hunt-teste.fyi/intel/
+
+`intel-web` listens only on `127.0.0.1:8096` on the data box
+(intel/README.md). It is reached on the same address and behind the same
+Access application as the launcher page: in the tunnel (Networks › Tunnels ›
+`adhunters-data` › Public hostname), add a hostname `hunt-teste.fyi` with
+path `^/intel`, service `http://localhost:8096`, and move it above the one
+that serves the whole hostname. intel-collect reads once its keys are in
+`/etc/adhunters/intel-collect.env` (the ZoltaGroup Taboola client id and
+secret, and a RedTrack key), then `sudo systemctl restart intel-collect`.
+Alerts reach Telegram once `/etc/adhunters/intel-numbers.env` has the same
+`TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as `observe-bot.env`, then
+`sudo systemctl restart intel-numbers`.
 
 ## Not yet
 
