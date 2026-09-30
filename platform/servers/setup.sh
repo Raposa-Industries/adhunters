@@ -161,6 +161,33 @@ capture_box() { # capture_box INSTANCE:WORKERS:PORT...
     done
 }
 
+# ---- tracks-walker (worker box) ---------------------------------------------
+
+# walker_box: tracks-walker walks running ads' links to their landing pages
+# (tracks/README.md), through capture's proxy lines file. Its DATABASE_URL
+# comes from the data box setup.
+walker_box() {
+    install_bin tracks-walker
+    install_unit tracks-walker.service
+    systemctl daemon-reload
+    install -d -m 0750 -o tracks -g tracks /var/lib/tracks/walk-spool
+    env_file tracks-walker '# tracks-walker settings. DATABASE_URL comes from the data box setup.
+DATABASE_URL=FILL_ME
+ARCHIVE=s3://adhunters-raw
+S3_ENDPOINT=fsn1.your-objectstorage.com
+S3_REGION=fsn1
+S3_ACCESS_KEY=FILL_ME
+S3_SECRET_KEY=FILL_ME
+WORKERS=2
+OPS_ADDR=127.0.0.1:9119'
+    if [ ! -s /etc/adhunters/tracks-capture/proxies.env ]; then
+        systemctl enable tracks-walker >/dev/null
+        todo+=("copy proxies.env into /etc/adhunters/tracks-capture/, then: systemctl restart tracks-walker")
+        return
+    fi
+    start tracks-walker tracks-walker
+}
+
 # ---- raposa (worker box) ----------------------------------------------------
 
 raposa_src="$repo/raposa"
@@ -263,6 +290,44 @@ create_web() {
     start create-web create-web
 }
 
+# ---- Intel on the data box -------------------------------------------------
+
+intel_src="$repo/intel"
+
+# intel_box: Intel's three services (intel/README.md), next to its database.
+# intel-numbers owns the intel and intel_api schemas and migrates them before
+# each start; it reads Launch's moves through launch_api_read. intel-collect
+# waits for its Taboola and RedTrack keys; intel-web listens on localhost for
+# the Cloudflare tunnel.
+intel_box() {
+    [ -d "$intel_src/deploy" ] || { echo "$intel_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "the intel login"
+    local r
+    for r in intel_api_read launch_api_read; do
+        psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '$r') THEN CREATE ROLE $r NOLOGIN; END IF; END \$\$"
+    done
+    local intel_pw url
+    intel_pw=$(login intel)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO intel"
+    psql_su -d adhunters -c "GRANT launch_api_read TO intel"
+    url=FILL_ME
+    [ -n "$intel_pw" ] && url="postgres://intel:$intel_pw@localhost:5432/adhunters?sslmode=require"
+
+    local b
+    for b in intel-collect intel-numbers intel-web; do
+        install_bin "$b"
+        install -m 0644 "$intel_src/deploy/$b.service" "/etc/systemd/system/$b.service"
+        # The login's password goes in once, when it is made; the settings
+        # file is the owner's after that.
+        env_file "$b" "$(grep -E '^[A-Z0-9_]+=' "$intel_src/deploy/$b.env.example" |
+            sed -e "s|^DATABASE_URL=.*|DATABASE_URL=$url|")"
+    done
+    systemctl daemon-reload
+    start intel-numbers intel-numbers
+    start intel-web intel-web
+    start intel-collect intel-collect
+}
+
 # ---- the library on the data box -------------------------------------------
 
 library_src="$repo/library"
@@ -326,8 +391,8 @@ create_box() {
 desk_src="$repo/desk"
 
 # desk_box: AdHunters Desk (desk/README.md). The desk login owns the desk and
-# desk_api schemas; both units run the migrations before they start, so the
-# pages work before the Claude key is in. desk-agent waits for the key.
+# desk_api schemas; both units run the migrations before they start. Desk is
+# off until its Claude key is in: desk-agent runs but takes no work.
 desk_box() {
     [ -d "$desk_src/deploy" ] || { echo "$desk_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
     say "the desk login"
@@ -359,8 +424,58 @@ desk_box() {
         fi
         env_file "$u" "$example"
     done
+    # The first example had FILL_ME for the key, which kept desk-agent
+    # stopped, so it read as down; an empty key now means Desk is off.
+    sed -i 's/^ANTHROPIC_API_KEY=FILL_ME$/ANTHROPIC_API_KEY=/' /etc/adhunters/desk-agent.env
     start desk-web desk-web
     start desk-agent desk-agent
+    if grep -q '^ANTHROPIC_API_KEY=$' /etc/adhunters/desk-agent.env; then
+        todo+=("Desk is off: to turn it on, put the Claude key in /etc/adhunters/desk-agent.env (ANTHROPIC_API_KEY=), then systemctl restart desk-agent")
+    fi
+}
+
+# ---- Spy on the data box ---------------------------------------------------
+
+spy_src="$repo/spy"
+
+# spy_box: spy-numbers (Spy's numbers, grouping and classifier; it owns the
+# spy schemas and runs their migrations before each start) and spy-web (the
+# pages, read only). Both reach Postgres on this box. spy_api_read must
+# exist before spy-numbers' first migration, which grants it.
+spy_box() {
+    [ -d "$spy_src/deploy" ] || { echo "$spy_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "spy: the spy user, logins, units"
+    id spy >/dev/null 2>&1 || useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin spy
+    install_bin spy-numbers
+    install_bin spy-web
+    local u
+    for u in spy-numbers.service spy-web.service; do
+        install -m 0644 "$spy_src/deploy/$u" "/etc/systemd/system/$u"
+    done
+    systemctl daemon-reload
+
+    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'spy_api_read') THEN CREATE ROLE spy_api_read NOLOGIN; END IF; END \$\$"
+    local spy_pw web_pw
+    spy_pw=$(login spy)
+    web_pw=$(login spy_web)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO spy"
+    psql_su -d adhunters -c "GRANT tracks_api_read, raposa_api_read TO spy"
+    psql_su -d adhunters -c "GRANT spy_api_read, tracks_api_read, raposa_api_read TO spy_web"
+
+    env_file spy-numbers "# spy-numbers settings (spy/README.md). OLD_DATABASE_URL is only for
+# spy-numbers import-old: a read-only login on the collector's database.
+DATABASE_URL=postgres://spy:${spy_pw:-FILL_ME}@localhost:5432/adhunters?sslmode=require
+OLD_DATABASE_URL=
+OPS_ADDR=127.0.0.1:9122" spy
+    env_file spy-web "# spy-web settings (spy/README.md). ACCESS_TEAM is the team's address
+# (https://<team>.cloudflareaccess.com), ACCESS_AUD the Access application's AUD tag.
+DATABASE_URL=postgres://spy_web:${web_pw:-FILL_ME}@localhost:5432/adhunters?sslmode=require
+SPY_WEB_ADDR=127.0.0.1:8097
+ACCESS_TEAM=FILL_ME
+ACCESS_AUD=FILL_ME
+OPS_ADDR=127.0.0.1:9116" spy
+    start spy-numbers spy-numbers
+    start spy-web spy-web
 }
 
 # ---- Launch on the data box ------------------------------------------------
@@ -433,7 +548,8 @@ shared_preload_libraries = 'pg_stat_statements'"
     local line
     for line in "hostssl adhunters tracks_shipper $worker_ip/32 scram-sha-256" \
         "hostssl adhunters tracks_shipper $standby_ip/32 scram-sha-256" \
-        "hostssl adhunters raposa $worker_ip/32 scram-sha-256"; do
+        "hostssl adhunters raposa $worker_ip/32 scram-sha-256" \
+        "hostssl adhunters tracks_walker $worker_ip/32 scram-sha-256"; do
         grep -qxF "$line" "$hba" || { echo "$line" >>"$hba"; restart=1; }
     done
     systemctl enable postgresql >/dev/null
@@ -470,9 +586,11 @@ data_box() {
     psql_su -d adhunters -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements"
     psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'tracks_api_read') THEN CREATE ROLE tracks_api_read NOLOGIN; END IF; END \$\$"
 
-    local loader_pw shipper_pw
+    local loader_pw shipper_pw walker_pw
     loader_pw=$(login tracks_loader)
     shipper_pw=$(login tracks_shipper)
+    # Before the loader starts: its migrations grant the walker its tables.
+    walker_pw=$(login tracks_walker)
     # Alloy's read-only login for Postgres metrics.
     observe_pw=$(login observe)
     psql_su -c "GRANT pg_monitor TO observe"
@@ -501,6 +619,11 @@ OPS_ADDR=127.0.0.1:9104"
     if [ -n "$shipper_pw" ]; then
         todo+=("put this line in /etc/adhunters/tracks-shipper.env on the worker and standby boxes (shown once):
     DATABASE_URL=postgres://tracks_shipper:$shipper_pw@$data_ip:5432/adhunters?sslmode=require")
+    fi
+
+    if [ -n "$walker_pw" ]; then
+        todo+=("put this line in /etc/adhunters/tracks-walker.env on the worker box (shown once):
+    DATABASE_URL=postgres://tracks_walker:$walker_pw@$data_ip:5432/adhunters?sslmode=require")
     fi
 
     env_file tracks-bridge "# tracks-bridge settings (platform/SWITCH-OVER.md). The database
@@ -653,8 +776,14 @@ create-web              9109  create-web      -
 library                 9110  library         -
 launch-web              9111  launch-web      -
 create                  9112  create          -
+intel-collect           9113  intel-collect   -
+intel-numbers           9114  intel-numbers   -
+intel-web               9115  intel-web       -
 desk-agent              9120  desk-agent      -
-desk-web                9121  desk-web        -'
+desk-web                9121  desk-web        -
+tracks-walker           9119  tracks-walker   -
+spy-web                 9116  spy-web         -
+spy-numbers             9122  spy-numbers     -'
 
 alloy_env='# Grafana Alloy settings (root only); see platform/observe/README.md.
 # Push URLs: Prometheus ends in /api/prom/push, Loki in /loki/api/v1/push.
@@ -751,6 +880,7 @@ common
 case "$role" in
 worker)
     capture_box a:4:9101 b:4:9102
+    walker_box
     raposa_box
     ;;
 standby) capture_box standby:1:9101 ;;
@@ -759,7 +889,9 @@ data)
     library_box
     create_box
     create_web
+    intel_box
     desk_box
+    spy_box
     launch_web
     ;;
 esac

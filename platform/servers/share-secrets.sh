@@ -8,7 +8,8 @@
 #
 # It copies the object storage keys from the data box's tracks-loader.env,
 # and fills in DATABASE_URL for tracks-shipper (tracks_shipper login) and, on
-# the worker, raposa-engine and raposa-web (raposa login). A login's password
+# the worker, raposa-engine and raposa-web (raposa login) and tracks-walker
+# (tracks_walker login). A login's password
 # is copied from a box that already has it; the first time, the login gets a
 # new random password on the data box. Units whose settings are then
 # complete are restarted. A box whose setup has not run yet is skipped, so
@@ -94,6 +95,11 @@ for box in "${boxes[@]}"; do
         done
         script+=$'\nrestart raposa-engine raposa-engine.env /etc/adhunters/raposa/proxies.env'
         script+=$'\nrestart raposa-web raposa-web.env'
+        if on worker "test -f /etc/adhunters/tracks-walker.env" 2>/dev/null; then
+            walker=$(url tracks_walker worker:tracks-walker.env)
+            script+=$'\n'"$(printf 'setv tracks-walker.env %s %q\n' DATABASE_URL "$walker" S3_ACCESS_KEY "$access" S3_SECRET_KEY "$secret")"
+            script+=$'\nrestart tracks-walker tracks-walker.env /etc/adhunters/tracks-capture/proxies.env'
+        fi
     fi
     printf '%s\n' "$script" | on "$box" "sudo bash -s"
 done

@@ -1,10 +1,12 @@
-// Command spy-numbers keeps Spy's derived numbers: the last 24 hours, the
-// read model, and Size and Direction. The numbers for any other range are
-// SQL functions the apps call through spy_api; they need nothing running.
+// Command spy-numbers keeps Spy's derived numbers: the last 24 hours,
+// landing pages and operators, the verticals, the read model, and Size and
+// Direction. The numbers for any
+// other range are SQL functions the apps call through spy_api; they need
+// nothing running.
 //
 //	spy-numbers migrate
 //	spy-numbers run
-//	spy-numbers refresh [-rebuild]
+//	spy-numbers refresh [-rebuild] [-pages-since 2026-10-01T00:00:00Z]
 //	spy-numbers import-old
 //	spy-numbers status
 //
@@ -20,6 +22,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"text/tabwriter"
@@ -32,6 +35,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
+	"github.com/Raposa-Industries/adhunters/spy/classify"
 	"github.com/Raposa-Industries/adhunters/spy/importold"
 	"github.com/Raposa-Industries/adhunters/spy/migrations"
 	"github.com/Raposa-Industries/adhunters/spy/numbers"
@@ -119,7 +123,11 @@ func runCmd() error {
 	defer db.Close()
 
 	srv := ops.New("spy-numbers", version)
-	r := numbers.New(db, log, numbers.Config{Tasks: srv.Tasks()}, srv.Registry)
+	cl, err := classifier(db, log)
+	if err != nil {
+		return err
+	}
+	r := numbers.New(db, log, numbers.Config{Tasks: srv.Tasks(), Classify: cl}, srv.Registry)
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 	srv.AddCheck("numbers", r.Healthy)
 
@@ -139,11 +147,21 @@ func runCmd() error {
 	})
 }
 
-// refreshCmd runs every job once; -rebuild also redoes Direction's daily part.
+// refreshCmd runs every job once; -rebuild also redoes Direction's daily part,
+// and -pages-since reads the landing page walks from then again (after a
+// Tracks replay, or a change to spy.shared_domain).
 func refreshCmd(args []string) error {
 	fs := flag.NewFlagSet("refresh", flag.ExitOnError)
 	rebuild := fs.Bool("rebuild", false, "redo Direction's usual values and noise first")
+	pagesSince := fs.String("pages-since", "", "read the landing page walks from this time again, RFC 3339")
 	_ = fs.Parse(args)
+	var since time.Time
+	if *pagesSince != "" {
+		var err error
+		if since, err = time.Parse(time.RFC3339, *pagesSince); err != nil {
+			return fmt.Errorf("-pages-since: %w", err)
+		}
+	}
 	log := logx.New("spy-numbers", version)
 	ctx := context.Background()
 	db, err := open(ctx, "DATABASE_URL", pg.JobStatementTimeout, 2)
@@ -151,7 +169,34 @@ func refreshCmd(args []string) error {
 		return err
 	}
 	defer db.Close()
-	return numbers.New(db, log, numbers.Config{}, nil).All(ctx, *rebuild)
+	if !since.IsZero() {
+		var n int64
+		if err := db.QueryRow(ctx, `SELECT spy.refresh_pages(now(), $1)`, since).Scan(&n); err != nil {
+			return err
+		}
+		log.Info("landing pages read again", "since", since, "pages", n)
+	}
+	cl, err := classifier(db, log)
+	if err != nil {
+		return err
+	}
+	return numbers.New(db, log, numbers.Config{Classify: cl}, nil).All(ctx, *rebuild)
+}
+
+// classifier is the classifier as a numbers job: it counts the creatives read
+// and answered.
+func classifier(db *pgxpool.Pool, log *slog.Logger) (func(context.Context) (int64, error), error) {
+	c, err := classify.New(db, log, classify.Config{})
+	if err != nil {
+		return nil, err
+	}
+	return func(ctx context.Context) (int64, error) {
+		res, err := c.Run(ctx)
+		if res.Read+res.Answered > 0 || res.Trained {
+			log.Info("classifier ran", "read", res.Read, "trained", res.Trained, "answered", res.Answered, "declined", res.Declined)
+		}
+		return int64(res.Read + res.Answered + res.Declined), err
+	}, nil
 }
 
 func importCmd() error {
@@ -190,6 +235,13 @@ func statusCmd() error {
 		UNION ALL SELECT 'creatives, last 24 hours', (SELECT count(*) FROM spy.creative_recent)::text, ''
 		UNION ALL SELECT 'creatives in the read model', (SELECT count(*) FROM spy.creative_stats)::text, ''
 		UNION ALL SELECT 'Direction judged', (SELECT count(*) FROM spy.direction_stats)::text, ''
+		UNION ALL SELECT 'landing pages read to', COALESCE((SELECT to_char(read_to, 'YYYY-MM-DD HH24:MI "UTC"') FROM spy.page_mark), 'never'),
+		                 (SELECT count(*) || ' sites, ' || (SELECT count(*) FROM spy.creative_page) || ' creatives' FROM spy.site)
+		UNION ALL SELECT 'operators from', COALESCE((SELECT text_value FROM spy.setting WHERE name = 'operators_from'), 'import'), ''
+		UNION ALL (SELECT 'last grouping', groups || ' groups; accounts: ' || accounts_same || ' same, ' || accounts_moved
+		                  || ' moved, ' || accounts_new || ' new' || CASE WHEN applied THEN ' (applied)' ELSE ' (proposed)' END,
+		                  to_char(at, 'YYYY-MM-DD HH24:MI')
+		           FROM spy.grouping_run ORDER BY id DESC LIMIT 1)
 		UNION ALL (SELECT 'copied ' || what, copied::text || ' (' || skipped || ' skipped)', to_char(done_at, 'YYYY-MM-DD HH24:MI')
 		           FROM spy.import_mark ORDER BY what)`)
 	if err != nil {

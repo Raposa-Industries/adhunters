@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
-	"github.com/Raposa-Industries/adhunters/raposa/internal/page"
+	"github.com/Raposa-Industries/adhunters/shared/page"
 )
 
 // An investigation climbs a ladder of disguises, cheapest first, and once a

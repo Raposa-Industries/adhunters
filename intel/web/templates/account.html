@@ -1,0 +1,9 @@
+{{define "account"}}{{template "top" .}}
+<header class="page-head"><div><h1>{{.Title}}</h1>{{template "asof" .}}</div>
+  <div class="actions">{{if .Group}}<a class="button" href="{{launchGroup .Account .Group}}">Abrir no Launch</a>{{else}}<a class="button" href="/launch/taboola/{{.Account}}">Abrir no Launch</a>{{end}}</div>
+</header>
+<section class="block">
+  <h3>Campanhas · {{windowName .Window}}</h3>
+  {{template "campaignRows" .Campaigns}}
+</section>
+{{template "bottom" .}}{{end}}

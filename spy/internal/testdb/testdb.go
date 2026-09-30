@@ -105,6 +105,9 @@ CREATE TABLE tracks_api.publisher_v1 (id INTEGER PRIMARY KEY, network_id SMALLIN
 CREATE TABLE tracks_api.brand_v1 (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
 CREATE TABLE tracks_api.account_v1 (id INTEGER PRIMARY KEY, network_id SMALLINT NOT NULL DEFAULT 1, external_id TEXT NOT NULL,
     org_external_id TEXT, first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE tracks_api.campaign_v1 (id INTEGER PRIMARY KEY, network_id SMALLINT NOT NULL DEFAULT 1, external_id TEXT NOT NULL,
+    name TEXT, account_id INTEGER, parent_external_id TEXT, parent_name TEXT, objective TEXT,
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE tracks_api.creative_v1 (id INTEGER PRIMARY KEY, creative_key TEXT NOT NULL, image_url TEXT NOT NULL DEFAULT '',
     format_type TEXT, video_duration INTEGER, thumb_dimensions TEXT, language TEXT,
     first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
@@ -120,6 +123,9 @@ CREATE TABLE tracks_api.sighting_v1 (seen_at TIMESTAMPTZ NOT NULL, scrape_id BIG
     campaign_id INTEGER, link_id INTEGER, account_id INTEGER, brand_id INTEGER, site_id INTEGER, ecpa_percentile REAL,
     feed_position SMALLINT, block_position SMALLINT, bid_price REAL, second_price REAL);
 CREATE INDEX ON tracks_api.sighting_v1 (ad_id, seen_at);
+CREATE TABLE tracks_api.auction_v1 (seen_at TIMESTAMPTZ NOT NULL, scrape_id BIGINT NOT NULL DEFAULT 0, ad_id INTEGER NOT NULL,
+    publisher_id INTEGER NOT NULL, device_id SMALLINT NOT NULL, auction_id TEXT NOT NULL, placement TEXT,
+    clearing_price REAL, bid_value REAL, cap_auction_price REAL, currency TEXT, winning_seat TEXT, is_rtb BOOLEAN NOT NULL);
 CREATE TABLE tracks_api.ad_hourly_v1 (hour TIMESTAMPTZ NOT NULL, ad_id INTEGER NOT NULL, publisher_id INTEGER NOT NULL,
     device_id SMALLINT NOT NULL, sightings INTEGER NOT NULL, scrapes INTEGER NOT NULL DEFAULT 0,
     feed_position_sum BIGINT NOT NULL DEFAULT 0, feed_position_min SMALLINT, feed_position_max SMALLINT,
@@ -152,4 +158,15 @@ CREATE TABLE tracks_api.creative_campaign_daily_v1 (day DATE NOT NULL, creative_
     sightings INTEGER NOT NULL, first_seen_at TIMESTAMPTZ NOT NULL, last_seen_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (day, creative_id, campaign_id));
 CREATE INDEX ON tracks_api.creative_campaign_daily_v1 (campaign_id, day);
+CREATE TABLE tracks_api.walk_page_v1 (walk_id BIGINT NOT NULL, at TIMESTAMPTZ NOT NULL, ad_id INTEGER NOT NULL,
+    creative_id INTEGER NOT NULL, account_id INTEGER, link_id INTEGER NOT NULL DEFAULT 0, publisher_id INTEGER,
+    outcome TEXT NOT NULL DEFAULT 'ok', step SMALLINT NOT NULL DEFAULT 0, url TEXT NOT NULL DEFAULT '', final_url TEXT, host TEXT,
+    status INTEGER, hops SMALLINT NOT NULL DEFAULT 0, page_type TEXT, checkout_platform TEXT, seller_account TEXT,
+    version_hash UUID, PRIMARY KEY (walk_id, step));
+CREATE INDEX ON tracks_api.walk_page_v1 (at);
+CREATE TABLE tracks_api.page_version_v1 (hash UUID PRIMARY KEY, title TEXT, word_count INTEGER NOT NULL DEFAULT 0,
+    headings JSONB NOT NULL DEFAULT '{}', meta JSONB NOT NULL DEFAULT '{}', favicon_url TEXT, pixels JSONB NOT NULL DEFAULT '{}',
+    emails TEXT[] NOT NULL DEFAULT '{}', phones TEXT[] NOT NULL DEFAULT '{}', companies TEXT[] NOT NULL DEFAULT '{}',
+    disclaimers TEXT[] NOT NULL DEFAULT '{}', vsl JSONB NOT NULL DEFAULT '{}', text TEXT NOT NULL DEFAULT '',
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(), last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now());
 `

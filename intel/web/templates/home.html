@@ -1,0 +1,26 @@
+{{define "home"}}{{template "top" .}}
+<header class="page-head"><div><h1>Visão geral</h1>{{template "asof" .}}</div></header>
+
+{{if .Alerts}}<section class="block"><h3>Alertas abertos</h3>{{template "alertRows" .Alerts}}</section>{{end}}
+
+<section class="block">
+  <h3>Sugestões</h3>
+  {{if .Suggestions}}<div class="cards">{{template "suggestionCards" (cards .Suggestions (printf "%s?w=%s" .Path .Window))}}</div>
+  {{else}}<p class="empty">Nenhuma sugestão agora.</p>{{end}}
+</section>
+
+<section class="block">
+  <h3>Campanhas · {{windowName .Window}}</h3>
+  {{template "campaignRows" .Campaigns}}
+</section>
+
+{{if .TrackerOnly}}<section class="block">
+  <h3>Só no RedTrack · {{windowName .Window}}</h3>
+  <p class="lead">Campanhas que o RedTrack viu e a Taboola não lista para nenhum login que o Intel lê.</p>
+  <div class="table-wrap"><table class="list">
+  <thead><tr><th>Campanha</th><th>RedTrack</th><th class="num">Cliques no RedTrack</th><th class="num">Vendas</th><th class="num">Receita</th></tr></thead>
+  <tbody>{{range .TrackerOnly}}<tr><td class="mono">{{.ID}}</td><td>{{trackerLogin .Account}}</td>
+    {{with .R}}<td class="num">{{int .TrkClicks}}</td><td class="num">{{int .Sales}}</td><td class="num">{{money .Revenue}}</td>{{end}}</tr>{{end}}</tbody>
+  </table></div>
+</section>{{end}}
+{{template "bottom" .}}{{end}}

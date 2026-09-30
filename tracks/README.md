@@ -9,7 +9,7 @@ adhunters-collector, one binary at a time. Internal: no app of its own.
 | `tracks-shipper` | Uploads sealed raw files to the archive and records them. | built, not deployed |
 | `tracks-loader` | Parses raw files into sightings, closes each hour into counts, replays any range. | built, not deployed |
 | `tracks-bridge` | Writes Tracks' scrapes into the old collector's database, so today's Spy keeps working after the switch-over. | built, not deployed |
-| `tracks-walker` | Follows ad links to landing pages. | later |
+| `tracks-walker` | Walks running ads' saved links to their landing pages and one next step, and keeps what each page says. | built, not deployed |
 
 ## tracks-capture
 
@@ -163,16 +163,66 @@ targets file.
 | `raw_file` | forever (one row per archived minute file) |
 | `scrape` | 35 days, daily partitions |
 | `sighting` | 3 days, daily partitions, BRIN on `seen_at` (the CX43 run's suggestion) |
-| `auction` | 14 days, daily partitions |
+| `auction` | 14 days, daily partitions; published as `tracks_api.auction_v1`, which Spy sums per day and keeps |
 | `ad_hourly`, `ad_account_brand_hourly`, `publisher_hourly` | monthly partitions, all kept for now |
 | `ad_hourly_open`, `publisher_hourly_open` | the hours not closed yet |
 | `ad_daily`, `ad_account_daily`, `placement_daily`, `campaign_daily`, `creative_link_daily`, `creative_campaign_daily` | forever |
 | lookups (`publisher`, `placement`, `brand`, `account`, `campaign`, `creative`, `ad`, `link`, `network_ad`, `proxy_line`) | forever |
 | `live_link` (unlogged) | 15 minutes |
+| `walk`, `walk_page`, `page_version`, `walk_file`, `walk_state` | forever for now (a walk's pages are a few hundred bytes; bodies live only in the archive) |
 
 Anything dropped comes back by replay from the archive ([decision
 0007](../decisions/0007-keep-times.md)). What other services may read is
 published in `tracks_api` and listed in [`contract/sql/tracks/`](../contract/sql/tracks/).
+
+## tracks-walker
+
+```
+tracks-walker run    -archive s3://adhunters-raw [-lines proxies.env] [-workers 2] [-rewalk 6h] [-timeout 15s]
+tracks-walker replay -archive s3://adhunters-raw -from 2026-10-01T00:00:00Z -to 2026-10-02T00:00:00Z
+tracks-walker walk   -url https://… [-referer https://publisher/] [-lines proxies.env]
+```
+
+`run` reads `tracks.walks_due`: ads seen in the last hour with a saved link,
+never walked or due again (6 hours after a walk that reached the landing page;
+after a failure 15 minutes, doubling up to 6 hours), newest first. Each walk
+follows the link as a desktop Chrome would, with the publisher's page as
+referer, through up to 10 redirects to the landing page, then one next step
+through the page's main button with the same cookies (the collector's funnel
+walker at `e20148c`, and the same page reader Raposa uses, now in
+[`shared/page`](../shared/page/)). Bodies are cut at 500 KB.
+
+It uses the same proxy lines file as capture and only its `dc` and `isp`
+lines (today dc-us-5 and isp-10), never the box's own address. Every walk is
+written whole (all hops, headers kept, bodies) to its own spool,
+`/var/lib/tracks/walk-spool/walk/<yyyy>/<mm>/<dd>/<hh>/…ndjson.zst`, before
+anything reaches the database; nothing is saved that is not in a raw file.
+Every 30 seconds it uploads sealed files to the archive under `walk/` and
+lists them in `tracks.walk_file`. `replay` parses a range of those files again
+and replaces what they wrote, so a parser change reaches old walks.
+
+What parsing keeps: `walk` (one per walk, by the record's ULID), `walk_page`
+(each step's final address, status, redirects, page type, checkout platform
+and seller), and `page_version` (each distinct content once: title, headings,
+meta, favicon, pixels, emails, phones, company names, disclaimers, VSL, and
+the visible text up to 20,000 characters). `walk_state` holds when each ad may
+be walked again. Published as `tracks_api.walk_page_v1` and
+`tracks_api.page_version_v1`, which Spy reads to group operators and to
+classify from the landing page.
+
+`walk` walks one link and prints the pages without bodies and what was read
+from them; nothing is saved. Without `-lines` it goes from the machine's own
+address, so use that only on a laptop.
+
+`DATABASE_URL` is the `tracks_walker` login: it reads `sighting`, `link` and
+`publisher` and writes only the walk tables (grants in `0010_walks.sql`,
+applied when the role exists). The archive's keys are set as for
+`tracks-shipper`. Metrics: `tracks_walker_walks_total{outcome,step}`,
+`tracks_walker_walk_seconds`, `tracks_walker_due`,
+`tracks_walker_files_archived_total`. The unit is
+[`tracks-walker.service`](../platform/servers/units/tracks-walker.service),
+installed on the worker box by `setup.sh` (settings in
+`/etc/adhunters/tracks-walker.env`, ops on 9119).
 
 ## tracks-bridge
 
@@ -213,7 +263,6 @@ plus `042_walk_queue.sql`).
 
 ### Not built yet
 
-- `tracks-walker`, with its queue in Postgres, and the landing page tables.
 - Replaying into a shadow schema (`replay --into`) to compare a parser change
   before switching.
 - Moving hourly counts older than 35 days to Parquet in the archive.

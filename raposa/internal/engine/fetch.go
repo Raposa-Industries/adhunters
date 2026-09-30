@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
-	"github.com/Raposa-Industries/adhunters/raposa/internal/page"
+	"github.com/Raposa-Industries/adhunters/shared/page"
 )
 
 // Fetcher is the plain HTTP visit. It was enough on 5 of the 7 sites the tests

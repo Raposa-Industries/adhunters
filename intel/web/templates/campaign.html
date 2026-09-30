@@ -1,0 +1,64 @@
+{{define "campaign"}}{{template "top" .}}
+{{with .Campaign}}
+<header class="page-head"><div>
+  <h1>{{.Name}}</h1>
+  <p class="lead"><span class="badge {{statusClass .Status}}">{{if .Gone}}apagada{{else}}{{.Status}}{{end}}</span>
+    <span class="mono">{{.ID}}</span> · teto diário {{moneyp .DailyCap}} · lance {{moneyp .CPC}}</p>
+  {{template "asof" $}}
+</div>
+<div class="actions"><a class="button primary" href="{{launchPath .Account .GroupID .ID}}">Abrir no Launch</a></div>
+</header>
+{{end}}
+
+{{if .Line}}<section class="block"><h3>Linha da campanha</h3>
+<p class="lead">Mover uma campanha de grupo cria uma cópia com outro id; estas são a mesma campanha.</p>
+<ul class="line">{{range .Line}}<li>{{if .Older}}antes{{else}}depois{{end}}: {{if .Known}}<a href="{{campaignPath .Account .GroupID .ID}}?w={{$.Window}}">{{.Name}}</a> <span class="faint mono">{{.ID}}</span>{{else}}<span class="mono">{{.ID}}</span>{{end}}</li>{{end}}</ul>
+</section>{{end}}
+
+{{if .Alerts}}<section class="block"><h3>Alertas abertos</h3>{{template "alertRows" .Alerts}}</section>{{end}}
+{{if .Statuses}}<section class="block"><h3>Status de entrega · 7 dias</h3>{{template "statusRows" .Statuses}}</section>{{end}}
+{{if .Suggestions}}<section class="block"><h3>Sugestões</h3><div class="cards">{{template "suggestionCards" (cards .Suggestions (printf "%s?w=%s" .Path .Window))}}</div></section>{{end}}
+
+<section class="block"><h3>Resultado</h3>
+<div class="table-wrap"><table class="list">
+<thead><tr><th></th>{{range .Results}}<th class="num">{{windowName .Window}}</th>{{end}}</tr></thead>
+<tbody>
+<tr><td>Gasto</td>{{range .Results}}<td class="num">{{money .Spent}}</td>{{end}}</tr>
+<tr><td>Impressões</td>{{range .Results}}<td class="num">{{int .Impressions}}</td>{{end}}</tr>
+<tr><td>Cliques (Taboola)</td>{{range .Results}}<td class="num">{{int .Clicks}}</td>{{end}}</tr>
+<tr><td>Cliques (RedTrack)</td>{{range .Results}}<td class="num">{{int .TrkClicks}}</td>{{end}}</tr>
+<tr><td>Visitas à página</td>{{range .Results}}<td class="num">{{int .LPViews}}</td>{{end}}</tr>
+<tr><td>Cliques na página</td>{{range .Results}}<td class="num">{{int .LPClicks}}</td>{{end}}</tr>
+<tr><td>Vendas</td>{{range .Results}}<td class="num">{{int .Sales}}{{if eq .SalesSource "network"}}<span class="faint" title="Sem dados do RedTrack: contagem da Taboola"> T</span>{{end}}</td>{{end}}</tr>
+<tr><td>Vendas que a Taboola viu</td>{{range .Results}}<td class="num">{{int .NetSales}}</td>{{end}}</tr>
+<tr><td>Receita</td>{{range .Results}}<td class="num">{{if eq .SalesSource "network"}}–{{else}}{{money .Revenue}}{{end}}</td>{{end}}</tr>
+<tr><td>Lucro</td>{{range .Results}}<td class="num {{if lt .Profit 0.0}}down{{else if gt .Profit 0.0}}up{{end}}">{{if eq .SalesSource "network"}}–{{else}}{{signed .Profit}}{{end}}</td>{{end}}</tr>
+<tr><td>ROI</td>{{range .Results}}<td class="num">{{roi .ROI}}</td>{{end}}</tr>
+<tr><td>Custo por venda</td>{{range .Results}}<td class="num">{{moneyp .CPS}}{{with moneyRange .CPSLow .CPSHigh}}<div class="faint small-text">{{.}}</div>{{end}}</td>{{end}}</tr>
+</tbody></table></div>
+<p class="lead">Embaixo de cada número, a faixa provável: o valor verdadeiro fica dentro dela 9 vezes em 10.</p>
+</section>
+
+<section class="block"><h3>Anúncios · {{windowName .Window}}</h3>
+<p class="lead">Cada anúncio comparado com a campanha no lucro por 1.000 impressões.</p>
+<div class="table-wrap"><table class="list ads">
+<thead><tr><th>Anúncio</th><th>Veredito</th><th class="num">Gasto</th><th class="num">CTR</th><th class="num">Clique na página</th><th class="num">Vendas</th><th class="num">Lucro</th><th class="num">Lucro por 1.000</th></tr></thead>
+<tbody>
+{{range .Ads}}<tr>
+  <td class="ad">{{if .Thumb}}<img src="{{.Thumb}}" alt="" loading="lazy" width="64" height="36">{{end}}
+    <div><div>{{if .Title}}{{.Title}}{{else}}<span class="faint">versão antiga</span>{{end}}</div>
+    <div class="faint small-text mono">{{.ItemID}}{{if .Gone}} · apagado{{end}}{{if eq .Approval "REJECTED"}} · <span class="badge rejected">rejeitado</span> {{.RejectReason}}{{end}}</div></div></td>
+  {{if .Has}}
+  <td><span class="badge {{wordClass .Word}}">{{word .Word}}</span>{{with sureness .Sureness}} <span class="faint small-text">{{.}}</span>{{end}}
+    {{if .SpendToTell}}<div class="faint small-text">~{{moneyp .SpendToTell}} a mais pra saber</div>{{end}}</td>
+  <td class="num">{{money .Spent}}</td>
+  <td class="num">{{pct .CTR}}{{with pctRange .CTRLow .CTRHigh}}<div class="faint small-text">{{.}}</div>{{end}}</td>
+  <td class="num">{{pct .LPRate}}{{with pctRange .LPRateLow .LPRateHigh}}<div class="faint small-text">{{.}}</div>{{end}}</td>
+  <td class="num">{{int .Sales}}</td>
+  <td class="num {{if lt .Profit 0.0}}down{{else if gt .Profit 0.0}}up{{end}}">{{signed .Profit}}</td>
+  <td class="num">{{moneyp .P1000}}{{with moneyRange .P1000Low .P1000High}}<div class="faint small-text">{{.}}</div>{{end}}{{if eq .Basis "estimated"}}<div class="faint small-text">estimado</div>{{end}}</td>
+  {{else}}<td class="faint" colspan="7">sem números no período</td>{{end}}
+</tr>{{else}}<tr><td colspan="8" class="faint">Nenhum anúncio.</td></tr>{{end}}
+</tbody></table></div>
+</section>
+{{template "bottom" .}}{{end}}

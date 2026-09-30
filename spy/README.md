@@ -1,8 +1,9 @@
 # Spy
 
 AdHunters Spy finds the ads that are doing well, so we can make our own
-like them. This folder holds its derived numbers for now; the app comes once
-its design is ready. Every number is sightings per check, built from Tracks'
+like them. This folder holds its derived numbers, the classifier that puts
+each creative in one of our verticals, auction prices, and the app's pages
+(`spy-web`, in the shared Frame). Every number is sightings per check, built from Tracks'
 hourly counts: [METRICS.md](METRICS.md) defines each one, says how precise
 it is for any range, and shows how we checked it does not mislead.
 
@@ -15,24 +16,28 @@ model and Direction were ported.
 
 | Binary | Does | Listens |
 |---|---|---|
-| `spy-numbers run` | Every minute, the last 24 hours (rebuilt only when Tracks closes an hour). Every 5 minutes, the read model, then Size and Direction. | ops on `OPS_ADDR` (9107) |
+| `spy-numbers run` | Every minute, the last 24 hours (rebuilt only when Tracks closes an hour). Every 5 minutes, the new landing page walks, the classifier, the read model, then Size and Direction; every 15, operator grouping. Every hour, auction prices. | ops on `OPS_ADDR` (9122) |
+| `spy-web` | Spy's pages and their JSON under `/spy/`, behind Cloudflare Access. Reads only published views. | `SPY_WEB_ADDR` (127.0.0.1:8097), ops on 9116 |
 
 ```
 spy-numbers migrate                applies the migrations (the unit runs it before each start)
 spy-numbers run
-spy-numbers refresh [-rebuild]     every job once; -rebuild redoes Direction's daily part first
+spy-numbers refresh [-rebuild] [-pages-since T]
+                                   every job once; -rebuild redoes Direction's daily part first,
+                                   -pages-since reads the landing page walks from T again
 spy-numbers import-old             copies the groupings from the collector (OLD_DATABASE_URL, read only)
 spy-numbers status
 ```
 
 `/healthz` fails when the read model or Direction has not succeeded for 20
 minutes. Each job is also a kit task (`adhunters_task_*`), promising the
-last 24 hours every 90 minutes and the others every 20, so the TaskLate
+last 24 hours and prices every 90 minutes, grouping every 45 and the others every 20, so the TaskLate
 alert covers them. `/metrics` has `spy_numbers_runs_total{job,outcome}`,
 `spy_numbers_seconds{job}`, `spy_numbers_rows{job}`,
 `spy_numbers_last_success_timestamp_seconds{job}` and
 `spy_recent_window_end_timestamp_seconds`. The unit and example settings
-are in [deploy/](deploy/); nothing deploys them yet.
+are in [deploy/](deploy/); `platform/servers/setup.sh data` installs both on
+the data box.
 
 Any other range needs nothing running: the range functions compute it when
 asked, from Tracks' counts.
@@ -46,6 +51,9 @@ asked, from Tracks' counts.
 | Read model | Totals per creative, operator and publisher (today, yesterday, 3, 7 and 30 days), who runs it, its vertical, new, running, junk | `creative_stats`, `operator_stats`, `publisher_stats`, `creative_day` | every 5 minutes |
 | Size | Share and rank in its vertical, over 24 hours and 7 days; scaled | `size_stats` | hourly |
 | Direction | Rising, steady, fading or stopped right now, against the same hours of the usual weeks, with a sentence for people | `direction_stats`, `direction_event` | every 5 minutes |
+| Verticals | Each creative's category and vertical from our list, how sure, and why | `creative_class`, `class_model` | every 5 minutes (the model daily) |
+| Auction prices | Per day, ad, publisher and device: auctions, clearing price, bid and cap (Taboola), bid and second price (NewsBreak) | `price_day` | hourly, yesterday and today |
+| Sparklines | Each creative's presence per day | computed when asked | never stored |
 
 ### Direction
 
@@ -66,13 +74,56 @@ longer timeout and keep the answer).
 
 ### Groupings
 
-Operators, which operator each account belongs to, and each creative's
-vertical are still edited in the collector. `spy-numbers import-old` copies
+Until Spy's own grouping is switched on, operators and which operator each
+account belongs to come from the collector: `spy-numbers import-old` copies
 them over (repeatable: each run replaces the last), matching accounts by
 network and external id and creatives by creative key; rows Tracks has not
 seen yet are skipped and counted in `import_mark`. It refuses to copy an
 empty grouping. Operator ids are kept, so OP123 means the same operator
 everywhere.
+
+### Landing pages and operator grouping
+
+Tracks walks each running ad's link to its landing page and one next step
+(`tracks-walker`, published as `tracks_api.walk_page_v1` and
+`page_version_v1`). Every 5 minutes `spy.refresh_pages` reads the walks
+since its last run into:
+
+| Table | What |
+|---|---|
+| `site` | A landing page's registrable domain (`www.go.acme.co.uk` is `acme.co.uk`). On a hosting domain (`myshopify.com`, `vercel.app`, …) the whole host is the site; a platform (`clickbank.net`, `amazon.com`, …) is never one. Both lists are rows of `shared_domain`. |
+| `clue`, `site_clue` | What a site's pages carry that names who runs them: pixel ids (Meta, Google Ads, Analytics, Tag Manager, TikTok, Pinterest, Snapchat, Clarity, NewsBreak), emails and company names. Strong clues are one business's; free mail, platform addresses and company names are only hints (`spy.clue_of`, the collector's rules). |
+| `seller`, `site_seller` | The merchant account on a checkout platform ("ClickBank slimpro") behind a site's landing page or its next step. |
+| `account_site` | Which account's click reached which site. |
+| `creative_page` | Each creative's newest landing page that answered, for the classifier. |
+
+Everything is kept as first and last seen, so reading a walk twice changes
+nothing; `refresh -pages-since` reads a range again after a Tracks replay or
+a `shared_domain` change.
+
+Every 15 minutes `spy.regroup_operators` groups sites and accounts by the
+collector's rules: sites sharing a strong clue belong together (a clue on
+more than `clue_max_sites`, 20, joins nothing); an account whose clicks
+reach at most 2 of those groups joins them, one reaching 3 or more is its
+own operator (arbitrage); accounts sharing a name root join, unless the
+root reaches 3 or more groups (an agency); accounts with the same email in
+their name join; `grouping_fix` rows (join or split, by hand) win. A group
+keeps the operator most of its members have now, so OP codes stay. Kind is
+arbitrage, affiliate (a site selling through ClickBank, BuyGoods, MaxBounty,
+Digistore24 or JVZoo) or direct; the name is the oldest running account,
+the seller and the code.
+
+It runs in shadow first. The answer goes to `grouping_group` and
+`grouping_member`, and each run's `grouping_run` row counts the accounts
+grouped as today, moved, and newly grouped; `spy-numbers status` shows the
+last one. Operators change only when the setting `operators_from` is
+`grouping`: then the grouping writes `operator`, `account_operator` and
+`site.operator_id`, and import-old copies the verticals only. Switching is
+one row:
+
+```
+UPDATE spy.setting SET text_value = 'grouping' WHERE name = 'operators_from';
+```
 
 ### Verticals
 
@@ -88,10 +139,80 @@ vertical, and the must-haves (Blood Pressure, Memory Loss, Weight Loss,
 Tinnitus, Diabetes, Neuropathy, Prostate Health, Joint Pain, Vision)
 present.
 
-Nothing reads it yet. `spy.creative_vertical` still holds the collector's
-labels (its `vertical` is the broad market, `subvertical` the old long
-name) until Spy classifies creatives itself; switching those columns to
-category and vertical ids is that change's work.
+### The classifier
+
+`spy/classify` puts each creative in one vertical of the list (decision
+0017), in two passes:
+
+- **Rules.** The list's keywords (2 points) and hints (1 point) over the
+  newest ads' headlines and descriptions (weight 3), their brands (2), the
+  walked landing page's title, h1 and h2 and description with the titles of
+  the pages Raposa visited (2), and the first 3,000 characters of the
+  landing page's text (1). The category with the most
+  points wins, then its best vertical; a catch-all only when no specific
+  vertical scored. The answer carries its confidence (0 to 1; under 0.6 it
+  is unsure) and the words that decided it.
+- **Model.** A softmax over words, trained daily on the rules' sure answers
+  (at least 50, at most 600 per vertical, catch-alls left out), with the
+  keywords masked half the time so it learns the rest of the text. It
+  answers only where the rules are unsure and it is at least 80% sure.
+  The last 7 models are kept.
+
+A creative is read again when a newer ad, a changed landing page or newer
+Raposa evidence arrives,
+or when verticals.yaml changes (its hash is stored with each answer). The
+collector's labels are kept in `creative_vertical_old`;
+`spy.creative_vertical` is now a view over `creative_class` with vertical
+ids, so the read model and ranges use our list.
+
+### Auction prices
+
+Tracks keeps every Taboola auction a check saw (`tracks_api.auction_v1`,
+new in this change) and NewsBreak's bid and second price on each sighting.
+`spy.refresh_prices` sums them per day, ad, publisher and device with
+their quartiles, redoing yesterday and today each run (14 days on the
+first). The ad page shows the average and the typical value (the middle of
+the daily medians, weighted by auctions). The unit of Taboola's prices is
+not confirmed yet.
+
+## The app
+
+`spy-web` serves, in the shared Frame (`shared/frame`), with a Portuguese UI:
+
+| Page | Path | Shows |
+|---|---|---|
+| Anúncios | `/spy/` | Every creative in the range as a card with its sparkline; filters by text, category, vertical, status, device, network, publisher, tracker, affiliate network, days active; sorts by presence, momentum, share of voice and more |
+| Anúncio | `/spy/ads/{creative}` | Numbers, direction, presence per day, hour of day (São Paulo), publishers, auction prices, its ads, links, campaigns, and Raposa's investigations with the button to ask for one |
+| Operadores | `/spy/operators/` and `/{id}` | Operators by presence, momentum, launches and hit rate; one operator's creatives, accounts, brands and publishers |
+| Publishers | `/spy/publishers/` and `/{id}` | Checks and sightings per publisher; its top operators and creatives |
+| Mercado | `/spy/pulse/` | Each vertical's presence and momentum, how many are rising, fading and stopped now, and the latest changes of direction |
+
+⌘K searches ads, operators, publishers and verticals. Every page has the
+range picker (24 hours, 7, 30, 90 days, or any dates). The last 24 hours
+read what spy-numbers keeps ready; any other range is counted when asked
+(10 to 15 s at Tracks' volume) in a transaction with a 90 s limit, one
+query per address at a time, and kept 10 minutes (the last 24 hours, 2).
+
+The JSON is under `/spy/api/` (`ads`, `ads/{id}`, `operators`,
+`publishers`, `pulse`, `search`, `events`, `verticals`, `facets`);
+`POST /spy/api/ads/{id}/investigate` asks Raposa through
+`raposa_api.request_investigation_v1` and records who asked. It takes only
+JSON from the same origin.
+
+With `ACCESS_TEAM` and `ACCESS_AUD` set, every request needs a valid
+Cloudflare Access token (RS256, our audience and team, not expired); the
+email in it is who asked. Without them spy-web refuses to listen beyond
+localhost.
+
+Setting it up: `platform/servers/setup.sh data` makes the `spy` login (owns
+the spy schemas; `tracks_api_read`, `raposa_api_read`) and the `spy_web`
+login (`spy_api_read`, `tracks_api_read`, `raposa_api_read`, which carries
+EXECUTE on `raposa_api.request_investigation_v1`), writes
+`/etc/adhunters/spy-numbers.env` and `spy-web.env`, and starts both units.
+spy-web waits until `ACCESS_TEAM` and `ACCESS_AUD` are filled in from an
+Access application for the address. Without the Raposa grants the ad page
+leaves Raposa out. Once it answers, `shared/frame/core.js`
+can mark Spy ready so other apps' menus link to it.
 
 ## What it reads and publishes
 
@@ -99,10 +220,13 @@ Reads Tracks only through `tracks_api` (the login needs `tracks_api_read`):
 `ad_v1`, `creative_v1`, `account_v1`, `brand_v1`, `publisher_v1`,
 `device_v1`, `link_v1`, `sighting_v1`, `ad_hourly_v1`,
 `ad_account_brand_hourly_v1`, `scrape_coverage_v2`, `closed_hour_v1`,
-`ad_daily_v1`, `ad_account_daily_v1`, `creative_link_daily_v1` and
-`creative_campaign_daily_v1`. `scrape_coverage_v2` is new in this change:
-it adds the open hours' checks, which Direction needs beside their
-sightings.
+`ad_daily_v1`, `ad_account_daily_v1`, `creative_link_daily_v1`,
+`creative_campaign_daily_v1`, `auction_v1`, `walk_page_v1`,
+`page_version_v1`, and (spy-web) `network_v1`
+and `campaign_v1`. `scrape_coverage_v2` adds the open hours' checks, which
+Direction needs beside their sightings. From Raposa it reads
+`raposa_api.evidence_v1` (page titles for the classifier, when the login
+may) and, in spy-web, `investigation_v1`.
 
 Publishes `spy_api` (granted to `spy_api_read`), with a copy of each
 definition in [contract/sql/spy](../contract/sql/spy):
@@ -110,9 +234,11 @@ definition in [contract/sql/spy](../contract/sql/spy):
 - Stored: `creative_stats_v1`, `operator_stats_v1`, `publisher_stats_v1`,
   `creative_recent_v1`, `operator_recent_v1`, `recent_window_v1`,
   `size_v1`, `direction_v1`, `direction_event_v1`, `operator_v1`,
-  `account_operator_v1`, `creative_vertical_v1`.
+  `account_operator_v1`, `creative_vertical_v1`, `creative_class_v1`,
+  `price_day_v1`.
 - Any range: `range_info_v1`, `creative_range_v1`, `operator_range_v1`,
-  `vertical_range_v1`, `publisher_range_v1`.
+  `vertical_range_v1`, `publisher_range_v1`, `creative_prices_v1`,
+  `creative_series_v1`.
 
 Settings are rows of `spy.setting`, read on every run: changing one needs
 no deploy.
@@ -136,8 +262,11 @@ gets a new version: a new contract file and a new migration.
 
 ### Not built yet
 
-- The app.
-- Screens to edit groupings; until then the collector stays their source.
+- Showing sites, clues and the proposed grouping in the app, and screens
+  to edit groupings (`grouping_fix`) and correct a vertical.
+- Shared certificates and name servers as clues (the collector had them
+  from its own lookups; Tracks' walker does not look them up).
+- Watches and alerts from the pages (Direction's events are ready for them).
 - Direction's fading guard for one site (ranges have it; Direction sums its
   usual publishers).
 - The nightly checks METRICS.md asks for (stopped accuracy, predictive

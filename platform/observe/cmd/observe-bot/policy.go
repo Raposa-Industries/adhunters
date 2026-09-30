@@ -14,7 +14,7 @@ import (
 
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/platform/observe/internal/policy"
-	"github.com/Raposa-Industries/adhunters/platform/observe/internal/telegram"
+	"github.com/Raposa-Industries/adhunters/shared/telegram"
 )
 
 // policyPromise is how long the policy watch may go without a good crawl

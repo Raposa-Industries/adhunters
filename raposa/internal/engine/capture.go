@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/net/html"
 
-	"github.com/Raposa-Industries/adhunters/raposa/internal/page"
+	"github.com/Raposa-Industries/adhunters/shared/page"
 )
 
 var (
