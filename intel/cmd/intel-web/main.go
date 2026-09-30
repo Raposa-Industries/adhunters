@@ -4,7 +4,7 @@
 //	intel-web version
 //
 // DATABASE_URL reads the intel schema and writes only a suggestion's "not
-// now". INTEL_WEB_ADDR is where the pages listen (127.0.0.1:8093); people
+// now". INTEL_WEB_ADDR is where the pages listen (127.0.0.1:8096); people
 // reach them through the Cloudflare tunnel, behind Cloudflare Access, which
 // also names who said "not now". /healthz and /metrics are on OPS_ADDR
 // (127.0.0.1:9100 unless set). Nothing here talks to Taboola or RedTrack.
@@ -65,7 +65,7 @@ func serve() error {
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 	addr := os.Getenv("INTEL_WEB_ADDR")
 	if addr == "" {
-		addr = "127.0.0.1:8093"
+		addr = "127.0.0.1:8096"
 	}
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {

@@ -10,13 +10,16 @@ RedTrack. Words are in [GLOSSARY.md](../GLOSSARY.md#intel).
 ## The app
 
 Three binaries, each stopping cleanly on SIGTERM and serving `/healthz` and
-`/metrics` on `OPS_ADDR`. Units and example settings are in `deploy/`.
+`/metrics` on `OPS_ADDR`. Units and example settings are in `deploy/`;
+`platform/servers/setup.sh` installs all three on the data box, makes the
+`intel` login (with `launch_api_read`) and writes its password into their
+settings once.
 
 | Binary | Does | Ops port |
 |---|---|---|
-| `intel-collect run` | Reads every Taboola login and RedTrack account on a schedule and keeps each answer as received: first in its spool on disk, then in `intel.answer` ([decision 0014](../decisions/0014-intel-answers-in-postgres.md)). It parses nothing. `intel-collect once JOB` runs one job. | 9110 |
-| `intel-numbers run` | Every 2 minutes: loads new answers into tables, links moved campaigns, works out results, keeps alerts (each sent once to "AdHunters alerts" on Telegram) and suggestions. `reload -from D -to D` parses a range of answers again; `status` prints counts. Never talks to Taboola or RedTrack. | 9111 |
-| `intel-web` | The pages under `/intel/`, in the Frame (`shared/frame`), on `INTEL_WEB_ADDR` (127.0.0.1:8093) behind Cloudflare Access. Its one write is "not now" on a suggestion. | 9112 |
+| `intel-collect run` | Reads every Taboola login and RedTrack account on a schedule and keeps each answer as received: first in its spool on disk, then in `intel.answer` ([decision 0016](../decisions/0016-intel-answers-in-postgres.md)). It parses nothing. `intel-collect once JOB` runs one job. | 9113 |
+| `intel-numbers run` | Every 2 minutes: loads new answers into tables, links moved campaigns, works out results, keeps alerts (each sent once to "AdHunters alerts" on Telegram) and suggestions. `reload -from D -to D` parses a range of answers again; `status` prints counts. Never talks to Taboola or RedTrack. | 9114 |
+| `intel-web` | The pages under `/intel/`, in the Frame (`shared/frame`), on `INTEL_WEB_ADDR` (127.0.0.1:8096) behind Cloudflare Access. Its one write is "not now" on a suggestion. | 9115 |
 
 What intel-collect reads, per Taboola login (Intel keeps to 40 standard and 8
 realtime requests a minute of the login's 84 and 10, leaving the rest to

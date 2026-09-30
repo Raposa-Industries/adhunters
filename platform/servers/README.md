@@ -72,6 +72,18 @@ The data box gets the `raposa` login (owner of the `raposa` and `raposa_api`
 schemas, member of `tracks_api_read`), the `raposa_api_read` role, and a
 `pg_hba` line for it from the worker box. Set up the data box first.
 
+### Intel on the data box
+
+The `intel` login (owner of the `intel` and `intel_api` schemas, member of
+`launch_api_read`), the `intel_api_read` and `launch_api_read` roles, the
+three units from `intel/deploy/`, and their settings in
+`/etc/adhunters/intel-*.env`, written once from the examples with the new
+login's password in `DATABASE_URL`. `intel-numbers` migrates before each
+start and `intel-web` listens on `127.0.0.1:8096`; both start at once.
+`intel-collect` starts once its Taboola and RedTrack keys are filled in.
+Alerts reach Telegram once `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are
+set in `intel-numbers.env` (the same values as `observe-bot.env`).
+
 **Nothing has been run on a real box.** Not built yet: raising the standby's
 workers when the worker box goes quiet, the monthly restore test, and a
 home for secrets (still to be decided); until then the `.env` files are written

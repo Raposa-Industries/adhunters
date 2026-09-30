@@ -1,4 +1,4 @@
-# 0014 · Intel keeps its raw answers in Postgres, for now
+# 0016 · Intel keeps its raw answers in Postgres, for now
 
 **Decided:** 30 Sep 2026, as the default the Intel build took ("go ahead
 with everything", Marcos, 30 Sep 19:27). A newer file can overturn it.
