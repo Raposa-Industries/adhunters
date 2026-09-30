@@ -33,7 +33,8 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 	bp := n.AddGroup("acme-sc", network.Group{Name: "Blood Pressure US", Status: "PAUSED", Budget: 150, BudgetModel: "MONTHLY"})
 	set := network.Settings{Brand: "Health Daily", CPC: 0.32, DailyCap: 25, Countries: []string{"US"}, TrackingCode: "sub1={campaign_id}&sub4={campaign_item_id}", Objective: "DRIVE_WEBSITE_TRAFFIC"}
 	ad := network.Ad{Title: "Doctors Surprised By This Morning Habit", ImageURL: "", CTA: "LEARN_MORE", Status: "RUNNING", Approval: "APPROVED", Active: true, AdID: "ah-4f2a91c0de-77b1c2a9e0"}
-	d := n.AddCampaign("acme-sc", network.Campaign{Name: "Memory Loss US · Desktop", GroupID: mem.ID, Device: network.Desktop, Status: "RUNNING", Active: true, Settings: set}, ad)
+	d := n.AddCampaign("acme-sc", network.Campaign{Name: "Memory Loss US · Desktop", GroupID: mem.ID, Device: network.Desktop, Status: "RUNNING", Active: true, Settings: set}, ad,
+		network.Ad{Title: "The 10-Second Trick For Sharper Memory", CTA: "READ_MORE", Status: "RUNNING", Approval: "APPROVED", Active: true, AdID: "ah-4f2a91c0de-0c9d2e71aa"})
 	m := n.AddCampaign("acme-sc", network.Campaign{Name: "Memory Loss US · Mobile", GroupID: mem.ID, Device: network.Mobile, Status: "RUNNING", Active: true, Settings: set}, ad)
 	n.AddCampaign("acme-sc", network.Campaign{Name: "Memory old test", GroupID: mem.ID, Device: network.Both, Status: "PAUSED", Settings: set})
 	n.AddCampaign("acme-sc", network.Campaign{Name: "BP Seniors · Desktop", GroupID: bp.ID, Device: network.Desktop, Status: "PENDING_APPROVAL", Settings: set})

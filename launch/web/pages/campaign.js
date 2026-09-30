@@ -1,6 +1,6 @@
 // One campaign: its settings, its ads, its pair's other half and what
 // Launch did to it. Its actions take the pair along when asked.
-import { api, h, note, money, badge, link, crumbs, field, input, select, segmented, busy, numberOf, DEVICES, stateName } from './lib.js';
+import { api, h, note, money, badge, link, crumbs, field, input, select, segmented, busy, numberOf, plural, DEVICES, stateName } from './lib.js';
 import { doneNote, budgetLine } from './tree.js';
 import { historyTable } from './history.js';
 import { OBJECTIVES } from './presets.js';
@@ -21,15 +21,22 @@ export async function campaign({ main, route, status }) {
   main.append(crumbs([['Launch', '/launch/'], [acct.name || account, link(net, account)], [g ? g.name || g.id : 'Sem grupo', link(net, account, c.group_id || '-')], [c.name]]));
   const out = h('div');
   const panel = h('div');
-  let together = !!data.twin;
+  // Intel's and Desk's one-tap links open here with the change filled in
+  // (?do=pause-ads&ads=11,12&from=intel:311). Nothing is sent until a
+  // person confirms, and then only to this campaign, not its pair.
+  const q = new URLSearchParams(location.search);
+  const asked = q.get('do') || '';
+  const from = /^(intel|desk):[\w-]{1,40}$/.test(q.get('from') || '') ? q.get('from') : '';
+  let together = !!data.twin && !asked;
   const ids = () => (together && data.twin ? [c.id, data.twin.id] : [c.id]);
   const byId = new Map([[c.id, c], ...(data.twin ? [[data.twin.id, data.twin]] : [])]);
 
-  async function post(button, path, body, say) {
+  async function post(button, path, body, say, by = '') {
     await busy(button, out, async () => {
-      const res = await api(`${base}/${path}`, { method: 'POST', body: { campaigns: ids(), ...body } });
-      out.replaceChildren(doneNote(res.done, say, byId), h('p', {}, h('a', { href: location.pathname }, 'Recarregar a campanha')));
+      const res = await api(`${base}/${path}` + (by ? '?from=' + encodeURIComponent(by) : ''), { method: 'POST', body: { campaigns: ids(), ...body } });
+      out.replaceChildren(say ? doneNote(res.done, say, byId) : adsNote(res.done), h('p', {}, h('a', { href: location.pathname }, 'Recarregar a campanha')));
       panel.replaceChildren();
+      if (by) history.replaceState(null, '', location.pathname);
     });
   }
 
@@ -46,6 +53,7 @@ export async function campaign({ main, route, status }) {
       h('button', { type: 'button', onclick: () => showChange() }, 'Mudar'),
       pauseBtn)),
   panel, out);
+  if (asked) showAsked();
 
   if (data.twin) {
     const t = data.twin;
@@ -120,4 +128,55 @@ export async function campaign({ main, route, status }) {
         field('Teto diário (US$)', cap, lim.max_daily_cap ? 'até ' + money(lim.max_daily_cap) : null), field('Limite total (US$)', limit)),
       h('div', { class: 'actions' }, go), msg));
   }
+
+  function showAsked() {
+    const who = from.startsWith('desk:') ? 'pelo Desk' : from.startsWith('intel:') ? 'pelo Intel' : 'por um link';
+    const msg = h('div');
+    const skip = h('button', { type: 'button', onclick: () => { history.replaceState(null, '', location.pathname); panel.replaceChildren(); } }, 'Ignorar');
+    const box = (title, text, body, go) => panel.replaceChildren(h('div', { class: 'panel asked' },
+      h('h3', {}, title), h('p', { class: 'muted' }, 'Sugerido ' + who + (from ? ' (' + from + ')' : '') + '. ', text, ' Nada muda até você confirmar.'),
+      body, h('div', { class: 'actions' }, go, skip), msg));
+    const lim = status.limits || {};
+    if (asked === 'pause-ads') {
+      const want = new Set((q.get('ads') || '').split(',').map((x) => x.trim()).filter(Boolean));
+      const picks = data.ads.filter((a) => want.has(a.id)).map((a) => {
+        const cb = h('input', { type: 'checkbox', checked: a.active !== false, value: a.id });
+        return [cb, h('label', { class: 'check' }, cb, a.title, ' ', badge(a.status), ' ', h('span', { class: 'mono faint' }, a.id))];
+      });
+      const gone = [...want].filter((id) => !data.ads.some((a) => a.id === id));
+      const go = h('button', { type: 'button', class: 'primary', onclick: () => {
+        const ads = picks.filter(([cb]) => cb.checked).map(([cb]) => cb.value);
+        if (!ads.length) { msg.replaceChildren(note('fail', 'Marque ao menos um anúncio.')); return; }
+        post(go, `campaigns/${encodeURIComponent(c.id)}/pause-ads`, { campaigns: [c.id], ads }, null, from);
+      } }, 'Pausar os marcados');
+      box('Pausar ' + plural(want.size, 'anúncio', 'anúncios'), 'Só nesta campanha.',
+        h('div', {}, picks.map(([, l]) => l), gone.length ? note('warn', 'Não estão mais nesta campanha: ' + gone.join(', ')) : null,
+          picks.length ? null : note('fail', 'Nenhum dos anúncios sugeridos está nesta campanha.')), go);
+    } else if (asked === 'pause-campaign') {
+      const go = h('button', { type: 'button', class: 'primary', onclick: () => { post(go, 'pause', { campaigns: [c.id] }, ['pausada', 'pausadas'], from); } }, 'Pausar a campanha');
+      box('Pausar esta campanha', data.twin ? 'Só esta metade do par.' : '', null, go);
+    } else if (asked === 'set-daily-cap' || asked === 'set-bid') {
+      const cap = asked === 'set-daily-cap';
+      const [k, was, label, max] = cap ? ['daily_cap', s.daily_cap, 'Teto diário (US$)', lim.max_daily_cap] : ['cpc', s.cpc, 'CPC (US$)', lim.max_cpc];
+      const box1 = input({ inputmode: 'decimal', value: q.get(cap ? 'cap' : 'cpc') || '' });
+      const go = h('button', { type: 'button', class: 'primary', onclick: () => {
+        const n = numberOf(box1.value);
+        if (!n || Number.isNaN(n)) { msg.replaceChildren(note('fail', 'Use só números, como 0,35.')); return; }
+        post(go, 'change', { campaigns: [c.id], change: { [k]: n } }, ['mudada', 'mudadas'], from);
+      } }, 'Salvar');
+      box(cap ? 'Mudar o teto diário' : 'Mudar o CPC', 'Hoje: ' + money(was) + '.',
+        h('div', { class: 'fields' }, field(label, box1, max ? 'até ' + money(max) : null)), go);
+    } else {
+      panel.replaceChildren(note('warn', 'O link pede “' + asked + '”, que o Launch não conhece. Nada foi feito.'));
+    }
+  }
+}
+
+// adsNote says which ads were paused and which were not.
+function adsNote(done) {
+  const ok = done.filter((d) => !d.error);
+  const bad = done.filter((d) => d.error);
+  return h('div', {},
+    ok.length ? note('ok', h('b', {}, plural(ok.length, 'anúncio pausado', 'anúncios pausados') + '. '), ok.map((d) => d.ad).join(' · ')) : null,
+    ...bad.map((d) => note('fail', h('b', {}, d.ad + ': '), d.error)));
 }
