@@ -235,11 +235,11 @@ func TestLinkMoves(t *testing.T) {
 	}
 	exec(t, db, `CREATE SCHEMA launch_api`)
 	exec(t, db, `CREATE VIEW launch_api.campaign_move_v1 AS
-		SELECT * FROM (VALUES (1::bigint, 2::bigint, 'acme-sc'::text, now(), now()),
-		                      (3::bigint, NULL::bigint, 'acme-sc', now(), NULL::timestamptz))
-		AS m(old_campaign_id, new_campaign_id, account, moved_at, done_at)`)
+		SELECT * FROM (VALUES (7::bigint, 'taboola'::text, 'acme-sc'::text, 1::bigint, 2::bigint, now()),
+		                      (8, 'taboola', 'acme-sc', 3, NULL::bigint, now()))
+		AS m(id, network, account, old_campaign_id, new_campaign_id, moved_at)`)
 	n, err := judge.LinkMoves(ctx, db)
 	if err != nil || n != 1 {
-		t.Fatalf("linked %d, want only the finished move: %v", n, err)
+		t.Fatalf("linked %d, want 1: %v", n, err)
 	}
 }
