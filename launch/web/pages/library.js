@@ -1,4 +1,4 @@
-// The team's library in Novo par: the sets Create saved, each with its
+// The team's library in Nova campanha: the sets Create saved, each with its
 // creatives and headlines, to use in a pair. Launch only reads it.
 import { api, h, note, select, plural, date, busy } from './lib.js';
 
@@ -66,7 +66,7 @@ export function libraryPicker(use) {
       const lines = hs.filter((x) => x.cb.checked).map((x) => x.x);
       if (!chosen.length && !lines.length) throw new Error('Marque ao menos um criativo ou headline.');
       const got = await use(chosen, lines);
-      msg.replaceChildren(note(got.problems ? 'warn' : 'ok', `${plural(got.images, 'imagem nova', 'imagens novas')} e ${plural(got.headlines, 'headline nova', 'headlines novas')} no par.`,
+      msg.replaceChildren(note(got.problems ? 'warn' : 'ok', `${plural(got.images, 'imagem nova', 'imagens novas')} e ${plural(got.headlines, 'headline nova', 'headlines novas')} na campanha.`,
         got.problems ? ' Veja abaixo o que não entrou.' : ''));
     }) }, 'Usar na campanha');
     body.replaceChildren(
