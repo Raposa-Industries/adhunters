@@ -10,7 +10,7 @@ The apps people use are AdHunters Spy, Create, Intel, Funnels and Raposa
 | Folder | What it does | Status |
 |---|---|---|
 | `kit/` | Shared plumbing for every Go binary: logging, stop handling, `/healthz` and `/metrics`, the Postgres pool, migrations. Nothing domain-specific. | started |
-| `shared/` | Code several services need that is not plumbing, such as an ad network client ([decision 0013](decisions/0013-shared-code.md)). | `taboola`: the Backstage token, sending and retries, used by Create and Intel; `frame`: the shell every app's pages sit in |
+| `shared/` | Code several services need that is not plumbing, such as an ad network client ([decision 0013](decisions/0013-shared-code.md)). | `taboola`: the Backstage token, sending and retries, used by Launch, Create and Intel; `taboola/write`: the one Taboola client that changes things (Launch only); `frame`: the shell every app's pages sit in; `adsweb`: browser code for building ads |
 | `contract/` | The data contract: the views each service publishes for others. | tracks_api v1 (scrape_coverage v2), raposa_api v1, spy_api v1 |
 | `platform/` | Servers as code (Terraform + HCP Terraform), box setup, observability (Alloy, alert rules, Telegram routing), deploys, secrets. | Terraform and box setup written; servers partly applied; observability written, accounts not created |
 | `runbooks/` | One page per alert: what it means, what to check, how to fix it. | one per alert |
@@ -19,6 +19,7 @@ The apps people use are AdHunters Spy, Create, Intel, Funnels and Raposa
 | `spy/` | AdHunters Spy: research app and its derived numbers (any range, momentum, Size, Direction). Was adhunters-v4; the numbers move here from the collector. | numbers built, not deployed; app later |
 | `intel/` | AdHunters Intel: our campaigns' performance, briefs and alerts. | RedTrack client and probe, read-only Taboola client and probe; app later |
 | `create/` | AdHunters Create: images and headlines. Was auto-creative. | bulk upload page (`create-web`): make options from a brief, choose, pair, download Taboola's bulk sheet; not deployed |
+| `launch/` | AdHunters Launch: every write on an ad network. The account's groups and campaigns as a tree; new desktop and mobile pairs, paused; move, copy, pause, change; presets, History, drafts. | built on a fake Taboola, not deployed |
 | `funnels/` | AdHunters Funnels: landing pages, funnels and visitor behaviour. | later |
 
 How to reach, build and deploy the servers: [platform/OPERATIONS.md](platform/OPERATIONS.md).

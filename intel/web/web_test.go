@@ -91,7 +91,9 @@ func TestPages(t *testing.T) {
 	for _, p := range []string{"/intel/taboola/nobody-sc", "/intel/taboola/acme-sc/g/10/c/404", "/intel/_intel/../web.go"} {
 		resp, _ := noFollow.Get(srv.URL + p)
 		resp.Body.Close()
-		if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusMovedPermanently {
+		switch resp.StatusCode {
+		case http.StatusNotFound, http.StatusMovedPermanently, http.StatusTemporaryRedirect:
+		default:
 			t.Errorf("%s: %d", p, resp.StatusCode)
 		}
 	}

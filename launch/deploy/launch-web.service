@@ -1,0 +1,25 @@
+# AdHunters Launch: its pages, its API and every write on an ad network.
+# Settings in /etc/adhunters/launch-web.env. Listens on localhost
+# (LAUNCH_WEB_ADDR); people reach it through the Cloudflare tunnel, behind
+# Cloudflare Access, which names the signed-in person.
+[Unit]
+Description=Launch web
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+DynamicUser=yes
+StateDirectory=launch-web
+EnvironmentFile=-/etc/adhunters/observe.env
+EnvironmentFile=/etc/adhunters/launch-web.env
+ExecStart=/opt/adhunters/bin/launch-web -data /var/lib/launch-web
+Restart=always
+RestartSec=5
+TimeoutStopSec=45
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

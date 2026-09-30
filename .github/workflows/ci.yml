@@ -50,8 +50,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: create web page tests
-        run: node --test create/web/test/*.test.js
+      - name: shared ad page code tests (pairing, checks, bulk sheet)
+        run: node --test shared/adsweb/test/*.test.js
       - name: frame tests
         run: node --test shared/frame/test/*.test.js
 
