@@ -1,0 +1,70 @@
+{{template "top" .}}
+<div class="page-head">
+  <div>
+    <h1>A fazer</h1>
+    <p class="lead">O que cada um tem para fazer. Desk põe aqui o que um plano precisa de uma pessoa; qualquer um põe à mão.</p>
+  </div>
+</div>
+
+<div class="actions filters">
+  <div class="segmented" role="group" aria-label="De quem">
+    <a class="button small{{if not .Everyone}} primary{{end}}" href="/desk/todos{{if .Done}}?done=1{{end}}">Meus</a>
+    <a class="button small{{if .Everyone}} primary{{end}}" href="/desk/todos?who=all{{if .Done}}&done=1{{end}}">De todos</a>
+  </div>
+  <div class="segmented" role="group" aria-label="Quais">
+    <a class="button small{{if not .Done}} primary{{end}}" href="/desk/todos{{if .Everyone}}?who=all{{end}}">Abertos</a>
+    <a class="button small{{if .Done}} primary{{end}}" href="/desk/todos?done=1{{if .Everyone}}&who=all{{end}}">Com os feitos</a>
+  </div>
+</div>
+
+{{if .Todos}}
+<div class="table-wrap">
+<table class="list todos">
+  <thead><tr><th>O quê</th><th>Quem</th><th>Até</th><th>Pedido por</th><th></th></tr></thead>
+  <tbody>
+  {{$notes := .Notes}}
+  {{range .Todos}}
+  <tr id="todo-{{.ID}}"{{if .DoneAt}} class="done"{{end}}>
+    <td>
+      {{if .Link}}<a href="{{.Link}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}
+      {{if .ConversationID}} <a class="faint" href="/desk/c/{{.ConversationID}}">conversa</a>{{end}}
+      <details class="notes">
+        <summary class="faint">{{with index $notes .ID}}{{len .}} comentário(s){{else}}comentar{{end}}</summary>
+        {{range index $notes .ID}}<p class="note-line"><b>{{.Author}}</b> <span class="faint">{{when .At}}</span><br>{{linkify .Body}}</p>{{end}}
+        <form method="post" action="/desk/todos/{{.ID}}/note">
+          <input type="hidden" name="back" value="/desk/todos">
+          <textarea name="body" rows="2" maxlength="8000" required aria-label="Comentário"></textarea>
+          <button class="small" type="submit">Comentar</button>
+        </form>
+      </details>
+    </td>
+    <td>{{.Holder}}</td>
+    <td class="num">{{day .Due}}</td>
+    <td class="muted">{{.MadeBy}}<br><span class="faint">{{when .MadeAt}}</span></td>
+    <td>
+      {{if .DoneAt}}<span class="badge running">feito</span> <span class="faint">{{with .DoneBy}}{{.}}{{end}}</span>
+      {{else if .Choice}}<a class="button small" href="{{.Link}}">Escolher</a>
+      {{else}}
+      <form method="post" action="/desk/todos/{{.ID}}/done"><input type="hidden" name="back" value="/desk/todos"><button class="small" type="submit">Feito</button></form>
+      {{end}}
+    </td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{else}}
+<p class="empty">Nada por aqui.</p>
+{{end}}
+
+<form class="panel" method="post" action="/desk/todos">
+  <h2>Pôr na lista</h2>
+  <div class="fields">
+    <label class="field">O quê <input name="title" maxlength="300" required></label>
+    <label class="field">Quem faz <input name="holder" type="email" placeholder="{{.Person}}"><span class="hint">Em branco: você.</span></label>
+    <label class="field">Até <input name="due" type="date" min="{{.Today}}"></label>
+    <label class="field">Link <input name="link" placeholder="/launch/…"></label>
+  </div>
+  <div class="actions"><button class="primary" type="submit">Adicionar</button></div>
+</form>
+{{template "bottom" .}}
