@@ -17,8 +17,9 @@ research/agent-guardrails/ in the project files.
 | `desk-web` | The pages under `/desk/`, in the Frame: conversations, plans to OK, choices, the to-do list, and the settings with the stop switch. | `127.0.0.1:8092`, ops on 9121 |
 
 `desk-agent migrate` applies the migrations; both units run it before each
-start, under the migrations' lock, so the pages work while desk-agent waits
-for its Claude key. Units and example settings are in [deploy/](deploy/).
+start, under the migrations' lock. Without a Claude key Desk is off:
+`desk-agent run` answers on `/metrics` and takes no work, so the unit never
+reads as down. Units and example settings are in [deploy/](deploy/).
 
 ## How a request moves
 
@@ -125,7 +126,7 @@ Environment:
 | Name | Default | |
 |---|---|---|
 | `DATABASE_URL` | required | Both binaries; the session runs in UTC. |
-| `ANTHROPIC_API_KEY` | required | desk-agent. |
+| `ANTHROPIC_API_KEY` | empty | desk-agent's Claude key. Empty, Desk is off: desk-agent takes no work. |
 | `DESK_WEB_ADDR` | `127.0.0.1:8092` | desk-web. |
 | `OPS_ADDR` | `127.0.0.1:9100` | `/healthz`, `/metrics`: 9120 for desk-agent, 9121 for desk-web on a box. |
 | `DESK_DEV_PERSON` | unset | desk-web on a laptop without Access: the email every visitor is. Never on a server. |
@@ -156,8 +157,8 @@ list (Launch asking a person to start a pair in Taboola, say).
   `platform/servers/setup.sh` sets Desk up on the data box: the `desk`
   login, the `desk_api_read` role, the `_api_read` role of each app in
   `contract/actions` granted to it, the two units and their `/metrics`.
-  Then the Claude key goes in `/etc/adhunters/desk-agent.env`, and the
-  tunnel sends `^/desk` on the apps' hostname to `http://localhost:8092`,
+  Desk stays off until the Claude key goes in
+  `/etc/adhunters/desk-agent.env` and the tunnel sends `^/desk` on the apps' hostname to `http://localhost:8092`,
   behind the same Access application (platform/OPERATIONS.md). After that,
   Desk's `ready` becomes true in the Frame (`shared/frame/assets/core.js`).
 - **Open decisions** (asked 2026-09-30; Desk is built on the first answer

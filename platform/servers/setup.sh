@@ -263,6 +263,44 @@ create_web() {
     start create-web create-web
 }
 
+# ---- Intel on the data box -------------------------------------------------
+
+intel_src="$repo/intel"
+
+# intel_box: Intel's three services (intel/README.md), next to its database.
+# intel-numbers owns the intel and intel_api schemas and migrates them before
+# each start; it reads Launch's moves through launch_api_read. intel-collect
+# waits for its Taboola and RedTrack keys; intel-web listens on localhost for
+# the Cloudflare tunnel.
+intel_box() {
+    [ -d "$intel_src/deploy" ] || { echo "$intel_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
+    say "the intel login"
+    local r
+    for r in intel_api_read launch_api_read; do
+        psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '$r') THEN CREATE ROLE $r NOLOGIN; END IF; END \$\$"
+    done
+    local intel_pw url
+    intel_pw=$(login intel)
+    psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO intel"
+    psql_su -d adhunters -c "GRANT launch_api_read TO intel"
+    url=FILL_ME
+    [ -n "$intel_pw" ] && url="postgres://intel:$intel_pw@localhost:5432/adhunters?sslmode=require"
+
+    local b
+    for b in intel-collect intel-numbers intel-web; do
+        install_bin "$b"
+        install -m 0644 "$intel_src/deploy/$b.service" "/etc/systemd/system/$b.service"
+        # The login's password goes in once, when it is made; the settings
+        # file is the owner's after that.
+        env_file "$b" "$(grep -E '^[A-Z0-9_]+=' "$intel_src/deploy/$b.env.example" |
+            sed -e "s|^DATABASE_URL=.*|DATABASE_URL=$url|")"
+    done
+    systemctl daemon-reload
+    start intel-numbers intel-numbers
+    start intel-web intel-web
+    start intel-collect intel-collect
+}
+
 # ---- the library on the data box -------------------------------------------
 
 library_src="$repo/library"
@@ -326,8 +364,8 @@ create_box() {
 desk_src="$repo/desk"
 
 # desk_box: AdHunters Desk (desk/README.md). The desk login owns the desk and
-# desk_api schemas; both units run the migrations before they start, so the
-# pages work before the Claude key is in. desk-agent waits for the key.
+# desk_api schemas; both units run the migrations before they start. Desk is
+# off until its Claude key is in: desk-agent runs but takes no work.
 desk_box() {
     [ -d "$desk_src/deploy" ] || { echo "$desk_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }
     say "the desk login"
@@ -359,8 +397,14 @@ desk_box() {
         fi
         env_file "$u" "$example"
     done
+    # The first example had FILL_ME for the key, which kept desk-agent
+    # stopped, so it read as down; an empty key now means Desk is off.
+    sed -i 's/^ANTHROPIC_API_KEY=FILL_ME$/ANTHROPIC_API_KEY=/' /etc/adhunters/desk-agent.env
     start desk-web desk-web
     start desk-agent desk-agent
+    if grep -q '^ANTHROPIC_API_KEY=$' /etc/adhunters/desk-agent.env; then
+        todo+=("Desk is off: to turn it on, put the Claude key in /etc/adhunters/desk-agent.env (ANTHROPIC_API_KEY=), then systemctl restart desk-agent")
+    fi
 }
 
 # ---- Spy on the data box ---------------------------------------------------
@@ -666,6 +710,9 @@ tracks-bridge           9108  tracks-bridge   -
 create-web              9109  create-web      -
 library                 9110  library         -
 create                  9112  create          -
+intel-collect           9113  intel-collect   -
+intel-numbers           9114  intel-numbers   -
+intel-web               9115  intel-web       -
 desk-agent              9120  desk-agent      -
 desk-web                9121  desk-web        -
 spy-web                 9116  spy-web         -
@@ -774,6 +821,7 @@ data)
     library_box
     create_box
     create_web
+    intel_box
     desk_box
     spy_box
     ;;
