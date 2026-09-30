@@ -226,3 +226,20 @@ func TestLaunchPathNeedsAccount(t *testing.T) {
 		t.Fatalf("a RedTrack-only campaign got a Launch link: %s", p)
 	}
 }
+
+func TestLinkMoves(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	if n, err := judge.LinkMoves(ctx, db); err != nil || n != 0 {
+		t.Fatalf("without launch_api: %d %v", n, err)
+	}
+	exec(t, db, `CREATE SCHEMA launch_api`)
+	exec(t, db, `CREATE VIEW launch_api.campaign_move_v1 AS
+		SELECT * FROM (VALUES (1::bigint, 2::bigint, 'acme-sc'::text, now(), now()),
+		                      (3::bigint, NULL::bigint, 'acme-sc', now(), NULL::timestamptz))
+		AS m(old_campaign_id, new_campaign_id, account, moved_at, done_at)`)
+	n, err := judge.LinkMoves(ctx, db)
+	if err != nil || n != 1 {
+		t.Fatalf("linked %d, want only the finished move: %v", n, err)
+	}
+}

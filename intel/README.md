@@ -56,7 +56,7 @@ How the numbers are judged:
 
 Moved campaigns: Taboola cannot change a campaign's group, so Launch moves
 one by copying it, and the copy has a new id. Launch publishes each move in
-`launch_api.campaign_move_v1`; intel-numbers copies them into
+`launch_api.campaign_move_v1` (read through the `launch_api_read` role); intel-numbers copies the finished ones into
 `intel.campaign_link` and the campaign page shows the whole line. Until
 Launch publishes that view, nothing is linked.
 
