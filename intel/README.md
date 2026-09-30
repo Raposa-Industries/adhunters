@@ -1,26 +1,82 @@
 # Intel
 
-AdHunters Intel will judge our own campaigns: what they cost, what they
-earn, and which ads, publishers and placements are worth more money. The app
-is not built yet (build order: Tracks, then Raposa, then the other apps).
-For now this folder holds the clients that read our performance data, so the
-app has something tested to stand on. Words are in
-[GLOSSARY.md](../GLOSSARY.md#intel).
+AdHunters Intel judges our own campaigns: what they cost, what they earn,
+which ads are better or worse than their campaign, and what looks wrong
+right now. It only reads and suggests. Every change it proposes is made in
+Launch: a suggestion's button opens Launch with the change filled in, and a
+person confirms there. Intel holds no key that can write to Taboola or
+RedTrack. Words are in [GLOSSARY.md](../GLOSSARY.md#intel).
 
-## What is here
+## The app
+
+Three binaries, each stopping cleanly on SIGTERM and serving `/healthz` and
+`/metrics` on `OPS_ADDR`. Units and example settings are in `deploy/`.
+
+| Binary | Does | Ops port |
+|---|---|---|
+| `intel-collect run` | Reads every Taboola login and RedTrack account on a schedule and keeps each answer as received: first in its spool on disk, then in `intel.answer` ([decision 0014](../decisions/0014-intel-answers-in-postgres.md)). It parses nothing. `intel-collect once JOB` runs one job. | 9110 |
+| `intel-numbers run` | Every 2 minutes: loads new answers into tables, links moved campaigns, works out results, keeps alerts (each sent once to "AdHunters alerts" on Telegram) and suggestions. `reload -from D -to D` parses a range of answers again; `status` prints counts. Never talks to Taboola or RedTrack. | 9111 |
+| `intel-web` | The pages under `/intel/`, in the Frame (`shared/frame`), on `INTEL_WEB_ADDR` (127.0.0.1:8093) behind Cloudflare Access. Its one write is "not now" on a suggestion. | 9112 |
+
+What intel-collect reads, per Taboola login (Intel keeps to 40 standard and 8
+realtime requests a minute of the login's 84 and 10, leaving the rest to
+Launch):
+
+| Job | Every | Reads |
+|---|---|---|
+| realtime | 5 min | The last hour of 5-minute buckets per campaign (what runaway and the gaps are judged on). |
+| settings | hour | Campaigns, then each campaign's items. |
+| reports | hour | Yesterday and today by campaign, by campaign and site, and by item (one call a day: the item report has no day split). |
+| month | day | The month so far the same way (and the month before until the 5th). |
+| history | hour | Campaign changes of yesterday and today, including ones made in Taboola's own dashboard. Kept raw; not parsed yet. |
+| accounts | hour | Which advertiser accounts the login may read, and their time zones. |
+
+And per RedTrack account, grouped by `sub1` (Taboola campaign) with `sub4`
+(item), `sub8` (site) or the hour, in each Taboola account's time zone: the
+yesterday and today every hour, 7 days once a day, and conversions of yesterday and
+today every 15 minutes. Only GETs leave the process (`collect.ReadOnly`).
+
+How the numbers are judged:
+
+- **Days** are the Taboola account's; RedTrack is asked in the same zone.
+- **Sales** come from RedTrack. A campaign RedTrack never saw falls back to
+  Taboola's count and shows no revenue.
+- **Ads** are compared with their campaign on profit per 1,000 impressions,
+  with a likely range (`range_level`, 90%). Under 10 sales an ad's profit is
+  estimated from its own CTR and landing page click rate, and its campaign's
+  sale rate; its rates borrow `prior_strength` clicks of weight from the
+  campaign so that small ads are not judged on luck.
+- **Alerts:** runaway, tracking gap, landing page gap, postback gap and
+  rejected item, each open while it holds and sent once.
+- **Suggestions:** pause ads that would not reach their spend without a sale
+  1 time in 20 at the account's usual cost per sale (and spent $10 or more);
+  pause the campaign when that is every running ad; halve the daily cap of a
+  runaway. "Not now" hides one for a day.
+- Every threshold is a row in `intel.setting`, changed without a deploy.
+
+Moved campaigns: Taboola cannot change a campaign's group, so Launch moves
+one by copying it, and the copy has a new id. Launch publishes each move in
+`launch_api.campaign_move_v1`; intel-numbers copies them into
+`intel.campaign_link` and the campaign page shows the whole line. Until
+Launch publishes that view, nothing is linked.
+
+Intel publishes `intel_api` views for the other apps
+(`contract/sql/intel/`): campaign and ad results, open suggestions, alerts
+and campaign lines.
+
+Tests need Postgres: `PG_TEST_URL=postgres://… go test ./...` (each test
+makes and drops its own database).
+
+## Other things here
 
 | Path | Does |
 |---|---|
 | `redtrack/` | Thin client for the RedTrack API: spacing and retries, paging, the key kept out of every answer, error and log line, rows kept as raw JSON fields. |
 | `taboola/` | Read-only client for Taboola's Backstage API, on `shared/taboola` (token handling, retries on 429 and 5xx honouring `Retry-After`): a transport that refuses anything but reads, and the reads (account, campaigns, items, reports). Answers come back raw so they are saved before they are read. |
 | `cmd/intel-taboola` | Developer tool: `probe` calls every Taboola read once for one account and writes the raw answers plus `summary.md`. Not a service. |
-| `taboola/act` | The Taboola write client, for intel-act and its tests only, on `shared/taboola` (it repeats nothing but a request answered 401, once, with a new token). A guard checked before every request: one advertiser account, only campaigns and items it created (kept in a state file), new campaigns paused with a fixed bid and a total budget, and a money ceiling on everything it ever turns on. |
+| `taboola/act` | The Taboola write client for the write tests only (Launch owns every Taboola write), on `shared/taboola` (it repeats nothing but a request answered 401, once, with a new token). A guard checked before every request: one advertiser account, only campaigns and items it created (kept in a state file), new campaigns paused with a fixed bid and a total budget, and a money ceiling on everything it ever turns on. |
 | `cmd/intel-taboola-writetest` | Developer tool: runs the approved write tests (T1 to T12 of `research/taboola-api/write-test-plan.md`) through `taboola/act`, saving every request and answer raw. |
 | `cmd/redtrack-probe` | Developer tool: reads an account end to end and saves every raw answer, plus `summary.md`. Also sends single raw calls, including writes. Not a service. |
-
-Nothing here runs on a server yet, so there is no `/healthz` and no schema.
-When Intel collects for real, it saves each raw answer before parsing, as
-every outside source does, and the reports become re-runnable over any range.
 
 ## Running the RedTrack probe
 
@@ -95,16 +151,6 @@ Images must go up with an image content type; Taboola refuses
 - A failed read is recorded in the summary and the probe carries on.
 
 Tests: `go test ./...` (against a stand-in server; no network).
-
-## Before building more here
-
-What the first read test found, and what is still unknown, is in the
-project's shared files (`research/taboola-api/findings.md`). Anything in
-Intel beyond this client and probe waits for the Intel replan the owner
-asked for on 2026-09-29, which reads those findings first. Two facts that
-shape it: Taboola has everything before the click and the real cost,
-RedTrack everything after it; joining them needs the campaign, item and
-site ids on both sides.
 
 ## RedTrack: what the API gives
 

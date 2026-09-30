@@ -1,0 +1,5 @@
+{{define "suggestions"}}{{template "top" .}}
+<header class="page-head"><div><h1>Sugestões</h1>
+<p class="lead">O Intel só sugere. "Abrir no Launch" abre a mudança já preenchida, e você confirma lá. "Agora não" some com a sugestão por um dia.</p></div></header>
+{{if .Suggestions}}<div class="cards">{{template "suggestionCards" (cards .Suggestions .Path)}}</div>{{else}}<p class="empty">Nenhuma sugestão nos últimos 7 dias.</p>{{end}}
+{{template "bottom" .}}{{end}}

@@ -1,0 +1,84 @@
+{{define "top"}}<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · Intel</title>
+<link rel="stylesheet" href="/intel/_frame/frame.css">
+<link rel="stylesheet" href="/intel/_intel/intel.css">
+<script type="module" src="/intel/_intel/intel.js"></script>
+</head>
+<body data-tab="{{.Tab}}" data-user="{{.User}}">
+<aside data-frame="filters">
+  <div class="filter-group">
+    <h3>Período</h3>
+    <div class="chips">{{range .Windows}}<a class="win{{if .On}} on{{end}}" href="{{.Href}}"{{if .On}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}</div>
+  </div>
+  <div class="filter-group">
+    <h3>Contas</h3>
+    <a class="acct{{if eq $.Account ""}} on{{end}}" href="/intel/?w={{$.Window}}">Todas</a>
+    {{range .Accounts}}<a class="acct{{if eq . $.Account}} on{{end}}" href="{{accountPath .}}?w={{$.Window}}">{{.}}</a>{{end}}
+  </div>
+</aside>
+<main>
+{{if .Crumbs}}<nav class="crumbs" aria-label="Onde você está">{{range $i, $c := .Crumbs}}{{if $i}}<span class="sep">/</span>{{end}}{{if $c.Href}}<a href="{{$c.Href}}?w={{$.Window}}">{{$c.Label}}</a>{{else}}<span aria-current="page">{{$c.Label}}</span>{{end}}{{end}}</nav>{{end}}
+{{end}}
+
+{{define "asof"}}<p class="lead">{{if .AsOf}}Números de {{ago .AsOf}}.{{else}}Os números ainda não foram calculados.{{end}} Vendas e receita vêm do RedTrack; impressões e gasto, da Taboola.</p>{{end}}
+
+{{define "bottom"}}
+</main>
+</body>
+</html>{{end}}
+
+{{define "campaignRows"}}
+<div class="table-wrap">
+<table class="list">
+<thead><tr>
+  <th>Campanha</th><th>Estado</th><th class="num">Gasto</th><th class="num">Cliques</th><th class="num">Vendas</th>
+  <th class="num">Receita</th><th class="num">Lucro</th><th class="num">ROI</th><th class="num">Custo por venda</th>
+</tr></thead>
+<tbody>
+{{range .}}<tr>
+  <td><a href="{{campaignPath .Account .GroupID .ID}}">{{if .Name}}{{.Name}}{{else}}{{.ID}}{{end}}</a><div class="faint small-text">{{.Account}} · {{.ID}}</div></td>
+  <td>{{if .Gone}}<span class="badge">apagada</span>{{else}}<span class="badge {{statusClass .Status}}">{{.Status}}</span>{{end}}</td>
+  {{with .R}}
+  <td class="num">{{money .Spent}}</td><td class="num">{{int .Clicks}}</td>
+  <td class="num">{{int .Sales}}{{if eq .SalesSource "network"}}<span class="faint" title="Sem dados do RedTrack: contagem da Taboola"> T</span>{{end}}</td>
+  <td class="num">{{if eq .SalesSource "network"}}–{{else}}{{money .Revenue}}{{end}}</td>
+  <td class="num {{if lt .Profit 0.0}}down{{else if gt .Profit 0.0}}up{{end}}">{{if eq .SalesSource "network"}}–{{else}}{{signed .Profit}}{{end}}</td>
+  <td class="num">{{roi .ROI}}</td>
+  <td class="num">{{moneyp .CPS}}{{with moneyRange .CPSLow .CPSHigh}}<div class="faint small-text">{{.}}</div>{{end}}</td>
+  {{else}}<td class="num faint" colspan="7">sem números no período</td>{{end}}
+</tr>{{else}}<tr><td colspan="9" class="faint">Nenhuma campanha.</td></tr>{{end}}
+</tbody>
+</table>
+</div>
+{{end}}
+
+{{define "suggestionCards"}}
+{{range .List}}<article class="panel card" id="s{{.ID}}">
+  <div class="card-head"><span class="badge {{if eq .State "open"}}paused{{end}}">{{kind .Kind}}</span>
+    {{if .Campaign}}<a class="faint" href="{{campaignPath .Account .GroupID .CampaignID}}">{{.Campaign}}</a>{{end}}
+    <span class="faint">{{ago .CreatedAt}}</span></div>
+  <h2>{{.Title}}</h2>
+  <p class="muted">{{.Why}}</p>
+  {{if .ItemIDs}}<p class="faint small-text">Anúncios: {{ids .ItemIDs}}</p>{{end}}
+  {{if eq .State "open"}}
+  <div class="actions">
+    {{if .LaunchURL}}<a class="button primary" href="{{.LaunchURL}}">Abrir no Launch</a>{{else}}<span class="faint">Esta conta não está no Launch.</span>{{end}}
+    <form method="post" action="/intel/suggestions/{{.ID}}/not-now"><input type="hidden" name="back" value="{{$.Back}}"><button type="submit" class="ghost">Agora não</button></form>
+  </div>
+  {{else}}<p class="faint small-text">{{if eq .State "dismissed"}}Deixada para depois{{if .AnsweredBy}} por {{.AnsweredBy}}{{end}}.{{else if eq .State "done"}}Feita no Launch.{{else}}O motivo passou.{{end}}</p>{{end}}
+</article>{{end}}
+{{end}}
+
+{{define "alertRows"}}
+{{range .}}<article class="panel card{{if .ClosedAt}} closed{{end}}" id="a{{.ID}}">
+  <div class="card-head"><span class="badge {{if not .ClosedAt}}rejected{{end}}">{{kind .Kind}}</span>
+    {{if .Known}}<a class="faint" href="{{campaignPath .Account .GroupID (deref .CampaignID)}}">{{.Account}} · {{deref .CampaignID}}</a>{{else}}<span class="faint">{{.Account}}</span>{{end}}
+    <span class="faint">{{if .ClosedAt}}fechado {{ago (derefT .ClosedAt)}}{{else}}aberto {{ago .OpenedAt}}{{end}}</span></div>
+  <h2>{{.Title}}</h2>
+  <p class="muted">{{.Detail}}</p>
+</article>{{end}}
+{{end}}

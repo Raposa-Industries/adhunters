@@ -1,0 +1,5 @@
+{{define "alerts"}}{{template "top" .}}
+<header class="page-head"><div><h1>Alertas</h1>
+<p class="lead">Abertos enquanto o problema continua; cada um vai uma vez para o grupo do Telegram. Os fechados ficam aqui por 7 dias.</p></div></header>
+{{if .Alerts}}{{template "alertRows" .Alerts}}{{else}}<p class="empty">Nenhum alerta nos últimos 7 dias.</p>{{end}}
+{{template "bottom" .}}{{end}}
