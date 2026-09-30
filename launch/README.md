@@ -120,7 +120,7 @@ What other services may read, and Desk's one call
 |---|---|
 | `request_v1` | Requests: `id, kind, input, requested_by, origin, state` (`waiting`, `confirmed`, `sent`, `refused`, `failed`), `confirmed_by, result, made_at, decided_at`. |
 | `new_request_v1(p_kind, p_input, p_requested_by, p_origin)` | Asks for a change, returns the request id. `p_kind`: `pause`, `pause_ads`, `change`, `duplicate`, `move`. `p_input`: `{network, account, campaigns: [ids], ads, change: {cpc, daily_cap, spending_limit, name}, to_group, originals}`. The same `p_origin` (`desk:42`) returns the same request. |
-| `campaign_move_v1` | Moves: `old_campaign_id, new_campaign_id` (numbers), `account, moved_at`, the text ids, target group, state. |
+| `campaign_move_v1` | Finished moves: `old_campaign_id, new_campaign_id` (numbers), `account, moved_at` (when it finished), the text ids, target group. |
 | `item_v1` | Every ad Launch made (new pairs and copies): network, account, campaign and item ids (text and number), our `ad_id`. |
 | `pair_v1`, `preset_v1`, `change_v1` | Pairs, presets, History. |
 
