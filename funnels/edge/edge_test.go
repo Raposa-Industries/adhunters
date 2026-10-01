@@ -256,3 +256,21 @@ func TestPublishRefusesWhatItShouldNotCopy(t *testing.T) {
 		t.Error("bad Clarity id taken")
 	}
 }
+
+// The sample site in funnels/examples publishes as it is, and every page
+// gets the page script.
+func TestTheExampleSitePublishes(t *testing.T) {
+	e, _, sites := newEdge(t, false)
+	if _, err := sites.Publish("lp.example.com", filepath.Join("..", "examples", "vsl-demo"), time.Date(2026, 10, 1, 3, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{"/", "/offer", "/thanks"} {
+		rw := get(t, e, "https://lp.example.com"+p+"?clickid=abc")
+		if b := rw.Body.String(); rw.Code != 200 || strings.Count(b, `src="/ah.js"`) != 1 || !strings.Contains(b, `<meta name="ah-lp"`) {
+			t.Errorf("%s = %d %s", p, rw.Code, b)
+		}
+	}
+	if rw := get(t, e, "https://lp.example.com/style.css"); rw.Code != 200 || !strings.HasPrefix(rw.Header().Get("Content-Type"), "text/css") {
+		t.Errorf("style.css = %d %s", rw.Code, rw.Header().Get("Content-Type"))
+	}
+}

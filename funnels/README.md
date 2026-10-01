@@ -11,7 +11,8 @@ recordings and heatmaps. Study: the funnel tracking page (29 Sep 2026).
 | `funnels-edge` | What visitors reach: the hosted landing sites, the page script at `/ah.js`, and the collector at `/e`, which writes every beacon as received to the spool. No database. | deployed |
 | `funnels-loader` | Archives the spool's raw files, loads them into events, closes each hour into journeys and counts, and counts the open hours as drafts. Replays any range. | deployed |
 | `web/ah.js` | The page script: the beacon and the VSL player, one file, plus Clarity when the site has it. | deployed |
-| `funnels-web` | The pages under `/funnels/`, in the Frame: sites and their landing pages, each page's steps and drop-off split by campaign, videos and their retention curves, one journey by click id, the hosted sites and their versions. | built, not deployed |
+| `funnels-web` | The pages under `/funnels/`, in the Frame: sites and their landing pages, each page's steps and drop-off split by campaign, videos and their retention curves, one journey by click id, the hosted sites and their versions. | deployed |
+| `examples/vsl-demo` | A sample landing site (VSL page, offer, thank-you) marked up for every step, ready to publish on the first landing domain. | built |
 
 ```
 landing page ──beacon──▶ funnels-edge /e ──▶ spool (one file per minute, zstd)
@@ -123,6 +124,24 @@ rest is cached 5 minutes.
 A site's domain reaches the edge through the Cloudflare tunnel on the data
 box, as a public hostname pointing at `http://127.0.0.1:8098`, with no
 Cloudflare Access (landing pages are public). See platform/OPERATIONS.md.
+
+## A sample site
+
+`examples/vsl-demo` is a three-page funnel that uses every mark above: the
+VSL player (a public test stream until Bunny's is in), a button revealed at
+the pitch with the click id in its link, a lead form, and an offer page that
+carries on the journey without a click id. Publish it on a new landing domain
+to check the whole path before a real page goes up:
+
+```
+cp -r ~/adhunters/funnels/examples/vsl-demo /tmp/ && chmod -R a+rX /tmp/vsl-demo
+sudo -u funnels /opt/adhunters/bin/funnels-edge publish -site lp.example.com /tmp/vsl-demo
+```
+
+then open `https://lp.example.com/?clickid=test1&sub1=demo` and look for the
+journey under hunt-teste.fyi/funnels/ (the open hour shows within 5 minutes).
+For a real page, swap the player's `data-src`, `data-poster` and `data-pitch`
+for the Bunny files, and the buy link for the RedTrack offer click URL.
 
 ## Raw files
 
