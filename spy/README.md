@@ -195,7 +195,7 @@ not confirmed yet.
 | Page | Path | Shows |
 |---|---|---|
 | Anúncios | `/spy/` | Every creative in the range as a card with its sparkline; filters by text, category, vertical, status, device, network, publisher, tracker, affiliate network, days active; sorts by presence, momentum, share of voice and more |
-| Anúncio | `/spy/ads/{creative}` | Numbers, direction, presence per day, hour of day (São Paulo), publishers, auction prices, its ads, links, campaigns, and Raposa's investigations with the button to ask for one |
+| Anúncio | `/spy/ads/{creative}` | Numbers, direction, presence per day, hour of day (São Paulo), publishers, auction prices, its ads, links, campaigns, Raposa's investigations with the button to ask for one, and **Criar variações**, a link to `/create/?from=spy&creative={creative}` that opens Create on a new session with this ad's image and headline |
 | Operadores | `/spy/operators/` and `/{id}` | Operators by presence, momentum, launches and hit rate; one operator's creatives, accounts, brands and publishers |
 | Publishers | `/spy/publishers/` and `/{id}` | Checks and sightings per publisher; its top operators and creatives |
 | Mercado | `/spy/pulse/` | Each vertical's presence and momentum, how many are rising, fading and stopped now, and the latest changes of direction |
