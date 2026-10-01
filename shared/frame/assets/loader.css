@@ -39,6 +39,6 @@ body:not(.fr)::before {
 .fr-loader::before {
   content: "";
   width: 160px;
-  aspect-ratio: 240 / 150;
+  aspect-ratio: 248 / 160;
   background: url("mascot.svg") center / contain no-repeat;
 }

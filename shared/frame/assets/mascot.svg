@@ -1,112 +1,113 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150" role="img" aria-label="Mascote do AdHunters">
-<!-- The mascot: the AdHunters fox, flat and crouched, ready to pounce. It loops on its
-     own (coil, tail flick, eyes narrow, a twitch forward, reset) and holds
-     still for people who ask for less motion. Pure SVG and CSS, so it runs
-     as an <img>, a CSS background or inline. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 0 248 160" role="img" aria-label="Mascote do AdHunters">
+<!-- The mascot: the AdHunters fox, flat, all hard edges, crouched and facing
+     whoever is looking, ready to pounce. It loops on its own (sinks, hackles
+     and snarl rise, eyes narrow, tail lashes, lunges at you, resets) and holds
+     still for people who ask for less motion. Pure SVG and CSS, so it runs as
+     an <img>, a CSS background or inline. -->
 <style>
-  .fx-body, .fx-head, .fx-tail, .fx-eye, .fx-shadow, .fx-hind, .fx-front {
+  .fx-all, .fx-body, .fx-hackles, .fx-tail, .fx-eye, .fx-jaw, .fx-shadow {
     transform-box: view-box;
-    animation: 2.6s cubic-bezier(.45, 0, .25, 1) infinite;
+    animation: 2.4s cubic-bezier(.5, 0, .2, 1) infinite;
   }
-  .fx-body { animation-name: fx-body; }
-  .fx-head { transform-origin: 168px 90px; animation-name: fx-head; }
-  .fx-tail { transform-origin: 62px 80px; animation-name: fx-tail; }
-  .fx-eye { transform-origin: 202px 91px; animation-name: fx-eye; }
-  .fx-shadow { transform-origin: 120px 140px; animation-name: fx-shadow; }
-  .fx-hind { transform-origin: 60px 140px; animation-name: fx-hind; }
-  .fx-front { transform-origin: 160px 140px; animation-name: fx-front; }
+  .fx-all { transform-origin: 120px 150px; animation-name: fx-all; }
+  .fx-body { transform-origin: 120px 150px; animation-name: fx-body; }
+  .fx-hackles { transform-origin: 120px 92px; animation-name: fx-hackles; }
+  .fx-tail { transform-origin: 180px 116px; animation-name: fx-tail; }
+  .fx-eye { transform-origin: 120px 97px; animation-name: fx-eye; }
+  .fx-jaw { transform-origin: 120px 124px; animation-name: fx-jaw; }
+  .fx-shadow { transform-origin: 120px 150px; animation-name: fx-shadow; }
+  /* The lunge: towards the viewer, so it grows. */
+  @keyframes fx-all {
+    0%, 60% { transform: scale(1); }
+    68% { transform: scale(1.09) translateY(2px); }
+    80%, 100% { transform: scale(1); }
+  }
   @keyframes fx-body {
-    0%, 8% { transform: translate(0, 0); }
-    38%, 54% { transform: translate(-6px, 7px); }
-    62% { transform: translate(9px, 1px); }
-    74%, 100% { transform: translate(0, 0); }
+    0%, 6% { transform: translateY(0) scaleY(1); }
+    36%, 58% { transform: translateY(6px) scaleY(.95); }
+    68% { transform: translateY(-3px) scaleY(1.02); }
+    80%, 100% { transform: translateY(0) scaleY(1); }
   }
-  @keyframes fx-head {
-    0%, 8% { transform: rotate(0); }
-    38%, 54% { transform: rotate(5deg); }
-    62% { transform: rotate(-3deg); }
-    74%, 100% { transform: rotate(0); }
+  @keyframes fx-hackles {
+    0%, 6% { transform: scaleY(1); }
+    36%, 58% { transform: scaleY(1.35); }
+    80%, 100% { transform: scaleY(1); }
   }
   @keyframes fx-tail {
-    0%, 8% { transform: rotate(0); }
-    18% { transform: rotate(-9deg); }
-    28% { transform: rotate(5deg); }
-    38% { transform: rotate(-7deg); }
-    48% { transform: rotate(4deg); }
-    58% { transform: rotate(-16deg); }
-    74%, 100% { transform: rotate(0); }
+    0%, 6% { transform: rotate(0); }
+    16% { transform: rotate(-10deg); }
+    26% { transform: rotate(6deg); }
+    36% { transform: rotate(-8deg); }
+    46% { transform: rotate(5deg); }
+    58% { transform: rotate(-12deg); }
+    68% { transform: rotate(8deg); }
+    80%, 100% { transform: rotate(0); }
   }
   @keyframes fx-eye {
-    0%, 8% { transform: scaleY(1); }
-    38%, 54% { transform: scaleY(.5); }
-    62% { transform: scaleY(.3); }
-    76%, 100% { transform: scaleY(1); }
+    0%, 6% { transform: scaleY(1); }
+    36%, 58% { transform: scaleY(.55); }
+    66% { transform: scaleY(.35); }
+    80%, 100% { transform: scaleY(1); }
+  }
+  @keyframes fx-jaw {
+    0%, 6% { transform: translateY(0); }
+    36%, 58% { transform: translateY(3px); }
+    68% { transform: translateY(5px); }
+    80%, 100% { transform: translateY(0); }
   }
   @keyframes fx-shadow {
-    0%, 8% { transform: scaleX(1); }
-    38%, 54% { transform: scaleX(1.06); }
-    62% { transform: translateX(6px) scaleX(1.02); }
-    74%, 100% { transform: scaleX(1); }
-  }
-  /* The legs bend instead of sliding: they squash as the body sinks. */
-  @keyframes fx-hind {
-    0%, 8% { transform: skewX(0) scaleY(1); }
-    38%, 54% { transform: skewX(4deg) scaleY(.93); }
-    62% { transform: skewX(-6deg) scaleY(1); }
-    74%, 100% { transform: skewX(0) scaleY(1); }
-  }
-  @keyframes fx-front {
-    0%, 8% { transform: skewX(0) scaleY(1); }
-    38%, 54% { transform: skewX(3deg) scaleY(.93); }
-    62% { transform: skewX(-5deg) scaleY(.99); }
-    74%, 100% { transform: skewX(0) scaleY(1); }
+    0%, 6% { transform: scaleX(1); }
+    36%, 58% { transform: scaleX(1.08); }
+    68% { transform: scaleX(1.18); }
+    80%, 100% { transform: scaleX(1); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .fx-body, .fx-head, .fx-tail, .fx-eye, .fx-shadow, .fx-hind, .fx-front { animation: none; }
+    .fx-all, .fx-body, .fx-hackles, .fx-tail, .fx-eye, .fx-jaw, .fx-shadow { animation: none; }
   }
 </style>
 <defs>
   <clipPath id="fx-tail-clip">
-    <path d="M72 90C34 94 10 76 11 46 12 30 22 18 34 12 28 32 32 52 48 62 58 68 70 70 82 70Z"/>
+    <path d="M174 110 222 24 228 44 220 46 229 64 216 66 223 84 209 86 210 104 190 120Z"/>
   </clipPath>
 </defs>
-<ellipse class="fx-shadow" cx="118" cy="140" rx="86" ry="4" fill="#ff7a1a" opacity=".12"/>
-<!-- far legs, a shade darker -->
-<g class="fx-hind" fill="#c9580f">
-  <path d="M84 96 72 118l8 18h11l-7-17 14-19Z"/>
-</g>
-<g class="fx-front" fill="#c9580f">
-  <path d="M136 94c6 14 22 22 40 22 6 0 10 4 8 10l-8 2c-2-4-6-6-14-6-18 0-30-10-34-22Z"/>
-  <path d="m178 127 2 5 2-5.5Zm5-1.5 2.5 4.5 1-5Z" fill="#fff8ee"/>
-</g>
-<g class="fx-body">
-  <g class="fx-tail">
-    <path d="M72 90C34 94 10 76 11 46 12 30 22 18 34 12 28 32 32 52 48 62 58 68 70 70 82 70Z" fill="#ff7a1a"/>
-    <path clip-path="url(#fx-tail-clip)" d="M0 0h60v36l-8-4-6 10-8-6-8 12-8-8-8 10-8-6-14 4Z" fill="#ffe2b0"/>
+<ellipse class="fx-shadow" cx="120" cy="150" rx="80" ry="5" fill="#ff7a1a" fill-opacity=".14"/>
+<g class="fx-all">
+  <g class="fx-body">
+    <g class="fx-tail">
+      <path d="M174 110 222 24 228 44 220 46 229 64 216 66 223 84 209 86 210 104 190 120Z" fill="#ff7a1a"/>
+      <path clip-path="url(#fx-tail-clip)" d="M190 0h50v44l-8 2-6-6-7 6-6-5-8 5-15-4Z" fill="#ffe2b0"/>
+    </g>
+    <!-- hackles: the fur on the shoulders stands up as it coils -->
+    <g class="fx-hackles" fill="#c9500c">
+      <path d="M58 98 58 80 66 86 68 68 78 80 84 64 92 78 98 88Z M182 98 182 80 174 86 172 68 162 80 156 64 148 78 142 88Z"/>
+    </g>
+    <path d="M50 124 62 92 80 80 104 88 136 88 160 80 178 92 190 124Z" fill="#ff7a1a"/>
+    <path d="M62 92 80 80 76 100 56 108Z M178 92 160 80 164 100 184 108Z" fill="#c9500c"/>
+    <path d="M98 118 104 134 110 128 114 142 120 132 126 142 130 128 136 134 142 118Z" fill="#ffe2b0"/>
+    <!-- head -->
+    <path d="M100 82 70 42 114 74Z M140 82 170 42 126 74Z" fill="#ff7a1a"/>
+    <path d="M101 79 78 52 109 75Z M139 79 162 52 131 75Z" fill="#2a1206"/>
+    <path d="M92 82 108 72 120 76 132 72 148 82 152 96 138 108 128 128 120 138 112 128 102 108 88 96Z" fill="#ff7a1a"/>
+    <path d="M90 94 68 98 84 103 66 112 88 109 78 122 98 112 104 106Z M150 94 172 98 156 103 174 112 152 109 162 122 142 112 136 106Z" fill="#ffe2b0"/>
+    <path d="M109 103 120 99 131 103 126 126 120 135 114 126Z" fill="#ffe2b0"/>
+    <g class="fx-jaw">
+      <path d="M111 123 120 120 129 123 125 133 120 138 115 133Z" fill="#140a04"/>
+      <path d="M116 134 118 130 120 134Z M120 134 122 130 124 134Z" fill="#fff8ee"/>
+    </g>
+    <path d="M110 122 120 119 130 122 120 121Z" fill="#140a04"/>
+    <path d="M112 122 114.5 130 117 122Z M123 122 125.5 130 128 122Z" fill="#fff8ee"/>
+    <path d="M115 114 125 114 120 119Z" fill="#140a04"/>
+    <path d="M111 112 114 108M129 112 126 108" stroke="#c9500c" stroke-width="2" stroke-linecap="round"/>
+    <path d="M94 86 117 95 115 99 94 90Z M146 86 123 95 125 99 146 90Z" fill="#140a04"/>
+    <g class="fx-eye">
+      <path d="M99 92 115 98 112 101 101 97Z M141 92 125 98 128 101 139 97Z" fill="#ffd23f"/>
+      <path d="M107 95 108 100 109 96Z M133 95 132 100 131 96Z" fill="#140a04"/>
+    </g>
   </g>
-  <path d="M48 92C42 74 60 64 82 66c20 0 40-10 60-8 16 2 26 12 32 26l-4 20c-20 6-50 4-70 0-20-3-46 2-52-12Z" fill="#ff7a1a"/>
-  <path d="M138 104c10-3 22-4 32 0l-2 8c-12 2-24-1-30-8Z" fill="#ffe2b0"/>
-  <g class="fx-head">
-    <path d="M176 72 154 48l36 18Z" fill="#c9580f"/>
-    <path d="M162 92c-2-18 14-28 32-26 10 1 16 6 20 12l18 18c0 5-4 8-10 8l-16 6c-18 3-36-4-44-18Z" fill="#ff7a1a"/>
-    <path d="M184 70 170 40l30 28Z" fill="#ff7a1a"/>
-    <path d="M186 66 176 48l18 17Z" fill="#ffe2b0"/>
-    <path d="M204 110c-14 3-30 1-42-6l-12 2 8-7-10-3 14-1 14 2 20 0 26 7Z" fill="#ffe2b0"/>
-    <path d="M190 80l24 8" stroke="#140a04" stroke-width="3.5" stroke-linecap="round"/>
-    <g class="fx-eye"><path d="M194 86l18 6-5 4-12-4Z" fill="#140a04"/></g>
-    <path d="M218 90l3 5" stroke="#c9580f" stroke-width="2" stroke-linecap="round"/>
-    <circle cx="231" cy="99" r="4" fill="#140a04"/>
-    <path d="M228 103l-20 5" stroke="#140a04" stroke-width="2" stroke-linecap="round"/>
-    <path d="m210 107 3 7 3-8Z" fill="#fff8ee"/>
-  </g>
-</g>
-<!-- near legs -->
-<g class="fx-hind" fill="#ff7a1a">
-  <path d="M60 90 44 116l8 20h12l-8-19 22-21Z"/>
-  <path d="M48 134h18v5H46Z" fill="#c9580f"/>
-</g>
-<g class="fx-front" fill="#ff7a1a">
-  <path d="M146 98c4 14 4 26 6 38h13c-3-12-2-24 0-36Z"/>
-  <path d="M150 134h18v5h-20Z" fill="#c9580f"/>
+  <!-- front legs, splayed, claws out -->
+  <path d="M74 100 94 104 84 140 62 140Z M166 100 146 104 156 140 178 140Z" fill="#ff7a1a"/>
+  <path d="M74 100 80 101 68 140 62 140Z M166 100 160 101 172 140 178 140Z" fill="#c9500c"/>
+  <path d="M56 138h34l2 7H54Z M184 138h-34l-2 7h38Z" fill="#c9500c"/>
+  <path d="M57 145 60 153 64 145Z M67 145 70 154 74 145Z M77 145 80 154 84 145Z M86 145 88 152 91 145Z M183 145 180 153 176 145Z M173 145 170 154 166 145Z M163 145 160 154 156 145Z M154 145 152 152 149 145Z" fill="#fff8ee"/>
 </g>
 </svg>
