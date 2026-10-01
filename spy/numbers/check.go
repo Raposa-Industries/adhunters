@@ -49,6 +49,9 @@ var checkParts = []checkPart{
 		UNION ALL SELECT 'running now: with a vertical / unsure / none',
 			count(*) FILTER (WHERE vertical_id IS NOT NULL) || ' / ' || count(*) FILTER (WHERE vertical_id IS NOT NULL AND unsure)
 			|| ' / ' || count(*) FILTER (WHERE vertical_id IS NULL) FROM r
+		UNION ALL SELECT 'running now, no vertical: model asked / guessed 0.5 or more',
+			count(*) FILTER (WHERE vertical_id IS NULL AND model_top IS NOT NULL) || ' / '
+			|| count(*) FILTER (WHERE vertical_id IS NULL AND (model_top->'top'->0->>'p')::float8 >= 0.5) FROM r
 		UNION ALL SELECT 'running now by source', COALESCE((SELECT string_agg(s || ' ' || n, ', ' ORDER BY n DESC)
 			FROM (SELECT COALESCE(source, 'none') s, count(*) n FROM r GROUP BY 1) x), 'none')
 		UNION ALL SELECT 'running now, top verticals', COALESCE((SELECT string_agg(vertical_id || ' ' || n, ', ' ORDER BY n DESC)
@@ -58,6 +61,19 @@ var checkParts = []checkPart{
 			|| round(100 * (eval->>'accuracy')::numeric) || '% right, ' || round(100 * (eval->>'masked_accuracy')::numeric)
 			|| '% without the keywords'
 			FROM spy.class_model ORDER BY id DESC LIMIT 1), 'not trained yet')`},
+	{"Running now with no vertical, most seen (headline: sightings in 7 days, landing page, the model's guess)", `
+		SELECT left(COALESCE(cs.headline, 'creative ' || k.creative_id), 70),
+		       COALESCE(cs.sightings_7d, 0) || ' · ' || COALESCE(s.domain, 'no page') || ' · '
+		       || CASE WHEN k.model_top IS NULL THEN 'not asked yet'
+		               ELSE COALESCE((k.model_top->'top'->0->>'vertical') || ' ' || (k.model_top->'top'->0->>'p'), 'no guess') END
+		FROM spy.creative_class k
+		JOIN (SELECT DISTINCT creative_id FROM spy.creative_recent) r USING (creative_id)
+		LEFT JOIN spy.creative_stats cs USING (creative_id)
+		LEFT JOIN spy.creative_page p USING (creative_id)
+		LEFT JOIN spy.site s ON s.id = p.site_id
+		WHERE k.vertical_id IS NULL AND NOT COALESCE(cs.is_junk, FALSE)
+		ORDER BY COALESCE(cs.sightings_7d, 0) DESC, k.creative_id
+		LIMIT 25`},
 	{"Grouping (Spy's own operators)", `
 		WITH g AS (SELECT * FROM spy.grouping_run ORDER BY id DESC LIMIT 1),
 		     now_op AS (SELECT ao.account_id, ao.operator_id, m.member_id IS NOT NULL AS seen, m.operator_id AS new_op
