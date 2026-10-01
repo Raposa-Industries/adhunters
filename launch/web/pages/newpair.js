@@ -475,7 +475,7 @@ export async function newPair({ main, status }) {
         row('Campanha · ' + DEVICES[d], h('b', {}, names[i] || '—'), ' ', badge('PAUSED')),
         h('p', { class: 'faint' }, [bid, st.daily_cap ? money(st.daily_cap) + ' por dia' : 'sem orçamento',
           'Estados Unidos' + (st.exclude_cities.length ? ` menos ${plural(st.exclude_cities.length, 'cidade', 'cidades')}` : ''),
-          st.spending_limit ? 'limite ' + money(st.spending_limit) : 'sem limite de gasto'].join(' · ')))));
+          (st.spending_limit || status.limits?.max_spend_limit) ? 'no máximo ' + money(st.spending_limit || status.limits.max_spend_limit) + ' no total' : 'sem limite total'].join(' · ')))));
     }
     if (make === 'ads') {
       const byId = new Map(campaignList.map((c) => [c.id, c]));

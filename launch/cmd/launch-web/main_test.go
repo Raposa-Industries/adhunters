@@ -75,7 +75,7 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 	img := &images.Store{Dir: t.TempDir()}
 	l := actions.New(st, img, log, func(err error) string { _, m := classify(err); return m }, n)
 	a := api.New(context.Background(), l, img, log, classify)
-	a.Limits = map[string]any{"max_cpc": 1, "max_daily_cap": 500, "only_own": true}
+	a.Limits = map[string]any{"max_cpc": 1, "max_daily_cap": 20, "max_spend_limit": 20, "only_own": true}
 	a.Library = library.New(demoLibrary(t).URL)
 	return handler(a), n, l
 }

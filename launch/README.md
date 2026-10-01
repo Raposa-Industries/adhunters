@@ -50,9 +50,12 @@ or saved in a preset:
   research/taboola-api/lookups-2026-09-30 in the project files). The
   `city_targeting` EXCLUDE shape (string ids) was accepted and kept on the
   paused test of 2026-09-30 (research/taboola-api/launch-test-2026-09-30).
-- **Budget:** US$ 500 a day, no spending limit. The ceiling
-  (`TABOOLA_MAX_DAILY_CAP`) is 500 in the example settings, and 500 when
-  the line is missing.
+- **Budget:** US$ 20 a day and a total (lifetime) limit of US$ 20: the
+  owner's rule (2026-10-01) is that a campaign never spends more than $20
+  in all. The Taboola client enforces it whatever the page sends
+  (`TABOOLA_MAX_DAILY_CAP` and `TABOOLA_MAX_SPEND_LIMIT`, 20 when unset):
+  a new campaign without a total gets $20, one above is refused, a copy
+  is brought down to it, and no change raises it.
 - **Bid:** Maximize conversions (CPA), a target CPA optional; Taboola sets
   each bid (`bid_strategy` MAX_CONVERSIONS, no `cpc`, kept as
   OPTIMIZED_CONVERSIONS on the paused test; TARGET_CPA with `target_cpa` is

@@ -16,12 +16,14 @@ export const OBJECTIVES = [
 
 const MODELS = [['', 'Por campanha'], ['MONTHLY', 'Por mês'], ['ENTIRE', 'Total']];
 
-// The team's defaults for a new campaign (2026-09-30).
+// The team's defaults for a new campaign (2026-09-30; the budget from the
+// owner's rule of 2026-10-01: a campaign never spends more than $20 in all).
 export const TEAM = {
   // Maximize conversions needs a conversion objective; the team's campaigns
   // are Online Purchases (like campaign 50549004, made in Realize).
   objective: 'ONLINE_PURCHASES',
-  daily_cap: 500,
+  daily_cap: 20,
+  spending_limit: 20,
   bid_strategy: 'MAX_CONVERSIONS',
   ad_delivery: 'OPTIMIZED',
   countries: ['US'],
@@ -88,8 +90,8 @@ export function settingsForm(values = {}, limits = {}) {
   const cpaBox = field('CPA alvo (US$)', cpa, 'opcional: vazio deixa o Taboola maximizar');
   const showBid = () => { cpcBox.hidden = bidNow === 'MAX_CONVERSIONS'; cpaBox.hidden = bidNow !== 'MAX_CONVERSIONS'; };
   const bid = segmented('bid-' + Math.random().toString(36).slice(2, 7), BIDS, bidNow, (v) => { bidNow = v; showBid(); });
-  const cap = input({ inputmode: 'decimal', placeholder: '500', value: s.daily_cap || '' });
-  const limit = input({ inputmode: 'decimal', placeholder: 'nenhum', value: s.spending_limit || '' });
+  const cap = input({ inputmode: 'decimal', placeholder: '20', value: s.daily_cap || '' });
+  const limit = input({ inputmode: 'decimal', placeholder: limits.max_spend_limit ? String(limits.max_spend_limit) : 'nenhum', value: s.spending_limit || '' });
   let deliveryNow = s.ad_delivery || 'OPTIMIZED';
   const delivery = segmented('delivery-' + Math.random().toString(36).slice(2, 7), DELIVERY, deliveryNow, (v) => { deliveryNow = v; });
   const cities = h('textarea', { rows: 5, spellcheck: 'false', 'aria-label': 'Cidades fora' }, cityLines(s.exclude_cities));
@@ -139,7 +141,7 @@ export function settingsForm(values = {}, limits = {}) {
     h('h3', {}, 'Orçamento e lance'),
     h('div', { class: 'fields' },
       field('Orçamento diário (US$)', cap, limits.max_daily_cap ? 'até ' + money(limits.max_daily_cap) : 'por campanha'),
-      field('Limite de gasto (US$)', limit, 'vazio: nenhum')),
+      field('Limite total da campanha (US$)', limit, limits.max_spend_limit ? `no máximo ${money(limits.max_spend_limit)}: a campanha nunca gasta mais que isso` : 'vazio: nenhum')),
     h('span', { class: 'field' }, 'Otimizar para'), bid,
     h('div', { class: 'fields' }, cpcBox, cpaBox),
     h('span', { class: 'field' }, 'Entrega dos anúncios'), delivery,
@@ -215,6 +217,10 @@ export function settingsForm(values = {}, limits = {}) {
       if (bidNow !== 'MAX_CONVERSIONS' && !numberOf(cpc.value)) return 'Diga o CPC.';
       if (bidNow === 'MAX_CONVERSIONS' && !CONVERSIONS[objective.value]) return 'Maximizar conversões pede o objetivo Leads ou Compras.';
       if (!numberOf(cap.value)) return 'Diga o orçamento diário.';
+      if (limits.max_daily_cap && numberOf(cap.value) > limits.max_daily_cap) return `O orçamento diário vai até ${money(limits.max_daily_cap)}.`;
+      if (limits.max_spend_limit && numberOf(limit.value) > limits.max_spend_limit) return `O limite total vai até ${money(limits.max_spend_limit)}.`;
+      const total = numberOf(limit.value) || limits.max_spend_limit || 0;
+      if (total && numberOf(cap.value) > total) return `O orçamento diário (${money(numberOf(cap.value))}) passa do limite total (${money(total)}): o Taboola recusa.`;
       if (!brand.value.trim()) return 'Escreva a marca.';
       if (!linkBox.value.trim()) return 'Falta o link da página.';
       return '';

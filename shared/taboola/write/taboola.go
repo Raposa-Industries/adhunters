@@ -75,6 +75,10 @@ type Settings struct {
 	// MaxCPC and MaxDailyCap (USD) bound a new campaign; its total budget is
 	// at most 30 daily caps.
 	MaxCPC, MaxDailyCap float64
+	// MaxSpendLimit (USD), when above 0, is the most one campaign may ever
+	// spend: every campaign made or copied gets a total (lifetime) spending
+	// limit no higher than it, and no change raises one above it.
+	MaxSpendLimit float64
 
 	// OnlyOwn limits the client to what it created itself: each new campaign
 	// and group is recorded in StateFile, and nothing else in the account is
@@ -196,6 +200,23 @@ func (c *Client) OnlyOwn() (bool, string) {
 }
 
 // Limits are the ceilings a new campaign is checked against (0, 0 when off).
+// SpendLimit is the most one campaign may spend in total (0: no ceiling
+// beyond 30 daily caps).
+func (c *Client) SpendLimit() float64 {
+	if c == nil {
+		return 0
+	}
+	return c.s.MaxSpendLimit
+}
+
+// totalCeiling is the highest total spending limit a campaign may have.
+func (c *Client) totalCeiling() float64 {
+	if c.s.MaxSpendLimit > 0 {
+		return c.s.MaxSpendLimit
+	}
+	return 30 * c.s.MaxDailyCap
+}
+
 func (c *Client) Limits() (maxCPC, maxDailyCap float64) {
 	if c == nil {
 		return 0, 0
