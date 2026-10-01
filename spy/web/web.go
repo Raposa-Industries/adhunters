@@ -27,7 +27,7 @@ import (
 
 	"github.com/Raposa-Industries/adhunters/shared/access"
 	"github.com/Raposa-Industries/adhunters/shared/frame"
-	"github.com/Raposa-Industries/adhunters/spy/verticals"
+	"github.com/Raposa-Industries/adhunters/shared/verticals"
 )
 
 // Config tunes a Server. Zero values take the defaults.

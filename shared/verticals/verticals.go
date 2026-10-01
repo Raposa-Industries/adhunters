@@ -1,4 +1,4 @@
-// Package verticals is Spy's fixed list of verticals, grouped by category
+// Package verticals is our fixed list of verticals, grouped by category
 // (verticals.yaml). A classifier may only answer with one of these ids, or
 // with nothing.
 package verticals

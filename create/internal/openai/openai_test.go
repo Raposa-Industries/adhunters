@@ -670,3 +670,17 @@ func mustRead(t *testing.T, name string) string {
 	}
 	return string(b)
 }
+
+// Headlines for the ad's own pictures: the pictures are what the headlines go
+// with, not ads to analyse, and an analysis the model sends anyway is dropped.
+func TestPlanForPictures(t *testing.T) {
+	r := PlanRequest{Headlines: 2, Winners: []Reference{{Data: []byte{1}, MIME: "image/png"}}, ForPictures: true}
+	u := planUser(r, "English")
+	if !strings.Contains(u, "THE AD'S PICTURES ATTACHED") || strings.Contains(u, "Analyse them first") {
+		t.Fatalf("the pictures are the ad's own: %s", u)
+	}
+	p, err := ParsePlan(`{"analysis":[{"aspect":"Sujeito","fixed":"a","variable":"b"}],"headlines":["One","Two"],"briefs":[]}`, r)
+	if err != nil || len(p.Analysis) != 0 || len(p.Headlines) != 2 {
+		t.Fatalf("no analysis kept: %v %+v", err, p)
+	}
+}

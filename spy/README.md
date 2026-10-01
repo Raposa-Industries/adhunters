@@ -133,7 +133,7 @@ UPDATE spy.setting SET text_value = 'grouping' WHERE name = 'operators_from';
 
 ### Verticals
 
-[verticals/verticals.yaml](verticals/verticals.yaml) is our own fixed list
+[shared/verticals/verticals.yaml](../shared/verticals/verticals.yaml) is our own fixed list
 of verticals: 56 of them in 16 categories, so a list can be filtered by
 category first, then vertical. A classifier may only answer with one of its
 ids, or with nothing; it never makes up a name. Each vertical has a short
@@ -162,7 +162,12 @@ present.
   (at least 50, at most 600 per vertical, catch-alls left out), with the
   keywords masked half the time so it learns the rest of the text. It
   answers only where the rules are unsure and it is at least 80% sure.
-  The last 7 models are kept.
+  It is also retrained early once the sure answers reach 1.5 times what the
+  newest model learned from (and at least 200 more), so a model trained
+  while the first reads were filling in does not stand for a day. When it
+  declines, its top guesses are still kept in `model_top`, and
+  `spy-numbers check` lists the most seen running ads with no vertical
+  beside them. The last 7 models are kept.
 
 A creative is read again when a newer ad, a changed landing page or newer
 Raposa evidence arrives,

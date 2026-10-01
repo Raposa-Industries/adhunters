@@ -143,7 +143,9 @@ func planUser(r PlanRequest, language string) string {
 	if a := strings.TrimSpace(r.Ages); a != "" {
 		fmt.Fprintf(&b, "AGE RANGE OF THE PEOPLE IN EVERY PICTURE: %s\n\n", a)
 	}
-	if n := len(r.Winners); n > 0 && len(r.Analysis) > 0 {
+	if n := len(r.Winners); n > 0 && r.ForPictures {
+		fmt.Fprintf(&b, "THE AD'S PICTURES ATTACHED: the %d picture(s) after this text are the pictures these headlines will run with. Write headlines that fit them. Return an empty analysis.\n\n", n)
+	} else if n > 0 && len(r.Analysis) > 0 {
 		fmt.Fprintf(&b, "REFERENCE PICTURES ATTACHED: the %d picture(s) after this text are the person's references for this niche. They were already analysed: return an empty analysis and base the briefs on the pattern below, mostly close variations.\n\n", n)
 	} else if n > 0 {
 		fmt.Fprintf(&b, "REFERENCE PICTURES ATTACHED: the %d picture(s) after this text are the person's references for this niche. Analyse them first, then base the briefs on that pattern, mostly close variations.\n\n", n)

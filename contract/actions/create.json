@@ -2,112 +2,340 @@
   "app": "create",
   "actions": [
     {
-      "name": "create.new_brief",
+      "name": "create.new_session",
       "version": 1,
       "kind": "change",
-      "says": "Start a brief in Create and its first round of options: Create writes the headlines (always in English) and one idea per picture, then makes the pictures with OpenAI. The brief is ready when its options are made.",
-      "call": "create_api.new_brief_v1",
+      "says": "Open a Create session: a vertical and a name, which are also the library folders what it saves goes in (<vertical>/<name>). A name already used in that vertical opens that session again.",
+      "call": "create_api.new_session_v1",
       "args": [
-        {"name": "input", "type": "object", "says": "what to make", "schema": {
-          "type": "object", "additionalProperties": false,
-          "required": ["name", "vertical_id", "vertical_name"],
-          "properties": {
-            "name": {"type": "string", "description": "the brief's name, as the team would call it"},
-            "vertical_id": {"type": "string", "description": "the vertical's id, from library.verticals"},
-            "vertical_name": {"type": "string", "description": "the vertical's name, from library.verticals"},
-            "ages": {"type": "string", "description": "the age of the people the ads speak to, e.g. 55-75"},
-            "images": {"type": "integer", "description": "how many pictures to make, 0 to 12; 6 when left out"},
-            "headlines": {"type": "integer", "description": "how many headlines to write, 0 to 30; 10 when left out. Not both 0"},
-            "angles": {"type": "array", "items": {"type": "string"}, "description": "the angles to try"},
-            "own_headlines": {"type": "array", "items": {"type": "string"}, "description": "headlines the person gave, in English, to keep and to learn from"},
-            "extra": {"type": "string", "description": "anything else the person asked for"},
-            "references": {"type": "array", "description": "performing ads to learn from", "items": {
-              "type": "object", "additionalProperties": false, "required": ["kind", "id"],
-              "properties": {
-                "kind": {"type": "string", "enum": ["spy_ad", "library_creative"]},
-                "id": {"type": "string", "description": "a Spy ad's id (as in tracks.ads) or a library creative's id, as text"}
-              }
-            }}
-          }
-        }},
-        {"name": "requested_by", "from": "person"},
-        {"name": "origin", "from": "origin"}
+        {
+          "name": "name",
+          "type": "string",
+          "says": "the session's name, as the team would call it; it becomes a folder, so no / or \\",
+          "max": 120
+        },
+        {
+          "name": "vertical_id",
+          "type": "string",
+          "says": "the vertical's id, from library.verticals or shared/verticals"
+        },
+        {
+          "name": "vertical_name",
+          "type": "string",
+          "says": "the vertical's name, from the same list"
+        },
+        {
+          "name": "requested_by",
+          "from": "person"
+        },
+        {
+          "name": "origin",
+          "from": "origin"
+        }
       ],
-      "returns": "the brief's id",
-      "follow": {"view": "create_api.brief_v1", "id": "id", "state": "state", "done": ["ready"], "failed": ["failed"]},
-      "link": "/create/briefs/{returned}",
-      "per_day": 5,
-      "costs": "Paid to OpenAI: the headlines and each picture. A brief's cost_usd says what it spent; OpenAI credit is short, so ask for no more pictures than the person needs."
+      "returns": "the session's id",
+      "link": "/create/s/{returned}",
+      "per_day": 10
     },
     {
-      "name": "create.save_set",
+      "name": "create.send",
       "version": 1,
       "kind": "change",
-      "says": "Save chosen options of a ready brief into the library as one set, which Launch then makes ads from. Every option must be the brief's and done.",
-      "call": "create_api.save_set_v1",
+      "says": "Send a turn in a session: Create makes pictures with OpenAI and writes headlines (always in English) from the prompt and the picked items. Picked pictures are changed as the prompt says (or varied, with no prompt); picked headlines are varied. Pick items with create.items.",
+      "call": "create_api.send_turn_v1",
       "args": [
-        {"name": "brief_id", "type": "integer", "says": "the brief's id"},
-        {"name": "option_ids", "type": "integer[]", "says": "the chosen options' ids", "max": 42},
-        {"name": "name", "type": "string", "says": "the set's name", "max": 120},
-        {"name": "ai_label", "type": "string", "enum": ["ai", "not_ai", "unset"], "says": "the person's answer for the pictures: marked as made by AI (ai, as Create's page does by default), not_ai, or unset. Ask the person when they have not said"},
-        {"name": "requested_by", "from": "person"},
-        {"name": "origin", "from": "origin"}
+        {
+          "name": "session_id",
+          "type": "integer",
+          "says": "the session's id"
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "says": "what to make or change, in the person's words",
+          "max": 4000
+        },
+        {
+          "name": "picked",
+          "type": "integer[]",
+          "says": "ids of the session's items to start from (create.items), in order; empty for none",
+          "max": 8
+        },
+        {
+          "name": "images",
+          "type": "integer",
+          "says": "how many pictures to make, 0 to 8"
+        },
+        {
+          "name": "headlines",
+          "type": "integer",
+          "says": "how many headlines to write, 0 to 20; not both 0"
+        },
+        {
+          "name": "requested_by",
+          "from": "person"
+        },
+        {
+          "name": "origin",
+          "from": "origin"
+        }
       ],
-      "returns": "the save's id; create.saves shows its library_set_id once it is saved",
-      "follow": {"view": "create_api.save_v1", "id": "id", "state": "state", "done": ["done"], "failed": ["failed"]},
-      "link": "/create/briefs/{brief_id}",
+      "returns": "the turn's id",
+      "follow": {
+        "view": "create_api.turn_v1",
+        "id": "id",
+        "state": "state",
+        "done": [
+          "done"
+        ],
+        "failed": [
+          "failed"
+        ]
+      },
+      "link": "/create/s/{session_id}",
+      "per_day": 10,
+      "costs": "Paid to OpenAI: each picture, and one text call for the headlines. A session's cost_usd says what it spent; OpenAI credit is short, so ask for no more pictures than the person needs."
+    },
+    {
+      "name": "create.save_items",
+      "version": 1,
+      "kind": "change",
+      "says": "Save chosen items of a session into the library, in the session's own folder (made by its first save), which Launch then makes ads from. Every item must be the session's and done.",
+      "call": "create_api.save_items_v1",
+      "args": [
+        {
+          "name": "session_id",
+          "type": "integer",
+          "says": "the session's id"
+        },
+        {
+          "name": "item_ids",
+          "type": "integer[]",
+          "says": "the chosen items' ids",
+          "max": 100
+        },
+        {
+          "name": "ai_label",
+          "type": "string",
+          "enum": [
+            "ai",
+            "not_ai",
+            "unset"
+          ],
+          "says": "the person's answer for the pictures: marked as made by AI (ai, as Create's page does by default), not_ai, or unset. Ask the person when they have not said"
+        },
+        {
+          "name": "requested_by",
+          "from": "person"
+        },
+        {
+          "name": "origin",
+          "from": "origin"
+        }
+      ],
+      "returns": "the save's id; create.saves shows the library_set_id once it is saved",
+      "follow": {
+        "view": "create_api.session_save_v1",
+        "id": "id",
+        "state": "state",
+        "done": [
+          "done"
+        ],
+        "failed": [
+          "failed"
+        ]
+      },
+      "link": "/create/s/{session_id}",
       "per_day": 20
     },
     {
-      "name": "create.briefs",
+      "name": "create.sessions",
       "version": 1,
       "kind": "read",
-      "says": "Briefs and where each stands: draft, reading, making, ready (options to choose from) or failed (error says why), with what it asked for and what it cost.",
-      "view": "create_api.brief_v1",
-      "columns": ["id", "name", "vertical_id", "vertical_name", "ages", "images", "headlines", "angles", "extra", "state", "error",
-                  "rounds", "cost_usd", "requested_by", "origin", "created_at", "updated_at"],
+      "says": "Create's sessions: each one's vertical and name (its library folder), the library set once something was saved, and what it cost.",
+      "view": "create_api.session_v1",
+      "columns": [
+        "id",
+        "name",
+        "vertical_id",
+        "vertical_name",
+        "library_set_id",
+        "cost_usd",
+        "made_by",
+        "created_at",
+        "updated_at"
+      ],
       "filters": [
-        {"column": "id", "op": "=", "type": "integer"},
-        {"column": "state", "op": "in", "type": "string", "enum": ["draft", "reading", "making", "ready", "failed"]},
-        {"column": "vertical_id", "op": "=", "type": "string"},
-        {"column": "requested_by", "op": "=", "type": "string"},
-        {"column": "name", "op": "has", "type": "string"}
+        {
+          "column": "id",
+          "op": "=",
+          "type": "integer"
+        },
+        {
+          "column": "vertical_id",
+          "op": "=",
+          "type": "string"
+        },
+        {
+          "column": "made_by",
+          "op": "=",
+          "type": "string"
+        },
+        {
+          "column": "name",
+          "op": "has",
+          "type": "string"
+        }
+      ],
+      "order": "updated_at DESC",
+      "limit": 20
+    },
+    {
+      "name": "create.turns",
+      "version": 1,
+      "kind": "read",
+      "says": "The turns sent in sessions: the prompt, the items picked, how many pictures and headlines were asked, and whether it is making, done or failed (error says why).",
+      "view": "create_api.turn_v1",
+      "columns": [
+        "id",
+        "session_id",
+        "prompt",
+        "picked",
+        "images",
+        "headlines",
+        "state",
+        "error",
+        "made_by",
+        "created_at"
+      ],
+      "filters": [
+        {
+          "column": "id",
+          "op": "=",
+          "type": "integer"
+        },
+        {
+          "column": "session_id",
+          "op": "=",
+          "type": "integer"
+        },
+        {
+          "column": "state",
+          "op": "in",
+          "type": "string",
+          "enum": [
+            "making",
+            "done",
+            "failed"
+          ]
+        }
       ],
       "order": "id DESC",
       "limit": 20
     },
     {
-      "name": "create.options",
+      "name": "create.items",
       "version": 1,
       "kind": "read",
-      "says": "The options made for briefs: pictures (kind image; image_url once done) and headlines (kind headline, text), with the angle each tries and the person's marks (chosen, starred).",
-      "view": "create_api.option_v1",
-      "columns": ["id", "brief_id", "round", "kind", "angle", "text", "image_url", "width", "height", "state", "error", "parent_id",
-                  "note", "chosen", "starred", "created_at"],
-      "outside": ["angle", "text"],
+      "says": "The pictures (kind image; image_url once done) and headlines (kind headline, text) of sessions, where each came from (origin, the turn and the items it started from), and the library's id once saved.",
+      "view": "create_api.item_v1",
+      "columns": [
+        "id",
+        "session_id",
+        "turn_id",
+        "kind",
+        "origin",
+        "from_ids",
+        "text",
+        "angle",
+        "image_url",
+        "width",
+        "height",
+        "state",
+        "error",
+        "library_id",
+        "created_at"
+      ],
       "filters": [
-        {"column": "brief_id", "op": "=", "type": "integer"},
-        {"column": "kind", "op": "=", "type": "string", "enum": ["image", "headline"]},
-        {"column": "state", "op": "in", "type": "string", "enum": ["waiting", "making", "done", "failed"]},
-        {"column": "round", "op": "=", "type": "integer"},
-        {"column": "chosen", "op": "=", "type": "boolean"},
-        {"column": "starred", "op": "=", "type": "boolean"}
+        {
+          "column": "session_id",
+          "op": "=",
+          "type": "integer"
+        },
+        {
+          "column": "turn_id",
+          "op": "=",
+          "type": "integer"
+        },
+        {
+          "column": "kind",
+          "op": "=",
+          "type": "string",
+          "enum": [
+            "image",
+            "headline"
+          ]
+        },
+        {
+          "column": "state",
+          "op": "in",
+          "type": "string",
+          "enum": [
+            "waiting",
+            "making",
+            "done",
+            "failed"
+          ]
+        }
       ],
       "order": "id",
       "limit": 100,
-      "show": {"id": "id", "image": "image_url", "text": "text"}
+      "show": {
+        "id": "id",
+        "image": "image_url",
+        "text": "text"
+      }
     },
     {
       "name": "create.saves",
-      "version": 1,
+      "version": 2,
       "kind": "read",
-      "says": "Saves of chosen options into the library: waiting, saving, done or failed, and the library set once it exists (Launch opens it at /launch/new?set=<library_set_id>).",
-      "view": "create_api.save_v1",
-      "columns": ["id", "brief_id", "name", "option_ids", "ai_label", "state", "error", "library_set_id", "requested_by", "created_at", "finished_at"],
+      "says": "Saves of session items into the library: waiting, saving, done or failed, and the library set (Launch opens it at /launch/new?set=<library_set_id>).",
+      "view": "create_api.session_save_v1",
+      "columns": [
+        "id",
+        "session_id",
+        "item_ids",
+        "ai_label",
+        "state",
+        "error",
+        "library_set_id",
+        "made_by",
+        "created_at",
+        "finished_at"
+      ],
       "filters": [
-        {"column": "id", "op": "=", "type": "integer"},
-        {"column": "brief_id", "op": "=", "type": "integer"},
-        {"column": "state", "op": "in", "type": "string", "enum": ["waiting", "saving", "done", "failed"]}
+        {
+          "column": "id",
+          "op": "=",
+          "type": "integer"
+        },
+        {
+          "column": "session_id",
+          "op": "=",
+          "type": "integer"
+        },
+        {
+          "column": "state",
+          "op": "in",
+          "type": "string",
+          "enum": [
+            "waiting",
+            "saving",
+            "done",
+            "failed"
+          ]
+        }
       ],
       "order": "id DESC",
       "limit": 20

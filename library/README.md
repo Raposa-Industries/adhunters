@@ -23,7 +23,7 @@ schemas.
 - **Headlines.** One per text, cleaned of hidden characters
   (`shared/text`), found by the text. A headline's text never changes: a new
   text is a new headline, because the ad id is made from it.
-- **Sets.** Creatives and headlines made or uploaded together: one brief in
+- **Sets.** Creatives and headlines made or uploaded together: one session in
   Create, one folder in Drive. A creative or headline can be in several sets.
 - **Safe copies.** Each picture's bytes and a 480px JPEG thumbnail, in the
   library's file store (an S3 bucket in production, `shared/files`), written
@@ -32,7 +32,7 @@ schemas.
 Nothing is deleted. Hiding a creative or headline takes it out of the lists;
 anything that points at it still finds it.
 
-The verticals are Spy's ids (spy/verticals/verticals.yaml). The team's nine
+The verticals are our fixed list's ids (shared/verticals/verticals.yaml). The team's nine
 must-haves start with codes (Blood Pressure `BP`, Memory Loss `MM`, Weight
 Loss `WL`, Tinnitus `TN`, Diabetes `DB`, Neuropathy `NP`, Prostate Health
 `PR`, Joint Pain `JP`, Vision `VS`); another vertical gets a code from its

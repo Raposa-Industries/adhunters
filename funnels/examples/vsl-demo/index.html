@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="ah-lp" content="demo-vsl">
+<title>Watch the short presentation</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <p class="kicker">Demo page · AdHunters Funnels</p>
+  <h1>Watch this short presentation before it's taken down</h1>
+  <p class="sub">A sample VSL page. The video, the button under it and the form below are tracked by Funnels.</p>
+
+  <!-- The VSL. Swap data-src and data-poster for the Bunny Stream files
+       (https://vz-xxxx.b-cdn.net/<video id>/playlist.m3u8 and thumbnail.jpg)
+       and data-pitch for the second the offer starts. -->
+  <div class="vsl" data-ah-video="demo-01"
+       data-src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+       data-pitch="1:00" data-curve="2"
+       data-unmute-text="Your video has already started"
+       data-unmute-cta="Click to listen"></div>
+
+  <!-- Hidden until the video passes 1:00, then counted when half in view. -->
+  <section class="offer" data-show-at="1:00" data-show-for="demo-01" data-ah-step="offer">
+    <h2>Ready to see the offer?</h2>
+    <p>This button carries the visitor's click id. On a real page it points at
+    the RedTrack offer click URL, e.g.
+    <code>https://&lt;domain&gt;.rttrk.com/click?clickid={clickid}</code>.</p>
+    <a class="buy" data-ah-click="buy" href="/offer?clickid={clickid}">Yes, show me the offer</a>
+  </section>
+
+  <section class="lead" data-ah-step="lead">
+    <h2>Prefer to get it by email?</h2>
+    <form data-ah-form="lead" action="/thanks" method="get">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" required>
+      <button type="submit">Send it to me</button>
+    </form>
+  </section>
+
+  <footer>Demo content only. No product is sold here.</footer>
+</main>
+</body>
+</html>

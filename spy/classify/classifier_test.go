@@ -98,6 +98,13 @@ func TestClassifier(t *testing.T) {
 	if got := read(t, db, 1003); got.vertical != "" || !got.unsure {
 		t.Errorf("nothing to go on: %+v", got)
 	}
+	// What the model would have said is kept, to see why it declined:
+	// here nothing, as it knows none of the words.
+	var guess string
+	if err := db.QueryRow(ctx, `SELECT model_top::text FROM spy.creative_class WHERE creative_id = 1003`).
+		Scan(&guess); err != nil || guess != `{"top": [], "model": 1}` {
+		t.Errorf("declined creative's look: %q %v", guess, err)
+	}
 	if got := read(t, db, 1001); got.vertical != "blood-pressure" || got.source != "model" || got.confidence < minAnswer {
 		t.Errorf("model should answer from 'cardiologist': %+v", got)
 	}
@@ -133,6 +140,44 @@ func TestClassifier(t *testing.T) {
 	}
 	if got := read(t, db, 1001); got.vertical != "blood-pressure" || got.source != "ad" || got.unsure {
 		t.Errorf("after a new ad: %+v", got)
+	}
+}
+
+// A model trained while the first reads were filling in is retrained once
+// the sure creatives have grown enough, not a day later.
+func TestClassifierRetrainsWhenExamplesGrow(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	c, err := New(db, slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := 1
+	add := func(n int) {
+		for i := 0; i < n; i++ {
+			seed(t, db, id, "", fmt.Sprintf("Cardiologist warns: high blood pressure trick number %d", id))
+			seed(t, db, id+1, "", fmt.Sprintf("Audiologist explains: tinnitus relief secret %d", id))
+			seed(t, db, id+2, "", fmt.Sprintf("Melt stubborn belly fat, weight loss hack %d", id))
+			id += 3
+		}
+	}
+	add(20)
+	for i, want := range []bool{true, false} {
+		res, err := c.Run(ctx)
+		if err != nil || res.Trained != want {
+			t.Fatalf("run %d with 60 creatives: %+v, %v", i, res, err)
+		}
+	}
+	add(30) // 150 now: 2.5 times, but only 90 more
+	if res, err := c.Run(ctx); err != nil || res.Trained {
+		t.Fatalf("90 more should not retrain: %+v, %v", res, err)
+	}
+	add(40) // 270 now: 210 more
+	if res, err := c.Run(ctx); err != nil || !res.Trained {
+		t.Fatalf("210 more should retrain: %+v, %v", res, err)
+	}
+	if res, err := c.Run(ctx); err != nil || res.Trained {
+		t.Fatalf("and then not again: %+v, %v", res, err)
 	}
 }
 
