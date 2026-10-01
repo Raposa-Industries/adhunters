@@ -52,8 +52,8 @@ function add(sum, n) {
   return sum;
 }
 
-// tracked is false while Intel has no sales from the tracker at all (its
-// RedTrack key not in yet): sales, CPA, revenue, profit and ROI then show
+// tracked is false while Intel has no sales from the tracker in the period
+// shown: sales, CPA, revenue, profit and ROI then show
 // "—" instead of a loss as big as the spend.
 let tracked = true;
 const sold = (show) => (n) => (tracked ? show(n) : '—');
