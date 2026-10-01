@@ -270,8 +270,12 @@ Public hostname), add a hostname `hunt-teste.fyi` with path `^/launch`,
 service `http://localhost:8094`, and move it above the one that serves the
 whole hostname. Launch is the only app that writes to Taboola and makes
 everything paused; the lent ZoltaGroup keys go in its file only with
-`TABOOLA_ONLY_OWN=1`, for paused tests the owner has approved, and never while
-create-web holds them too.
+`TABOOLA_ONLY_OWN=1`, for paused tests the owner has approved. create-web may
+hold the same keys (owner, 2026-10-01); each app touches only what it made.
+To copy them: `sudo grep -E '^TABOOLA_(CLIENT_ID|CLIENT_SECRET|ACCOUNTS)='
+/etc/adhunters/create-web.env | sudo tee -a /etc/adhunters/launch-web.env`,
+add `TABOOLA_ONLY_OWN=1`, then `sudo systemctl restart launch-web` (a later
+line in an env file wins).
 
 ## Not yet
 

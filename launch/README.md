@@ -171,7 +171,8 @@ the unit. `LAUNCH_LIBRARY_URL` is the library's API (default
 installs it on the data box with its login and the `launch_api_read` role
 (platform/OPERATIONS.md, "Launch's page"). Not deployed yet: the
 prototype (create-web at hunt-teste.fyi) keeps working until Launch
-replaces it. The lent ZoltaGroup login is never set on both at once.
+replaces it. Both may hold the lent ZoltaGroup login at once (owner,
+2026-10-01), each with `TABOOLA_ONLY_OWN=1`: each touches only what it made.
 
 See the pages with a fake Taboola (a few groups, campaigns and a pair), a
 fake library (two sets) and two Desk requests, on a throwaway database:
