@@ -1,6 +1,7 @@
 // One ad (a creative and its ads): what it is, how much it runs, where and
 // when, its links and campaigns, what its auctions cost, and what Raposa
-// found. From here a person asks Raposa to investigate it.
+// found. From here a person asks Raposa to investigate it, or opens Create
+// with this ad's image and headline to make variations.
 
 import { frame, h, api, rangePicker, rangeParams, load, presence, momentum, num, pct, money, when, day, word, direction, spark, bars, table, stats, link, windowText, keepRange, fill } from './spy.js';
 
@@ -28,6 +29,10 @@ async function draw() {
     ...(c.affiliate_networks || []).map((t) => h('span', { class: 'badge review' }, t)));
 
   const raposa = drawRaposa(out.raposa);
+  // Create reads the image, headline and vertical itself from the id.
+  const create = h('a', { class: 'button', href: '/create/?from=spy&creative=' + encodeURIComponent(id) }, 'Criar variações');
+  const actions = raposa.action || h('div', { class: 'actions' });
+  actions.prepend(create);
 
   const hero = h('div', { class: 'sp-hero' },
     c.image_url ? h('img', { src: c.image_url, alt: '', referrerpolicy: 'no-referrer' }) : h('div', { class: 'empty' }, 'Sem imagem'),
@@ -50,7 +55,7 @@ async function draw() {
         ['Dias ativos', num(c.active_days)],
         ['Vistas no total', num(c.sightings_total)],
       ])),
-      raposa.action));
+      actions));
 
   const series = out.series || [];
   const trend = h('section', { class: 'panel' }, h('h3', {}, 'Presença por dia, 30 dias'),
