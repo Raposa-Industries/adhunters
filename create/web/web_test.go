@@ -81,3 +81,18 @@ func TestTypesAndMissing(t *testing.T) {
 		t.Errorf("POST /: %d", rec.Code)
 	}
 }
+
+func TestRootSendsEverythingToLaunch(t *testing.T) {
+	h := Root()
+	for _, c := range []struct{ method, path string }{
+		{"GET", "/"}, {"GET", "/?x=1"}, {"GET", "/index.html"}, {"GET", "/app.js"},
+		{"GET", "/old/"}, {"GET", "/api/status"}, {"POST", "/api/plan"},
+		{"POST", "/api/taboola/campaigns"}, {"GET", "/_ads/sheet.js"},
+	} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(c.method, c.path, nil))
+		if rec.Code != http.StatusFound || rec.Header().Get("Location") != "/launch/" {
+			t.Errorf("%s %s: %d to %q, want a redirect to /launch/", c.method, c.path, rec.Code, rec.Header().Get("Location"))
+		}
+	}
+}

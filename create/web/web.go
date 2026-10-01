@@ -45,6 +45,16 @@ func Handler() http.Handler {
 	return serve(sub)
 }
 
+// Home is where every request create-web gets is sent: Launch (the tunnel
+// sends /launch to launch-web). The old launcher page is no longer served.
+const Home = "/launch/"
+
+// Root sends every request on to Home, whatever its path or method, so old
+// bookmarks and open tabs of the old launcher land on Launch.
+func Root() http.Handler {
+	return http.RedirectHandler(Home, http.StatusFound)
+}
+
 // serve is Handler over any folder, for tests.
 func serve(sub fs.FS) http.Handler {
 	files := http.FileServerFS(sub)

@@ -155,8 +155,11 @@ Rolling back one binary on a box:
 
 ## Create's page on hunt-teste.fyi
 
-`create-web` listens only on `127.0.0.1:8091` on the data box. People reach
-it at https://hunt-teste.fyi through a Cloudflare Tunnel (`cloudflared` on
+`create-web` listens only on `127.0.0.1:8091` on the data box. Its tunnel
+hostname serves every path no app claims. Since 2026-10-01 it only sends
+every request on to Launch (`/launch/`, `web.Home` in create/web): the old
+launcher page and its API are gone (owner's word), and its env file is no
+longer read past the two addresses. People reach it through a Cloudflare Tunnel (`cloudflared` on
 the data box dials out to Cloudflare, so no port opens), behind Cloudflare
 Access, which asks for an allowed email before the page loads. Access is
 what stops strangers spending OpenAI credit: never publish the hostname
@@ -173,16 +176,9 @@ Set up once, in the Cloudflare dashboard (Zero Trust):
 4. Access › Applications › Add (Self-hosted) for `hunt-teste.fyi`, with a
    policy that allows the team's emails (One-time PIN login).
 
-The OpenAI key goes in `/etc/adhunters/create-web.env`
-(`OPENAI_API_KEY=`), then `sudo systemctl restart create-web`.
-
-The Taboola keys go in the same file (`TABOOLA_CLIENT_ID`,
-`TABOOLA_CLIENT_SECRET`, `TABOOLA_ACCOUNTS`; the full list is in
-create/README.md). The only keys we hold are the lent ZoltaGroup login's,
-allowed for paused tests only, so with them the file must also carry
-`TABOOLA_ONLY_OWN=1`, and what the test made (the ids in
-`/var/lib/create-web/kept/taboola-state.json`) is deleted afterwards. Without Taboola keys the page still makes the
-bulk sheet.
+`/etc/adhunters/create-web.env` still holds the OpenAI and Taboola keys the
+old page used; create-web no longer reads them (Launch's own file has the
+Taboola ones). Leave the file as it is until the owner says to clean it up.
 
 ## Landing sites (Funnels)
 
