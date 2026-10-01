@@ -67,7 +67,9 @@ saves something, one pass:
 3. **Gone.** After a whole listing, a file that was not in it is marked gone.
    Its creative's row and thumbnail stay; its bytes went with the file.
 
-The library never deletes, moves or renames anything in Drive. Headlines
+The library never deletes or moves anything in Drive. The one thing it
+renames is a set's folder, when the app that owns the set renames it
+(`PATCH /api/sets/{id}`; Create does when a session is renamed). Headlines
 typed into a Drive file by hand are not read (only pictures are).
 
 **Signing in.** The folder's owner is a personal Google account, where a
@@ -106,7 +108,9 @@ continues after the last id of a page.
 - `GET /api/sets?vertical=`, `POST /api/sets` (`name`, `vertical_id`,
   `vertical_name` for a new vertical, `origin`, `origin_ref`, `made_by`; a
   name already used in the vertical gets " (2)"), `GET /api/sets/{id}` (the
-  set, its creatives and headlines in order).
+  set, its creatives and headlines in order), `PATCH /api/sets/{id}`
+  (`{"name": ...}`: a name another set of the vertical has is refused; the
+  Drive folder is renamed on the next pass).
 - `GET /api/creatives?vertical=&set=&angle=&origin=&ai_label=&q=&hidden=1&limit=&before=`,
   `GET /api/creatives/{id}`.
 - `POST /api/creatives`: multipart, `file` (the picture) and `meta` (JSON:

@@ -186,6 +186,16 @@ func (c *Client) AddHeadlines(ctx context.Context, hs []NewHeadline) error {
 	return c.postJSON(ctx, "/api/headlines", map[string]any{"headlines": hs}, nil)
 }
 
+// RenameSet renames a set; the library renames its Drive folder on its next
+// pass. A name another set of the vertical has is a 400 *Error.
+func (c *Client) RenameSet(ctx context.Context, id int64, name string) error {
+	b, err := json.Marshal(map[string]string{"name": name})
+	if err != nil {
+		return err
+	}
+	return c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/sets/%d", id), "application/json", bytes.NewReader(b), nil)
+}
+
 // Creative reads one creative.
 func (c *Client) Creative(ctx context.Context, id string) (Creative, error) {
 	var out Creative

@@ -249,8 +249,8 @@ func (s *Store) Sessions(ctx context.Context, verticalID string, limit int) ([]S
 	return out, rows.Err()
 }
 
-// Rename gives a session another name. Its library folder keeps the name it
-// was saved under.
+// Rename gives a session another name. The site renames its library set
+// (and so its Drive folder) too, once it has one.
 func (s *Store) Rename(ctx context.Context, id int64, name string) (Session, error) {
 	name = openai.CleanLine(name)
 	if name == "" || len([]rune(name)) > 120 || strings.ContainsAny(name, `/\`) {
@@ -417,9 +417,15 @@ func (s *Store) Item(ctx context.Context, id int64) (Item, error) {
 	return it, err
 }
 
+// ItemsFrom returns a session's done items that came from ref (a library
+// id, or spy:creative:<id>), oldest first.
+func (s *Store) ItemsFrom(ctx context.Context, sessionID int64, ref string) ([]Item, error) {
+	return s.items(ctx, `i.session_id = $1 AND i.library_ref = $2 AND i.state = 'done'`, sessionID, ref)
+}
+
 // AddPicture adds a picture to a session from a person's computer (origin
-// upload) or the library (origin library, ref its creative's id). It is
-// kept before its row is written.
+// upload), the library (origin library, ref its creative's id) or a Spy ad
+// (origin spy, ref spy:creative:<id>). It is kept before its row is written.
 func (s *Store) AddPicture(ctx context.Context, sessionID int64, origin, ref string, b []byte) (Item, error) {
 	if _, err := s.Session(ctx, sessionID); err != nil {
 		return Item{}, err
@@ -444,8 +450,8 @@ func (s *Store) AddPicture(ctx context.Context, sessionID int64, origin, ref str
 	return s.Item(ctx, id)
 }
 
-// AddHeadline adds a headline a person typed (origin typed) or took from the
-// library (origin library, ref its id). Headlines are always English;
+// AddHeadline adds a headline a person typed (origin typed), took from the
+// library (origin library, ref its id) or from a Spy ad (origin spy). Headlines are always English;
 // Taboola's rules only warn.
 func (s *Store) AddHeadline(ctx context.Context, sessionID int64, origin, ref, text string) (Item, error) {
 	text = openai.CleanLine(text)

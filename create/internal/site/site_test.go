@@ -18,6 +18,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
 	"github.com/Raposa-Industries/adhunters/create/internal/sessions"
 	"github.com/Raposa-Industries/adhunters/create/internal/site"
+	"github.com/Raposa-Industries/adhunters/create/internal/spyad"
 	"github.com/Raposa-Industries/adhunters/create/internal/testdb"
 	"github.com/Raposa-Industries/adhunters/shared/files"
 )
@@ -38,7 +39,35 @@ func (ai) Image(context.Context, openai.ImageRequest) (openai.Image, error) {
 	return openai.Image{Data: b.Bytes(), MIME: "image/png", Width: 32, Height: 18}, nil
 }
 
-type lib struct{ sets int }
+type lib struct {
+	sets    int
+	renamed []string
+	refuse  bool
+}
+
+func (l *lib) RenameSet(_ context.Context, id int64, name string) error {
+	if l.refuse {
+		return &library.Error{Status: 400, Message: "taken"}
+	}
+	l.renamed = append(l.renamed, itoa(id)+" "+name)
+	return nil
+}
+
+type spy struct{ pics int }
+
+func (s *spy) Ad(_ context.Context, id int64) (spyad.Ad, error) {
+	if id != 77 {
+		return spyad.Ad{}, spyad.ErrNotFound
+	}
+	return spyad.Ad{CreativeID: 77, ImageURL: "https://cdn.example/77.png", Headline: "Doctors Hate This Trick", Brand: "Acme/Health", VerticalID: "tinnitus"}, nil
+}
+
+func (s *spy) Picture(context.Context, string) ([]byte, error) {
+	s.pics++
+	var b bytes.Buffer
+	_ = png.Encode(&b, image.NewRGBA(image.Rect(0, 0, 40, 30)))
+	return b.Bytes(), nil
+}
 
 func (l *lib) File(context.Context, string) ([]byte, error) { return nil, library.ErrNotFound }
 func (l *lib) AddSet(context.Context, library.NewSet) (library.Set, error) {
@@ -72,9 +101,11 @@ func call(t *testing.T, h http.Handler, method, path, ct string, body io.Reader,
 func TestSite(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	st := sessions.New(testdb.New(t), &files.Dir{Root: t.TempDir()}, func() {})
-	w := sessions.NewWorker(st, ai{}, &lib{}, log)
+	l := &lib{}
+	sp := &spy{}
+	w := sessions.NewWorker(st, ai{}, l, log)
 	browse := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) { _, _ = rw.Write([]byte("lib " + r.URL.Path)) })
-	web, err := site.New(st, &lib{}, browse, on{}, log, "test")
+	web, err := site.New(st, l, sp, browse, on{}, log, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,6 +200,58 @@ func TestSite(t *testing.T) {
 	var list struct{ Sessions []sessions.Session }
 	if code := call(t, h, "GET", "/create/api/sessions?vertical=memory-loss", "", nil, &list); code != 200 || len(list.Sessions) != 1 || list.Sessions[0].Images != 2 {
 		t.Fatalf("sessions: %d %+v", code, list)
+	}
+
+	// Renaming a saved session renames its library set; a name the library
+	// refuses puts the session's name back.
+	var renamed sessions.Session
+	if code := call(t, h, "PATCH", "/create/api/sessions/"+id, "application/json", strings.NewReader(`{"name":"Colher de sopa"}`), &renamed); code != 200 ||
+		renamed.Name != "Colher de sopa" || len(l.renamed) != 1 || l.renamed[0] != "9 Colher de sopa" {
+		t.Fatalf("rename: %d %+v %v", code, renamed, l.renamed)
+	}
+	l.refuse = true
+	if code := call(t, h, "PATCH", "/create/api/sessions/"+id, "application/json", strings.NewReader(`{"name":"Taken"}`), nil); code != 400 {
+		t.Errorf("a name the library refuses: %d", code)
+	}
+	call(t, h, "GET", "/create/api/sessions/"+id, "", nil, &d)
+	if d.Session.Name != "Colher de sopa" {
+		t.Errorf("name after a refused rename: %q", d.Session.Name)
+	}
+
+	// A Spy ad opens a session in its vertical with its picture and headline
+	// picked; opening it again adds nothing.
+	var ad struct {
+		Ad           spyad.Ad
+		VerticalName string `json:"vertical_name"`
+		Name         string
+	}
+	if code := call(t, h, "GET", "/create/api/spy/77", "", nil, &ad); code != 200 || ad.VerticalName != "Tinnitus" || ad.Name != "Spy 77 · Acme Health" {
+		t.Fatalf("spy ad: %d %+v", code, ad)
+	}
+	if code := call(t, h, "GET", "/create/api/spy/78", "", nil, nil); code != 404 {
+		t.Errorf("an ad Spy does not have: %d", code)
+	}
+	var opened struct {
+		Session sessions.Session
+		Picked  []int64
+		Warning string
+	}
+	if code := call(t, h, "POST", "/create/api/spy/77/session", "application/json", strings.NewReader(`{}`), &opened); code != 200 ||
+		opened.Session.VerticalID != "tinnitus" || len(opened.Picked) != 2 || opened.Warning != "" {
+		t.Fatalf("from spy: %d %+v", code, opened)
+	}
+	var again struct {
+		Session sessions.Session
+		Picked  []int64
+	}
+	call(t, h, "POST", "/create/api/spy/77/session", "application/json", strings.NewReader(`{}`), &again)
+	if again.Session.ID != opened.Session.ID || len(again.Picked) != 2 || sp.pics != 1 {
+		t.Errorf("again: %+v, %d downloads", again, sp.pics)
+	}
+	var sd sessions.Detail
+	call(t, h, "GET", "/create/api/sessions/"+itoa(opened.Session.ID), "", nil, &sd)
+	if len(sd.Items) != 2 || sd.Items[0].Origin != "spy" || sd.Items[1].Text != "Doctors Hate This Trick" {
+		t.Errorf("spy items: %+v", sd.Items)
 	}
 
 	// A change from another site's page is refused.

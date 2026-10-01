@@ -381,6 +381,41 @@ func (s *Store) AddSet(ctx context.Context, n NewSet) (Set, error) {
 	return out, err
 }
 
+// RenameSet gives a set a new name; its Drive folder, when it has one, is
+// renamed on the next pass. A name another set of the vertical has is
+// refused, since it is also a folder's name.
+func (s *Store) RenameSet(ctx context.Context, id int64, name string) (Set, error) {
+	name = text.CleanLine(name)
+	if name == "" {
+		return Set{}, BadInput("a set needs a name")
+	}
+	if len([]rune(name)) > 120 {
+		return Set{}, BadInput("a set's name is 120 characters at most")
+	}
+	var taken bool
+	err := s.db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM library.set o JOIN library.set s ON s.id = $1
+		WHERE o.id <> s.id AND COALESCE(o.vertical_id, '') = COALESCE(s.vertical_id, '') AND lower(o.name) = lower($2))`, id, name).Scan(&taken)
+	if err != nil {
+		return Set{}, err
+	}
+	if taken {
+		return Set{}, BadInput("another set of this vertical already has that name")
+	}
+	tag, err := s.db.Exec(ctx, `UPDATE library.set SET name = $2, rename_folder = (drive_folder_id IS NOT NULL AND name <> $2) OR rename_folder
+		WHERE id = $1`, id, name)
+	var pe *pgconn.PgError
+	if errors.As(err, &pe) && pe.Code == "23505" {
+		return Set{}, BadInput("another set of this vertical already has that name")
+	}
+	if err != nil {
+		return Set{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return Set{}, ErrNotFound
+	}
+	return s.GetSet(ctx, id)
+}
+
 // Sets lists sets, newest first, optionally of one vertical.
 func (s *Store) Sets(ctx context.Context, vertical string, limit int) ([]Set, error) {
 	if limit <= 0 || limit > 500 {

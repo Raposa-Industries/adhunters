@@ -55,6 +55,7 @@ func (a *API) Handler() http.Handler {
 	mux.HandleFunc("GET /api/sets", a.sets)
 	mux.HandleFunc("POST /api/sets", a.addSet)
 	mux.HandleFunc("GET /api/sets/{id}", a.set)
+	mux.HandleFunc("PATCH /api/sets/{id}", a.renameSet)
 	mux.HandleFunc("GET /api/creatives", a.creatives)
 	mux.HandleFunc("POST /api/creatives", a.addCreative)
 	mux.HandleFunc("GET /api/creatives/{id}", a.creative)
@@ -224,6 +225,27 @@ func (a *API) addSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, s)
+}
+
+// renameSet takes {"name": "..."}; the Drive folder follows on the next pass.
+func (a *API) renameSet(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	var in struct {
+		Name string `json:"name"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	s, err := a.st.RenameSet(r.Context(), id, in.Name)
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	a.drive.Kick()
+	writeJSON(w, http.StatusOK, s)
 }
 
 // set returns a set with its creatives and headlines, in order.

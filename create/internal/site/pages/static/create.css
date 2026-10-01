@@ -95,3 +95,9 @@ dialog.sheet h2 { margin: 0; }
 .lib-detail img { width: 100%; border-radius: 10px; border: 1px solid var(--line-strong); }
 .words { columns: 3 220px; column-gap: 20px; font-size: 13px; }
 .words li { break-inside: avoid; margin-bottom: 4px; }
+
+/* opening a session from a Spy ad */
+.spy-ad { display: flex; gap: 14px; align-items: flex-start; margin: 14px 0; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+.spy-ad img { width: 220px; max-width: 45%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; border: 1px solid var(--line-strong); }
+.spy-start .new-session { max-width: 420px; }
+@media (max-width: 760px) { .spy-ad { flex-direction: column; } .spy-ad img { max-width: 100%; width: 100%; } }

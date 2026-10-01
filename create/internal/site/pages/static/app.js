@@ -168,12 +168,51 @@ async function sessionColumn(aside, verticalID, currentID) {
 // ---- start -------------------------------------------------------------------------
 
 async function startPage(aside) {
+  const q = new URLSearchParams(location.search);
+  if (q.get('from') === 'spy' && /^\d+$/.test(q.get('creative') || '')) return spyStart(aside, Number(q.get('creative')));
   const col = await sessionColumn(aside, remember('create.vertical'), 0);
   main.append(h('div', { class: 'start' },
     h('h1', {}, 'Criar'),
     h('p', { class: 'lead' }, 'Escolha a vertical e abra uma sessão nova à esquerda, ou continue uma das sessões da lista. Numa sessão você pede imagens e headlines, escolhe as que gostou e pede variações delas quantas vezes quiser. O que você salvar vai para a biblioteca, na pasta da sessão.'),
     status.openai_why ? h('div', { class: 'note warn' }, 'Fazer está desligado: ' + status.openai_why) : null));
   col.name.focus();
+}
+
+// spyStart opens a session from a Spy ad (/create/?from=spy&creative=<id>):
+// straight away when Spy knows its vertical, else after the person picks one.
+async function spyStart(aside, creative) {
+  const col = await sessionColumn(aside, remember('create.vertical'), 0);
+  const got = await api('GET', `/create/api/spy/${creative}`).catch((e) => { main.append(h('div', { class: 'note fail' }, e.message)); return null; });
+  if (!got) return;
+  const open = async (body) => {
+    const r = await run(() => api('POST', `/create/api/spy/${creative}/session`, body));
+    if (!r) return;
+    if (r.warning) { try { sessionStorage.setItem('create.toast', r.warning); } catch { /* the toast is a nicety */ } }
+    location.replace(`/create/s/${r.session.id}?pick=${r.picked.join(',')}`);
+  };
+  const ad = got.ad;
+  const card = h('div', { class: 'start spy-start' },
+    h('h1', {}, 'Criar variações'),
+    h('p', { class: 'lead' }, 'Do anúncio do Spy' + (ad.brand ? ` de ${ad.brand}` : '') + '. A imagem e a headline dele entram na sessão já escolhidas; é só escrever o que mudar.'),
+    h('div', { class: 'spy-ad' },
+      ad.image_url ? h('img', { src: ad.image_url, alt: '', referrerpolicy: 'no-referrer' }) : null,
+      ad.headline ? h('p', { class: 'hl-text' }, ad.headline) : h('p', { class: 'faint' }, 'Sem headline.')));
+  main.append(card);
+  if (got.vertical_name) {
+    card.append(h('p', { class: 'making' }, `Abrindo a sessão em ${got.vertical_name}`));
+    await open({});
+    return;
+  }
+  const cats = await getCategories();
+  const sel = verticalSelect(cats, '');
+  const name = h('input', { type: 'text', value: got.name, maxlength: 120, 'aria-label': 'Nome da sessão' });
+  card.append(h('form', { class: 'new-session', onsubmit: (e) => {
+    e.preventDefault();
+    if (!sel.value) { toast('Escolha a vertical'); sel.focus(); return; }
+    open({ vertical_id: sel.value, name: name.value });
+  } }, h('p', { class: 'hint' }, 'O Spy ainda não sabe a vertical deste anúncio.'), sel, name,
+  h('button', { type: 'submit', class: 'primary' }, 'Abrir sessão')));
+  sel.focus();
 }
 
 // ---- a session -------------------------------------------------------------------
@@ -189,6 +228,17 @@ async function sessionPage(id, aside) {
   // picked: the item ids picked for the next turn or a save, in the order
   // they were picked (a prompt can say "the first").
   let picked = [];
+  // A Spy ad (or any link) can arrive with items already picked.
+  const pre = new URLSearchParams(location.search).get('pick');
+  if (pre) {
+    const have = new Set(d.items.map((it) => it.id));
+    picked = pre.split(',').map(Number).filter((x) => have.has(x));
+    history.replaceState(null, '', location.pathname);
+  }
+  try {
+    const msg = sessionStorage.getItem('create.toast');
+    if (msg) { sessionStorage.removeItem('create.toast'); setTimeout(() => toast(msg), 300); }
+  } catch { /* the toast is a nicety */ }
   let counts = null; // the person's own counts, once they touch them
   let ai = true;
   let polling = null;
@@ -319,7 +369,7 @@ async function sessionPage(id, aside) {
     }
     for (const ev of events) {
       if (ev.added) {
-        kids.push(h('div', { class: 'msg you added' }, h('div', { class: 'bubble' }, h('span', { class: 'faint' }, 'Você adicionou'))),
+        kids.push(h('div', { class: 'msg you added' }, h('div', { class: 'bubble' }, h('span', { class: 'faint' }, ev.added.every((it) => it.origin === 'spy') ? 'Do anúncio do Spy' : 'Você adicionou'))),
           h('div', { class: 'msg out' }, results(ev.added)));
         continue;
       }
@@ -515,7 +565,7 @@ async function sessionPage(id, aside) {
       h('dl', {},
         it.brief ? [h('dt', {}, 'O que o modelo recebeu'), h('dd', {}, it.brief)] : null,
         from.length ? [h('dt', {}, 'Feita a partir de'), h('dd', {}, pickedChips(it.from_ids))] : null,
-        h('dt', {}, 'Origem'), h('dd', {}, { made: 'Feita no Create', upload: 'Do computador', library: 'Da biblioteca', typed: 'Escrita' }[it.origin] || it.origin),
+        h('dt', {}, 'Origem'), h('dd', {}, { made: 'Feita no Create', upload: 'Do computador', library: 'Da biblioteca', typed: 'Escrita', spy: 'De um anúncio do Spy' }[it.origin] || it.origin),
         it.cost_usd ? [h('dt', {}, 'Custo'), h('dd', {}, money(it.cost_usd))] : null),
       h('div', { class: 'actions' },
         h('button', { type: 'button', class: 'primary', onclick: (e) => { if (!picked.includes(it.id)) toggle(it); e.target.closest('dialog').close(); prompt.focus(); } }, 'Escolher para variar'),
