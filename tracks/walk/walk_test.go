@@ -180,11 +180,11 @@ func TestWalkerSavesAndReplays(t *testing.T) {
 	}
 
 	dir := t.TempDir()
-	w, err := spool.Open(dir, "t", slog.New(slog.NewTextHandler(io.Discard, nil)), spool.Options{})
+	w, err := spool.Open(dir, "adhunters-worker", slog.New(slog.NewTextHandler(io.Discard, nil)), spool.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	c := Config{DB: db, Lines: &direct{}, Spool: w, Instance: "t", Version: "test", Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	c := Config{DB: db, Lines: &direct{}, Spool: w, Instance: "adhunters-worker", Version: "test", Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		PageTimeout: 5 * time.Second, Now: func() time.Time { return now }}
 	c.defaults()
 	c.walkOne(dues[0])

@@ -56,7 +56,9 @@ One JSON line per scrape: `id` (ULID), `at`, `network`, `publisher`, `device`,
 not valid UTF-8 goes in `body_b64` instead, so every answer round-trips
 exactly. `truncated` marks one cut at 8 MB, as the collector cut them.
 
-One file per instance, network and minute:
+One file per instance, network and minute (an instance name is lowercase
+words joined by `-`, such as the walker's host name `adhunters-worker`; a
+writer refuses any other):
 `spool/<network>/<yyyy>/<mm>/<dd>/<hh>/capture-<instance>-<hhmm>.ndjson`. When
 the minute ends it is compressed with zstd to the same name plus `.zst`, and
 the plain file is removed. The path under `spool/` is the archive key under

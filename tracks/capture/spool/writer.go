@@ -1,6 +1,7 @@
 package spool
 
 import (
+	"fmt"
 	"log/slog"
 
 	rawspool "github.com/Raposa-Industries/adhunters/shared/spool"
@@ -18,8 +19,13 @@ type Options = rawspool.Options
 type Writer struct{ *rawspool.Writer }
 
 // Open starts a writer under dir for instance. Files a previous run left
-// unsealed (it crashed, or was killed) are sealed first.
+// unsealed (it crashed, or was killed) are sealed first. An instance name
+// ParseKey could not read back is refused, so no file is written that could
+// never be archived.
 func Open(dir, instance string, log *slog.Logger, opt Options) (*Writer, error) {
+	if !instanceRe.MatchString(instance) {
+		return nil, fmt.Errorf("spool: instance %q: use lowercase letters, digits, _ and -", instance)
+	}
 	w, err := rawspool.Open(dir, "capture", instance, log, opt)
 	if err != nil {
 		return nil, err

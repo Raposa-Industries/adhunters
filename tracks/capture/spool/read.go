@@ -19,7 +19,11 @@ type Key struct {
 	Minute   time.Time // UTC
 }
 
-var keyRe = regexp.MustCompile(`^([a-z0-9]+)/(\d{4})/(\d{2})/(\d{2})/(\d{2})/capture-([a-z0-9_]+)-(\d{2})(\d{2})(?:-\d+)?\.ndjson\.zst$`)
+// instanceRe is an instance name: lowercase words joined by "-", so a host
+// name such as adhunters-worker (tracks-walker runs with -instance %H) is one.
+var instanceRe = regexp.MustCompile(`^[a-z0-9_]+(?:-[a-z0-9_]+)*$`)
+
+var keyRe = regexp.MustCompile(`^([a-z0-9]+)/(\d{4})/(\d{2})/(\d{2})/(\d{2})/capture-([a-z0-9_]+(?:-[a-z0-9_]+)*?)-(\d{2})(\d{2})(?:-\d+)?\.ndjson\.zst$`)
 
 // ParseKey reads a sealed raw file's key:
 // <network>/<yyyy>/<mm>/<dd>/<hh>/capture-<instance>-<hhmm>[-n].ndjson.zst.
