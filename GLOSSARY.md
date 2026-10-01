@@ -241,3 +241,4 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | bot suspect | A journey that looks automated: the browser says so, its user agent is missing or a bot's, it had no input and under 1 s in view, or it came from a data-center network. Kept and flagged, left out of the counts. |
 | data-center network | A network a cloud or hosting company publishes as its own (AWS, Google Cloud, or a list imported by hand). People rarely browse from one. |
 | draft count | The counts of an hour that has not closed yet, made every few minutes so the pages can show it, marked partial. Never published in `funnels_api`. |
+| path test | The CI test in `e2e/` that walks one ad from Spy through Create, the library and Launch to Intel, through the real binaries, with fakes for Taboola, OpenAI and Google Drive. It fails when two apps stop agreeing, or when Launch sends Taboola anything that breaks the owner's rules. |

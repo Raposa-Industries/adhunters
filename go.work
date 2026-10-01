@@ -5,6 +5,7 @@ use (
 	./create
 	./funnels
 	./desk
+	./e2e
 	./intel
 	./kit
 	./launch
