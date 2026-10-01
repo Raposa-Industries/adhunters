@@ -134,8 +134,10 @@ UPDATE spy.setting SET text_value = 'grouping' WHERE name = 'operators_from';
 ### Verticals
 
 [shared/verticals/verticals.yaml](../shared/verticals/verticals.yaml) is our own fixed list
-of verticals: 56 of them in 16 categories, so a list can be filtered by
-category first, then vertical. A classifier may only answer with one of its
+of verticals: 59 of them in 16 categories, so a list can be filtered by
+category first, then vertical. Home & Garden, Phones & Apps and Celebrity &
+Viral were added on 2026-10-01, from the most seen running ads that had no
+vertical. A classifier may only answer with one of its
 ids, or with nothing; it never makes up a name. Each vertical has a short
 name (20 characters at most), what it covers, the near neighbours that go
 elsewhere, and the keywords and hints the old rules used. The
