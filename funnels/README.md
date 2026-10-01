@@ -8,10 +8,10 @@ recordings and heatmaps. Study: the funnel tracking page (29 Sep 2026).
 
 | Part | What it does | Status |
 |---|---|---|
-| `funnels-edge` | What visitors reach: the hosted landing sites, the page script at `/ah.js`, and the collector at `/e`, which writes every beacon as received to the spool. No database. | built, not deployed |
-| `funnels-loader` | Archives the spool's raw files, loads them into events, and closes each hour into journeys and counts. Replays any range. | built, not deployed |
-| `web/ah.js` | The page script: the beacon and the VSL player, one file, plus Clarity when the site has it. | built |
-| Funnels app | Pages on the shared shell: sites and versions, funnels with drop-off, retention curves, split by ad. | later, once the shell lands |
+| `funnels-edge` | What visitors reach: the hosted landing sites, the page script at `/ah.js`, and the collector at `/e`, which writes every beacon as received to the spool. No database. | deployed |
+| `funnels-loader` | Archives the spool's raw files, loads them into events, closes each hour into journeys and counts, and counts the open hours as drafts. Replays any range. | deployed |
+| `web/ah.js` | The page script: the beacon and the VSL player, one file, plus Clarity when the site has it. | deployed |
+| `funnels-web` | The pages under `/funnels/`, in the Frame: sites and their landing pages, each page's steps and drop-off split by campaign, videos and their retention curves, one journey by click id, the hosted sites and their versions. | built, not deployed |
 
 ```
 landing page ──beacon──▶ funnels-edge /e ──▶ spool (one file per minute, zstd)
@@ -20,7 +20,9 @@ landing page ──beacon──▶ funnels-edge /e ──▶ spool (one file per
                                    archive (s3://adhunters-raw/funnels)
                                                  │ parse (again at will)
                                                  ▼
-                             funnels.event ─ hour closes ─▶ journeys, counts ─▶ funnels_api
+                             funnels.event ─ hour closes ──▶ journeys, counts ─▶ funnels_api
+                                   │                            │
+                                   └ every 5 min ─▶ drafts ─────┴─▶ funnels-web (/funnels/)
 ```
 
 ## The page script
@@ -146,8 +148,11 @@ it.
 ```
 funnels-loader migrate
 funnels-loader run    -archive s3://adhunters-raw/funnels [-spool /var/lib/funnels/spool] [-close-after 1h]
+                      [-draft-every 5m] [-keep-events 2160h] [-networks-every 24h]
 funnels-loader replay -from 2026-09-30T00:00:00Z -to 2026-10-01T00:00:00Z
 funnels-loader status
+funnels-loader networks fetch|list
+funnels-loader networks import -archive … -source hetzner ./hetzner.txt
 ```
 
 Every 10 s it:
@@ -165,15 +170,32 @@ Every 10 s it:
    every file that can hold its journeys is loaded: the journeys that started
    in it are rebuilt from all their events, whenever those arrived, then its
    counts. A late event makes its journey's hour dirty and it closes again.
+4. **Drafts** each hour that has never closed (the one under way, and those
+   waiting for `-close-after`), at most every `-draft-every`: the same
+   journeys and counts, written to the `funnels_draft` schema. The pages show
+   them marked partial; `funnels_api` never does. An hour's drafts go when it
+   closes.
+
+Once an hour it drops events older than `-keep-events` (90 days), never from
+an hour still to close: the journeys and counts stay, and the archive keeps
+every beacon. To recount an old range, replay it with a day more on each side,
+so the journeys crossing its edges have all their events.
 
 `replay` marks a range's files pending again (quarantined ones too); the
 running loader does the work. `status` exits non-zero while a file is
 quarantined.
 
 A journey is flagged `bot_suspect`, never dropped, when the browser says it is
-automated, its user agent is missing or a bot's, or it had no input and under
-1 s in view. Counts leave flagged journeys out, except the `bots` columns.
-A list of data-center networks for `net` is still to come.
+automated, its user agent is missing or a bot's, it had no input and under
+1 s in view, or its network (the /24 or /48) lies inside a **data-center
+network**. Counts leave flagged journeys out, except the `bots` columns. The
+loader fetches AWS's and Google Cloud's published lists once a day; each is
+kept in the archive as received (`networks/<source>/…`) before it is read,
+and replaces that source's list in `funnels.dc_network`. Other lists (Hetzner,
+OVH, DigitalOcean) go in by hand: `networks import` takes any text with one
+network per line and keeps it the same way. A journey is checked when its
+hour is counted, so a new list applies from then on; replay a range to apply
+it there.
 
 ## funnels_api
 
@@ -194,6 +216,26 @@ sub1, sub4 and sub8 are Taboola's campaign, item and site id as RedTrack's
 Taboola preset fills them; they reach a journey when the landing URL carries
 them. Otherwise the join goes through `clickid` and RedTrack.
 
+## funnels-web
+
+The pages under `/funnels/` on the team's address, behind Cloudflare Access
+(platform/OPERATIONS.md), in the Frame:
+
+| Page | Shows |
+|---|---|
+| Visão geral (`/funnels/`) | Each landing site's journeys, how many came with a click id, interacted, time in view and bots; every video's plays. |
+| A site (`/funnels/s/<site>`) | Where journeys came in, and each landing page's steps: how many reached each, the share of the page's views, how many stopped there. |
+| A landing page (`/funnels/s/<site>/lp?name=<lp>`) | Its steps, and the same split by Taboola campaign (sub1) for its deepest steps. |
+| Vídeos, a video (`/funnels/v/<video>`) | Loads, autoplays, plays, seconds heard per play, the pitch; the retention curve per A/B arm; the same per device. |
+| Jornadas (`/funnels/journeys?q=`) | One journey by its tracker click id (as RedTrack shows it): pages, steps with times, videos, why it looks like a bot. |
+| Hospedagem (`/funnels/hosting`) | The hosted sites, the version each serves, the older ones, Clarity on or off. |
+
+Every page takes a window (today, yesterday, 7 or 30 days, UTC days), a device
+and a campaign. Hours still open come from the drafts and the page says so.
+`funnels-web` reads Funnels' tables through its own login (`funnels_web`, role
+`funnels_web_read`) and writes nothing; publishing stays on the command line.
+It listens on `127.0.0.1:8099`; ops on `127.0.0.1:9123`.
+
 ## Working here
 
 ```
@@ -201,9 +243,8 @@ go test ./...                          # PG_TEST_URL=postgres://… for the data
 node --test web/test/*.test.js
 ```
 
-Deploy files are in `deploy/`; `platform/servers/setup.sh` installs both
-binaries on the data box, makes the `funnels` login and the address key, and
-copies the object storage keys from Tracks' loader.
+Deploy files are in `deploy/`; `platform/servers/setup.sh` installs the three
+binaries on the data box, makes the `funnels` and `funnels_web` logins and
+the address key, and copies the object storage keys from Tracks' loader.
 
-Next: the Funnels app pages on the shared shell; hourly counts for the hour
-still open; keep times for `funnels.event`; the data-center network list.
+Next: RedTrack's conversions beside the journeys, once Intel reads them.

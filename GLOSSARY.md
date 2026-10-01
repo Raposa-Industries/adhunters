@@ -237,4 +237,6 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | retention curve | For each second of a video, the plays that heard it. |
 | pitch | The second a video starts selling. Set per video; the buy button can appear then. |
 | arm | One of the choices an A/B test splits journeys between (a video, a pitch time). A journey always gets the same arm. |
-| bot suspect | A journey that looks automated: the browser says so, its user agent is missing or a bot's, or it had no input and under 1 s in view. Kept and flagged, left out of the counts. |
+| bot suspect | A journey that looks automated: the browser says so, its user agent is missing or a bot's, it had no input and under 1 s in view, or it came from a data-center network. Kept and flagged, left out of the counts. |
+| data-center network | A network a cloud or hosting company publishes as its own (AWS, Google Cloud, or a list imported by hand). People rarely browse from one. |
+| draft count | The counts of an hour that has not closed yet, made every few minutes so the pages can show it, marked partial. Never published in `funnels_api`. |

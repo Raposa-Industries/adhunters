@@ -1,0 +1,23 @@
+{{define "home"}}{{template "top" .}}
+<header class="page-head"><div><h1>Visão geral</h1>{{template "fresh" .}}</div></header>
+
+<section class="block">
+  <h3>Sites</h3>
+  <div class="table-wrap"><table class="list">
+  <thead><tr><th>Site</th><th class="num">Jornadas</th><th class="num">Com click id</th><th class="num">Interagiram</th><th class="num">Tempo médio na página</th><th class="num">Robôs</th></tr></thead>
+  <tbody>{{range .Traffic}}<tr>
+    <td><a href="{{sitePath .Site}}?{{$.Keep}}">{{.Site}}</a></td>
+    <td class="num">{{int .Journeys}}</td>
+    <td class="num">{{pct (share .WithClickID .Journeys)}}</td>
+    <td class="num">{{pct (share .WithInput .Journeys)}}</td>
+    <td class="num">{{secs .AvgSeconds}}</td>
+    <td class="num faint">{{int .Bots}} ({{pct .BotShare}})</td>
+  </tr>{{else}}<tr><td colspan="6" class="faint">Nenhuma jornada no período. Uma landing page só conta depois de ter o script da página (as hospedadas aqui já têm).</td></tr>{{end}}</tbody>
+  </table></div>
+</section>
+
+<section class="block">
+  <h3>Vídeos</h3>
+  {{template "videoRows" .Videos}}
+</section>
+{{template "bottom" .}}{{end}}

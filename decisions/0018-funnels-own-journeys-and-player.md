@@ -19,3 +19,11 @@ never dropped.
 video; none of them ties what happens inside a page to the ad that sent the
 visitor, and Vturb's numbers stay in its dashboard. Recordings are a solved
 problem that costs nothing with Clarity.
+
+**Added 2026-10-01:** parsed events (`funnels.event`) are kept 90 days;
+journeys and counts are kept for good, and the archive keeps every beacon, so
+a replay brings any range's events back. Hours still open are counted every
+few minutes into a separate `funnels_draft` schema that only Funnels' pages
+read, so `funnels_api` stays closed hours only. Journeys from published
+cloud networks (AWS, Google Cloud, lists imported by hand) are flagged as
+bot suspects; each list is kept as received before it is read.
