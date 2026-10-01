@@ -1,4 +1,4 @@
-package web
+package access
 
 import (
 	"context"
@@ -37,7 +37,7 @@ func TestAccess(t *testing.T) {
 	defer certs.Close()
 
 	at := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
-	a := &Access{Team: certs.URL, Audience: "aud-1", Client: certs.Client(), Now: func() time.Time { return at }}
+	a := &Checker{Team: certs.URL, Audience: "aud-1", Client: certs.Client(), Now: func() time.Time { return at }}
 	sign := func(k *rsa.PrivateKey, kid string, claims map[string]any) string {
 		head, _ := json.Marshal(map[string]string{"alg": "RS256", "kid": kid})
 		body, _ := json.Marshal(claims)
@@ -80,18 +80,61 @@ func TestAccess(t *testing.T) {
 		}
 	}
 
-	// Wrap refuses without a token and passes the email on with one.
-	h := a.Wrap(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(who(r))) }))
+	// Wrap refuses without a token, even with Access's email header (which
+	// anything on the box could send), and passes the email on with one.
+	h := a.Wrap(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(Email(r))) }))
 	w := httptest.NewRecorder()
-	h.ServeHTTP(w, httptest.NewRequest("GET", "/spy/", nil))
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/app/", nil))
 	if w.Code != http.StatusForbidden {
 		t.Errorf("no token: %d", w.Code)
 	}
-	req := httptest.NewRequest("GET", "/spy/", nil)
-	req.Header.Set("Cf-Access-Jwt-Assertion", sign(key, "k1", good))
+	req := httptest.NewRequest("GET", "/app/", nil)
+	req.Header.Set("Cf-Access-Authenticated-User-Email", "mari@example.com")
+	w = httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Code != http.StatusForbidden || w.Body.String() == "mari@example.com" {
+		t.Errorf("the email header alone: %d %q", w.Code, w.Body.String())
+	}
+	req = httptest.NewRequest("GET", "/app/", nil)
+	req.Header.Set("Cf-Access-Jwt-Assertion", sign(key, "k1", with("email", "Mari@Example.com")))
 	w = httptest.NewRecorder()
 	h.ServeHTTP(w, req)
 	if w.Code != http.StatusOK || w.Body.String() != "mari@example.com" {
 		t.Errorf("with token: %d %q", w.Code, w.Body.String())
+	}
+}
+
+func TestFromEnv(t *testing.T) {
+	for _, c := range []struct {
+		team, aud string
+		check     bool
+		fails     bool
+	}{
+		{"", "", false, false},
+		{"https://acme.cloudflareaccess.com", "aud-1", true, false},
+		{"https://acme.cloudflareaccess.com", "", false, true},
+		{"", "aud-1", false, true},
+		{"FILL_ME", "FILL_ME", false, true},
+	} {
+		t.Setenv("ACCESS_TEAM", c.team)
+		t.Setenv("ACCESS_AUD", c.aud)
+		a, err := FromEnv()
+		if (err != nil) != c.fails || (a != nil) != c.check {
+			t.Errorf("%q %q: %v, %v", c.team, c.aud, a, err)
+		}
+		if a != nil && (a.Team != c.team || a.Audience != c.aud) {
+			t.Errorf("%q %q: %+v", c.team, c.aud, a)
+		}
+	}
+}
+
+func TestWithEmail(t *testing.T) {
+	r := httptest.NewRequest("GET", "/app/", nil)
+	if Email(r) != "" {
+		t.Errorf("no one: %q", Email(r))
+	}
+	r = r.WithContext(WithEmail(r.Context(), " Ana@Example.com "))
+	if Email(r) != "ana@example.com" {
+		t.Errorf("%q", Email(r))
 	}
 }

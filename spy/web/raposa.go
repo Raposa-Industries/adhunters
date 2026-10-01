@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"github.com/Raposa-Industries/adhunters/shared/access"
 )
 
 // raposaReadable says whether this login may read Raposa's views; without
@@ -77,9 +79,9 @@ func (s *Server) investigate(r *http.Request) (any, error) {
 	}
 	var inv int64
 	if err := s.db.QueryRow(r.Context(), `SELECT raposa_api.request_investigation_v1($1, $2, $3, $4)`,
-		id, body.Mode, body.AdID, who(r)).Scan(&inv); err != nil {
+		id, body.Mode, body.AdID, access.Email(r)).Scan(&inv); err != nil {
 		return nil, err
 	}
-	s.log.Info("investigation requested", "creative", id, "mode", body.Mode, "investigation", inv, "by", who(r))
+	s.log.Info("investigation requested", "creative", id, "mode", body.Mode, "investigation", inv, "by", access.Email(r))
 	return map[string]any{"investigation_id": inv}, nil
 }

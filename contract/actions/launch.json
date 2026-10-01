@@ -1,0 +1,247 @@
+{
+  "app": "launch",
+  "actions": [
+    {
+      "name": "launch.pause_campaigns",
+      "version": 1,
+      "kind": "ask",
+      "says": "Ask Launch to pause campaigns of one account. The request waits in Launch's Pedidos until a person confirms it there; only then does Launch pause them on the network.",
+      "call": "launch_api.new_request_v1",
+      "args": [
+        {"name": "kind", "const": "pause"},
+        {"name": "input", "type": "object", "says": "the account and its campaigns", "schema": {
+          "type": "object", "additionalProperties": false,
+          "required": ["network", "account", "campaigns"],
+          "properties": {
+            "network": {"type": "string", "enum": ["taboola"], "description": "the ad network"},
+            "account": {"type": "string", "description": "the account's id on the network (Taboola's alphabetic id, like acme-sc), as launch.pairs, launch.history and intel.campaign_results give it"},
+            "campaigns": {"type": "array", "items": {"type": "string"}, "description": "the campaigns' ids on the network, as text, all of this account"}
+          }
+        }},
+        {"name": "requested_by", "from": "person"},
+        {"name": "origin", "from": "origin"}
+      ],
+      "returns": "the request's id",
+      "follow": {"view": "launch_api.request_v1", "id": "id", "state": "state", "done": ["sent"], "failed": ["refused", "failed"]},
+      "link": "/launch/requests/{returned}",
+      "per_day": 40
+    },
+    {
+      "name": "launch.pause_ads",
+      "version": 1,
+      "kind": "ask",
+      "says": "Ask Launch to pause some ads of one campaign while the rest keep running. The request waits in Launch's Pedidos until a person confirms it there.",
+      "call": "launch_api.new_request_v1",
+      "args": [
+        {"name": "kind", "const": "pause_ads"},
+        {"name": "input", "type": "object", "says": "the campaign and its ads to pause", "schema": {
+          "type": "object", "additionalProperties": false,
+          "required": ["network", "account", "campaigns", "ads"],
+          "properties": {
+            "network": {"type": "string", "enum": ["taboola"], "description": "the ad network"},
+            "account": {"type": "string", "description": "the account's id on the network (Taboola's alphabetic id, like acme-sc)"},
+            "campaigns": {"type": "array", "items": {"type": "string"}, "description": "exactly one campaign's id, as text: one campaign per request"},
+            "ads": {"type": "array", "items": {"type": "string"}, "description": "the items' ids on the network (Taboola's campaign item ids, as intel.ad_results and launch.items give them), as text"}
+          }
+        }},
+        {"name": "requested_by", "from": "person"},
+        {"name": "origin", "from": "origin"}
+      ],
+      "returns": "the request's id",
+      "follow": {"view": "launch_api.request_v1", "id": "id", "state": "state", "done": ["sent"], "failed": ["refused", "failed"]},
+      "link": "/launch/requests/{returned}",
+      "per_day": 40
+    },
+    {
+      "name": "launch.change_campaigns",
+      "version": 1,
+      "kind": "ask",
+      "says": "Ask Launch to change campaigns' bid, daily cap, total spending limit or name. What is left out stays as it is. The request waits in Launch's Pedidos, showing each campaign as it is now, until a person confirms it there; a raise is only ever asked, never made by Desk.",
+      "call": "launch_api.new_request_v1",
+      "args": [
+        {"name": "kind", "const": "change"},
+        {"name": "input", "type": "object", "says": "the campaigns and the new values", "schema": {
+          "type": "object", "additionalProperties": false,
+          "required": ["network", "account", "campaigns", "change"],
+          "properties": {
+            "network": {"type": "string", "enum": ["taboola"], "description": "the ad network"},
+            "account": {"type": "string", "description": "the account's id on the network (Taboola's alphabetic id, like acme-sc)"},
+            "campaigns": {"type": "array", "items": {"type": "string"}, "description": "the campaigns' ids on the network, as text, all of this account; only one when the name changes"},
+            "change": {"type": "object", "additionalProperties": false, "description": "the new values; give at least one", "properties": {
+              "cpc": {"type": "number", "description": "the new bid per click, in US dollars"},
+              "daily_cap": {"type": "number", "description": "the new daily cap, in US dollars"},
+              "spending_limit": {"type": "number", "description": "the new total spending limit, in US dollars"},
+              "name": {"type": "string", "description": "the new name, for one campaign"}
+            }}
+          }
+        }},
+        {"name": "requested_by", "from": "person"},
+        {"name": "origin", "from": "origin"}
+      ],
+      "returns": "the request's id",
+      "follow": {"view": "launch_api.request_v1", "id": "id", "state": "state", "done": ["sent"], "failed": ["refused", "failed"]},
+      "link": "/launch/requests/{returned}",
+      "per_day": 20,
+      "costs": "A higher bid or cap lets the campaign spend more once a person confirms it."
+    },
+    {
+      "name": "launch.copy_campaigns",
+      "version": 1,
+      "kind": "ask",
+      "says": "Ask Launch to copy campaigns in their own group: each copy is a new, paused campaign with the same settings and ads (new ids, back through review), named \"<name> (cópia)\". Copying both campaigns of a pair makes a pair. The request waits in Launch's Pedidos until a person confirms it there.",
+      "call": "launch_api.new_request_v1",
+      "args": [
+        {"name": "kind", "const": "duplicate"},
+        {"name": "input", "type": "object", "says": "the account and the campaigns to copy", "schema": {
+          "type": "object", "additionalProperties": false,
+          "required": ["network", "account", "campaigns"],
+          "properties": {
+            "network": {"type": "string", "enum": ["taboola"], "description": "the ad network"},
+            "account": {"type": "string", "description": "the account's id on the network (Taboola's alphabetic id, like acme-sc)"},
+            "campaigns": {"type": "array", "items": {"type": "string"}, "description": "the campaigns' ids on the network, as text, all of this account"}
+          }
+        }},
+        {"name": "requested_by", "from": "person"},
+        {"name": "origin", "from": "origin"}
+      ],
+      "returns": "the request's id",
+      "follow": {"view": "launch_api.request_v1", "id": "id", "state": "state", "done": ["sent"], "failed": ["refused", "failed"]},
+      "link": "/launch/requests/{returned}",
+      "per_day": 20,
+      "costs": "Nothing until a person starts a copy in Taboola: copies are made paused."
+    },
+    {
+      "name": "launch.move_campaigns",
+      "version": 1,
+      "kind": "ask",
+      "says": "Ask Launch to move campaigns to another group of the same account. Taboola cannot change a campaign's group, so each move is a paused copy in that group with a new id; the original is paused when a person starts the copy (when_started), at once (now), or never (leave). The request waits in Launch's Pedidos until a person confirms it there.",
+      "call": "launch_api.new_request_v1",
+      "args": [
+        {"name": "kind", "const": "move"},
+        {"name": "input", "type": "object", "says": "the campaigns, the group they go to and what becomes of the originals", "schema": {
+          "type": "object", "additionalProperties": false,
+          "required": ["network", "account", "campaigns", "to_group", "originals"],
+          "properties": {
+            "network": {"type": "string", "enum": ["taboola"], "description": "the ad network"},
+            "account": {"type": "string", "description": "the account's id on the network (Taboola's alphabetic id, like acme-sc)"},
+            "campaigns": {"type": "array", "items": {"type": "string"}, "description": "the campaigns' ids on the network, as text, all of this account"},
+            "to_group": {"type": "string", "description": "the id of the group they go to, as launch.pairs' group_id gives it"},
+            "originals": {"type": "string", "enum": ["when_started", "now", "leave"], "description": "when the originals are paused: when a person starts the copy (when_started, the usual), at once (now) or never (leave)"}
+          }
+        }},
+        {"name": "requested_by", "from": "person"},
+        {"name": "origin", "from": "origin"}
+      ],
+      "returns": "the request's id; launch.moves lists each move once it has finished",
+      "follow": {"view": "launch_api.request_v1", "id": "id", "state": "state", "done": ["sent"], "failed": ["refused", "failed"]},
+      "link": "/launch/requests/{returned}",
+      "per_day": 20,
+      "costs": "Nothing until a person starts a copy in Taboola: copies are made paused."
+    },
+    {
+      "name": "launch.requests",
+      "version": 1,
+      "kind": "read",
+      "says": "Requests asked of Launch and where each stands: waiting (for a person in Launch's Pedidos), confirmed, sent, refused or failed, with what was asked, who confirmed it and the result.",
+      "view": "launch_api.request_v1",
+      "columns": ["id", "kind", "input", "requested_by", "origin", "state", "confirmed_by", "result", "made_at", "decided_at"],
+      "outside": ["result"],
+      "filters": [
+        {"column": "id", "op": "in", "type": "integer"},
+        {"column": "state", "op": "in", "type": "string", "enum": ["waiting", "confirmed", "sent", "refused", "failed"]},
+        {"column": "kind", "op": "in", "type": "string", "enum": ["pause", "pause_ads", "change", "duplicate", "move"]},
+        {"column": "requested_by", "op": "=", "type": "string"},
+        {"column": "made_at", "op": ">=", "type": "time"}
+      ],
+      "order": "id DESC",
+      "limit": 50
+    },
+    {
+      "name": "launch.pairs",
+      "version": 1,
+      "kind": "read",
+      "says": "The pairs Launch made: one desktop and one mobile campaign made together in one group, with the preset they came from. An id is empty while that campaign does not exist.",
+      "view": "launch_api.pair_v1",
+      "columns": ["id", "network", "account", "group_id", "name", "desktop_id", "mobile_id", "preset_id", "made_by", "made_at"],
+      "filters": [
+        {"column": "account", "op": "=", "type": "string"},
+        {"column": "group_id", "op": "=", "type": "string"},
+        {"column": "desktop_id", "op": "=", "type": "string"},
+        {"column": "mobile_id", "op": "=", "type": "string"},
+        {"column": "name", "op": "has", "type": "string"},
+        {"column": "made_at", "op": ">=", "type": "time"}
+      ],
+      "order": "id DESC",
+      "limit": 100
+    },
+    {
+      "name": "launch.presets",
+      "version": 1,
+      "kind": "read",
+      "says": "Presets people saved in Launch: group presets (budget and objective) and campaign presets (bid, caps, countries, link and tracking code, brand), each for one account or for all (account empty).",
+      "view": "launch_api.preset_v1",
+      "columns": ["id", "level", "network", "account", "name", "fields", "made_by", "made_at", "changed_by", "changed_at"],
+      "filters": [
+        {"column": "level", "op": "=", "type": "string", "enum": ["group", "campaign"]},
+        {"column": "account", "op": "=", "type": "string"},
+        {"column": "name", "op": "has", "type": "string"}
+      ],
+      "order": "name",
+      "limit": 100
+    },
+    {
+      "name": "launch.history",
+      "version": 1,
+      "kind": "read",
+      "says": "Launch's History: each thing Launch did on a network (new group, new pair, copy, move, pause, change), who did it, who asked (a person, intel:… or desk:…), before and after, and the result.",
+      "view": "launch_api.change_v1",
+      "columns": ["id", "at", "who", "asked_by", "network", "account", "group_id", "campaign_id", "kind", "summary", "before", "after", "result", "problems"],
+      "outside": ["before", "after", "problems"],
+      "filters": [
+        {"column": "account", "op": "=", "type": "string"},
+        {"column": "campaign_id", "op": "=", "type": "string"},
+        {"column": "group_id", "op": "=", "type": "string"},
+        {"column": "kind", "op": "in", "type": "string", "enum": ["new_group", "new_pair", "copy", "move", "pause", "change", "move_done"]},
+        {"column": "result", "op": "in", "type": "string", "enum": ["done", "partial", "failed", "waiting"]},
+        {"column": "who", "op": "=", "type": "string"},
+        {"column": "asked_by", "op": "=", "type": "string"},
+        {"column": "at", "op": ">=", "type": "time"}
+      ],
+      "order": "id DESC",
+      "limit": 100
+    },
+    {
+      "name": "launch.items",
+      "version": 1,
+      "kind": "read",
+      "says": "Every ad Launch made on a network (in new pairs and copies): its campaign and item ids, as text and as numbers, and our ad id (ah-…).",
+      "view": "launch_api.item_v1",
+      "columns": ["network", "account", "campaign_id", "item_id", "campaign_number", "item_number", "ad_id", "made_at"],
+      "filters": [
+        {"column": "account", "op": "=", "type": "string"},
+        {"column": "campaign_id", "op": "in", "type": "string"},
+        {"column": "item_id", "op": "in", "type": "string"},
+        {"column": "ad_id", "op": "=", "type": "string"}
+      ],
+      "order": "made_at DESC",
+      "limit": 200
+    },
+    {
+      "name": "launch.moves",
+      "version": 1,
+      "kind": "read",
+      "says": "Finished moves: the campaign that was moved and its copy in the target group, with both ids (as text and as numbers) and what became of the original.",
+      "view": "launch_api.campaign_move_v1",
+      "columns": ["id", "network", "account", "old_campaign_id", "new_campaign_id", "from_campaign", "to_campaign", "to_group", "originals", "moved_at"],
+      "filters": [
+        {"column": "account", "op": "=", "type": "string"},
+        {"column": "from_campaign", "op": "=", "type": "string"},
+        {"column": "to_campaign", "op": "=", "type": "string"},
+        {"column": "to_group", "op": "=", "type": "string"},
+        {"column": "moved_at", "op": ">=", "type": "time"}
+      ],
+      "order": "id DESC",
+      "limit": 100
+    }
+  ]
+}

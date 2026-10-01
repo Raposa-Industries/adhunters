@@ -1,0 +1,95 @@
+{
+  "app": "intel",
+  "actions": [
+    {
+      "name": "intel.campaign_results",
+      "version": 1,
+      "kind": "read",
+      "says": "Each Taboola campaign's result over a window (today so far, yesterday, 7d or 30d, in whole days of its account's time zone): Taboola's impressions, clicks and spend; the tracker's clicks, landing page views and clicks, sales and revenue; profit, ROI and cost per sale with its likely range. Biggest spend first.",
+      "view": "intel_api.campaign_result_v1",
+      "columns": ["campaign_id", "time_window", "account", "impressions", "clicks", "spent", "network_sales", "tracker_clicks", "lp_views",
+                  "lp_clicks", "sales", "revenue", "profit", "roi", "cost_per_sale", "cost_per_sale_low", "cost_per_sale_high", "sales_source",
+                  "refreshed_at"],
+      "filters": [
+        {"column": "campaign_id", "op": "in", "type": "integer"},
+        {"column": "time_window", "op": "in", "type": "string", "enum": ["today", "yesterday", "7d", "30d"]},
+        {"column": "account", "op": "=", "type": "string"},
+        {"column": "spent", "op": ">=", "type": "number", "says": "at least this spend in the window, in US dollars"},
+        {"column": "profit", "op": "<=", "type": "number", "says": "at most this profit in the window, in US dollars (below 0 is a loss)"},
+        {"column": "roi", "op": "<=", "type": "number", "says": "at most this ROI, profit over spend (-0.5 lost half the spend); a campaign the tracker never saw has none"}
+      ],
+      "order": "spent DESC",
+      "limit": 200
+    },
+    {
+      "name": "intel.ad_results",
+      "version": 1,
+      "kind": "read",
+      "says": "Each Taboola item's result over a window, compared with its campaign on profit per 1,000 impressions: step rates with their likely range, Intel's verdict (better, worse, usual, unclear, too_little) and how sure (clear, likely), and for an unclear one the spend to tell. custom_id is our ad id when Launch or Create made it. Biggest spend first.",
+      "view": "intel_api.ad_result_v1",
+      "columns": ["item_id", "time_window", "campaign_id", "account", "custom_id", "impressions", "clicks", "spent", "tracker_clicks", "lp_views",
+                  "lp_clicks", "sales", "revenue", "profit", "ctr", "ctr_low", "ctr_high", "lp_click_rate", "lp_click_rate_low",
+                  "lp_click_rate_high", "sale_rate", "sale_rate_low", "sale_rate_high", "order_value", "profit_per_1000",
+                  "profit_per_1000_low", "profit_per_1000_high", "profit_basis", "word", "sureness", "spend_to_tell", "refreshed_at"],
+      "filters": [
+        {"column": "campaign_id", "op": "in", "type": "integer"},
+        {"column": "item_id", "op": "in", "type": "integer"},
+        {"column": "time_window", "op": "in", "type": "string", "enum": ["today", "yesterday", "7d", "30d"]},
+        {"column": "account", "op": "=", "type": "string"},
+        {"column": "word", "op": "in", "type": "string", "enum": ["better", "worse", "usual", "unclear", "too_little"]},
+        {"column": "custom_id", "op": "=", "type": "string"}
+      ],
+      "order": "spent DESC",
+      "limit": 200
+    },
+    {
+      "name": "intel.suggestions",
+      "version": 1,
+      "kind": "read",
+      "says": "Changes Intel proposes, with why and the numbers behind them: pause-ads (item_ids), pause-campaign, set-daily-cap (values.daily_cap). Intel never makes them; each is made in Launch once a person confirms it. state: open, dismissed (a person's not now), gone (the reason no longer holds) or done.",
+      "view": "intel_api.suggestion_v1",
+      "columns": ["id", "kind", "account", "group_id", "campaign_id", "item_ids", "values", "title", "why", "numbers", "launch_url", "state",
+                  "created_at", "seen_at", "answered_at"],
+      "filters": [
+        {"column": "id", "op": "in", "type": "integer"},
+        {"column": "state", "op": "in", "type": "string", "enum": ["open", "dismissed", "gone", "done"]},
+        {"column": "kind", "op": "in", "type": "string", "enum": ["pause-ads", "pause-campaign", "set-daily-cap"]},
+        {"column": "campaign_id", "op": "in", "type": "integer"},
+        {"column": "account", "op": "=", "type": "string"}
+      ],
+      "order": "id DESC",
+      "limit": 100
+    },
+    {
+      "name": "intel.alerts",
+      "version": 1,
+      "kind": "read",
+      "says": "Intel's alerts, open (closed_at empty) and closed: runaway, tracking_gap, page_gap (landing page gap), postback_gap and item_rejected, with the numbers behind each.",
+      "view": "intel_api.alert_v1",
+      "columns": ["id", "kind", "account", "campaign_id", "item_id", "title", "detail", "numbers", "opened_at", "seen_at", "closed_at"],
+      "outside": ["detail"],
+      "filters": [
+        {"column": "kind", "op": "in", "type": "string", "enum": ["runaway", "tracking_gap", "page_gap", "postback_gap", "item_rejected"]},
+        {"column": "account", "op": "=", "type": "string"},
+        {"column": "campaign_id", "op": "in", "type": "integer"},
+        {"column": "opened_at", "op": ">=", "type": "time"}
+      ],
+      "order": "id DESC",
+      "limit": 100
+    },
+    {
+      "name": "intel.campaign_lines",
+      "version": 1,
+      "kind": "read",
+      "says": "Campaign lines: each campaign with every campaign it continues (copied from, back to the first; depth 0 is itself). root_id names the whole line, so a moved campaign's history can be followed across ids.",
+      "view": "intel_api.campaign_line_v1",
+      "columns": ["campaign_id", "ancestor_id", "depth", "root_id"],
+      "filters": [
+        {"column": "campaign_id", "op": "in", "type": "integer"},
+        {"column": "root_id", "op": "in", "type": "integer"}
+      ],
+      "order": "depth",
+      "limit": 200
+    }
+  ]
+}

@@ -5,9 +5,11 @@
 //	desk-web [-addr 127.0.0.1:8092]
 //
 // The database URL comes from DATABASE_URL. It listens on localhost, behind
-// the Cloudflare Tunnel with Access in front: who is asking is Access's
-// email header. DESK_DEV_PERSON stands in for it on a laptop, never on a
-// server. /healthz and /metrics are on OPS_ADDR. It stops cleanly on SIGTERM.
+// the Cloudflare Tunnel with Access in front. With ACCESS_TEAM and ACCESS_AUD
+// set, every request must carry a valid Access token, and the email in it is
+// who is asking; without them no page opens. DESK_DEV_PERSON stands in for
+// Access on a laptop, never on a server. /healthz and /metrics are on
+// OPS_ADDR either way. It stops cleanly on SIGTERM.
 package main
 
 import (
@@ -19,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Raposa-Industries/adhunters/contract/actions"
@@ -28,6 +31,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
+	"github.com/Raposa-Industries/adhunters/shared/access"
 )
 
 // version is set at build time: -ldflags "-X main.version=…".
@@ -54,6 +58,22 @@ func serve(args []string) error {
 	if err != nil {
 		return err
 	}
+	checker, err := access.FromEnv()
+	if err != nil {
+		return err
+	}
+	dev := strings.TrimSpace(os.Getenv("DESK_DEV_PERSON"))
+	switch {
+	case checker != nil && dev != "":
+		log.Warn("DESK_DEV_PERSON is ignored: Cloudflare Access says who is asking")
+		dev = ""
+	case dev != "":
+		log.Warn("DESK_DEV_PERSON is set: anyone reaching the pages is this person", "person", dev)
+	case checker == nil:
+		// Desk is off until Access is set up for it: the unit still runs
+		// and answers on /metrics, so it never reads as down.
+		log.Warn("no Cloudflare Access settings (ACCESS_TEAM, ACCESS_AUD): every page says to sign in")
+	}
 	raw := os.Getenv("DATABASE_URL")
 	if raw == "" {
 		return errors.New("DATABASE_URL is not set")
@@ -72,11 +92,7 @@ func serve(args []string) error {
 	}
 	defer db.Close()
 
-	dev := os.Getenv("DESK_DEV_PERSON")
-	if dev != "" {
-		log.Warn("DESK_DEV_PERSON is set: anyone reaching the pages is this person", "person", dev)
-	}
-	pages, err := web.New(store.New(db), catalog, log, dev)
+	pages, err := web.New(store.New(db), catalog, log, web.Config{Access: checker, DevPerson: dev})
 	if err != nil {
 		return err
 	}
@@ -88,7 +104,7 @@ func serve(args []string) error {
 		return err
 	}
 	httpSrv := &http.Server{Handler: pages.Handler(), ReadHeaderTimeout: 10 * time.Second}
-	log.Info("pages listening", "addr", ln.Addr().String(), "actions", len(catalog.Latest()))
+	log.Info("pages listening", "addr", ln.Addr().String(), "actions", len(catalog.Latest()), "access", checker != nil)
 
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)

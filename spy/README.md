@@ -206,9 +206,9 @@ The JSON is under `/spy/api/` (`ads`, `ads/{id}`, `operators`,
 JSON from the same origin.
 
 With `ACCESS_TEAM` and `ACCESS_AUD` set, every request needs a valid
-Cloudflare Access token (RS256, our audience and team, not expired); the
-email in it is who asked. Without them spy-web refuses to listen beyond
-localhost.
+Cloudflare Access token (RS256, our audience and team, not expired;
+`shared/access`); the email in it is who asked. Without them spy-web refuses
+to listen beyond localhost.
 
 Setting it up: `platform/servers/setup.sh data` makes the `spy` login (owns
 the spy schemas; `tracks_api_read`, `raposa_api_read`) and the `spy_web`

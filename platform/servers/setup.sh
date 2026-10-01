@@ -489,10 +489,16 @@ desk_box() {
     # The first example had FILL_ME for the key, which kept desk-agent
     # stopped, so it read as down; an empty key now means Desk is off.
     sed -i 's/^ANTHROPIC_API_KEY=FILL_ME$/ANTHROPIC_API_KEY=/' /etc/adhunters/desk-agent.env
+    # Settings files written before Desk checked Access's token lack its two
+    # lines; empty, every page says to sign in.
+    local k
+    for k in ACCESS_TEAM ACCESS_AUD; do
+        grep -q "^$k=" /etc/adhunters/desk-web.env || echo "$k=" >>/etc/adhunters/desk-web.env
+    done
     start desk-web desk-web
     start desk-agent desk-agent
-    if grep -q '^ANTHROPIC_API_KEY=$' /etc/adhunters/desk-agent.env; then
-        todo+=("Desk is off: to turn it on, put the Claude key in /etc/adhunters/desk-agent.env (ANTHROPIC_API_KEY=), then systemctl restart desk-agent")
+    if grep -q '^ANTHROPIC_API_KEY=$' /etc/adhunters/desk-agent.env || grep -q '^ACCESS_AUD=$' /etc/adhunters/desk-web.env; then
+        todo+=("Desk is off: to turn it on, put the Claude key in /etc/adhunters/desk-agent.env (ANTHROPIC_API_KEY=) and the Access application's ACCESS_TEAM and ACCESS_AUD in /etc/adhunters/desk-web.env, then systemctl restart desk-agent desk-web, and add the ^/desk tunnel route (platform/OPERATIONS.md)")
     fi
 }
 

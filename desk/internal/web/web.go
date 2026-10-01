@@ -3,9 +3,10 @@
 // OK and No, the choices it asks for, and each step as it runs; the to-do
 // list and the settings (with the stop switch) have their own pages.
 //
-// Who is asking comes from Cloudflare Access (its authenticated email
-// header); desk-web listens on localhost behind the tunnel, so nothing else
-// can set it. Each conversation is its person's alone.
+// Who is asking is the email in Cloudflare Access's signed token, checked on
+// every request (shared/access); without Access settings no page opens,
+// except on a laptop with a dev person. Each conversation is its person's
+// alone.
 package web
 
 import (
@@ -31,6 +32,7 @@ import (
 
 	"github.com/Raposa-Industries/adhunters/contract/actions"
 	"github.com/Raposa-Industries/adhunters/desk/internal/store"
+	"github.com/Raposa-Industries/adhunters/shared/access"
 	"github.com/Raposa-Industries/adhunters/shared/frame"
 )
 
@@ -42,16 +44,26 @@ var staticFiles embed.FS
 
 // Server serves the pages.
 type Server struct {
-	store     *store.Store
-	catalog   *actions.Catalog
-	log       *slog.Logger
-	tmpl      *template.Template
-	devPerson string
+	store   *store.Store
+	catalog *actions.Catalog
+	log     *slog.Logger
+	tmpl    *template.Template
+	cfg     Config
 }
 
-// New builds the pages. devPerson, when set, is who is asking when no
-// Cloudflare Access header came: for running desk-web on a laptop only.
-func New(s *store.Store, c *actions.Catalog, log *slog.Logger, devPerson string) (*Server, error) {
+// Config says how the pages know who is asking.
+type Config struct {
+	// Access checks Cloudflare Access's token on every request; the email in
+	// it is who is asking. Without it (and without DevPerson) every page
+	// says to sign in and nothing else happens.
+	Access *access.Checker
+	// DevPerson is who everyone is when Access is not set: for running
+	// desk-web on a laptop only.
+	DevPerson string
+}
+
+// New builds the pages.
+func New(s *store.Store, c *actions.Catalog, log *slog.Logger, cfg Config) (*Server, error) {
 	t, err := template.New("").Funcs(template.FuncMap{
 		"when":    when,
 		"day":     day,
@@ -67,7 +79,7 @@ func New(s *store.Store, c *actions.Catalog, log *slog.Logger, devPerson string)
 	if err != nil {
 		return nil, err
 	}
-	return &Server{store: s, catalog: c, log: log, tmpl: t, devPerson: strings.ToLower(strings.TrimSpace(devPerson))}, nil
+	return &Server{store: s, catalog: c, log: log, tmpl: t, cfg: cfg}, nil
 }
 
 // stateWords are the plan and step states as the page says them.
@@ -98,7 +110,17 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /desk/settings", s.settings)
 	mux.HandleFunc("POST /desk/settings", s.saveSettings)
 	mux.HandleFunc("POST /desk/switch", s.stopSwitch)
-	return secure(mux)
+	var h http.Handler = mux
+	switch {
+	case s.cfg.Access != nil:
+		h = s.cfg.Access.Wrap(h)
+	case s.cfg.DevPerson != "":
+		next := h
+		h = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r.WithContext(access.WithEmail(r.Context(), s.cfg.DevPerson)))
+		})
+	}
+	return secure(h)
 }
 
 // csp: the page's own files; pictures of options may come from the apps
@@ -152,13 +174,10 @@ func static() http.Handler {
 	})
 }
 
-// who is the person asking: Cloudflare Access's email, or the dev person.
+// who is the person asking: the email in Access's token, or the dev person.
 // Without either the page says to sign in, and nothing else happens.
 func (s *Server) who(w http.ResponseWriter, r *http.Request) (string, bool) {
-	p := strings.ToLower(strings.TrimSpace(r.Header.Get("Cf-Access-Authenticated-User-Email")))
-	if p == "" {
-		p = s.devPerson
-	}
+	p := access.Email(r)
 	if p == "" {
 		http.Error(w, "Entre pelo Cloudflare Access para usar o Desk.", http.StatusUnauthorized)
 		return "", false

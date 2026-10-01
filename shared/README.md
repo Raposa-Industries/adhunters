@@ -21,6 +21,7 @@ Launch replaces it), which `scripts/check-walls.sh` enforces.
 | `adsweb` | Browser code for building ads, served by `adsweb.Handler()` under `/<app>/_ads/`: pairing (Sortido, every combination), Taboola's title, image and link warnings, ad ids, the bulk sheet in Realize's own template (`realize-base.xlsx`, made by `tools/realize-base.mjs`) and the ZIP of images, and the tracker link split. | Launch, create-web |
 | `files` | Content-addressed file stores (`files/<md5>`): a folder, or an S3 bucket (Hetzner Object Storage) from `S3_*`. Moved from Raposa when the library needed it. | `raposa` (pages kept whole), `library` (safe copies) |
 | `text` | `CleanLine`: removes the hidden characters Taboola rejects and folds whitespace. | `library` (headlines) |
+| `access` | Cloudflare Access's login check: the signed token Access puts on every request (RS256, the application's AUD tag, the team as issuer, not expired), its keys read from the team's certs every hour; `Email(r)` is who is asking, and a request without a valid token is refused, whatever headers it carries. `FromEnv` reads `ACCESS_TEAM` and `ACCESS_AUD`. Moved from Spy when Desk needed it. | `spy` (spy-web), `desk` (desk-web) |
 
 Modules in the workspace (`go.work`) import it without a `require` line.
 
