@@ -112,9 +112,13 @@ waiting and runs here, and one running there is copied as stopped.
   `s3://$BLOB_BUCKET/raposa`), and each goes into the files store under its
   md5 after its bytes are checked. A job whose file cannot be read is not
   copied, and the command exits non-zero naming it.
-- **What changes**: the collector's `blocked` outcome becomes `error` with
-  the error `blocked`; disguises are matched on their code; `burn_scope` comes
-  from the click link's site; a paced retry keeps its release time.
+- **What changes**: the collector's visit outcomes fold into raposa's three.
+  `blocked` (a bot defence) and `unfinished` (a page that never finished
+  loading) become `error`, with that word as the error. `candidate` (a page
+  the reviewer never got, not yet called dark) becomes `dark`: the visit did
+  not get the reviewer's page, and the job's verdict comes from the job
+  itself. Disguises are matched on their code; `burn_scope` comes from the
+  click link's site; a paced retry keeps its release time.
 - **Not copied**: evidence (the collector wrote it into Spy's landing page
   visits, which stay where they are), burned lines (rebuilt from the copied
   visits), settings (the report lists the ones the collector had at another

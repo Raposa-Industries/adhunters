@@ -400,6 +400,31 @@ func (c *copier) count() error {
 	return nil
 }
 
+// visitOutcome maps the collector's visit outcomes onto raposa's three
+// (white, dark, error). Besides white, dark and error the collector wrote:
+// blocked, a bot defence served instead of the site (raposa's error);
+// candidate (043), a page the reviewer never got that was not yet called dark
+// (raposa's dark: the visit did not get the reviewer's page; the verdict comes
+// from the job itself); and unfinished (044), a page that never finished
+// loading (raposa's error: nothing to judge).
+func visitOutcome(outcome string, errText *string) (string, *string) {
+	note := ""
+	switch outcome {
+	case "white", "dark", "error":
+		return outcome, errText
+	case "candidate":
+		return "dark", errText
+	case "blocked", "unfinished":
+		note = outcome
+	default:
+		note = "the collector's outcome " + outcome
+	}
+	if errText == nil || *errText == "" {
+		errText = &note
+	}
+	return "error", errText
+}
+
 func (c *copier) copyVisits(ctx context.Context, j job, inv int64) error {
 	type visit struct {
 		id                                                  int32
@@ -438,15 +463,7 @@ func (c *copier) copyVisits(ctx context.Context, j job, inv int64) error {
 				disguise = &d
 			}
 		}
-		outcome, errText := v.outcome, v.errText
-		if outcome == "blocked" {
-			// The collector's fourth outcome: the page refused the visit.
-			outcome = "error"
-			if errText == nil || *errText == "" {
-				s := "blocked"
-				errText = &s
-			}
-		}
+		outcome, errText := visitOutcome(v.outcome, v.errText)
 		var landed *int32
 		if v.landed != nil {
 			id, err := c.page(ctx, *v.landed)

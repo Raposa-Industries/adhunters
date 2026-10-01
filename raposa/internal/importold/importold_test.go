@@ -98,7 +98,9 @@ INSERT INTO spy.raposa_job (id, creative_id, status, mode, origin, retry_of, att
 INSERT INTO spy.raposa_visit (id, job_id, purpose, rung, disguise_id, outcome, landed_page_id, steps_count, error) VALUES
     (1, 1, 'ladder', 1, 11, 'white', 1, 1, NULL),
     (2, 1, 'sample', 2, 12, 'dark', 3, 2, NULL),
-    (3, 1, 'sample', 9, 19, 'blocked', NULL, 0, NULL);
+    (3, 1, 'sample', 9, 19, 'blocked', NULL, 0, NULL),
+    (4, 1, 'sample', 2, 12, 'candidate', 3, 0, NULL),
+    (5, 1, 'sample', 2, 12, 'unfinished', NULL, 0, NULL);
 INSERT INTO spy.raposa_step VALUES
     (1, 1, 1, 'landing', NULL, NULL),
     (2, 1, 2, 'landing', NULL, NULL),
@@ -173,7 +175,7 @@ func TestImport(t *testing.T) {
 	if r.Jobs != 3 || r.Copied != 2 || r.UnknownCreative != 1 || r.UnknownKeys[0] != "ck-b" || r.Failed != 0 {
 		t.Fatalf("report: %+v", r)
 	}
-	if r.Visits != 3 || r.PagesNew != 2 || r.Files != 2 || r.FileBytes != 19 {
+	if r.Visits != 5 || r.PagesNew != 2 || r.Files != 2 || r.FileBytes != 19 {
 		t.Fatalf("counts: %+v", r)
 	}
 	if len(r.SettingsDiffer) != 1 || !strings.HasPrefix(r.SettingsDiffer[0], "visits_target") {
@@ -212,6 +214,14 @@ func TestImport(t *testing.T) {
 		WHERE s.clicked_text = 'Order now' AND p.content_hash <> md5('order')::uuid`).Scan(&badSteps)
 	if blocked != 1 || steps != 3 || badSteps != 0 {
 		t.Fatalf("blocked %d, steps %d, steps on the wrong page %d", blocked, steps, badSteps)
+	}
+	// The collector's later outcomes: a candidate counts as dark, an
+	// unfinished page as an error.
+	var dark, unfinished int
+	_ = db.QueryRow(ctx, `SELECT count(*) FROM raposa.visit WHERE investigation_id = $1 AND outcome = 'dark'`, first).Scan(&dark)
+	_ = db.QueryRow(ctx, `SELECT count(*) FROM raposa.visit WHERE investigation_id = $1 AND outcome = 'error' AND error = 'unfinished'`, first).Scan(&unfinished)
+	if dark != 2 || unfinished != 1 {
+		t.Fatalf("dark %d (want the dark visit and the candidate), unfinished %d", dark, unfinished)
 	}
 	var pages int
 	_ = db.QueryRow(ctx, `SELECT count(*) FROM raposa.page`).Scan(&pages)
