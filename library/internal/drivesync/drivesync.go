@@ -2,27 +2,30 @@
 // step. One pass:
 //
 //  1. Out: every creative not in Drive yet is uploaded to
-//     <vertical>/<set>/<name>.<ext>, and each set whose headlines changed gets
-//     its "Headlines.txt" written again. Our ids ride on each file as Drive
-//     app properties, which only the library can read.
-//  2. In: the whole folder is listed (each page kept raw in the file store).
-//     A picture the library does not have is downloaded, kept (safe copy
-//     first) and added as a creative from Drive: its vertical from the
-//     top folder's name, its set from the folder it sits in.
+//     <vertical>/<set>/<name>.<ext>, and the bytes that waited for it in its
+//     row are cleared: from then on Drive holds them and nothing else does
+//     (decisions/0020-library-on-drive-only.md). Each set whose headlines
+//     changed gets its "Headlines.txt" written again. Our ids ride on each
+//     file as Drive app properties, which only the library can read.
+//  2. In: the whole folder is listed (each page kept raw in
+//     library.drive_page). A picture the library does not have is
+//     downloaded once, for its hash and thumbnail, and added as a creative
+//     whose bytes are that Drive file: its vertical from the top folder's
+//     name, its set from the folder it sits in.
 //  3. Gone: after a whole listing, a file that was not in it is marked gone,
-//     and so is its creative's copy in Drive. The creative and its safe copy
-//     stay.
+//     and so is its creative. The creative's row and thumbnail stay; its
+//     bytes went with the file.
 //
 // Nothing is ever deleted in Drive.
 package drivesync
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -34,7 +37,6 @@ import (
 	"github.com/Raposa-Industries/adhunters/library/internal/drive"
 	"github.com/Raposa-Industries/adhunters/library/internal/picture"
 	"github.com/Raposa-Industries/adhunters/library/internal/store"
-	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 // App property keys the library puts on the files it knows.
@@ -62,7 +64,6 @@ type Result struct {
 // Syncer runs passes. Only one runs at a time.
 type Syncer struct {
 	st    *store.Store
-	files files.Store
 	drive *drive.Client
 	root  string
 	log   *slog.Logger
@@ -70,8 +71,8 @@ type Syncer struct {
 }
 
 // New returns a syncer for the library folder root.
-func New(st *store.Store, fs files.Store, d *drive.Client, root string, log *slog.Logger) *Syncer {
-	return &Syncer{st: st, files: fs, drive: d, root: root, log: log}
+func New(st *store.Store, d *drive.Client, root string, log *slog.Logger) *Syncer {
+	return &Syncer{st: st, drive: d, root: root, log: log}
 }
 
 // Run does one pass and records it in library.drive_run.
@@ -147,12 +148,7 @@ func (s *Syncer) out(ctx context.Context, res *Result) error {
 }
 
 func (s *Syncer) upload(ctx context.Context, id int64, name, mt, folder string) error {
-	rc, _, err := s.st.Open(ctx, id, false)
-	if err != nil {
-		return err
-	}
-	data, err := io.ReadAll(rc)
-	_ = rc.Close()
+	data, err := s.st.Pending(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -164,8 +160,8 @@ func (s *Syncer) upload(ctx context.Context, id int64, name, mt, folder string) 
 		if err := recordFile(ctx, tx, f, "image", id); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `UPDATE library.creative SET drive_state = 'in_drive', drive_file_id = $2, drive_error = '', updated_at = now()
-			WHERE id = $1`, id, f.ID)
+		_, err := tx.Exec(ctx, `UPDATE library.creative SET drive_state = 'in_drive', drive_file_id = $2, pending = NULL,
+			drive_error = '', updated_at = now() WHERE id = $1`, id, f.ID)
 		return err
 	})
 }
@@ -426,26 +422,13 @@ func (s *Syncer) in(ctx context.Context, started time.Time, res *Result) error {
 	return s.gone(ctx, started, res)
 }
 
-// keepRaw stores a listing page as it came, in the file store; identical
-// pages share one copy.
+// keepRaw stores a listing page as it came, in library.drive_page, and
+// returns its sha256; identical pages share one row.
 func (s *Syncer) keepRaw(ctx context.Context, raw []byte) (string, error) {
-	f, err := os.CreateTemp("", "drive-page-*")
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = os.Remove(f.Name()) }()
-	if _, err := f.Write(raw); err != nil {
-		_ = f.Close()
-		return "", err
-	}
-	if err := f.Close(); err != nil {
-		return "", err
-	}
-	sum, size, err := files.Sum(f.Name())
-	if err != nil {
-		return "", err
-	}
-	return s.files.Put(ctx, sum, "application/json", f.Name(), size)
+	h := sha256.Sum256(raw)
+	sum := hex.EncodeToString(h[:])
+	_, err := s.st.DB().Exec(ctx, `INSERT INTO library.drive_page (sha256, body) VALUES ($1, $2) ON CONFLICT DO NOTHING`, sum, raw)
+	return sum, err
 }
 
 // seen handles one listed file and returns the folder to list next, when it
@@ -491,7 +474,7 @@ func (s *Syncer) seen(ctx context.Context, f drive.File, dir folderAt, res *Resu
 	}
 	stem := strings.TrimSuffix(f.Name, path.Ext(f.Name))
 	c, created, err := s.st.AddCreative(ctx, store.NewCreative{
-		Name: stem, VerticalID: vertID, SetID: setID, Origin: store.OriginDrive, OriginRef: "drive:" + f.ID,
+		Name: stem, VerticalID: vertID, SetID: setID, Origin: store.OriginDrive, OriginRef: "drive:" + f.ID, DriveFileID: f.ID,
 	}, data)
 	if err != nil {
 		return nil, err
@@ -510,10 +493,10 @@ func (s *Syncer) seen(ctx context.Context, f drive.File, dir folderAt, res *Resu
 				return err
 			}
 		}
-		// Bytes an app saved that someone also put in Drive: this file is
-		// its copy, so it need not be uploaded.
-		_, err := tx.Exec(ctx, `UPDATE library.creative SET drive_state = 'in_drive', drive_file_id = $2, drive_error = '', updated_at = now()
-			WHERE id = $1 AND drive_state <> 'in_drive'`, c.ID, f.ID)
+		// Bytes an app saved that someone also put in Drive: this file
+		// holds them, so they need not be uploaded.
+		_, err := tx.Exec(ctx, `UPDATE library.creative SET drive_state = 'in_drive', drive_file_id = $2, pending = NULL,
+			drive_error = '', updated_at = now() WHERE id = $1 AND drive_state <> 'in_drive'`, c.ID, f.ID)
 		return err
 	})
 	if err != nil {

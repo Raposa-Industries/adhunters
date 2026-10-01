@@ -1,5 +1,7 @@
-// Command library keeps the creatives and headlines Create and Launch share,
-// with a copy of each file in the team's Google Drive folder.
+// Command library keeps the creatives and headlines Create and Launch share.
+// Each creative's file lives in the team's Google Drive folder; the library
+// keeps the rows, a thumbnail, and the bytes of a picture until it is
+// uploaded (decisions/0020-library-on-drive-only.md).
 //
 //	library               serve the API and run the Drive sync
 //	library drive-login   sign in to Google once, as the folder's owner
@@ -105,31 +107,33 @@ func googleApp() drive.App {
 func serve(args []string) error {
 	fs := flag.NewFlagSet("library", flag.ExitOnError)
 	addr := fs.String("addr", envOr("LIBRARY_ADDR", "127.0.0.1:8093"), "where the API listens")
-	filesURI := fs.String("files", envOr("LIBRARY_FILES", "file:///var/lib/library/files"), "where safe copies are kept: file:///path or s3://bucket/prefix")
+	oldBucket := fs.String("files", os.Getenv("LIBRARY_FILES"), "the old bucket (s3://bucket) to move thumbnails and waiting bytes out of once; empty: none")
 	folder := fs.String("drive-folder", os.Getenv("LIBRARY_DRIVE_FOLDER"), "the id of the team's library folder in Google Drive")
 	every := fs.Duration("drive-every", 5*time.Minute, "time between Drive passes")
 	_ = fs.Parse(args)
 
 	log := logx.New("library", version)
-	store0, err := files.Open(*filesURI)
-	if err != nil {
-		return err
-	}
 	ctx := context.Background()
 	db, err := openDB(ctx, "library", log)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-	st := store.New(db, store0)
+	st := store.New(db)
+	if *oldBucket != "" {
+		if err := takeFromBucket(ctx, st, *oldBucket, log); err != nil {
+			return err
+		}
+	}
 
 	srv := ops.New("library", version)
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 	tasks := srv.Tasks()
 	tasks.Promise("drive-sync", 3**every)
 
-	loop := &driveLoop{st: st, files: store0, folder: *folder, app: googleApp(), log: log, kick: make(chan struct{}, 1)}
+	loop := &driveLoop{st: st, folder: *folder, app: googleApp(), log: log, kick: make(chan struct{}, 1)}
 	loop.refreshWhy(ctx)
+	st.UseDrive(loop.client)
 	api := web.New(st, loop, log)
 
 	ln, err := net.Listen("tcp", *addr)
@@ -137,7 +141,7 @@ func serve(args []string) error {
 		return err
 	}
 	httpSrv := &http.Server{Handler: api.Handler(), ReadHeaderTimeout: 10 * time.Second}
-	log.Info("library listening", "addr", ln.Addr().String(), "files", store0.String(), "drive_folder", *folder)
+	log.Info("library listening", "addr", ln.Addr().String(), "drive_folder", *folder)
 
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)
@@ -169,7 +173,6 @@ func serve(args []string) error {
 // sign-in before each pass, so drive-login takes effect without a restart.
 type driveLoop struct {
 	st     *store.Store
-	files  files.Store
 	folder string
 	app    drive.App
 	log    *slog.Logger
@@ -177,6 +180,28 @@ type driveLoop struct {
 
 	mu  sync.Mutex
 	why string
+	// c is the client for the sign-in token was read from, kept so its
+	// access token is reused.
+	c     *drive.Client
+	token string
+}
+
+// client returns a Drive client signed in now, for reading files back.
+func (l *driveLoop) client(ctx context.Context) (store.Drive, error) {
+	token := l.refreshWhy(ctx)
+	if token == "" {
+		return nil, fmt.Errorf("%w: %s", store.ErrNoDrive, l.Why())
+	}
+	return l.clientFor(token), nil
+}
+
+func (l *driveLoop) clientFor(token string) *drive.Client {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.c == nil || l.token != token {
+		l.c, l.token = drive.New(l.app, token), token
+	}
+	return l.c
 }
 
 func (l *driveLoop) Kick() {
@@ -231,7 +256,7 @@ func (l *driveLoop) run(ctx context.Context, every time.Duration, tasks *ops.Tas
 	for {
 		if token := l.refreshWhy(ctx); token != "" {
 			start := time.Now()
-			sy := drivesync.New(l.st, l.files, drive.New(l.app, token), l.folder, l.log)
+			sy := drivesync.New(l.st, l.clientFor(token), l.folder, l.log)
 			res, err := sy.Run(ctx)
 			if ctx.Err() != nil {
 				return
@@ -253,6 +278,22 @@ func (l *driveLoop) run(ctx context.Context, every time.Duration, tasks *ops.Tas
 		case <-l.kick:
 		}
 	}
+}
+
+// takeFromBucket moves the old bucket's thumbnails and waiting bytes into
+// the rows. A key the bucket lacks is logged and skipped; the creative then
+// shows no thumbnail, and its bytes are read from Drive as usual.
+func takeFromBucket(ctx context.Context, st *store.Store, uri string, log *slog.Logger) error {
+	old, err := files.Open(uri)
+	if err != nil {
+		return err
+	}
+	n, errs := st.TakeFromBucket(ctx, old.Get)
+	for _, err := range errs {
+		log.Warn("not moved from the old bucket", "bucket", uri, "err", err)
+	}
+	log.Info("moved from the old bucket", "bucket", uri, "creatives", n, "skipped", len(errs))
+	return nil
 }
 
 // ---- drive-login ---------------------------------------------------------------

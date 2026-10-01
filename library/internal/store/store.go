@@ -1,9 +1,12 @@
-// Package store is the library's rows and files: it adds creatives (the
-// safe copy and thumbnail first, then the row), headlines and sets, mints
-// names, and lists what the apps show.
+// Package store is the library's rows: it adds creatives, headlines and
+// sets, mints names, and lists what the apps show. A creative's bytes live
+// in the team's Drive folder (decisions/0020-library-on-drive-only.md): they
+// wait in the row until the Drive sync uploads them, and are read back from
+// Drive after that. Only the thumbnail stays here.
 package store
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -20,7 +23,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Raposa-Industries/adhunters/library/internal/picture"
-	"github.com/Raposa-Industries/adhunters/shared/files"
 	"github.com/Raposa-Industries/adhunters/shared/text"
 )
 
@@ -41,23 +43,45 @@ const (
 // ErrNotFound means no row has that id.
 var ErrNotFound = errors.New("not found")
 
+// ErrGone means the creative's file was deleted from Drive, so its bytes
+// are no longer anywhere. Its row and thumbnail stay.
+var ErrGone = errors.New("its file was deleted from Drive")
+
+// ErrNoDrive means a creative's bytes are in Drive but the library is not
+// signed in to Drive now.
+var ErrNoDrive = errors.New("the library is not signed in to Drive")
+
+// Drive reads a file's bytes back from the team's Drive folder.
+type Drive interface {
+	Download(ctx context.Context, fileID string) ([]byte, error)
+}
+
+// notFounder is a Drive error that can say the file is not there, so Open
+// can tell a deleted file from a failure.
+type notFounder interface{ NotFound() bool }
+
 // BadInput is a request the library refuses before touching anything; its
 // text is shown to the person.
 type BadInput string
 
 func (e BadInput) Error() string { return string(e) }
 
-// Store is the library's database and file store.
+// Store is the library's database.
 type Store struct {
 	db    *pgxpool.Pool
-	files files.Store
+	drive func(context.Context) (Drive, error)
 	now   func() time.Time
 }
 
-// New returns a store.
-func New(db *pgxpool.Pool, fs files.Store) *Store {
-	return &Store{db: db, files: fs, now: time.Now}
+// New returns a store. Until UseDrive is called, bytes already in Drive
+// cannot be read (ErrNoDrive).
+func New(db *pgxpool.Pool) *Store {
+	return &Store{db: db, drive: func(context.Context) (Drive, error) { return nil, ErrNoDrive }, now: time.Now}
 }
+
+// UseDrive sets how Open reaches Drive: f returns a client signed in now,
+// or ErrNoDrive. Call it before serving.
+func (s *Store) UseDrive(f func(context.Context) (Drive, error)) { s.drive = f }
 
 // DB is the pool, for the Drive sync.
 func (s *Store) DB() *pgxpool.Pool { return s.db }
@@ -424,11 +448,15 @@ type NewCreative struct {
 	OriginRef    string `json:"origin_ref"`
 	AILabel      string `json:"ai_label"`
 	MadeBy       string `json:"made_by"`
+	// DriveFileID is set by the Drive sync for a picture read from Drive:
+	// that file already holds the bytes, so none wait for an upload.
+	DriveFileID string `json:"-"`
 }
 
-// AddCreative keeps a picture: the safe copy and thumbnail first, then its
-// row. The same bytes again return the creative that has them (added to the
-// set, when one is given) and created false.
+// AddCreative keeps a picture: its row, thumbnail and, until the Drive sync
+// uploads them, its bytes. The same bytes again return the creative that has
+// them (added to the set, when one is given) and created false; when that
+// creative's Drive file was deleted, these bytes take its place.
 func (s *Store) AddCreative(ctx context.Context, n NewCreative, b []byte) (Creative, bool, error) {
 	info, err := picture.Read(b)
 	if err != nil {
@@ -444,6 +472,15 @@ func (s *Store) AddCreative(ctx context.Context, n NewCreative, b []byte) (Creat
 		return Creative{}, false, err
 	}
 	if existing, err := s.creativeBySHA(ctx, info.SHA256); err == nil {
+		if existing.DriveState == "gone" {
+			if err := s.revive(ctx, existing.ID, n.DriveFileID, b); err != nil {
+				return Creative{}, false, err
+			}
+			existing.DriveState = "waiting"
+			if n.DriveFileID != "" {
+				existing.DriveState = "in_drive"
+			}
+		}
 		if n.SetID != 0 {
 			if err := s.addToSet(ctx, n.SetID, existing.ID); err != nil {
 				return Creative{}, false, err
@@ -456,17 +493,13 @@ func (s *Store) AddCreative(ctx context.Context, n NewCreative, b []byte) (Creat
 		return Creative{}, false, err
 	}
 
-	fileKey, err := s.putBytes(ctx, b, info.MediaType)
-	if err != nil {
-		return Creative{}, false, err
-	}
 	th, err := picture.Thumb(b)
 	if err != nil {
 		return Creative{}, false, BadInput(err.Error())
 	}
-	thumbKey, err := s.putBytes(ctx, th, "image/jpeg")
-	if err != nil {
-		return Creative{}, false, err
+	pending, state, fileID := b, "waiting", (*string)(nil)
+	if n.DriveFileID != "" {
+		pending, state, fileID = nil, "in_drive", &n.DriveFileID
 	}
 
 	var id int64
@@ -496,12 +529,12 @@ func (s *Store) AddCreative(ctx context.Context, n NewCreative, b []byte) (Creat
 		}
 		err := tx.QueryRow(ctx, `
 			INSERT INTO library.creative (name, vertical_id, vertical_number, angle, idea, origin, origin_ref, ai_label,
-			    made_by, sha256, md5, file_key, thumb_key, media_type, width, height, bytes)
-			VALUES ($1, NULLIF($2, ''), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+			    made_by, sha256, md5, pending, thumb, media_type, width, height, bytes, drive_state, drive_file_id)
+			VALUES ($1, NULLIF($2, ''), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 			ON CONFLICT (sha256) DO NOTHING
 			RETURNING id`,
 			name, n.VerticalID, number, text.CleanLine(n.Angle), strings.TrimSpace(n.Idea), n.Origin, n.OriginRef, n.AILabel,
-			n.MadeBy, info.SHA256, info.MD5, fileKey, thumbKey, info.MediaType, info.Width, info.Height, info.Bytes).Scan(&id)
+			n.MadeBy, info.SHA256, info.MD5, pending, th, info.MediaType, info.Width, info.Height, info.Bytes, state, fileID).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			// Someone saved the same bytes a moment ago; roll back the number.
 			created = false
@@ -537,10 +570,32 @@ func (s *Store) AddCreative(ctx context.Context, n NewCreative, b []byte) (Creat
 
 var errSameBytes = errors.New("same bytes")
 
-// putBytes writes b to the file store through a temporary file, since the
-// store takes a path.
-func (s *Store) putBytes(ctx context.Context, b []byte, mediaType string) (string, error) {
-	return files.PutBytes(ctx, s.files, b, mediaType)
+// revive gives a creative whose Drive file was deleted its bytes again:
+// waiting for an upload, or in the Drive file fileID when one holds them.
+func (s *Store) revive(ctx context.Context, id int64, fileID string, b []byte) error {
+	var err error
+	if fileID != "" {
+		_, err = s.db.Exec(ctx, `UPDATE library.creative SET drive_state = 'in_drive', drive_file_id = $2, pending = NULL,
+			drive_error = '', updated_at = now() WHERE id = $1 AND drive_state = 'gone'`, id, fileID)
+	} else {
+		_, err = s.db.Exec(ctx, `UPDATE library.creative SET drive_state = 'waiting', pending = $2, drive_error = '', updated_at = now()
+			WHERE id = $1 AND drive_state = 'gone'`, id, b)
+	}
+	return err
+}
+
+// Pending returns the bytes of a creative waiting for its upload, for the
+// Drive sync.
+func (s *Store) Pending(ctx context.Context, id int64) ([]byte, error) {
+	var b []byte
+	err := s.db.QueryRow(ctx, `SELECT pending FROM library.creative WHERE id = $1`, id).Scan(&b)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err == nil && b == nil {
+		return nil, fmt.Errorf("creative %d has no bytes waiting for Drive", id)
+	}
+	return b, err
 }
 
 // addToSet puts a creative in a set, after what is there.
@@ -702,19 +757,40 @@ func (s *Store) ChangeCreative(ctx context.Context, id int64, c Change) (Creativ
 	return s.Creative(ctx, id)
 }
 
-// Open returns a creative's bytes (or its thumbnail) and media type.
+// Open returns a creative's bytes (or its thumbnail) and media type: the
+// bytes waiting for their upload, else its file in Drive.
 func (s *Store) Open(ctx context.Context, id int64, thumb bool) (io.ReadCloser, string, error) {
-	var key, mt string
-	err := s.db.QueryRow(ctx, `SELECT CASE WHEN $2 THEN thumb_key ELSE file_key END, CASE WHEN $2 THEN 'image/jpeg' ELSE media_type END
-		FROM library.creative WHERE id = $1`, id, thumb).Scan(&key, &mt)
+	var b []byte
+	var mt, state string
+	var fileID *string
+	err := s.db.QueryRow(ctx, `SELECT CASE WHEN $2 THEN thumb ELSE pending END, CASE WHEN $2 THEN 'image/jpeg' ELSE media_type END,
+		drive_state, drive_file_id FROM library.creative WHERE id = $1`, id, thumb).Scan(&b, &mt, &state, &fileID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, "", ErrNotFound
 	}
 	if err != nil {
 		return nil, "", err
 	}
-	rc, err := s.files.Get(ctx, key)
-	return rc, mt, err
+	switch {
+	case b != nil:
+	case thumb:
+		return nil, "", ErrNotFound
+	case state != "in_drive" || fileID == nil:
+		return nil, "", ErrGone
+	default:
+		d, err := s.drive(ctx)
+		if err != nil {
+			return nil, "", err
+		}
+		if b, err = d.Download(ctx, *fileID); err != nil {
+			var nf notFounder
+			if errors.As(err, &nf) && nf.NotFound() {
+				return nil, "", ErrGone
+			}
+			return nil, "", err
+		}
+	}
+	return io.NopCloser(bytes.NewReader(b)), mt, nil
 }
 
 // ---- headlines ---------------------------------------------------------------
@@ -909,4 +985,67 @@ func (s *Store) ChangeHeadline(ctx context.Context, id int64, c Change) (Headlin
 		return Headline{}, err
 	}
 	return s.Headline(ctx, id)
+}
+
+// ---- the old bucket ----------------------------------------------------------
+
+// TakeFromBucket moves what the old bucket held into the rows, once, after
+// the library went Drive only: each thumbnail, and the bytes of each
+// creative still waiting for its upload. get reads a key from the bucket. It
+// returns how many creatives it filled in; a key the bucket does not have is
+// logged by the caller from the error and skipped.
+func (s *Store) TakeFromBucket(ctx context.Context, get func(context.Context, string) (io.ReadCloser, error)) (int, []error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT id, CASE WHEN thumb IS NULL THEN thumb_key ELSE '' END,
+		       CASE WHEN pending IS NULL AND drive_state = 'waiting' THEN file_key ELSE '' END
+		FROM library.creative
+		WHERE (thumb IS NULL AND thumb_key <> '') OR (pending IS NULL AND drive_state = 'waiting' AND file_key <> '')
+		ORDER BY id`)
+	if err != nil {
+		return 0, []error{err}
+	}
+	type old struct {
+		id         int64
+		thumb, raw string
+	}
+	list, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (old, error) {
+		var o old
+		err := r.Scan(&o.id, &o.thumb, &o.raw)
+		return o, err
+	})
+	if err != nil {
+		return 0, []error{err}
+	}
+	read := func(key string) ([]byte, error) {
+		rc, err := get(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		defer rc.Close()
+		return io.ReadAll(rc)
+	}
+	n := 0
+	var errs []error
+	for _, o := range list {
+		var th, raw []byte
+		if o.thumb != "" {
+			if th, err = read(o.thumb); err != nil {
+				errs = append(errs, fmt.Errorf("creative %d thumbnail %s: %w", o.id, o.thumb, err))
+			}
+		}
+		if o.raw != "" {
+			if raw, err = read(o.raw); err != nil {
+				errs = append(errs, fmt.Errorf("creative %d file %s: %w", o.id, o.raw, err))
+			}
+		}
+		if th == nil && raw == nil {
+			continue
+		}
+		if _, err := s.db.Exec(ctx, `UPDATE library.creative SET thumb = COALESCE(thumb, $2), pending = COALESCE(pending, $3) WHERE id = $1`,
+			o.id, th, raw); err != nil {
+			return n, append(errs, err)
+		}
+		n++
+	}
+	return n, errs
 }

@@ -3,6 +3,7 @@ package drivesync_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -16,7 +17,6 @@ import (
 	"github.com/Raposa-Industries/adhunters/library/internal/drivesync"
 	"github.com/Raposa-Industries/adhunters/library/internal/store"
 	"github.com/Raposa-Industries/adhunters/library/internal/testdb"
-	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 func pic(t *testing.T, seed uint8) []byte {
@@ -33,9 +33,10 @@ func pic(t *testing.T, seed uint8) []byte {
 func TestSync(t *testing.T) {
 	ctx := context.Background()
 	fake := drivetest.New(t)
-	fs := &files.Dir{Root: t.TempDir()}
-	st := store.New(testdb.New(t), fs)
-	sy := drivesync.New(st, fs, drive.New(fake.App(), "refresh"), drivetest.Root, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	st := store.New(testdb.New(t))
+	dc := drive.New(fake.App(), "refresh")
+	st.UseDrive(func(context.Context) (store.Drive, error) { return dc, nil })
+	sy := drivesync.New(st, dc, drivetest.Root, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	// Saved in Create: one creative and two headlines in a set.
 	set, err := st.AddSet(ctx, store.NewSet{Name: "BP · Colher · 29 Sep", VerticalID: "blood-pressure", Origin: store.OriginCreate})
@@ -82,6 +83,21 @@ func TestSync(t *testing.T) {
 	if made.DriveState != "in_drive" {
 		t.Errorf("drive state %q", made.DriveState)
 	}
+	// Uploaded: Drive holds the bytes and the row no longer does.
+	if n := pendingRows(t, st); n != 0 {
+		t.Errorf("%d rows still hold bytes after the upload", n)
+	}
+	if b := read(t, st, made.ID, false); !bytes.Equal(b, pic(t, 1)) {
+		t.Error("the picture read back from Drive is not what was saved")
+	}
+	if b := read(t, st, made.ID, true); len(b) == 0 {
+		t.Error("no thumbnail")
+	}
+	var pages int
+	_ = st.DB().QueryRow(ctx, `SELECT count(*) FROM library.drive_page`).Scan(&pages)
+	if pages == 0 {
+		t.Error("no raw listing pages kept")
+	}
 
 	// Theirs came in as a creative of Memory Loss, in a set named by its
 	// folder, keeping its own name, and it now carries our id.
@@ -119,11 +135,12 @@ func TestSync(t *testing.T) {
 	if made.DriveState != "gone" {
 		t.Errorf("drive state after delete %q", made.DriveState)
 	}
-	rc, _, err := st.Open(ctx, made.ID, false)
-	if err != nil {
-		t.Fatalf("safe copy lost: %v", err)
+	if _, _, err := st.Open(ctx, made.ID, false); !errors.Is(err, store.ErrGone) {
+		t.Errorf("open after delete: %v", err)
 	}
-	_ = rc.Close()
+	if b := read(t, st, made.ID, true); len(b) == 0 {
+		t.Error("thumbnail lost with the file")
+	}
 	if hl := fake.Find(drivesync.HeadlinesFile); len(hl) != 1 || !strings.HasSuffix(string(hl[0].Data), "Three\n") {
 		t.Errorf("headlines not rewritten: %+v", hl)
 	}
@@ -136,13 +153,25 @@ func TestSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	later, _ = st.Creative(ctx, later.ID)
-	if later.DriveState != "in_drive" {
+	if later.DriveState != "in_drive" || pendingRows(t, st) != 0 {
 		t.Errorf("hand copy: %+v %+v", later, res)
+	}
+
+	// Saving the deleted picture again brings it back, uploaded anew.
+	back, created, err := st.AddCreative(ctx, store.NewCreative{VerticalID: "blood-pressure", Origin: store.OriginCreate}, pic(t, 1))
+	if err != nil || created || back.ID != made.ID || back.DriveState != "waiting" {
+		t.Fatalf("saved again: %+v created=%v %v", back, created, err)
+	}
+	if res, err = sy.Run(ctx); err != nil || res.Written != 1 {
+		t.Fatalf("fifth pass %+v %v", res, err)
+	}
+	if b := read(t, st, made.ID, false); !bytes.Equal(b, pic(t, 1)) {
+		t.Error("the picture saved again is not in Drive")
 	}
 
 	var runs int
 	_ = st.DB().QueryRow(ctx, `SELECT count(*) FROM library.drive_run WHERE finished_at IS NOT NULL AND error = ''`).Scan(&runs)
-	if runs != 4 {
+	if runs != 5 {
 		t.Errorf("%d finished runs", runs)
 	}
 }
@@ -150,9 +179,8 @@ func TestSync(t *testing.T) {
 func TestSignedOutStopsThePass(t *testing.T) {
 	ctx := context.Background()
 	fake := drivetest.New(t)
-	fs := &files.Dir{Root: t.TempDir()}
-	st := store.New(testdb.New(t), fs)
-	sy := drivesync.New(st, fs, drive.New(fake.App(), "revoked"), drivetest.Root, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	st := store.New(testdb.New(t))
+	sy := drivesync.New(st, drive.New(fake.App(), "revoked"), drivetest.Root, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if _, _, err := st.AddCreative(ctx, store.NewCreative{Origin: store.OriginUpload}, pic(t, 1)); err != nil {
 		t.Fatal(err)
 	}
@@ -164,4 +192,27 @@ func TestSignedOutStopsThePass(t *testing.T) {
 	if !strings.Contains(msg, "drive-login") {
 		t.Errorf("run error %q", msg)
 	}
+}
+
+func pendingRows(t *testing.T, st *store.Store) int {
+	t.Helper()
+	var n int
+	if err := st.DB().QueryRow(context.Background(), `SELECT count(*) FROM library.creative WHERE pending IS NOT NULL`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
+func read(t *testing.T, st *store.Store, id int64, thumb bool) []byte {
+	t.Helper()
+	rc, _, err := st.Open(context.Background(), id, thumb)
+	if err != nil {
+		t.Fatalf("open %d thumb=%v: %v", id, thumb, err)
+	}
+	defer rc.Close()
+	b, err := io.ReadAll(rc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }

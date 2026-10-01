@@ -108,6 +108,9 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("drive: %d: %s", e.Status, e.Message)
 }
 
+// NotFound reports whether Drive said the file is not there.
+func (e *Error) NotFound() bool { return e.Status == 404 }
+
 // ErrSignedOut means the refresh token was refused: someone removed the
 // library's access in their Google account, or it was never signed in.
 var ErrSignedOut = errors.New("drive: the Google sign-in was refused; run library drive-login again")
