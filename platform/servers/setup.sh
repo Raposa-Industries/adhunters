@@ -780,6 +780,26 @@ log-level-console=warn
 [adhunters]
 pg1-path=/var/lib/postgresql/17/main'
 
+# pgbackrest_locked COMMAND: runs a pgbackrest command for the stanza as
+# postgres. While an archive-push or a backup holds pgBackRest's lock, the
+# command ends with exit 50; it is tried again every 5 s for up to
+# PGBACKREST_LOCK_WAIT seconds (default 300), then fails as before.
+pgbackrest_locked() {
+    local waited=0 limit=${PGBACKREST_LOCK_WAIT:-300} rc
+    while :; do
+        rc=0
+        sudo -u postgres pgbackrest --stanza=adhunters "$@" || rc=$?
+        [ "$rc" -eq 50 ] || return "$rc"
+        if [ "$waited" -ge "$limit" ]; then
+            echo "pgbackrest $1: still locked after ${limit}s (another pgbackrest is running: systemctl status 'pgbackrest-*'); run setup.sh again later" >&2
+            return "$rc"
+        fi
+        say "pgbackrest $1: locked by another pgbackrest, trying again in 5 s"
+        sleep 5
+        waited=$((waited + 5))
+    done
+}
+
 # backups: WAL archiving every 60 s and daily backups to object storage. WAL
 # archiving is only switched on once the keys are in: an archive command that
 # keeps failing makes Postgres keep every WAL file and fills the disk.
@@ -815,8 +835,8 @@ archive_timeout = 60"; then
         systemctl restart postgresql
         say "WAL archiving on"
     fi
-    sudo -u postgres pgbackrest --stanza=adhunters stanza-create
-    sudo -u postgres pgbackrest --stanza=adhunters check
+    pgbackrest_locked stanza-create
+    pgbackrest_locked check
     systemctl enable --now pgbackrest-full.timer pgbackrest-diff.timer >/dev/null
     # No full backup yet: take one now, in the background.
     if ! sudo -u postgres pgbackrest --stanza=adhunters --output=json info | jq -e '.[0].backup | length > 0' >/dev/null; then
