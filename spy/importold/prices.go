@@ -20,19 +20,27 @@ type Prices struct {
 	NewsBreak Counts
 	Rows      int
 	Kept      int
+	// Why auctions were skipped: no creative here for the auction's item
+	// or campaign, no publisher here for its domain, or a device not known.
+	NoCreative, NoPublisher, NoDevice int
+	// How the copied ones found their creative: by the campaign item
+	// (exact) or by the campaign (its most seen creative).
+	ByItem, ByCampaign int
 }
 
 var priceParts = []part{
 	{"old_publisher", "id INTEGER, name TEXT, domain TEXT, aliases TEXT[]", `
-		SELECT p.id, p.name, lower(p.domain), COALESCE(array_agg(a.alias) FILTER (WHERE a.alias IS NOT NULL), '{}')
+		SELECT p.id, p.name, regexp_replace(lower(p.domain), '^www[.]', ''), COALESCE(array_agg(a.alias) FILTER (WHERE a.alias IS NOT NULL), '{}')
 		FROM spy.publisher p LEFT JOIN spy.publisher_alias a ON a.publisher_id = p.id
 		GROUP BY p.id`},
 	// The collector logged each Taboola card with auction values, but not
 	// which ad it was: raw_item_id is the campaign item id from the click
-	// link (else the card's own id). It kept no RTB flag either; its winning
-	// seat says RTB when the card named a competing seat or "taboola-rtb".
-	{"old_auction", "day DATE, item_id TEXT, domain TEXT, device TEXT, clearing DOUBLE PRECISION, bid DOUBLE PRECISION, cap DOUBLE PRECISION, rtb BOOLEAN", `
-		SELECT (intercepted_at AT TIME ZONE 'UTC')::date, raw_item_id, lower(publisher_domain), lower(COALESCE(device, 'desktop')),
+	// link (else the card's own id), campaign_id the campaign id from it.
+	// It kept no RTB flag either; its winning seat says RTB when the card
+	// named a competing seat or "taboola-rtb".
+	{"old_auction", "day DATE, item_id TEXT, campaign_id TEXT, domain TEXT, device TEXT, clearing DOUBLE PRECISION, bid DOUBLE PRECISION, cap DOUBLE PRECISION, rtb BOOLEAN", `
+		SELECT (intercepted_at AT TIME ZONE 'UTC')::date, NULLIF(raw_item_id, ''), NULLIF(campaign_id, ''),
+		       regexp_replace(lower(publisher_domain), '^www[.]', ''), lower(COALESCE(NULLIF(device, ''), 'desktop')),
 		       clearing_price::float8, bid_value::float8, cap_auction_price::float8,
 		       COALESCE(winning_seat ~* '(googleadx|rtb|seat)', FALSE)
 		FROM public.adhunters_rtb_auction_log`},
@@ -69,7 +77,9 @@ var oldNewsBreak = part{"old_nb_price",
 // knows with that item id, the creative that link was clicked from most,
 // and that creative's most seen ad that day on that publisher and device
 // (else its most seen ad). Prices per creative are exact; a creative that
-// ran several headlines puts its prices on its leading ad.
+// ran several headlines puts its prices on its leading ad. An auction whose
+// item Tracks does not know goes to its campaign's most seen creative (a
+// campaign's creatives share its bid), and the count of each way is kept.
 func copyPrices(ctx context.Context, old *pgxpool.Pool, db *pgxpool.Pool) (Prices, error) {
 	var p Prices
 	days, err := readDays(ctx, old)
@@ -112,24 +122,48 @@ func copyPrices(ctx context.Context, old *pgxpool.Pool, db *pgxpool.Pool) (Price
 		 CROSS JOIN LATERAL (SELECT t.id FROM tracks_api.publisher_v1 t
 		                     WHERE t.name = o.name OR t.name = ANY (o.aliases)
 		                     ORDER BY t.name = o.name DESC, t.id LIMIT 1) t`,
-		// An auction names its publisher's domain: a Taboola publisher here
-		// by that name or domain, else the one the collector's publisher with
-		// that name, domain or alias became.
+		// An auction names its publisher's domain (without www.): a Taboola
+		// publisher here by that name or domain, else the one the collector's
+		// publisher with that name, domain or alias became. Two publishers on
+		// one domain (NBC News and NBC News Select) cannot be told apart: the
+		// first one takes the domain's auctions.
 		`CREATE TEMP TABLE m_domain ON COMMIT DROP AS
 		 SELECT d.domain, COALESCE(
 		     (SELECT t.id FROM tracks_api.publisher_v1 t JOIN tracks_api.network_v1 nw ON nw.id = t.network_id
-		      WHERE nw.code = 'taboola' AND (t.name = d.domain OR lower(t.domain) = d.domain) ORDER BY t.id LIMIT 1),
+		      WHERE nw.code = 'taboola'
+		        AND (lower(t.name) = d.domain OR regexp_replace(lower(t.domain), '^www[.]', '') = d.domain)
+		      ORDER BY t.id LIMIT 1),
 		     (SELECT m.new_id FROM old_publisher o JOIN m_old_pub m ON m.old_id = o.id
-		      WHERE o.name = d.domain OR o.domain = d.domain OR d.domain = ANY (o.aliases) ORDER BY o.id LIMIT 1)) AS publisher_id
+		      WHERE lower(o.name) = d.domain OR o.domain = d.domain
+		         OR d.domain = ANY (SELECT regexp_replace(lower(x), '^www[.]', '') FROM unnest(o.aliases) x)
+		      ORDER BY o.id LIMIT 1)) AS publisher_id
 		 FROM (SELECT DISTINCT domain FROM old_auction) d`,
+		// The creative: the one most clicked through the Tracks link with the
+		// auction's campaign item id; else its campaign's most seen creative.
 		`CREATE TEMP TABLE m_item ON COMMIT DROP AS
 		 SELECT DISTINCT ON (l.item_id) l.item_id, cl.creative_id
 		 FROM tracks_api.link_v1 l JOIN tracks_api.creative_link_daily_v1 cl ON cl.link_id = l.id
 		 WHERE l.item_id IN (SELECT DISTINCT item_id FROM old_auction)
 		 GROUP BY l.item_id, cl.creative_id
 		 ORDER BY l.item_id, sum(cl.sightings) DESC, cl.creative_id`,
+		`CREATE TEMP TABLE m_campaign ON COMMIT DROP AS
+		 SELECT DISTINCT ON (c.external_id) c.external_id, cc.creative_id
+		 FROM tracks_api.campaign_v1 c
+		 JOIN tracks_api.network_v1 nw ON nw.id = c.network_id AND nw.code = 'taboola'
+		 JOIN tracks_api.creative_campaign_daily_v1 cc ON cc.campaign_id = c.id
+		 WHERE c.external_id IN (SELECT DISTINCT campaign_id FROM old_auction)
+		 GROUP BY c.external_id, cc.creative_id
+		 ORDER BY c.external_id, sum(cc.sightings) DESC, cc.creative_id`,
+		`CREATE TEMP TABLE old_mapped ON COMMIT DROP AS
+		 SELECT a.*, COALESCE(i.creative_id, k.creative_id) AS creative_id, i.creative_id IS NOT NULL AS by_item,
+		        m.publisher_id, dv.id AS device_id
+		 FROM old_auction a
+		 LEFT JOIN m_item i ON i.item_id = a.item_id
+		 LEFT JOIN m_campaign k ON k.external_id = a.campaign_id
+		 LEFT JOIN m_domain m ON m.domain = a.domain
+		 LEFT JOIN tracks_api.device_v1 dv ON dv.code = CASE WHEN a.device = 'mobile' THEN 'phone' ELSE a.device END`,
 		`CREATE TEMP TABLE old_tab ON COMMIT DROP AS
-		 SELECT a.day, i.creative_id, m.publisher_id, dv.id AS device_id,
+		 SELECT a.day, a.creative_id, a.publisher_id, a.device_id,
 		        count(*) AS auctions, count(*) FILTER (WHERE a.rtb) AS rtb,
 		        count(a.clearing) AS clearing_n, COALESCE(sum(a.clearing), 0) AS clearing_sum,
 		        percentile_cont(0.25) WITHIN GROUP (ORDER BY a.clearing) AS clearing_p25,
@@ -138,10 +172,8 @@ func copyPrices(ctx context.Context, old *pgxpool.Pool, db *pgxpool.Pool) (Price
 		        count(a.bid) AS bid_n, COALESCE(sum(a.bid), 0) AS bid_sum,
 		        percentile_cont(0.5) WITHIN GROUP (ORDER BY a.bid) AS bid_p50,
 		        percentile_cont(0.5) WITHIN GROUP (ORDER BY a.cap) AS cap_p50
-		 FROM old_auction a
-		 JOIN m_item i ON i.item_id = a.item_id
-		 JOIN m_domain m ON m.domain = a.domain AND m.publisher_id IS NOT NULL
-		 JOIN tracks_api.device_v1 dv ON dv.code = CASE WHEN a.device = 'mobile' THEN 'phone' ELSE a.device END
+		 FROM old_mapped a
+		 WHERE a.creative_id IS NOT NULL AND a.publisher_id IS NOT NULL AND a.device_id IS NOT NULL
 		 GROUP BY 1, 2, 3, 4`,
 		`CREATE TEMP TABLE m_day_ad ON COMMIT DROP AS
 		 SELECT DISTINCT ON (d.day, d.creative_id, d.publisher_id, d.device_id)
@@ -192,6 +224,14 @@ func copyPrices(ctx context.Context, old *pgxpool.Pool, db *pgxpool.Pool) (Price
 		return p, fmt.Errorf("prices: %w", err)
 	}
 	p.Auctions.Skipped = read["old_auction"] - p.Auctions.Copied
+	if err := tx.QueryRow(ctx, `
+		SELECT count(*) FILTER (WHERE creative_id IS NULL), count(*) FILTER (WHERE publisher_id IS NULL),
+		       count(*) FILTER (WHERE device_id IS NULL),
+		       count(*) FILTER (WHERE by_item AND publisher_id IS NOT NULL AND device_id IS NOT NULL),
+		       count(*) FILTER (WHERE NOT by_item AND creative_id IS NOT NULL AND publisher_id IS NOT NULL AND device_id IS NOT NULL)
+		FROM old_mapped`).Scan(&p.NoCreative, &p.NoPublisher, &p.NoDevice, &p.ByItem, &p.ByCampaign); err != nil {
+		return p, fmt.Errorf("prices: %w", err)
+	}
 	p.NewsBreak.Skipped = read["old_nb_price"] - p.NewsBreak.Copied
 
 	if err := tx.QueryRow(ctx, `

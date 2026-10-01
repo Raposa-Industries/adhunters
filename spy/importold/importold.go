@@ -221,7 +221,8 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 	log.Info("old prices copied",
 		"auctions", res.Prices.Auctions.Copied, "auctions_skipped", res.Prices.Auctions.Skipped,
 		"newsbreak", res.Prices.NewsBreak.Copied, "newsbreak_skipped", res.Prices.NewsBreak.Skipped,
-		"rows", res.Prices.Rows, "kept", res.Prices.Kept)
+		"rows", res.Prices.Rows, "kept", res.Prices.Kept, "by_item", res.Prices.ByItem, "by_campaign", res.Prices.ByCampaign,
+		"no_creative", res.Prices.NoCreative, "no_publisher", res.Prices.NoPublisher, "no_device", res.Prices.NoDevice)
 	return res, nil
 }
 

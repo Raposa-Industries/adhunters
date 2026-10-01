@@ -82,7 +82,7 @@ CREATE TABLE spy.publisher_alias (alias TEXT PRIMARY KEY, publisher_id INTEGER N
 INSERT INTO spy.publisher_alias VALUES ('msn.com', 1), ('msn', 1);
 CREATE TABLE public.adhunters_rtb_auction_log (auction_id TEXT NOT NULL, publisher_domain TEXT NOT NULL,
     clearing_price NUMERIC(10, 4), bid_value NUMERIC(10, 4), cap_auction_price NUMERIC(10, 6), winning_seat TEXT,
-    raw_item_id TEXT, device TEXT, intercepted_at TIMESTAMPTZ NOT NULL);
+    raw_item_id TEXT, device TEXT, intercepted_at TIMESTAMPTZ NOT NULL, campaign_id VARCHAR(100));
 INSERT INTO public.adhunters_rtb_auction_log VALUES
     ('a1', 'msn.com', 0.10, 0.5, 1, 'taboola-native', 'it-1', 'desktop', '2026-09-20 10:00+00'),
     ('a2', 'msn.com', 0.30, 0.7, 1, 'googleadx-defaultseat', 'it-1', 'desktop', '2026-09-20 11:00+00'),
@@ -90,6 +90,8 @@ INSERT INTO public.adhunters_rtb_auction_log VALUES
     ('a4', 'msn.com', 0.90, 1.0, 1, 'taboola-native', 'it-1', 'desktop', '2026-10-01 12:00+00'),
     ('a5', 'msn.com', 0.10, 0.5, 1, 'taboola-native', 'card-sig', 'desktop', '2026-09-20 10:00+00'),
     ('a6', 'elsewhere.com', 0.10, 0.5, 1, 'taboola-native', 'it-1', 'desktop', '2026-09-20 10:00+00');
+-- An item Tracks has no link for: its campaign's most seen creative.
+UPDATE public.adhunters_rtb_auction_log SET campaign_id = 'cmp-1' WHERE auction_id = 'a5';
 CREATE TABLE spy.sighting (seen_at TIMESTAMPTZ NOT NULL, ad_id INTEGER NOT NULL, publisher_id INTEGER NOT NULL,
     device_id SMALLINT NOT NULL, bid_price REAL, second_price REAL) PARTITION BY RANGE (seen_at);
 CREATE TABLE spy.sighting_20260920 PARTITION OF spy.sighting FOR VALUES FROM ('2026-09-20 00:00+00') TO ('2026-09-21 00:00+00');
@@ -109,7 +111,9 @@ func TestRun(t *testing.T) {
 		INSERT INTO tracks_api.account_v1 (id, network_id, external_id) VALUES (1, 1, 'tb-1'), (2, 1, 'tb-2'), (3, 2, 'tb-1');
 		INSERT INTO tracks_api.creative_v1 (id, creative_key) VALUES (11, 'key-a'), (12, 'key-b'), (13, 'key-c'), (14, 'key-d');
 		INSERT INTO tracks_api.ad_v1 (id, creative_id, headline) VALUES (21, 11, 'Doctors stunned'), (22, 11, 'Second headline');
-		INSERT INTO tracks_api.publisher_v1 (id, network_id, name, domain) VALUES (1, 1, 'msn', 'msn.com'), (2, 2, 'newsbreak', NULL);
+		INSERT INTO tracks_api.publisher_v1 (id, network_id, name, domain) VALUES (1, 1, 'msn', 'www.msn.com'), (2, 2, 'newsbreak', NULL);
+		INSERT INTO tracks_api.campaign_v1 (id, network_id, external_id) VALUES (41, 1, 'cmp-1');
+		INSERT INTO tracks_api.creative_campaign_daily_v1 VALUES ('2026-09-20', 11, 41, 8, now(), now()), ('2026-09-20', 12, 41, 2, now(), now());
 		INSERT INTO tracks_api.link_v1 (id, item_id) VALUES (31, 'it-1'), (32, NULL);
 		INSERT INTO tracks_api.creative_link_daily_v1 VALUES ('2026-09-20', 11, 31, 5, now(), now()), ('2026-09-20', 12, 32, 50, now(), now());
 		INSERT INTO tracks_api.ad_daily_v1 (day, ad_id, publisher_id, device_id, creative_id, sightings, first_seen_at, last_seen_at)
@@ -134,7 +138,8 @@ func TestRun(t *testing.T) {
 		want := Result{Operators: Counts{2, 0}, Accounts: Counts{3, 1}, Verticals: Counts{4, 1}, Pages: Pages{
 			Sites: Counts{2, 0}, Clues: Counts{2, 0}, SiteClues: Counts{3, 0}, Sellers: Counts{2, 0}, SiteSellers: Counts{1, 0},
 			AccountSites: Counts{1, 1}, Fixes: Counts{2, 1}, Agencies: Counts{1, 0}, Events: Counts{4, 2}},
-			Prices: Prices{Auctions: Counts{4, 2}, NewsBreak: Counts{1, 1}, Rows: 3, Kept: 1}}
+			Prices: Prices{Auctions: Counts{5, 1}, NewsBreak: Counts{1, 1}, Rows: 3, Kept: 1,
+				NoPublisher: 1, ByItem: 4, ByCampaign: 1}}
 		if res != want {
 			t.Fatalf("run %d: got %+v, want %+v", run, res, want)
 		}
@@ -192,7 +197,7 @@ func TestRun(t *testing.T) {
 			FROM spy.price_day`,
 			"2026-09-20 ad21 p1 d2 auctions 1/1 clearing 0.20~0.2 bid 0~ second 0~ copied, " +
 				"2026-09-20 ad21 p2 d2 auctions 0/0 clearing 0.00~ bid 2~2 second 2~1 copied, " +
-				"2026-09-20 ad22 p1 d1 auctions 2/1 clearing 0.40~0.2 bid 2~0.6 second 0~ copied, " +
+				"2026-09-20 ad22 p1 d1 auctions 3/1 clearing 0.50~0.1 bid 3~0.5 second 0~ copied, " +
 				"2026-10-01 ad21 p1 d1 auctions 7/0 clearing 0.70~ bid 0~ second 0~ own"},
 	} {
 		if err := db.QueryRow(ctx, c.query).Scan(&got); err != nil || got != c.want {
