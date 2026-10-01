@@ -1,8 +1,8 @@
-# Create's bulk upload page and the OpenAI calls behind it. Settings in
+# The team's sign-in in front of every app on hunt-teste.fyi. Settings in
 # /etc/adhunters/create-web.env. Listens on localhost (CREATE_WEB_ADDR);
-# people reach it through the Cloudflare tunnel, behind Cloudflare Access.
+# people reach it through the Cloudflare tunnel.
 [Unit]
-Description=Create web
+Description=Create web (sign-in for hunt-teste.fyi)
 Wants=network-online.target
 After=network-online.target
 

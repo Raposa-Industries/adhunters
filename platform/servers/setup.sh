@@ -278,8 +278,8 @@ raposa_box() {
 
 create_src="$repo/create"
 
-# create_web: Create's bulk upload page (create/README.md). An empty
-# OPENAI_API_KEY only turns making options off, so it always starts. People
+# create_web: the team's sign-in in front of every app (create/README.md).
+# It starts once SIGNIN_USER and SIGNIN_PASSWORD_HASH are filled in. People
 # reach it through the Cloudflare tunnel (platform/OPERATIONS.md).
 create_web() {
     [ -d "$create_src/deploy" ] || { echo "$create_src is missing: run setup.sh from a checkout of the repository" >&2; exit 1; }

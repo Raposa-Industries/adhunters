@@ -17,7 +17,7 @@ model and Direction were ported.
 | Binary | Does | Listens |
 |---|---|---|
 | `spy-numbers run` | Every minute, the last 24 hours (rebuilt only when Tracks closes an hour). Every 5 minutes, the new landing page walks, the classifier, the read model, then Size and Direction; every 15, operator grouping. Every hour, auction prices. | ops on `OPS_ADDR` (9122) |
-| `spy-web` | Spy's pages and their JSON under `/spy/`, behind Cloudflare Access. Reads only published views. | `SPY_WEB_ADDR` (127.0.0.1:8097), ops on 9116 |
+| `spy-web` | Spy's pages and their JSON under `/spy/`, behind create-web's sign-in. Reads only published views. | `SPY_WEB_ADDR` (127.0.0.1:8097), ops on 9116 |
 
 ```
 spy-numbers migrate                applies the migrations (the unit runs it before each start)
@@ -214,18 +214,18 @@ The JSON is under `/spy/api/` (`ads`, `ads/{id}`, `operators`,
 `raposa_api.request_investigation_v1` and records who asked. It takes only
 JSON from the same origin.
 
-With `ACCESS_TEAM` and `ACCESS_AUD` set, every request needs a valid
-Cloudflare Access token (RS256, our audience and team, not expired;
-`shared/access`); the email in it is who asked. Without them spy-web refuses
-to listen beyond localhost.
+People reach it through create-web's sign-in (create/README.md), which
+replaced Cloudflare Access on 2026-10-01, so `ACCESS_TEAM` and `ACCESS_AUD`
+stay unset and spy-web listens only on localhost; who asked for an
+investigation is then recorded empty. With them set (Access, no longer
+used), every request needs a valid Access token (`shared/access`).
 
 Setting it up: `platform/servers/setup.sh data` makes the `spy` login (owns
 the spy schemas; `tracks_api_read`, `raposa_api_read`) and the `spy_web`
 login (`spy_api_read`, `tracks_api_read`, `raposa_api_read`, which carries
 EXECUTE on `raposa_api.request_investigation_v1`), writes
 `/etc/adhunters/spy-numbers.env` and `spy-web.env`, and starts both units.
-spy-web waits until `ACCESS_TEAM` and `ACCESS_AUD` are filled in from an
-Access application for the address. Without the Raposa grants the ad page
+Without the Raposa grants the ad page
 leaves Raposa out. Spy is marked ready in `shared/frame/assets/core.js`,
 so other apps' menus link to it.
 

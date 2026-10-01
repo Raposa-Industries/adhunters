@@ -153,17 +153,19 @@ that file and run `sudo netplan apply`.
 Rolling back one binary on a box:
 `sudo cp /opt/adhunters/bin/NAME.prev /opt/adhunters/bin/NAME && sudo systemctl restart UNIT`.
 
-## Create's page on hunt-teste.fyi
+## The team's address, hunt-teste.fyi
 
-`create-web` listens only on `127.0.0.1:8091` on the data box. Its tunnel
-hostname serves every path no app claims. Since 2026-10-01 it only sends
-every request on to Launch (`/launch/`, `web.Home` in create/web): the old
-launcher page and its API are gone (owner's word), and its env file is no
-longer read past the two addresses. People reach it through a Cloudflare Tunnel (`cloudflared` on
-the data box dials out to Cloudflare, so no port opens), behind Cloudflare
-Access, which asks for an allowed email before the page loads. Access is
-what stops strangers spending OpenAI credit: never publish the hostname
-without it.
+`create-web` listens only on `127.0.0.1:8091` on the data box, and every
+request to hunt-teste.fyi reaches it through a Cloudflare Tunnel
+(`cloudflared` on the data box dials out to Cloudflare, so no port opens).
+It asks for the team's sign-in (one username and password, a 30-day cookie;
+create/README.md), then sends each request to the app whose path it starts
+with (`web.Apps` in create/web: `/launch`, `/create`, `/intel`, `/spy`,
+`/funnels`, `/desk`) and every other path to `/launch/`. The sign-in is what
+stops strangers spending OpenAI credit or touching Taboola: the apps
+themselves listen only on localhost and trust whoever create-web lets
+through. The sign-in replaced Cloudflare Access on 2026-10-01 (owner's
+word); there is no Access application any more.
 
 Set up once, in the Cloudflare dashboard (Zero Trust):
 
@@ -171,10 +173,20 @@ Set up once, in the Cloudflare dashboard (Zero Trust):
    `adhunters-data`. Copy the token it shows.
 2. On the data box, install cloudflared and run it as a service with that
    token (`cloudflared service install TOKEN`, see create/README.md).
-3. In the tunnel, Public hostname: `hunt-teste.fyi`, service
-   `http://localhost:8091`.
-4. Access › Applications › Add (Self-hosted) for `hunt-teste.fyi`, with a
-   policy that allows the team's emails (One-time PIN login).
+3. In the tunnel, one Public hostname: `hunt-teste.fyi`, no path, service
+   `http://localhost:8091`. No other hostname rule for hunt-teste.fyi: a
+   path rule straight to an app would skip the sign-in.
+
+The sign-in lives in `/etc/adhunters/create-web.env`: `SIGNIN_USER=` and
+`SIGNIN_PASSWORD_HASH=` (only the hash, never the password). create-web
+refuses to start without them. To set or change the password (it signs
+everyone out), with the password typed hidden:
+
+```
+sudo sed -i '/^SIGNIN_PASSWORD_HASH=/d' /etc/adhunters/create-web.env
+read -rsp 'Password: ' P; echo; printf '%s' "$P" | /opt/adhunters/bin/create-web hash-password | sudo tee -a /etc/adhunters/create-web.env >/dev/null; unset P
+sudo systemctl restart create-web
+```
 
 `/etc/adhunters/create-web.env` still holds the OpenAI and Taboola keys the
 old page used; create-web no longer reads them (Launch's own file has the
@@ -184,8 +196,9 @@ Taboola ones). Leave the file as it is until the owner says to clean it up.
 
 `funnels-edge` listens only on `127.0.0.1:8098` on the data box and serves
 every hosted landing site, the page script (`/ah.js`) and the collector
-(`/e`). Visitors reach it through the same Cloudflare tunnel as Create's page,
-with **no** Cloudflare Access: landing pages are public. Because the tunnel is
+(`/e`). Visitors reach it through the same Cloudflare tunnel as
+hunt-teste.fyi, straight to `localhost:8098` with no sign-in: landing pages
+are public. Because the tunnel is
 the only way in, the edge trusts Cloudflare's address and country headers
 (`FUNNELS_TRUST_CLOUDFLARE=1`).
 
@@ -205,11 +218,7 @@ as Tracks' loader (setup.sh copies them). See funnels/README.md.
 ## Create on hunt-teste.fyi/create/
 
 `create` listens only on `127.0.0.1:8095` on the data box (create/README.md).
-It is reached on the same address and behind the same Access application as
-the launcher page: in the tunnel (Networks › Tunnels › `adhunters-data` ›
-Public hostname), add a hostname `hunt-teste.fyi` with path `^/create`,
-service `http://localhost:8095`, and move it above the one that serves the
-whole hostname. Its OpenAI key goes in `/etc/adhunters/create.env`
+create-web sends `/create` to it, behind the sign-in (above). Its OpenAI key goes in `/etc/adhunters/create.env`
 (`OPENAI_API_KEY=`), then `sudo systemctl restart create`.
 
 ## The library and Google Drive
@@ -229,28 +238,20 @@ library works and every creative waits to be copied.
 ## Desk on hunt-teste.fyi/desk/
 
 `desk-web` listens only on `127.0.0.1:8092` on the data box
-(desk/README.md). It is reached on the same address and behind the same
-Access application as the launcher page: in the tunnel (Networks › Tunnels ›
-`adhunters-data` › Public hostname), add a hostname `hunt-teste.fyi` with
-path `^/desk`, service `http://localhost:8092`, and move it above the one
-that serves the whole hostname. Desk is off (desk-agent runs but takes no
-work, and every page of desk-web says to sign in) until its Claude key is in
-`/etc/adhunters/desk-agent.env` (`ANTHROPIC_API_KEY=`), the team's Access
-address and the AUD tag of the Access application covering `/desk` are in
-`/etc/adhunters/desk-web.env` (`ACCESS_TEAM=https://<team>.cloudflareaccess.com`,
-`ACCESS_AUD=`; Zero Trust › Access › Applications › the application ›
-Overview), and `sudo systemctl restart desk-agent desk-web` has run. desk-web
-then checks Access's signed token on every request. Its daily Claude limit
+(desk/README.md). create-web sends `/desk` to it, behind the sign-in
+(above). Desk is off (desk-agent runs but takes no work, and every page of
+desk-web says to sign in) until its Claude key is in
+`/etc/adhunters/desk-agent.env` (`ANTHROPIC_API_KEY=`) and the owner says so.
+desk-web learned who is asking from Cloudflare Access's token, which is gone
+since 2026-10-01: before Desk goes on, it needs to take that from the
+sign-in instead. Its daily Claude limit
 and stop switch are on its settings page.
 
 ## Intel on hunt-teste.fyi/intel/
 
 `intel-web` listens only on `127.0.0.1:8096` on the data box
-(intel/README.md). It is reached on the same address and behind the same
-Access application as the launcher page: in the tunnel (Networks › Tunnels ›
-`adhunters-data` › Public hostname), add a hostname `hunt-teste.fyi` with
-path `^/intel`, service `http://localhost:8096`, and move it above the one
-that serves the whole hostname. intel-collect reads once its keys are in
+(intel/README.md). create-web sends `/intel` to it, behind the sign-in
+(above). intel-collect reads once its keys are in
 `/etc/adhunters/intel-collect.env` (the ZoltaGroup Taboola client id and
 secret, and a RedTrack key), then `sudo systemctl restart intel-collect`.
 Alerts reach Telegram once `/etc/adhunters/intel-numbers.env` has the same
@@ -260,23 +261,16 @@ Alerts reach Telegram once `/etc/adhunters/intel-numbers.env` has the same
 ## Spy on hunt-teste.fyi/spy/
 
 `spy-web` listens only on `127.0.0.1:8097` on the data box, metrics on
-`127.0.0.1:9116` (spy/README.md). It is reached on the same address and
-behind the same Access application as the launcher page: in the tunnel
-(Networks › Tunnels › `adhunters-data` › Public hostname), add a hostname
-`hunt-teste.fyi` with path `^/spy`, service `http://localhost:8097`, and move
-it above the one that serves the whole hostname. spy-web checks Access's
-signed token on every request, so `/etc/adhunters/spy-web.env` needs
-`ACCESS_TEAM=https://<team>.cloudflareaccess.com` and `ACCESS_AUD=` (the AUD
-tag of that Access application), then `sudo systemctl restart spy-web`.
+`127.0.0.1:9116` (spy/README.md). create-web sends `/spy` to it, behind the
+sign-in (above). `/etc/adhunters/spy-web.env` has no `ACCESS_TEAM` or
+`ACCESS_AUD` since Cloudflare Access is gone: with them, spy-web refuses
+every request.
 
 ## Funnels on hunt-teste.fyi/funnels/
 
 `funnels-web` listens only on `127.0.0.1:8099` on the data box
-(funnels/README.md). It is reached on the same address and behind the same
-Access application as Intel and Spy: in the tunnel (Networks › Tunnels ›
-`adhunters-data` › Public hostname), add a hostname `hunt-teste.fyi` with
-path `^/funnels`, service `http://localhost:8099`, and move it above the one
-that serves the whole hostname. It needs nothing else: setup.sh makes its
+(funnels/README.md). create-web sends `/funnels` to it, behind the sign-in
+(above). It needs nothing else: setup.sh makes its
 read-only `funnels_web` login. The landing domains stay separate and public
 (above).
 
@@ -289,11 +283,7 @@ box, metrics on `127.0.0.1:9111`. `setup.sh data` installs it, makes the
 is shown only on the run that makes the login). It starts without Taboola
 keys: the pages work and the tree says Taboola is not connected.
 
-It is reached on the same address and behind the same Access application as
-the launcher page: in the tunnel (Networks › Tunnels › `adhunters-data` ›
-Public hostname), add a hostname `hunt-teste.fyi` with path `^/launch`,
-service `http://localhost:8094`, and move it above the one that serves the
-whole hostname. Launch is the only app that writes to Taboola and makes
+create-web sends `/launch` to it, behind the sign-in (above). Launch is the only app that writes to Taboola and makes
 everything paused. Its keys are the team's live ZoltaGroup login, the same
 ones create-web holds (owner, 2026-10-01), without `TABOOLA_ONLY_OWN` so the
 team can manage the campaigns already there. To copy them:
