@@ -43,6 +43,30 @@ jobs:
             echo "::endgroup::"
           done
 
+  # The path test (e2e/README.md): one ad from Spy to Intel through the real
+  # binaries, with fakes for Taboola, OpenAI and Drive. The go job skips it.
+  e2e:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 2s --health-timeout 2s --health-retries 20
+    env:
+      PG_TEST_URL: postgres://postgres:test@localhost:5432/postgres?sslmode=disable
+      E2E: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: useblacksmith/setup-go@v6
+        with:
+          go-version-file: go.work
+      - name: path test (Spy, Create, library, Launch, Intel)
+        working-directory: e2e
+        run: go test -count=1 -v -run TestFirstCampaignPath ./...
+
   web:
     runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
