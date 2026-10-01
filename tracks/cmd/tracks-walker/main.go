@@ -4,6 +4,7 @@
 //	tracks-walker run    -lines proxies.env -spool /var/lib/tracks/walk-spool -archive s3://adhunters-raw [-workers 2]
 //	tracks-walker replay -archive … -from 2026-10-01T00:00:00Z -to 2026-10-02T00:00:00Z
 //	tracks-walker walk   -url https://… [-lines proxies.env]    one walk, printed, nothing saved
+//	tracks-walker import-old    the collector's landing pages as walks (OLD_DATABASE_URL, read only)
 //
 // Every walk is written to a raw file first (walk/… in the spool), and each
 // sealed file goes to the archive and tracks.walk_file; replay parses them
@@ -53,6 +54,8 @@ func main() {
 		err = replayCmd(os.Args[2:])
 	case "walk":
 		err = walkCmd(os.Args[2:])
+	case "import-old":
+		err = importOldCmd()
 	case "version":
 		fmt.Println(version)
 	default:
@@ -65,7 +68,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: tracks-walker run|replay|walk|version [flags]")
+	fmt.Fprintln(os.Stderr, "usage: tracks-walker run|replay|walk|import-old|version [flags]")
 	os.Exit(2)
 }
 
@@ -203,6 +206,34 @@ func replayCmd(args []string) error {
 	r, err := walk.Replay(context.Background(), db, store, f, t)
 	fmt.Printf("replayed %d files, %d walks\n", r.Files, r.Walks)
 	return err
+}
+
+// importOldCmd copies the collector's landing pages into walks (see
+// walk.ImportOld). It needs a login that reads tracks' creatives, ads and
+// counts: tracks-loader's.
+func importOldCmd() error {
+	oldURL := os.Getenv("OLD_DATABASE_URL")
+	if oldURL == "" {
+		return errors.New("OLD_DATABASE_URL is not set (the collector's database on prodbox)")
+	}
+	ctx := context.Background()
+	old, err := pg.Open(ctx, pg.Config{URL: oldURL, AppName: "tracks-walker import-old", StatementTimeout: time.Hour, MaxConns: 1})
+	if err != nil {
+		return err
+	}
+	defer old.Close()
+	db, err := openDB("tracks-walker-import-old")
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	r, err := walk.ImportOld(ctx, db, old)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("landing page versions %d (%d distinct pages), uses %d (%d whose creative, ad or link is not in Tracks), walks %d\n",
+		r.Versions, r.Pages, r.Uses, r.Skipped, r.Walks)
+	return nil
 }
 
 // walkCmd walks one link and prints what the pages said, without the page
