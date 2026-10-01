@@ -242,5 +242,5 @@ it does nothing. `spy.walk_queue` empties itself within an hour.
   stop, in that order, each on the owner's word.
 - Before prodbox is ever switched off, its raw history goes to the archive:
   `public.adhunters_sighting` (26 GB), `spy.sighting`, and the gz files on
-  bigworker. That is its own piece of work.
+  bigworker. `platform/retire/` does that, plus a full dump and Auto-Creative.
 - The standby's capture needs lines of its own before it can take over.
