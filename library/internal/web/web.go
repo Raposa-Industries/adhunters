@@ -97,6 +97,10 @@ func (a *API) fail(w http.ResponseWriter, r *http.Request, err error) {
 		writeError(w, http.StatusBadRequest, bad.Error())
 	case errors.Is(err, store.ErrNotFound):
 		writeError(w, http.StatusNotFound, "not found")
+	case errors.Is(err, store.ErrGone):
+		writeError(w, http.StatusGone, "this picture's file was deleted from Drive")
+	case errors.Is(err, store.ErrNoDrive):
+		writeError(w, http.StatusServiceUnavailable, err.Error())
 	default:
 		a.log.Error("library request failed", "method", r.Method, "path", r.URL.Path, "err", err)
 		writeError(w, http.StatusInternalServerError, "the library failed; see its log")
@@ -387,8 +391,8 @@ func (a *API) changeHeadline(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
-// file serves a creative's safe copy or its thumbnail. The bytes of an id
-// never change, so they may be cached for good.
+// file serves a creative's picture (from Drive, once uploaded) or its
+// thumbnail. The bytes of an id never change, so they may be cached for good.
 func (a *API) file(w http.ResponseWriter, r *http.Request, thumb bool) {
 	id, ok := pathID(w, r)
 	if !ok {

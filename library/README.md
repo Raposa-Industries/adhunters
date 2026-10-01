@@ -2,9 +2,10 @@
 
 Every creative and headline the team keeps, shared by Create and Launch
 ([decision 0014](../decisions/0014-library.md)). Create saves what people
-choose here; Launch makes ads from it. The team also sees a copy of every
-file in its Google Drive folder, and can add files there by hand. The apps
-never show that it is Drive.
+choose here; Launch makes ads from it. Every file lives in the team's Google
+Drive folder, where the team can see it and add files by hand
+([decision 0020](../decisions/0020-library-on-drive-only.md)). The apps never
+show that it is Drive.
 
 It runs on the data box as one binary, `library`: an HTTP API on localhost
 for the apps, and the Drive sync. It owns the `library` and `library_api`
@@ -25,9 +26,12 @@ schemas.
   text is a new headline, because the ad id is made from it.
 - **Sets.** Creatives and headlines made or uploaded together: one session in
   Create, one folder in Drive. A creative or headline can be in several sets.
-- **Safe copies.** Each picture's bytes and a 480px JPEG thumbnail, in the
-  library's file store (an S3 bucket in production, `shared/files`), written
-  before the row. A file deleted in Drive is never lost.
+- **Files, in Drive only.** A picture saved from an app waits in its row
+  until the next Drive pass uploads it (seconds later), and then only Drive
+  has its bytes; `/files/{id}` reads them back from there. Each creative's
+  480px JPEG thumbnail stays in its row. A file deleted in Drive is gone:
+  its row, name and thumbnail stay, `/files/{id}` answers 410, and saving the
+  same bytes again brings it back.
 
 Nothing is deleted. Hiding a creative or headline takes it out of the lists;
 anything that points at it still finds it.
@@ -54,13 +58,14 @@ saves something, one pass:
    headlines changed gets its `Headlines.txt` written again (one per line,
    hidden ones left out). Our id rides on each file as a Drive app property,
    which only the library's own Google client can read.
-2. **In.** The whole folder is listed; each listing page is kept raw in the
-   file store first. A picture the library does not have is downloaded, kept,
-   and added: its vertical from the top folder's name (or code), its set from
+2. **In.** The whole folder is listed; each listing page is kept raw in
+   `library.drive_page` first. A picture the library does not have is
+   downloaded once, for its hash and thumbnail, and added, its bytes staying
+   in that Drive file: its vertical from the top folder's name (or code), its set from
    the folder it is directly in. Pictures are JPEG, PNG, WebP or GIF, up to
    40 MB; anything else is recorded and left alone.
 3. **Gone.** After a whole listing, a file that was not in it is marked gone.
-   Its creative stays, with its safe copy.
+   Its creative's row and thumbnail stay; its bytes went with the file.
 
 The library never deletes, moves or renames anything in Drive. Headlines
 typed into a Drive file by hand are not read (only pictures are).
@@ -81,15 +86,16 @@ It prints a link; open it, allow access (Google warns the app is not
 verified: Advanced, then continue), and paste back the address the browser
 ends on (a page that does not load). It checks the account can open the
 folder, saves the sign-in, and the running library picks it up on its next
-pass. Without a sign-in the library works the same, and every creative
-waits to be copied.
+pass. Without a sign-in, saving still works and every new creative waits in
+its row to be uploaded; pictures already in Drive answer 503 until the
+sign-in is back.
 
 ## API
 
 On `LIBRARY_ADDR` (localhost only). Called by the apps' servers; a request
 from a page (with an `Origin` header) is refused. Errors are
-`{"error": "<one line>"}`: 400 bad input, 404 not found, 413 too big, 503
-Drive off, 500 anything else. Lists are newest first; `?before=<id>`
+`{"error": "<one line>"}`: 400 bad input, 404 not found, 410 the picture's
+Drive file was deleted, 413 too big, 503 Drive off, 500 anything else. Lists are newest first; `?before=<id>`
 continues after the last id of a page.
 
 - `GET /api/status`: counts, and Drive: on or why not, the account, how
@@ -113,8 +119,9 @@ continues after the last id of a page.
 - `GET /api/headlines?...` (the same filters), `POST /api/headlines`
   (`{"headlines": [{text, vertical_id, set_id, angle, origin, origin_ref,
   ai_label, made_by}]}`; a text kept already returns that headline).
-- `GET /files/{id}`, `GET /thumbs/{id}`: the picture and its thumbnail
-  (JPEG). Cached for good: an id's bytes never change.
+- `GET /files/{id}`, `GET /thumbs/{id}`: the picture (from Drive once
+  uploaded) and its thumbnail (JPEG). Cached for good: an id's bytes never
+  change.
 
 The same rows are published for reading in `library_api`
 (contract/sql/library): `vertical_v1`, `creative_v1`, `headline_v1`,
@@ -129,7 +136,7 @@ id: `ah-` + the creative's first 10 + `-` + the headline's first 10.
 |---|---|---|
 | `DATABASE_URL` | | The `library` login. It runs the migrations on start. |
 | `LIBRARY_ADDR` | `127.0.0.1:8093` | The API. |
-| `LIBRARY_FILES` | `file:///var/lib/library/files` | Safe copies: `file:///path` or `s3://bucket/prefix` with `S3_*`. Production: `s3://adhunters-library`. |
+| `LIBRARY_FILES` | unset | Only to move out of the old bucket once (decision 0020): `s3://adhunters-library` with `S3_*`. The library copies its thumbnails and any waiting bytes into the rows on start; then remove it. |
 | `LIBRARY_DRIVE_FOLDER` | unset | The library folder's id. Unset: Drive is off. |
 | `LIBRARY_GOOGLE_CLIENT_ID`, `LIBRARY_GOOGLE_CLIENT_SECRET` | unset | The Desktop app OAuth client. Unset: Drive is off. |
 | `OPS_ADDR` | | `/healthz`, `/metrics` (`127.0.0.1:9110` on the data box). The Drive pass reports as task `drive-sync`. |
@@ -137,7 +144,7 @@ id: `ah-` + the creative's first 10 + `-` + the headline's first 10.
 ## Run it
 
 ```
-DATABASE_URL=postgres://… LIBRARY_FILES=file:///tmp/library go run ./library/cmd/library
+DATABASE_URL=postgres://… go run ./library/cmd/library
 curl -s localhost:8093/api/status
 ```
 

@@ -16,7 +16,6 @@ import (
 	"github.com/Raposa-Industries/adhunters/library/internal/store"
 	"github.com/Raposa-Industries/adhunters/library/internal/testdb"
 	"github.com/Raposa-Industries/adhunters/library/internal/web"
-	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 type offDrive struct{ kicks int }
@@ -52,7 +51,7 @@ func upload(t *testing.T, h http.Handler, meta string, data []byte) (int, map[st
 
 func TestAPI(t *testing.T) {
 	d := &offDrive{}
-	h := web.New(store.New(testdb.New(t), &files.Dir{Root: t.TempDir()}), d, slog.New(slog.NewTextHandler(io.Discard, nil))).Handler()
+	h := web.New(store.New(testdb.New(t)), d, slog.New(slog.NewTextHandler(io.Discard, nil))).Handler()
 
 	code, set := do(t, h, http.MethodPost, "/api/sets", "application/json",
 		strings.NewReader(`{"name":"Tinnitus test","vertical_id":"tinnitus","origin":"create","made_by":"vini"}`))

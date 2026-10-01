@@ -1,5 +1,8 @@
 # 0014 · One library for Create and Launch, stored in the team's Drive
 
+**Changed by [0020](0020-library-on-drive-only.md) (1 Oct 2026):** there is
+no safe copy any more; Drive holds each file's bytes.
+
 **Decided:** 29 Sep 2026 by Marcos (the library on Google Drive, never shown
 as Drive), 30 Sep 2026 (the Google account and folder). Built by the
 library service.

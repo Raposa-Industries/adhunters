@@ -219,9 +219,10 @@ whole hostname. Its OpenAI key goes in `/etc/adhunters/create.env`
 ## The library and Google Drive
 
 `library` listens only on `127.0.0.1:8093` on the data box; Create and Launch
-call it there (library/README.md). Its safe copies go in their own bucket:
-create `adhunters-library` in the Hetzner Console (Object Storage, fsn1,
-private) and put the object storage keys in `/etc/adhunters/library.env`.
+call it there (library/README.md). Its files live in the team's Drive folder
+only, with no bucket (decision 0020). The `adhunters-library` bucket held
+them for a few hours on 1 Oct 2026 and is unused since; deleting it is the
+owner's call.
 
 The Drive copy needs, once: the Google client id and secret of the
 `adhunters-library` project in the same file, `sudo systemctl restart

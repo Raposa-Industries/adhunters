@@ -88,7 +88,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 |---|---|
 | library | The creatives and headlines the team keeps, shared by Create and Launch, with a copy of each file in the team's Google Drive folder. The apps never call it Drive. See [decision 0014](decisions/0014-library.md). |
 | set | Creatives and headlines made or uploaded together: one session in Create, one folder in Drive. Launch picks a set to make ads from. |
-| safe copy | The library's own copy of a picture's bytes, kept before its row is written, so a file deleted in Drive is never lost. |
+| safe copy | Retired (decision 0020): the library's own copy of a picture's bytes. The library keeps files in Drive only. |
 | minted name | A creative's name from its vertical's code, the network letter and a counter that only goes up (`BPT43`), given when an app saves it. Never given twice. |
 | hidden | Taken out of the library's lists by a person. Nothing in the library is deleted. |
 

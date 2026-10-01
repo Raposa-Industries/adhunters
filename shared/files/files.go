@@ -1,8 +1,8 @@
 // Package files keeps files for a service: a bucket in object storage in
 // production, a folder in tests and on a laptop. No file sits in the
-// database. Raposa keeps the files of the pages it keeps whole here; the
-// library keeps its safe copies of creatives; Create keeps its references
-// and the pictures it made.
+// database. Raposa keeps the files of the pages it keeps whole here; Create
+// keeps its references and the pictures it made. (The library kept its safe
+// copies here until decision 0020; it now only reads its old bucket once.)
 //
 // Files are content addressed: the key is files/<md5 of the bytes>, so one
 // sales video twenty pages load is stored once, and storing the same bytes

@@ -8,11 +8,11 @@ import (
 	"image/color"
 	"image/png"
 	"io"
+	"strconv"
 	"testing"
 
 	"github.com/Raposa-Industries/adhunters/library/internal/store"
 	"github.com/Raposa-Industries/adhunters/library/internal/testdb"
-	"github.com/Raposa-Industries/adhunters/shared/files"
 )
 
 // pic is a small PNG; seed makes each one's bytes different.
@@ -28,7 +28,7 @@ func pic(t *testing.T, seed uint8) []byte {
 }
 
 func newStore(t *testing.T) *store.Store {
-	return store.New(testdb.New(t), &files.Dir{Root: t.TempDir()})
+	return store.New(testdb.New(t))
 }
 
 func TestCreativesAreMintedAndFoundByBytes(t *testing.T) {
@@ -165,3 +165,110 @@ func isBad(err error) bool {
 	var b store.BadInput
 	return errors.As(err, &b)
 }
+
+func TestOpenBeforeAndAfterUpload(t *testing.T) {
+	s := newStore(t)
+	ctx := context.Background()
+	c, _, err := s.AddCreative(ctx, store.NewCreative{Origin: store.OriginUpload}, pic(t, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Waiting for its upload: the bytes come from the row.
+	rc, mt, err := s.Open(ctx, c.ID, false)
+	if err != nil || mt != "image/png" {
+		t.Fatalf("open waiting: %v %q", err, mt)
+	}
+	b, _ := io.ReadAll(rc)
+	if !bytes.Equal(b, pic(t, 1)) {
+		t.Error("waiting bytes differ")
+	}
+	// In Drive, with no sign-in: the library says so rather than failing blind.
+	if _, err := s.DB().Exec(ctx, `UPDATE library.creative SET pending = NULL, drive_state = 'in_drive', drive_file_id = 'f1' WHERE id = $1`, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.Open(ctx, c.ID, false); !errors.Is(err, store.ErrNoDrive) {
+		t.Errorf("open without drive: %v", err)
+	}
+	s.UseDrive(func(context.Context) (store.Drive, error) { return fakeDrive{"f1": pic(t, 1)}, nil })
+	rc, _, err = s.Open(ctx, c.ID, false)
+	if err != nil {
+		t.Fatalf("open from drive: %v", err)
+	}
+	if b, _ := io.ReadAll(rc); !bytes.Equal(b, pic(t, 1)) {
+		t.Error("drive bytes differ")
+	}
+	// Its Drive file vanished between passes.
+	s.UseDrive(func(context.Context) (store.Drive, error) { return fakeDrive{}, nil })
+	if _, _, err := s.Open(ctx, c.ID, false); !errors.Is(err, store.ErrGone) {
+		t.Errorf("open a missing drive file: %v", err)
+	}
+}
+
+func TestTakeFromBucket(t *testing.T) {
+	s := newStore(t)
+	ctx := context.Background()
+	waiting, _, _ := s.AddCreative(ctx, store.NewCreative{Origin: store.OriginUpload}, pic(t, 1))
+	uploaded, _, _ := s.AddCreative(ctx, store.NewCreative{Origin: store.OriginUpload}, pic(t, 2))
+	// The third is waiting too, but the bucket never had its files.
+	_, _, _ = s.AddCreative(ctx, store.NewCreative{Origin: store.OriginUpload}, pic(t, 3))
+	// As the bucket days left them: keys, no bytes in the rows.
+	if _, err := s.DB().Exec(ctx, `UPDATE library.creative SET pending = NULL, thumb = NULL,
+		file_key = 'f' || id, thumb_key = 't' || id`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB().Exec(ctx, `UPDATE library.creative SET drive_state = 'in_drive', drive_file_id = 'd' WHERE id = $1`, uploaded.ID); err != nil {
+		t.Fatal(err)
+	}
+	bucket := map[string][]byte{
+		key("f", waiting.ID): pic(t, 1), key("t", waiting.ID): []byte("thumb1"),
+		key("f", uploaded.ID): pic(t, 2), key("t", uploaded.ID): []byte("thumb2"),
+	}
+	get := func(_ context.Context, k string) (io.ReadCloser, error) {
+		b, ok := bucket[k]
+		if !ok {
+			return nil, errors.New("no such key")
+		}
+		return io.NopCloser(bytes.NewReader(b)), nil
+	}
+	n, errs := s.TakeFromBucket(ctx, get)
+	if n != 2 || len(errs) != 2 {
+		t.Fatalf("moved %d, errors %v", n, errs)
+	}
+	var pending []byte
+	_ = s.DB().QueryRow(ctx, `SELECT pending FROM library.creative WHERE id = $1`, waiting.ID).Scan(&pending)
+	if !bytes.Equal(pending, pic(t, 1)) {
+		t.Error("the waiting creative did not get its bytes")
+	}
+	_ = s.DB().QueryRow(ctx, `SELECT pending FROM library.creative WHERE id = $1`, uploaded.ID).Scan(&pending)
+	if pending != nil {
+		t.Error("an uploaded creative took bytes it does not need")
+	}
+	rc, _, err := s.Open(ctx, uploaded.ID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := io.ReadAll(rc); string(b) != "thumb2" {
+		t.Errorf("thumbnail %q", b)
+	}
+	// Run again: only the one the bucket never had is left to try.
+	n, errs = s.TakeFromBucket(ctx, get)
+	if n != 0 || len(errs) != 2 {
+		t.Errorf("second run moved %d, errors %v", n, errs)
+	}
+}
+
+func key(prefix string, id int64) string { return prefix + strconv.FormatInt(id, 10) }
+
+type fakeDrive map[string][]byte
+
+func (f fakeDrive) Download(_ context.Context, id string) ([]byte, error) {
+	if b, ok := f[id]; ok {
+		return b, nil
+	}
+	return nil, notFound{}
+}
+
+type notFound struct{}
+
+func (notFound) Error() string  { return "drive: 404" }
+func (notFound) NotFound() bool { return true }
