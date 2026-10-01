@@ -562,10 +562,15 @@ launch_web() {
     systemctl daemon-reload
 
     say "the launch login"
-    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'launch_api_read') THEN CREATE ROLE launch_api_read NOLOGIN; END IF; END \$\$"
+    local r
+    for r in launch_api_read intel_api_read; do
+        psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '$r') THEN CREATE ROLE $r NOLOGIN; END IF; END \$\$"
+    done
     local launch_pw
     launch_pw=$(login launch)
     psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO launch"
+    # The Groups, Campaigns and Ads tables show Intel's numbers (intel_api views).
+    psql_su -d adhunters -c "GRANT intel_api_read TO launch"
 
     local settings
     settings=$(grep -E '^#?[A-Z0-9_]+=' "$launch_src/deploy/launch-web.env.example")

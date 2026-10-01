@@ -1,11 +1,14 @@
-// Novo par: one desktop and one mobile campaign with the same settings and
-// the same ads, made paused in one group. The ads come from pictures,
+// Novo: the steps behind the "Novo ▾" button, on the left, with a preview
+// of everything that will be made on the right, like Realize's "+ New".
+// make=group makes a group only; make=campaign (the default) a campaign, or
+// one desktop and one mobile campaign with the same settings and the same
+// ads, paused in one group; make=ads adds ads to campaigns that exist. The ads come from pictures,
 // headlines (always English) and buttons, combined "Sortido" (every
 // picture and headline used, the shorter list repeating) or every
 // combination. Taboola's rules only warn: the person decides. Without a
 // connected network, the same ads come out as Taboola's bulk sheet.
-import { api, h, note, field, input, select, segmented, busy, plural, money, link, date, store } from './lib.js';
-import { groupFields, settingsForm, presetBar, loadPresets } from './presets.js';
+import { api, h, note, field, input, select, segmented, busy, plural, money, link, date, store, badge, DEVICES } from './lib.js';
+import { groupFields, settingsForm, presetBar, loadPresets, OBJECTIVES } from './presets.js';
 import { mixedN, everyN, usesN, seeded } from '/launch/_ads/pairing.js';
 import { clean, hasHidden, headlineWarnings, imageWarnings, looksAIMade } from '/launch/_ads/checks.js';
 import { CTAS, AD_COLUMNS, MAX_ADS, adId, adRows, uniqueNames, campaignIds } from '/launch/_ads/sheet.js';
@@ -31,6 +34,8 @@ export function combos(nImages, nHeadlines, nCTAs, mode, seed) {
 export async function newPair({ main, status }) {
   const q = new URLSearchParams(location.search);
   const connected = (status.networks || []).filter((n) => n.connected);
+  // An address with campaigns (to=) is ads only, as before the menu.
+  const make = ['group', 'campaign', 'ads'].includes(q.get('make')) ? q.get('make') : q.get('to') ? 'ads' : 'campaign';
   const s = {
     net: q.get('net') || connected[0]?.name || 'taboola',
     account: q.get('account') || '',
@@ -48,9 +53,17 @@ export async function newPair({ main, status }) {
   let accounts = [];
   let groups = [];
   let presetList = [];
+  let campaignList = []; // the account's campaigns, for ads only
 
-  const head = h('div', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Nova campanha'),
-    h('p', { class: 'lead muted' }, 'Grupo, campanha e anúncios, como no Taboola. Com "Os dois" saem uma campanha desktop e uma mobile iguais. Tudo nasce pausado.')));
+  const TITLES = {
+    group: ['Novo grupo de campanha', 'O grupo nasce sem campanhas. As campanhas de um grupo têm o mesmo objetivo e podem dividir o orçamento dele.'],
+    campaign: ['Nova campanha', 'Grupo, campanha e anúncios, como no Taboola. Com "Os dois" saem uma campanha desktop e uma mobile iguais. Tudo nasce pausado.'],
+    ads: ['Novos anúncios', 'Os mesmos anúncios, pausados, em cada campanha escolhida. Eles passam pela revisão do Taboola.'],
+  };
+  const back = '/launch/' + (make === 'group' ? 'groups' : make === 'ads' ? 'ads' : 'campaigns') + '?' +
+    new URLSearchParams(Object.entries({ account: s.account, group: s.group }).filter(([, v]) => v));
+  const head = h('div', { class: 'page-head' }, h('div', {}, h('h1', {}, TITLES[make][0]), h('p', { class: 'lead muted' }, TITLES[make][1])),
+    h('div', { class: 'actions' }, h('a', { class: 'button ghost', href: back }, 'Cancelar')));
   main.append(head);
   if (!connected.length) {
     main.append(note('warn', h('b', {}, 'Taboola desligado. '), 'Monte os anúncios aqui e baixe a planilha no fim para subir pelo Bulk Upload do Taboola.'));
@@ -69,10 +82,15 @@ export async function newPair({ main, status }) {
     newGroup = v === 'new';
     groupSel.closest('label').hidden = newGroup;
     gBox.hidden = !newGroup;
+    update();
   });
-  const where = h('section', { class: 'panel step' }, h('h2', {}, '1 · Grupo'),
+  const where = h('section', { class: 'panel step' }, h('h2', {}, 'Grupo'),
     h('div', { class: 'fields' }, field('Conta', accountSel)),
-    h('div', { class: 'group-pick' }, groupMode, field('Grupo', groupSel)), gBox);
+    make === 'group' ? null : h('div', { class: 'group-pick' }, groupMode, field('Grupo', groupSel)), gBox);
+  if (make === 'group') {
+    newGroup = true;
+    gBox.hidden = false;
+  }
   const campaignHead = h('div', {},
     h('span', { class: 'field' }, 'Dispositivo'), deviceBox,
     h('div', { class: 'fields' }, h('label', { class: 'field' }, 'Nome próprio (opcional)', pairName, nameHint)));
@@ -94,7 +112,7 @@ export async function newPair({ main, status }) {
   // ---- 2. settings ----
   const set = settingsForm({}, status.limits || {});
   const presetHold = h('div');
-  const settingsPanel = h('section', { class: 'panel step' }, h('h2', {}, '2 · Campanha'),
+  const settingsPanel = h('section', { class: 'panel step' }, h('h2', {}, 'Campanha'),
     campaignHead,
     h('p', { class: 'muted' }, 'Começa com o padrão do time. Use um preset ou salve estas como um.'), presetHold, set.el);
   let presetId = null;
@@ -130,7 +148,7 @@ export async function newPair({ main, status }) {
   const reshuffle = h('button', { type: 'button', class: 'small ghost', onclick: () => { s.seed = 1 + Math.floor(Math.random() * 2 ** 31); update(); } }, 'Sortear de novo');
   const aiBox = h('div');
   const pairing = h('p', { class: 'muted' });
-  const adsPanel = h('section', { class: 'panel step' }, h('h2', {}, '3 · Anúncios'),
+  const adsPanel = h('section', { class: 'panel step' }, h('h2', {}, 'Anúncios'),
     lib.el, h('h3', {}, 'Imagens'), drop, fileIn, upNote, imgGrid,
     h('h3', {}, 'Headlines'), h('p', { class: 'faint' }, 'Sempre em inglês. Os avisos são do Taboola e não impedem o envio.'), paste, h('div', { class: 'actions' }, addHl), hlList,
     h('h3', {}, 'Botão'), ctaBox,
@@ -140,43 +158,83 @@ export async function newPair({ main, status }) {
   // ---- 4. review and send ----
   const review = h('div');
   const sendOut = h('div');
-  const sendBtn = h('button', { type: 'button', class: 'primary big', onclick: () => sendPair() }, 'Criar pausado');
+  const sendBtn = h('button', { type: 'button', class: 'primary big', onclick: () => (make === 'group' ? sendGroup(false) : sendPair()) }, make === 'group' ? 'Criar grupo' : 'Criar pausado');
   const draftBtn = h('button', { type: 'button', class: 'ghost', onclick: () => saveDraft() }, 'Salvar rascunho');
   const draftOut = h('span', { class: 'faint' });
   const sheetIds = input({ placeholder: '123456, 123457', 'aria-label': 'Ids das campanhas para a planilha' });
   const sheetOut = h('div');
   const sheetBtn = h('button', { type: 'button', onclick: () => downloadSheet() }, 'Baixar planilha e imagens');
-  const sendPanel = h('section', { class: 'panel step' }, h('h2', {}, '4 · Revisar e criar'), review,
-    h('div', { class: 'actions' }, connected.length ? sendBtn : null, draftBtn, draftOut), sendOut,
-    h('details', { class: 'sheet', open: !connected.length }, h('summary', {}, 'Subir à mão pelo Bulk Upload'),
+  // Realize's "Create & add campaign": the group, then straight into a campaign in it.
+  const andCampaign = h('button', { type: 'button', class: 'big', onclick: () => sendGroup(true) }, 'Criar e adicionar campanha');
+  const sendPanel = h('section', { class: 'panel step' }, h('h2', {}, 'Revisar e criar'), review,
+    h('div', { class: 'actions' }, connected.length ? sendBtn : null, make === 'group' && connected.length ? andCampaign : null, make === 'group' ? null : draftBtn, draftOut), sendOut,
+    make === 'group' ? null : h('details', { class: 'sheet', open: !connected.length }, h('summary', {}, 'Subir à mão pelo Bulk Upload'),
       h('p', { class: 'muted' }, 'A planilha usa as campanhas que já existem no Taboola. Os anúncios entram pausados.'),
       h('div', { class: 'fields' }, field('Ids das campanhas', sheetIds, 'cada anúncio vai em todas')),
       h('div', { class: 'actions' }, sheetBtn), sheetOut));
 
-  // Ads only (Realize's "assign creatives"): /launch/new?account=…&to=<campaign ids>
-  // adds the ads, paused, to campaigns that exist.
+  // Ads only (Realize's "assign creatives"): /launch/new?make=ads&account=…&to=<campaign ids>
+  // adds the ads, paused, to campaigns that exist, picked here or before.
   const to = (q.get('to') || '').split(',').map((x) => x.trim()).filter((x) => /^\d+$/.test(x));
   const adUrl = input({ type: 'url', placeholder: 'https://…', 'aria-label': 'Página dos anúncios' });
   const adDesc = input({ placeholder: 'opcional, em inglês', 'aria-label': 'Descrição' });
-  const url = () => (to.length ? adUrl.value.trim() : set.url());
-  const description = () => (to.length ? adDesc.value.trim() : set.description());
-  if (to.length) {
-    head.querySelector('h1').textContent = 'Novos anúncios';
-    head.querySelector('p').textContent = 'Os mesmos anúncios, pausados, em cada campanha escolhida. Eles passam pela revisão do Taboola.';
-    const targets = h('ul', { class: 'lib-headlines' }, to.map((id) => h('li', { class: 'mono' }, id)));
-    main.append(h('section', { class: 'panel step' }, h('h2', {}, '1 · Campanhas'), targets,
-      h('div', { class: 'fields' }, field('Página (landing page)', adUrl, 'a mesma em todos os anúncios'), field('Descrição', adDesc))), adsPanel, sendPanel);
-    sendBtn.textContent = 'Adicionar pausados';
-    adsPanel.querySelector('h2').textContent = '2 · Anúncios';
-    sendPanel.querySelector('h2').textContent = '3 · Revisar e adicionar';
-    Promise.all(to.map((id) => api(`${s.net}/${encodeURIComponent(s.account)}/campaigns/${id}`).then((d) => d.campaign).catch(() => ({ id, name: id }))))
-      .then((cs) => {
-        targets.replaceChildren(...cs.map((c) => h('li', {}, h('a', { href: link(s.net, s.account, c.group_id || '-', c.id) }, c.name), ' ', h('span', { class: 'mono faint' }, c.id))));
-        if (!adUrl.value) adUrl.value = '';
-      });
-  } else {
-    main.append(where, settingsPanel, adsPanel, sendPanel);
+  const url = () => (make === 'ads' ? adUrl.value.trim() : set.url());
+  const description = () => (make === 'ads' ? adDesc.value.trim() : set.description());
+  const findCamp = input({ type: 'search', placeholder: 'nome ou id', 'aria-label': 'Buscar campanha' });
+  const targetList = h('div', { class: 'target-list' });
+  const targets = h('section', { class: 'panel step' }, h('h2', {}, 'Campanhas'),
+    h('div', { class: 'fields' }, make === 'ads' ? field('Conta', accountSel) : null, field('Buscar', findCamp)), targetList,
+    h('div', { class: 'fields' }, field('Página (landing page)', adUrl, 'a mesma em todos os anúncios'), field('Descrição', adDesc)));
+  findCamp.addEventListener('input', () => drawTargets());
+  function drawTargets() {
+    const f = findCamp.value.trim().toLowerCase();
+    const list = campaignList.filter((c) => to.includes(c.id) || !f || c.name.toLowerCase().includes(f) || c.id.includes(f));
+    const byGroup = new Map(groups.map((g) => [g.id, g.name || g.id]));
+    targetList.replaceChildren(list.length ? h('ul', { class: 'targets' }, list.slice(0, 200).map((c) => h('li', {},
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: to.includes(c.id), onchange: (e) => {
+        if (e.target.checked) to.push(c.id);
+        else to.splice(to.indexOf(c.id), 1);
+        update();
+      } }), h('span', {}, c.name), ' ', h('span', { class: 'faint mono' }, (byGroup.get(c.group_id) || 'sem grupo') + ' · ' + c.id), ' ', badge(c.status))))) :
+      h('p', { class: 'faint' }, campaignList.length ? 'Nenhuma campanha com essa busca.' : 'Carregando as campanhas…'));
   }
+
+  // ---- the steps on the left, the preview on the right ----
+  const steps = {
+    group: [['Grupo', where], ['Revisar e criar', sendPanel]],
+    campaign: [['Grupo', where], ['Campanha', settingsPanel], ['Anúncios', adsPanel], ['Revisar e criar', sendPanel]],
+    ads: [['Campanhas', targets], ['Anúncios', adsPanel], ['Revisar e adicionar', sendPanel]],
+  }[make];
+  if (make === 'ads') {
+    sendBtn.textContent = 'Adicionar pausados';
+    sendPanel.querySelector('h2').textContent = 'Revisar e adicionar';
+  }
+  const nav = h('ol', { class: 'wiz-nav' });
+  const stepOut = h('div');
+  const backBtn = h('button', { type: 'button', class: 'ghost', onclick: () => show(at - 1) }, 'Voltar');
+  const nextBtn = h('button', { type: 'button', class: 'primary', onclick: () => {
+    const p = stepProblem(steps[at][1]);
+    if (p) { stepOut.replaceChildren(note('fail', p)); return; }
+    show(at + 1);
+  } }, 'Próximo');
+  const preview = h('div', { class: 'wiz-preview-body' });
+  let at = 0;
+  function show(i) {
+    at = Math.max(0, Math.min(i, steps.length - 1));
+    steps.forEach(([label, el], k) => {
+      el.hidden = k !== at;
+      el.querySelector('h2').textContent = `${k + 1} · ${label}`;
+    });
+    stepOut.replaceChildren();
+    backBtn.hidden = at === 0;
+    nextBtn.hidden = at === steps.length - 1;
+    nav.replaceChildren(...steps.map(([label, el], k) => h('li', { class: k === at ? 'on' : k < at && !stepProblem(el) ? 'done' : '' },
+      h('button', { type: 'button', 'aria-current': k === at ? 'step' : null, onclick: () => show(k) }, h('span', { class: 'n' }, k < at && !stepProblem(el) ? '✓' : String(k + 1)), label))));
+    window.scrollTo?.({ top: 0 });
+  }
+  main.append(h('div', { class: 'wizard' },
+    h('div', { class: 'wiz-main' }, nav, ...steps.map(([, el]) => el), stepOut, h('div', { class: 'actions wiz-move' }, backBtn, nextBtn)),
+    h('aside', { class: 'wiz-preview panel', 'aria-label': 'Prévia' }, h('h2', {}, 'Prévia'), preview)));
 
   // ---- loading ----
   async function loadAccounts() {
@@ -187,10 +245,10 @@ export async function newPair({ main, status }) {
     try {
       accounts = (await api(`accounts/${s.net}`)).accounts;
     } catch (e) {
-      where.append(note('fail', e.message));
+      (make === 'ads' ? targets : where).append(note('fail', e.message));
       return;
     }
-    if (!s.account) s.account = (store('launch.account') || '').split('/')[1] || accounts[0]?.id || '';
+    if (!s.account) s.account = (store('launch.acct') !== 'all' && store('launch.acct')) || accounts[0]?.id || '';
     accountSel.replaceChildren(...accounts.map((a) => h('option', { value: a.id, selected: a.id === s.account }, a.name || a.id)));
     s.account = accountSel.value;
     await loadGroups();
@@ -209,11 +267,15 @@ export async function newPair({ main, status }) {
     groupSel.replaceChildren(h('option', { value: '' }, 'Carregando…'));
     loadNext();
     try {
-      groups = (await api(`${s.net}/${encodeURIComponent(s.account)}/tree`)).groups;
+      const t = await api(`${s.net}/${encodeURIComponent(s.account)}/tree`);
+      groups = t.groups;
+      campaignList = t.campaigns;
     } catch (e) {
       groups = [];
-      where.append(note('fail', e.message));
+      campaignList = [];
+      (make === 'ads' ? targets : where).append(note('fail', e.message));
     }
+    if (make === 'ads') drawTargets();
     groupSel.replaceChildren(h('option', { value: '' }, groups.length ? 'Escolha o grupo…' : 'Nenhum grupo: crie um novo'),
       ...groups.map((g) => h('option', { value: g.id, selected: g.id === s.group }, g.name || g.id)));
     presetList = await loadPresets(s.net, s.account).catch(() => []);
@@ -222,8 +284,8 @@ export async function newPair({ main, status }) {
     gp?.remove();
     gBox.replaceChildren(presetBar({ level: 'group', net: s.net, account: s.account, form: gForm, list: presetList }), gForm.el);
   }
-  accountSel.addEventListener('change', () => { s.account = accountSel.value; s.group = ''; loadGroups(); });
-  groupSel.addEventListener('change', () => { s.group = groupSel.value; });
+  accountSel.addEventListener('change', () => { s.account = accountSel.value; s.group = ''; to.splice(0); loadGroups(); update(); });
+  groupSel.addEventListener('change', () => { s.group = groupSel.value; update(); });
 
   // ---- images ----
   async function addFiles(files) {
@@ -376,64 +438,129 @@ export async function newPair({ main, status }) {
 
   function drawReview(list) {
     const w = warnings(list);
-    const st = set.settings();
-    const g = newGroup ? gForm.get().name || (next ? next.group + ' (novo)' : 'grupo novo') : groups.find((x) => x.id === groupSel.value)?.name || '';
+    drawPreview(list, w);
+    if (make === 'group') {
+      review.replaceChildren(h('p', { class: 'muted' }, 'Confira na prévia ao lado. Depois de criar, você pode pôr uma campanha nele.'));
+      return;
+    }
     review.replaceChildren(...[
-      to.length ? h('dl', { class: 'summary' },
-        h('dt', {}, 'Campanhas'), h('dd', {}, plural(to.length, 'campanha', 'campanhas')),
-        h('dt', {}, 'Anúncios'), h('dd', {}, list.length ? `${list.length} em cada, ${list.length * to.length} no total, todos pausados` : '—')) :
-      h('dl', { class: 'summary' },
-        h('dt', {}, 'Campanhas'), h('dd', {}, campaignNames().filter(Boolean).join(' e ') || '—'),
-        h('dt', {}, 'Grupo'), h('dd', {}, g || '—'),
-        h('dt', {}, 'Lance'), h('dd', {}, (st.bid_strategy === 'MAX_CONVERSIONS' ? 'Maximizar conversões' + (st.target_cpa ? `, CPA alvo ${money(st.target_cpa)}` : '') : st.cpc ? `${money(st.cpc)} por clique` : '—') + (st.daily_cap ? `, ${money(st.daily_cap)} por dia em cada` : '')),
-        h('dt', {}, 'Onde'), h('dd', {}, 'Estados Unidos' + (st.exclude_cities.length ? `, menos ${plural(st.exclude_cities.length, 'cidade', 'cidades')}` : '')),
-        h('dt', {}, 'Anúncios'), h('dd', {}, list.length ? `${list.length} em cada campanha, ${list.length * campaignNames().length} no total, todos pausados` : '—')),
       w.length ? note('warn', h('b', {}, 'Avisos (não impedem): '), w.join(' ')) : null,
       list.length ? h('div', { class: 'table-wrap ads-preview' }, h('table', { class: 'list' },
         h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', {}, 'Headline'), h('th', {}, 'Botão'), h('th', {}, 'Id do anúncio'))),
         h('tbody', {}, list.slice(0, 60).map((a) => h('tr', {},
           h('td', {}, h('img', { class: 'mini', src: '/launch/api/images/' + a.img.sha256, alt: 'I' + (a.i + 1) })),
-          h('td', {}, a.title), h('td', {}, a.cta || 'sem botão'), h('td', { class: 'mono faint' }, a.adId)))))) : null,
+          h('td', {}, a.title), h('td', {}, a.cta || 'sem botão'), h('td', { class: 'mono faint' }, a.adId)))))) : h('p', { class: 'faint' }, 'Nenhum anúncio ainda.'),
       list.length > 60 ? h('p', { class: 'faint' }, `…e mais ${list.length - 60}.`) : null].filter(Boolean));
   }
 
+  // drawPreview is the right column: the whole thing as it will be made.
+  function drawPreview(list, w) {
+    const acct = accounts.find((a) => a.id === s.account);
+    const st = set.settings();
+    const row = (label, ...value) => h('div', { class: 'pv-row' }, h('span', { class: 'fr-label' }, label), h('div', {}, ...value));
+    const parts = [row('Conta', acct ? acct.name || acct.id : s.account || '—')];
+    if (make !== 'ads') {
+      const gf = gForm.get();
+      const objective = (OBJECTIVES.find(([v]) => v === (newGroup ? gf.objective : st.objective)) || [])[1];
+      const gName = newGroup ? gf.name || (next ? next.group : 'próximo número') : groups.find((x) => x.id === groupSel.value)?.name || '';
+      parts.push(h('div', { class: 'pv-node pv-group' },
+        row('Grupo', gName ? h('b', {}, gName) : h('span', { class: 'faint' }, 'escolha o grupo'), newGroup ? h('span', { class: 'badge' }, 'novo') : null),
+        newGroup ? h('p', { class: 'faint' }, (objective || '') + ' · ' + (gf.budget_model ? money(gf.budget) + { MONTHLY: ' por mês', ENTIRE: ' no total' }[gf.budget_model] : 'orçamento por campanha')) : null));
+    }
+    if (make === 'campaign') {
+      const bid = st.bid_strategy === 'MAX_CONVERSIONS' ? 'Maximizar conversões' + (st.target_cpa ? `, CPA alvo ${money(st.target_cpa)}` : '') : st.cpc ? `CPC ${money(st.cpc)}` : 'lance —';
+      const devices = s.devices === 'both' ? ['desktop', 'mobile'] : [s.devices];
+      const names = campaignNames();
+      parts.push(...devices.map((d, i) => h('div', { class: 'pv-node pv-campaign' },
+        row('Campanha · ' + DEVICES[d], h('b', {}, names[i] || '—'), ' ', badge('PAUSED')),
+        h('p', { class: 'faint' }, [bid, st.daily_cap ? money(st.daily_cap) + ' por dia' : 'sem orçamento',
+          'Estados Unidos' + (st.exclude_cities.length ? ` menos ${plural(st.exclude_cities.length, 'cidade', 'cidades')}` : ''),
+          st.spending_limit ? 'limite ' + money(st.spending_limit) : 'sem limite de gasto'].join(' · ')))));
+    }
+    if (make === 'ads') {
+      const byId = new Map(campaignList.map((c) => [c.id, c]));
+      parts.push(h('div', { class: 'pv-node pv-campaign' }, row('Campanhas', to.length ? plural(to.length, 'campanha', 'campanhas') : h('span', { class: 'faint' }, 'escolha ao menos uma')),
+        to.length ? h('ul', { class: 'pv-list' }, to.slice(0, 8).map((id) => h('li', {}, byId.get(id)?.name || id))) : null,
+        to.length > 8 ? h('p', { class: 'faint' }, `…e mais ${to.length - 8}.`) : null));
+    }
+    if (make !== 'group') {
+      const each = make === 'ads' ? to.length : campaignNames().length;
+      parts.push(h('div', { class: 'pv-node pv-ads' },
+        row('Anúncios', list.length ? `${list.length} em cada campanha, ${list.length * each} no total, pausados` : h('span', { class: 'faint' }, 'escolha imagens, headlines e botão')),
+        list.length ? h('div', { class: 'pv-cards' }, list.slice(0, 6).map((a) => h('figure', { class: 'pv-card' },
+          h('img', { src: '/launch/api/images/' + a.img.sha256, alt: '', loading: 'lazy' }),
+          h('figcaption', {}, h('b', {}, a.title), h('span', { class: 'faint' }, st.brand || ''), a.cta ? h('span', { class: 'pv-cta' }, a.cta) : null)))) : null,
+        list.length > 6 ? h('p', { class: 'faint' }, `…e mais ${list.length - 6}.`) : null));
+    }
+    if (w.length) parts.push(note('warn', h('b', {}, 'Avisos: '), w.join(' ')));
+    parts.push(h('p', { class: 'faint' }, 'Tudo nasce pausado: alguém liga no Taboola.'));
+    preview.replaceChildren(...parts);
+  }
+
   // ---- send ----
-  function problem(list) {
-    if (!s.account) return 'Escolha a conta.';
-    if (to.length) {
+  function stepProblem(el) {
+    if (!s.account && connected.length) return 'Escolha a conta.';
+    if (el === where) {
+      if (newGroup) return gForm.problem();
+      if (!groupSel.value) return 'Escolha o grupo, ou crie um novo.';
+    }
+    if (el === settingsPanel) return set.problem();
+    if (el === targets) {
+      if (!to.length) return 'Escolha ao menos uma campanha.';
       if (!url()) return 'Falta o link da página.';
-      if (!list.length) return 'Escolha ao menos uma imagem, uma headline e um botão.';
+    }
+    if (el === adsPanel) {
+      if (!on().I.length || !on().H.length || !on().T.length) return 'Escolha ao menos uma imagem, uma headline e um botão.';
       if (!s.ai) return 'Diga se os anúncios foram feitos com IA.';
-      return '';
     }
-    if (newGroup) {
-      const p = gForm.problem();
-      if (p) return p;
-    } else if (!groupSel.value) {
-      return 'Escolha o grupo, ou crie um novo.';
-    }
-    const p = set.problem();
-    if (p) return p;
-    if (!list.length) return 'Escolha ao menos uma imagem, uma headline e um botão.';
-    if (!s.ai) return 'Diga se os anúncios foram feitos com IA.';
     return '';
+  }
+
+  function problem() {
+    for (const [label, el] of steps) {
+      const p = el === sendPanel ? '' : stepProblem(el);
+      if (p) return `${label}: ${p}`;
+    }
+    return '';
+  }
+
+  async function sendGroup(addCampaign) {
+    const p = problem();
+    if (p) {
+      sendOut.replaceChildren(note('fail', p));
+      return;
+    }
+    await busy(sendBtn, sendOut, async () => {
+      const g = await api(`${s.net}/${encodeURIComponent(s.account)}/groups`, { method: 'POST', body: gForm.get() });
+      const q2 = (more) => new URLSearchParams({ account: s.account, ...more });
+      sendBtn.hidden = true;
+      andCampaign.hidden = true;
+      if (addCampaign) {
+        location.assign('/launch/new?' + q2({ make: 'campaign', group: g.id }));
+        return;
+      }
+      sendOut.replaceChildren(note('ok', h('b', {}, `Grupo ${g.name || g.id} criado. `), 'Ainda sem campanhas.'),
+        h('div', { class: 'actions' }, h('a', { class: 'button primary', href: '/launch/new?' + q2({ make: 'campaign', group: g.id }) }, 'Criar uma campanha nele'),
+          h('a', { class: 'button ghost', href: '/launch/groups?' + q2({}) }, 'Ver os grupos')));
+      loadNext();
+    });
   }
 
   let sendKey = '';
   async function sendPair() {
     const list = await ads();
-    const p = problem(list);
+    const p = problem();
     if (p) {
       sendOut.replaceChildren(note('fail', p));
       return;
     }
-    if (to.length) {
+    if (make === 'ads') {
       await busy(sendBtn, sendOut, async () => {
         const res = await api(`${s.net}/${encodeURIComponent(s.account)}/add-ads`, { method: 'POST', body: { campaigns: to,
           new_ads: list.map((a) => ({ title: a.title, description: description(), url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })) } });
         sendBtn.hidden = true;
         sendOut.replaceChildren(...res.done.map((d) => (d.error ? note('fail', h('b', {}, d.campaign + ': '), d.error) : note('ok', h('b', {}, d.campaign + ': '), plural(d.ads, 'anúncio adicionado', 'anúncios adicionados') + ', pausados'))),
-          h('p', {}, h('a', { href: link(s.net, s.account) }, 'Voltar às campanhas')));
+          h('p', {}, h('a', { href: '/launch/ads?' + new URLSearchParams({ account: s.account, ...(to.length === 1 ? { campaign: to[0] } : {}) }) }, 'Ver os anúncios')));
       });
       return;
     }
@@ -480,8 +607,8 @@ export async function newPair({ main, status }) {
       loadNext();
       return h('div', {}, note('ok', h('b', {}, (r.desktop && r.mobile ? 'Par criado' : 'Campanha criada') + ', pausado. '), 'Ligue no Taboola quando quiser que comece.'),
         h('p', {}, ...[camp(r.desktop), r.desktop && r.mobile ? ' · ' : null, camp(r.mobile)].filter(Boolean)),
-        h('div', { class: 'actions' }, h('a', { class: 'button', href: link(s.net, s.account, r.group_id) }, 'Ver o grupo'),
-          h('a', { class: 'button ghost', href: '/launch/new?' + new URLSearchParams({ account: s.account, group: r.group_id || '' }) }, 'Outra campanha neste grupo')));
+        h('div', { class: 'actions' }, h('a', { class: 'button', href: '/launch/campaigns?' + new URLSearchParams({ account: s.account, group: r.group_id || '-' }) }, 'Ver o grupo'),
+          h('a', { class: 'button ghost', href: '/launch/new?' + new URLSearchParams({ make: 'campaign', account: s.account, group: r.group_id || '' }) }, 'Outra campanha neste grupo')));
     }
     return h('div', {}, note(r.result === 'partial' ? 'warn' : 'fail', h('b', {}, r.result === 'partial' ? 'Criado em parte. ' : 'Nada foi criado. '), (r.problems || []).join(' · ')),
       h('p', {}, camp(r.desktop), r.desktop && r.mobile ? ' · ' : '', camp(r.mobile)),
@@ -531,7 +658,7 @@ export async function newPair({ main, status }) {
     if (b.newGroup) groupMode.querySelector('input[value=new]').click();
     const r = modeBox.querySelector(`input[value=${s.mode}]`);
     if (r) r.checked = true;
-    head.querySelector('h1').textContent = 'Novo par · rascunho';
+    head.querySelector('h1').textContent = 'Nova campanha · rascunho';
   }
 
   // ---- the bulk sheet ----
@@ -577,13 +704,15 @@ export async function newPair({ main, status }) {
   update();
   // Create sends people here with the set they just saved: /launch/new?set=7.
   if (/^\d+$/.test(q.get('set') || '')) lib.open(q.get('set'), true);
-  for (const el of [where, settingsPanel]) {
+  for (const el of [where, settingsPanel, targets]) {
     el.addEventListener('input', () => update());
     el.addEventListener('change', () => update());
   }
+  show(0);
   await loadAccounts();
-  if (s.group) groupSel.value = s.group;
+  if (s.group && groups.some((g) => g.id === s.group)) groupSel.value = s.group;
   update();
+  show(at);
 }
 
 function save(blob, name) {

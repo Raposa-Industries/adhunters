@@ -1,8 +1,7 @@
 // Pedidos: changes another service asked for (Desk, for the person it works
 // for). Nothing is sent until someone here confirms; then Launch makes the
 // change like any other, recorded in History as asked by the request.
-import { api, h, note, link, crumbs, date, money, badge, busy, plural } from './lib.js';
-import { doneNote } from './tree.js';
+import { api, h, note, link, crumbs, date, money, badge, busy, plural, doneNote } from './lib.js';
 
 const KINDS = {
   pause: 'Pausar campanhas',

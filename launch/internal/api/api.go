@@ -47,11 +47,13 @@ type API struct {
 	mu   sync.Mutex
 	jobs map[string]*job
 	keys map[string]string // send key -> job id, so one send is never made twice
+	// shown keeps lists the pages read often for a short while (views.go).
+	shown *lists
 }
 
 // New returns the API. base ends when the server stops.
 func New(base context.Context, l *actions.Launch, img *images.Store, log *slog.Logger, classify Classify) *API {
-	return &API{l: l, img: img, log: log, classify: classify, base: base, jobs: map[string]*job{}, keys: map[string]string{}}
+	return &API{l: l, img: img, log: log, classify: classify, base: base, jobs: map[string]*job{}, keys: map[string]string{}, shown: newLists()}
 }
 
 // Who is the signed-in person: Cloudflare Access puts their email in this
@@ -81,6 +83,8 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("GET "+p+"accounts/{net}", a.accounts)
 	m.HandleFunc("GET "+p+"{net}/{account}/tree", a.tree)
 	m.HandleFunc("GET "+p+"{net}/{account}/next", a.next)
+	m.HandleFunc("GET "+p+"{net}/{account}/ads", a.ads)
+	m.HandleFunc("GET "+p+"numbers", a.numbers)
 	m.HandleFunc("GET "+p+"{net}/{account}/campaigns/{id}", a.campaign)
 	m.HandleFunc("POST "+p+"{net}/{account}/groups", a.newGroup)
 	m.HandleFunc("POST "+p+"{net}/{account}/move", a.move)
@@ -113,7 +117,7 @@ func (a *API) Handler() http.Handler {
 	m.HandleFunc("GET "+p+"library/{what}", a.libraryList)
 	m.HandleFunc("POST "+p+"library/use", a.libraryUse)
 	m.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) { say(w, http.StatusNotFound, "endereço desconhecido") })
-	return m
+	return a.forgetOnWrite(m)
 }
 
 func send(w http.ResponseWriter, code int, v any) {
@@ -182,16 +186,12 @@ func (a *API) tree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	acct := r.PathValue("account")
-	groups, err := n.Groups(r.Context(), acct)
+	t, err := a.treeLists(r.Context(), n, acct)
 	if err != nil {
 		a.fail(w, err)
 		return
 	}
-	camps, err := n.Campaigns(r.Context(), acct)
-	if err != nil {
-		a.fail(w, err)
-		return
-	}
+	groups, camps := t.groups, t.camps
 	pairs, err := a.l.Store().Pairs(r.Context(), n.Name(), acct)
 	if err != nil {
 		a.fail(w, err)
@@ -204,7 +204,7 @@ func (a *API) tree(w http.ResponseWriter, r *http.Request) {
 			waiting = append(waiting, m)
 		}
 	}
-	send(w, http.StatusOK, map[string]any{"groups": groups, "campaigns": camps, "pairs": nonNil(pairs), "moves": nonNil(waiting)})
+	send(w, http.StatusOK, map[string]any{"groups": nonNil(groups), "campaigns": nonNil(camps), "pairs": nonNil(pairs), "moves": nonNil(waiting)})
 }
 
 func nonNil[T any](s []T) []T {

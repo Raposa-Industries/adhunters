@@ -20,13 +20,17 @@ All under `/launch/`; a link to any of them opens it.
 
 | Path | Shows |
 |---|---|
-| `/launch/` | The accounts; with only one, its tree. |
-| `/launch/taboola/<account>` | The tree: every group with its campaigns (a pair's two together, marked "par"). Filters on the left: account, search, state, device, groups. Tick campaigns (a pair's other half comes along unless unticked) to **move** them to another group, **copy**, **pause**, or change bid and caps. Moves waiting on their copy are listed on top. **Novo grupo** makes a paused group. |
-| `/launch/taboola/<account>/g/<group>` | One group's campaigns. `g/-` is campaigns without a group. |
+| `/launch/groups` | **Grupos de campanha**, like Realize's: a table of groups with their campaigns, budget and the period's numbers (summed from their campaigns). Clicking a group opens Campanhas narrowed to it. |
+| `/launch/campaigns` (also `/launch/`) | **Campanhas**: a table with each campaign's group, device, state, bid, daily budget and numbers. Clicking a campaign opens Anúncios narrowed to it. Tick campaigns (a pair's other half comes along unless unticked) to see or add ads, **pause**, change budget and bid, **copy**, or **move** them to another group. Moves waiting on their copy are listed on top. |
+| `/launch/ads` | **Anúncios**: each ad with its picture, campaign, state, review, Intel's word and numbers; tick ads to pause them. Without a group or campaign it reads the 25 campaigns that spent most and says so. |
+| the three tables | Share the address `?account=<id or all>&group=<id>&campaign=<id>&w=<today, yesterday, 7d, 30d>`, so a link or a reload shows the same table. At the top, like Realize, a breadcrumb of pickers (Conta, Grupo de campanha, Campanha) with search: picking a group opens its campaigns, a campaign its ads, and "Todos" takes that narrowing off. The period sits by the title; search, state and device are on the left. A group or campaign the table is narrowed to is the title and a chip; its × (or **Ver todas**) goes back to all, and the top tabs always open the whole level. Columns sort by a click; totals are on top and in the last row; 50 rows a page; each row has its actions on the right (**+ Campanha**, **Editar**, **+ Anúncios**, the ad's page). Numbers are Intel's (`intel_api.campaign_result_v1`, `ad_result_v1`), never asked of Taboola by Launch; without Intel they show "—". **Novo ▾** on every table makes a group, a campaign or ads, starting from the group or campaign the table is narrowed to. |
+| `/launch/taboola/<account>[/g/<group>]` | Old addresses: open Campanhas narrowed to that account and group. `g/-` is campaigns without a group. |
 | `/launch/taboola/<account>/g/<group>/c/<campaign>` | One campaign: settings, ads with their review state, the pair's other half, its History, and the same actions (rename here only). |
 | `…/c/<campaign>?do=…&from=intel:<id>` | The same page with a suggested change filled in on top: `do=pause-ads&ads=<ids,…>`, `pause-campaign`, `set-daily-cap&cap=<usd>`, `set-bid&cpc=<usd>`. Only this campaign, not its pair. Nothing is sent until the person presses the button; History records `from` (only `intel:…` or `desk:…`, like `desk:step:12`) as who asked. |
-| `/launch/new` | **Nova campanha**, Realize's flow in one page: 1 · Grupo (account; an existing group or a new one, named with the account's next number, 01, 02…, from a group preset or typed: objective, budget per campaign (default) or the group's per month or in total). 2 · Campanha (devices: both, which makes a desktop and a mobile campaign alike, mobile or desktop; named CMP<n>-<account number>-<Mobile or Desktop>-pp-bl unless a name is typed; settings from a campaign preset or the team's defaults below). 3 · Anúncios (pictures uploaded or from the library, English headlines, buttons, Sortido or every combination, AI label). 4 · Revisar e **Criar pausado**. Each step of the send shows as it happens; the same send twice is one send. Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
-| `/launch/new?account=…&to=<ids>` | **Novos anúncios**: the same ads, paused, added to campaigns that exist (Realize's "assign creatives"); from **Adicionar anúncios** on the tree or a campaign. |
+| `/launch/new?make=…` | The steps behind **Novo ▾**, like Realize's "+ New": the steps on the left, one at a time (**Próximo** checks the step first; the step list jumps back), and on the right a preview of everything that will be made: account, group, each campaign with its name and settings, and the first ads as cards. Everything is made paused. |
+| `make=campaign` (the default; `&group=` picks the group) | **Nova campanha**: 1 · Grupo (account; an existing group or a new one, named with the account's next number, 01, 02…, from a group preset or typed: objective, budget per campaign (default) or the group's per month or in total). 2 · Campanha (devices: both, which makes a desktop and a mobile campaign alike, mobile or desktop; named CMP<n>-<account number>-<Mobile or Desktop>-pp-bl unless a name is typed; settings from a campaign preset or the team's defaults below). 3 · Anúncios (pictures uploaded or from the library, English headlines, buttons, Sortido or every combination, AI label). 4 · Revisar e **Criar pausado**. Each step of the send shows as it happens; the same send twice is one send. Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
+| `make=group` | **Novo grupo de campanha**: **Criar grupo**, or **Criar e adicionar campanha**, which goes straight on to a campaign in it. |
+| `make=ads` (`&to=<ids>` picks campaigns) | **Novos anúncios**: pick campaigns of one account, then the same ads, paused, go into each (Realize's "assign creatives"). |
 | `/launch/new?set=<id>` | Nova campanha with one library set's creatives and headlines already in (Create links here after saving a set). |
 | `/launch/drafts` | Drafts; opening one continues it in Nova campanha. |
 | `/launch/requests` | **Pedidos**: changes Desk asked for, waiting ones first. |
@@ -108,7 +112,7 @@ under `<data>/kept/<UTC day>/` before it is read (`kit/keep`).
 | `internal/network/taboola` | The Taboola adapter over `shared/taboola/write`, which holds the guards (allowed accounts, never a network account, ceilings, only-own on a lent login). |
 | `internal/actions` | Every write, its checks and its History. |
 | `internal/api` | `/launch/api/`, JSON for the pages. |
-| `internal/store`, `migrations` | The `launch` schema: presets, pairs, History, moves, drafts, the ads made (`item`), requests; and `launch_api`. |
+| `internal/store`, `migrations` | The `launch` schema: presets, pairs, History, moves, drafts, the ads made (`item`), requests; and `launch_api`. Reads Intel's numbers from `intel_api` (the `launch` login is granted `intel_api_read`). |
 | `internal/library` | Reads the library (`library/`) on localhost. |
 | `internal/images` | Pictures kept by hash. |
 | `web` | The pages (`web/pages`), plain ES modules on the Frame. |
@@ -124,7 +128,9 @@ or failed, 503 not connected.
 | `GET status` | The person, each network (connected, why not), the ceilings. |
 | `GET search?q=` | Groups and campaigns for ⌘K. |
 | `GET accounts/{net}` | The login's accounts. |
-| `GET {net}/{account}/tree` | Groups, campaigns, pairs, waiting moves. |
+| `GET {net}/{account}/tree` | Groups, campaigns, pairs, waiting moves. The lists are kept 30 s and dropped by any write through Launch. |
+| `GET {net}/{account}/ads?campaigns=1,2` | `{ads: {campaign: [ad]}, errors: {campaign: why}}`, at most 25 campaigns, kept like the tree. |
+| `GET numbers?window=7d&accounts=a,b` | Intel's numbers for the window by campaign and by ad: `{available, campaigns, ads, refreshed_at}`; `available` is false without Intel's views. |
 | `GET {net}/{account}/campaigns/{id}` | Campaign, ads, pair, twin, History. |
 | `POST {net}/{account}/groups` | A paused group `{name, budget, budget_model, objective}`. |
 | `POST {net}/{account}/move` `duplicate` `pause` `change` | `{campaigns, to_group, originals, change}`; one result per campaign. |
@@ -171,7 +177,9 @@ the unit. `LAUNCH_LIBRARY_URL` is the library's API (default
 installs it on the data box with its login and the `launch_api_read` role
 (platform/OPERATIONS.md, "Launch's page"). Not deployed yet: the
 prototype (create-web at hunt-teste.fyi) keeps working until Launch
-replaces it. The lent ZoltaGroup login is never set on both at once.
+replaces it. Since 2026-10-01 the ZoltaGroup login is the team's live one
+(owner) and both apps hold it; Launch runs without `TABOOLA_ONLY_OWN` so the
+team can manage the campaigns already there.
 
 See the pages with a fake Taboola (a few groups, campaigns and a pair), a
 fake library (two sets) and two Desk requests, on a throwaway database:
