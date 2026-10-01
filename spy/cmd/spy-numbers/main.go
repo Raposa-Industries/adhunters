@@ -13,8 +13,9 @@
 //
 // The database URL comes from DATABASE_URL; the login reads tracks_api
 // (tracks_api_read) and owns the spy schemas. import-old copies the
-// groupings (operators, accounts, verticals) from the collector's database
-// at OLD_DATABASE_URL, which it only reads. run stops cleanly on SIGTERM: a
+// groupings (operators, accounts, verticals), pages, Direction history and
+// prices from the collector's database at OLD_DATABASE_URL, which it only
+// reads. run stops cleanly on SIGTERM: a
 // job in flight is cancelled and its transaction rolled back.
 package main
 
@@ -221,6 +222,15 @@ func importCmd() error {
 	}
 	fmt.Printf("operators %d, accounts %d (%d not in Tracks yet), verticals %d (%d not in Tracks yet)\n",
 		res.Operators.Copied, res.Accounts.Copied, res.Accounts.Skipped, res.Verticals.Copied, res.Verticals.Skipped)
+	pg := res.Pages
+	fmt.Printf("sites %d, clues %d, site clues %d, sellers %d, site sellers %d, account sites %d (%d not in Tracks yet)\n",
+		pg.Sites.Copied, pg.Clues.Copied, pg.SiteClues.Copied, pg.Sellers.Copied, pg.SiteSellers.Copied,
+		pg.AccountSites.Copied, pg.AccountSites.Skipped)
+	fmt.Printf("hand fixes %d (%d whose site, account or operator is not here), agencies %d, direction events %d (%d skipped: unknown here, or after Spy's own began; vertical events stay in the archive)\n",
+		pg.Fixes.Copied, pg.Fixes.Skipped, pg.Agencies.Copied, pg.Events.Copied, pg.Events.Skipped)
+	pr := res.Prices
+	fmt.Printf("prices: Taboola auctions %d (%d whose item, publisher or device is not here), NewsBreak ad days %d (%d not here), %d daily rows (%d more Spy already had from Tracks)\n",
+		pr.Auctions.Copied, pr.Auctions.Skipped, pr.NewsBreak.Copied, pr.NewsBreak.Skipped, pr.Rows, pr.Kept)
 	return nil
 }
 

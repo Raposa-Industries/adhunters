@@ -25,7 +25,8 @@ spy-numbers run
 spy-numbers refresh [-rebuild] [-pages-since T]
                                    every job once; -rebuild redoes Direction's daily part first,
                                    -pages-since reads the landing page walks from T again
-spy-numbers import-old             copies the groupings from the collector (OLD_DATABASE_URL, read only)
+spy-numbers import-old             copies the groupings, pages, Direction history and prices
+                                   from the collector (OLD_DATABASE_URL, read only)
 spy-numbers status
 spy-numbers check                  the walker, the classifier and the grouping on live data, read only
 ```
@@ -81,7 +82,20 @@ them over (repeatable: each run replaces the last), matching accounts by
 network and external id and creatives by creative key; rows Tracks has not
 seen yet are skipped and counted in `import_mark`. It refuses to copy an
 empty grouping. Operator ids are kept, so OP123 means the same operator
-everywhere.
+everywhere, and so are names typed by hand (`name_is_manual`) and each
+operator's seller.
+
+So nothing the collector gathered is lost when its database goes, the same
+command also copies (migration 0013, `importold/collector.go`):
+
+| What | Into | How |
+|---|---|---|
+| Sites, clues, site clues, sellers | `site`, `clue`, `site_clue`, `seller`, `site_seller` | Merged by domain, kind and value, platform and account; first and last seen widen. Its certificate and name-server clues cannot be found again from Tracks' walks. |
+| Which accounts' clicks reached which sites | `account_site` | Accounts Tracks has not seen are skipped. |
+| Hand grouping fixes | `grouping_fix` (`old_id`, `made_by`) | Replaced on each run; Spy's own stay. A join whose operator is gone is skipped. |
+| Agencies | `agency` (`name`, `imported`) | An imported agency's name root never joins accounts. |
+| Direction changes | `direction_event` (`old_id`) | Only before Spy's own began; ads and creatives get Tracks' ids. Vertical events name the collector's verticals and stay in the archive. |
+| Taboola auctions and NewsBreak prices | `price_day` (`imported`) | See Auction prices. |
 
 ### Landing pages and operator grouping
 
@@ -189,6 +203,19 @@ their quartiles, redoing yesterday and today each run (14 days on the
 first). The ad page shows the average and the typical value (the middle of
 the daily medians, weighted by auctions). The unit of Taboola's prices is
 not confirmed yet.
+
+`import-old` adds the collector's prices (`importold/prices.go`), marked
+`imported` and replaced on each run: its Taboola auction log
+(`public.adhunters_rtb_auction_log`) and the NewsBreak prices on the
+sightings it still keeps (one day at a time). The log names no ad: an
+auction reaches one through its campaign item (the Tracks link with that
+item id, the creative clicked through it most, and that creative's most
+seen ad that day on that publisher and device, else its most seen ad), so
+prices per creative are exact and a creative with several headlines puts
+them on its leading one. The log kept no RTB flag; a winning seat that
+names RTB or a competing seat counts as RTB. Where Spy already has a row
+from Tracks for the same day, ad, publisher and device, Tracks' row stands,
+and `refresh_prices` replaces a copied row when Tracks has one.
 
 ## The app
 
