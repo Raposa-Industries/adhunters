@@ -231,6 +231,8 @@ func importCmd() error {
 	pr := res.Prices
 	fmt.Printf("prices: Taboola auctions %d (%d whose item, publisher or device is not here), NewsBreak ad days %d (%d not here), %d daily rows (%d more Spy already had from Tracks)\n",
 		pr.Auctions.Copied, pr.Auctions.Skipped, pr.NewsBreak.Copied, pr.NewsBreak.Skipped, pr.Rows, pr.Kept)
+	fmt.Printf("Taboola auctions by campaign item %d, by campaign %d; with no creative here %d, no publisher here %d, unknown device %d\n",
+		pr.ByItem, pr.ByCampaign, pr.NoCreative, pr.NoPublisher, pr.NoDevice)
 	return nil
 }
 

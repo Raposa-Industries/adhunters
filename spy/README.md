@@ -212,7 +212,10 @@ auction reaches one through its campaign item (the Tracks link with that
 item id, the creative clicked through it most, and that creative's most
 seen ad that day on that publisher and device, else its most seen ad), so
 prices per creative are exact and a creative with several headlines puts
-them on its leading one. The log kept no RTB flag; a winning seat that
+them on its leading one. An auction whose item Tracks has no link for
+goes to its campaign's most seen creative; the import prints how many
+went each way, and why the rest were skipped (no creative, no publisher,
+or an unknown device). Domains are compared without `www.`. The log kept no RTB flag; a winning seat that
 names RTB or a competing seat counts as RTB. Where Spy already has a row
 from Tracks for the same day, ad, publisher and device, Tracks' row stands,
 and `refresh_prices` replaces a copied row when Tracks has one.
