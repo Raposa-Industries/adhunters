@@ -62,7 +62,8 @@ On each box, after `setup.sh` has run once:
   once (hidden), writes it on every box and restarts only what is already
   running, capture one instance at a time. On the data box,
   `observe-bot sentry-test` (with `observe.env` and `observe-bot.env`
-  loaded) sends one test error, to see it arrive.
+  loaded) sends one test error, to see it arrive. Its message carries the
+  time, so every run is a new Sentry issue and reaches the chat again.
 - Data box: `/etc/adhunters/observe-bot.env` (Telegram, the `bot` token,
   Sentry's organization and integration token), then
   `systemctl restart observe-bot`. `observe-bot digest` prints today's
