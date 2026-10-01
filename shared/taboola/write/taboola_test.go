@@ -560,7 +560,7 @@ func TestRetries(t *testing.T) {
 					return
 				}
 				if r.Method == "POST" {
-					io.WriteString(w, `{"id":"9","status":"RUNNING"}`)
+					io.WriteString(w, `{"id":"9","status":"RUNNING","is_active":false}`)
 					return
 				}
 				campaignsAnswer(w, r, body)
@@ -598,7 +598,7 @@ func TestEveryExchangeKeptWithoutSecrets(t *testing.T) {
 		case r.URL.Path == apiPrefix+uploadPath:
 			io.WriteString(w, `{"value":"https://cdn/x.png"}`)
 		case r.Method == "POST":
-			io.WriteString(w, `{"id":"9"}`)
+			io.WriteString(w, `{"id":"9","is_active":false}`)
 		case strings.HasSuffix(r.URL.Path, "allowed-accounts/"):
 			w.WriteHeader(500)
 			io.WriteString(w, "oops, not json")
@@ -988,7 +988,7 @@ func TestAdsPauseAndChange(t *testing.T) {
 func TestSettingsFromEnv(t *testing.T) {
 	env := map[string]string{"TABOOLA_ACCOUNTS": " a-sc, ,b-sc", "TABOOLA_ONLY_OWN": "1", "TABOOLA_MAX_CPC": "0.5"}
 	s, err := SettingsFromEnv(func(k string) string { return env[k] }, "/x/state.json")
-	if err != nil || fmt.Sprint(s.Accounts) != "[a-sc b-sc]" || !s.OnlyOwn || s.MaxCPC != 0.5 || s.MaxDailyCap != 100 || s.StateFile != "/x/state.json" || s.Base != DefaultBase {
+	if err != nil || fmt.Sprint(s.Accounts) != "[a-sc b-sc]" || !s.OnlyOwn || s.MaxCPC != 0.5 || s.MaxDailyCap != 20 || s.MaxSpendLimit != 20 || s.StateFile != "/x/state.json" || s.Base != DefaultBase {
 		t.Fatalf("%+v %v", s, err)
 	}
 	for k, v := range map[string]string{"TABOOLA_ACCOUNTS": "z-network", "TABOOLA_ONLY_OWN": "yes", "TABOOLA_MAX_DAILY_CAP": "-1"} {
@@ -1000,5 +1000,132 @@ func TestSettingsFromEnv(t *testing.T) {
 		}, ""); err == nil {
 			t.Errorf("%s=%s accepted", k, v)
 		}
+	}
+}
+
+// A campaign Taboola makes is checked: one that comes back running (or
+// without saying) is paused at once, and a copy above the ceilings is
+// brought down to them.
+func TestNewCampaignSettled(t *testing.T) {
+	answers := map[string]string{
+		"acme-sc/campaigns/":               `{"id":"31","is_active":true,"daily_cap":10}`,
+		"acme-sc/campaigns/101/duplicate/": `{"id":"32","daily_cap":900,"cpc":4,"bid_strategy":"FIXED"}`,
+		"acme-sc/campaigns/102/duplicate/": `{"id":"33","is_active":false,"daily_cap":900,"bid_strategy":"MAX_CONVERSIONS"}`,
+	}
+	f := newFake(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
+		p := strings.TrimPrefix(r.URL.Path, apiPrefix)
+		if a, ok := answers[p]; ok {
+			io.WriteString(w, a)
+			return
+		}
+		var b map[string]any
+		_ = json.Unmarshal(body, &b)
+		b["id"] = strings.Split(strings.TrimPrefix(p, "acme-sc/campaigns/"), "/")[0]
+		_ = json.NewEncoder(w).Encode(b)
+	})
+	c, _ := client(t, f.srv.URL)
+	cp, err := c.CreateCampaign(ctx, "acme-sc", NewCampaign{Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10})
+	if err != nil || cp.IsActive {
+		t.Fatalf("%+v %v", cp, err)
+	}
+	cp, err = c.DuplicateCampaign(ctx, "acme-sc", "101", NewCampaign{Name: "copy"})
+	if err != nil || cp.IsActive || cp.DailyCap != c.s.MaxDailyCap || cp.CPC != c.s.MaxCPC {
+		t.Fatalf("%+v %v", cp, err)
+	}
+	if _, err := c.DuplicateCampaign(ctx, "acme-sc", "102", NewCampaign{Name: "copy"}); err != nil {
+		t.Fatal(err)
+	}
+	var fixes []string
+	for _, x := range f.seen() {
+		if !strings.HasSuffix(x.Path, "/duplicate/") && x.Path != "acme-sc/campaigns/" {
+			fixes = append(fixes, x.Path+" "+string(x.Body))
+		}
+	}
+	want := []string{
+		`acme-sc/campaigns/31/ {"is_active":false}`,
+		fmt.Sprintf(`acme-sc/campaigns/32/ {"cpc":%v,"daily_cap":%v,"is_active":false}`, c.s.MaxCPC, c.s.MaxDailyCap),
+		fmt.Sprintf(`acme-sc/campaigns/33/ {"daily_cap":%v,"is_active":false}`, c.s.MaxDailyCap),
+	}
+	if strings.Join(fixes, "\n") != strings.Join(want, "\n") {
+		t.Errorf("fixes:\n%s\nwant:\n%s", strings.Join(fixes, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// Nothing sent may turn a campaign or an ad on, however the body was built.
+func TestNeverTurnsOn(t *testing.T) {
+	f := newFake(t, func(w http.ResponseWriter, r *http.Request, body []byte) { io.WriteString(w, `{"is_active":false}`) })
+	c, _ := client(t, f.srv.URL)
+	var r *Refused
+	for _, body := range []any{
+		obj{"is_active": true},
+		obj{"collection": []any{obj{"title": "a", "is_active": false}, obj{"title": "b", "is_active": true}}},
+		obj{"is_active": "true"},
+	} {
+		if _, err := c.sendJSON(ctx, http.MethodPost, "acme-sc/campaigns/101/", body, false); !errors.As(err, &r) {
+			t.Errorf("%v: %v", body, err)
+		}
+	}
+	if len(f.seen()) != 0 {
+		t.Fatalf("a body that turns something on reached Taboola: %+v", f.seen())
+	}
+	if _, err := c.sendJSON(ctx, http.MethodPost, "acme-sc/campaigns/101/", obj{"is_active": false, "cpc": 0.3}, false); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// The owner's rule (2026-10-01): a campaign never spends more than $20 in
+// all. Every new campaign gets a total limit at or under the ceiling, a copy
+// without one (or above it) is given one, and no change raises it.
+func TestSpendCeiling(t *testing.T) {
+	f := newFake(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
+		p := strings.TrimPrefix(r.URL.Path, apiPrefix)
+		if strings.HasSuffix(p, "/duplicate/") {
+			io.WriteString(w, `{"id":"41","is_active":false,"daily_cap":500,"spending_limit":0,"bid_strategy":"MAX_CONVERSIONS"}`)
+			return
+		}
+		var b map[string]any
+		_ = json.Unmarshal(body, &b)
+		b["id"] = "40"
+		_ = json.NewEncoder(w).Encode(b)
+	})
+	c, _ := clientWith(t, Settings{Base: f.srv.URL, MaxSpendLimit: 20})
+	c.s.MaxDailyCap = 20
+	var r *Refused
+	for name, in := range map[string]NewCampaign{
+		"total over":    {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10, SpendingLimit: 21},
+		"daily over":    {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 25},
+		"daily > total": {Name: "x", Brand: "b", CPC: 0.1, DailyCap: 20, SpendingLimit: 10},
+	} {
+		if _, err := c.CreateCampaign(ctx, "acme-sc", in); !errors.As(err, &r) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	if len(f.seen()) != 0 {
+		t.Fatalf("a campaign over the ceiling reached Taboola")
+	}
+	cp, err := c.CreateCampaign(ctx, "acme-sc", NewCampaign{Name: "x", Brand: "b", BidStrategy: "MAX_CONVERSIONS", DailyCap: 20})
+	if err != nil || cp.SpendingLimit != 20 {
+		t.Fatalf("no total asked: %+v %v", cp, err)
+	}
+	var b map[string]any
+	_ = json.Unmarshal(f.seen()[0].Body, &b)
+	if b["spending_limit_model"] != "ENTIRE" || b["spending_limit"] != 20.0 {
+		t.Errorf("new campaign body %v", b)
+	}
+	cp, err = c.DuplicateCampaign(ctx, "acme-sc", "101", NewCampaign{Name: "copy"})
+	if err != nil || cp.SpendingLimit != 20 || cp.DailyCap != 20 {
+		t.Fatalf("copy: %+v %v", cp, err)
+	}
+	s := f.seen()
+	b = nil
+	_ = json.Unmarshal(s[len(s)-1].Body, &b)
+	if s[len(s)-1].Path != "acme-sc/campaigns/41/" || fmt.Sprint(b) != "map[daily_cap:20 is_active:false spending_limit:20 spending_limit_model:ENTIRE]" {
+		t.Errorf("copy fix %s %v", s[len(s)-1].Path, b)
+	}
+	if _, err := c.ChangeCampaign(ctx, "acme-sc", "101", Change{SpendingLimit: 50}); !errors.As(err, &r) {
+		t.Errorf("change above the ceiling: %v", err)
+	}
+	if _, err := c.ChangeCampaign(ctx, "acme-sc", "101", Change{DailyCap: 21}); !errors.As(err, &r) {
+		t.Errorf("daily change above the ceiling: %v", err)
 	}
 }

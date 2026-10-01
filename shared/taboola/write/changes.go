@@ -128,8 +128,8 @@ func (c *Client) ChangeCampaign(ctx context.Context, account, campaign string, c
 		return Campaign{}, refuse("o CPC deve ficar entre 0 e %s", usd(c.s.MaxCPC))
 	case ch.DailyCap < 0 || ch.DailyCap > c.s.MaxDailyCap:
 		return Campaign{}, refuse("o limite diário deve ficar entre 0 e %s", usd(c.s.MaxDailyCap))
-	case ch.SpendingLimit < 0 || ch.SpendingLimit > 30*c.s.MaxDailyCap:
-		return Campaign{}, refuse("o orçamento total deve ficar entre 0 e %s", usd(30*c.s.MaxDailyCap))
+	case ch.SpendingLimit < 0 || ch.SpendingLimit > c.totalCeiling():
+		return Campaign{}, refuse("o limite total da campanha deve ficar entre 0 e %s", usd(c.totalCeiling()))
 	case ch.SpendingLimit > 0 && ch.DailyCap > ch.SpendingLimit:
 		return Campaign{}, refuse("o limite por dia (%s) passa do limite total (%s)", usd(ch.DailyCap), usd(ch.SpendingLimit))
 	}

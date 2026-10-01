@@ -15,7 +15,10 @@ import (
 //	TABOOLA_ACCOUNTS       advertiser accounts it may use, comma separated
 //	TABOOLA_BASE_URL       DefaultBase (a local fake, for trying)
 //	TABOOLA_MAX_CPC        1.00  highest bid in USD
-//	TABOOLA_MAX_DAILY_CAP  100   highest daily cap in USD; a total is at most 30
+//	TABOOLA_MAX_DAILY_CAP  20    highest daily cap in USD
+//	TABOOLA_MAX_SPEND_LIMIT 20   highest total (lifetime) spend of one campaign
+//	                       in USD; every campaign made or copied gets one
+//	                       (the owner's rule, 2026-10-01: never above $20)
 //	TABOOLA_ONLY_OWN       1 on a lent login: only what this server made
 //	TABOOLA_NAME_PREFIX    optional, with only-own
 //	TABOOLA_STATE_FILE     stateFile: what this server made, for only-own
@@ -56,7 +59,8 @@ func SettingsFromEnv(getenv func(string) string, stateFile string) (Settings, er
 		to  *float64
 	}{
 		{"TABOOLA_MAX_CPC", 1, &s.MaxCPC},
-		{"TABOOLA_MAX_DAILY_CAP", 100, &s.MaxDailyCap},
+		{"TABOOLA_MAX_DAILY_CAP", 20, &s.MaxDailyCap},
+		{"TABOOLA_MAX_SPEND_LIMIT", 20, &s.MaxSpendLimit},
 	} {
 		*l.to = l.def
 		if v := getenv(l.key); v != "" {
