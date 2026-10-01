@@ -743,9 +743,10 @@ GRAFANA_QUERY_USER=FILL_ME
 GRAFANA_QUERY_TOKEN=FILL_ME
 # Sentry, read-only (an internal integration token with Issue & Event: Read).
 # Leave SENTRY_API_TOKEN empty to keep the relay off.
-SENTRY_URL=https://sentry.io
+# Ours (30 Sep 2026): https://de.sentry.io, org marcos-capistrano, project go.
+SENTRY_URL=https://de.sentry.io
 SENTRY_ORG=FILL_ME
-SENTRY_PROJECT=adhunters-go
+SENTRY_PROJECT=go
 SENTRY_API_TOKEN=FILL_ME
 # Keys for the balance checks in /etc/adhunters/credits.conf. A check whose
 # key is FILL_ME is off.
