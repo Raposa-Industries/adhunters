@@ -69,6 +69,8 @@ const STATES = {
   EXPIRED: ['Encerrada', ''],
   TERMINATED: ['Encerrada', ''],
   FROZEN: ['Congelada', 'rejected'],
+  // Ours: the campaign's group was deleted in Taboola, the campaign was not.
+  GROUP_DELETED: ['Grupo apagado', 'rejected'],
   CRAWLING: ['Em análise', 'review'],
   APPROVED: ['Aprovado', 'running'],
   PENDING: ['Em revisão', 'review'],
