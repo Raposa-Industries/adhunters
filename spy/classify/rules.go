@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Raposa-Industries/adhunters/spy/verticals"
+	"github.com/Raposa-Industries/adhunters/shared/verticals"
 )
 
 // Part weights: a headline names the product more surely than a landing

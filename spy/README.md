@@ -133,7 +133,7 @@ UPDATE spy.setting SET text_value = 'grouping' WHERE name = 'operators_from';
 
 ### Verticals
 
-[verticals/verticals.yaml](verticals/verticals.yaml) is our own fixed list
+[shared/verticals/verticals.yaml](../shared/verticals/verticals.yaml) is our own fixed list
 of verticals: 56 of them in 16 categories, so a list can be filtered by
 category first, then vertical. A classifier may only answer with one of its
 ids, or with nothing; it never makes up a name. Each vertical has a short

@@ -1,4 +1,4 @@
-# AdHunters Create: briefs, options made with OpenAI, saves into the
+# AdHunters Create: sessions of pictures and headlines made with OpenAI, saved into the
 # library (create/README.md). Settings in /etc/adhunters/create.env. Listens
 # on localhost (CREATE_ADDR); people reach /create/ through the Cloudflare
 # tunnel, behind Cloudflare Access.

@@ -12,69 +12,75 @@ only), which stays as it is. Two binaries live here:
 ## Create (`create`)
 
 Pages under `/create/` on the shared shell (the Frame), in Portuguese;
-headlines are always in English. Tabs: **Novo brief**, **Briefs**,
-**Biblioteca**, **Regras**.
+headlines are always in English. Tabs: **Criar**, **Biblioteca**, **Regras**.
+Create is a chat, as auto-creative was, with iteration added (decision 0019):
 
-1. **A brief.** The vertical, the age of the people, how many images (up to
-   12) and headlines (up to 30), the angles to try (the team's list plus any
-   typed), reference headlines, extra instructions. Every field is saved as
-   it is typed. A link can open it with references: `/create/new?ref=spy:ad:81234`
-   (a Spy ad, the ad id in `tracks_api.ad_v1`) or `?ref=library:creative:43`.
-2. **Performing ads** (optional): Spy ads, library creatives or files from
-   the computer. Create keeps each picture before reading it (a Spy ad's is
-   downloaded from its address in `tracks_api.creative_v1`). They are never
-   sent to the image model.
-3. **Ler anúncios** reads them into what they share, seven aspects with what
-   to keep and what can vary. The person edits any line.
-4. **Criar opções** asks for a round: one plan (headlines and one idea per
-   picture, following the edited analysis and the angles), then one picture
-   per idea, three at a time. A picture that fails fails alone. The making
-   log ("Fazendo") shows each step with its cost.
-5. **Choose.** Tick and star pictures and headlines, filter by angle, edit a
-   headline in place. Every headline shows Taboola's warnings (hidden
-   characters, length, capitals, cure claims, disease names, amounts, the
-   team's blocked words with a swap button); they never block. **De novo,
-   com uma nota** makes a picture again from it with the person's change.
-   **Mais 3, mesmo brief, ângulo novo** asks for three pictures of an angle
-   not tried yet.
-6. **Save.** The chosen options go into the library as one set, with the
-   person's AI label (on by default, with a warning when switched off).
-   **Salvar e abrir no Launch** then opens `/launch/new?set=<set id>`.
+1. **A session.** Pick the vertical (our fixed list, `shared/verticals`) and
+   name the session in the left column, or open one already there. The
+   vertical and the name are the library folders what it saves goes in
+   (`<vertical>/<session>`); a name used before in that vertical opens that
+   session again. Click the name to rename it.
+2. **Send.** Write what you want, set how many pictures (up to 8) and
+   headlines (up to 20), and press Enviar (Ctrl+Enter). One text call writes
+   the headlines and, for several pictures from words alone, one brief per
+   picture so they differ; then each picture is its own call, three at a
+   time. A picture that fails fails alone.
+3. **Pick and iterate.** Click any picture or headline to pick it (the
+   number is the order picked; a prompt can say "the first"). Send again:
+   picked pictures go to the picture model and are changed as the prompt
+   says, or varied when the prompt is empty; picked headlines are varied,
+   and picked pictures are what new headlines are written for. Every new
+   item remembers what it came from. Repeat as long as you like.
+4. **Bring your own.** + Imagem do computador, + Da biblioteca (pictures and
+   headlines of the session's vertical) and + Escrever headline add items
+   that can be picked like any other.
+5. **Warnings.** Every headline shows Taboola's warnings (hidden characters,
+   length, capitals, cure claims, disease names, amounts, the team's blocked
+   words with a swap button); they never block. A headline is edited in
+   place until it is saved.
+6. **Save.** With items picked, Salvar na biblioteca writes them into the
+   session's folder, with the person's AI label for made pictures (on by
+   default, with a warning when switched off). Nothing reaches the library
+   before that. The head then links Abrir no Launch (`/launch/new?set=<id>`).
 
-The **Biblioteca** tab browses the library (creatives, headlines, sets)
-through Create's server, and "Fazer parecido no Create" starts a brief from
-a creative. **Regras** lists the rules and the team's blocked words.
+The **Biblioteca** tab browses the library (pictures, headlines, folders)
+through Create's server. **Regras** lists the rules and the team's blocked
+words.
 
 ### How it works
 
-Rows are in `create_app` (`create` is a reserved word in SQL): briefs,
-references, options, saves, a job table and the making log. Every button
-writes rows and a job; a worker in the same binary runs the jobs (reads,
-plans, pictures, saves), `CREATE_WORKERS` at a time, and a page asks again
-every 2 seconds while something runs. At a start, a picture left running by
-a stop is failed (it may have been paid for: the person presses De novo),
-anything else runs again. Every OpenAI reply is kept on disk as it came
-(`CREATE_KEEP_DIR`) before it is read; references and pictures are kept in
-`CREATE_FILES`. A save writes the set in the library and remembers its id
-at once, so a retry adds to the same set.
+Rows are in `create_app` (`create` is a reserved word in SQL): sessions,
+turns, items, saves (`session_save`) and the worker's queue (`work`). Every
+send and save goes through the same `create_api` functions Desk calls and
+queues work; a worker in the same binary runs it, `CREATE_WORKERS` at a
+time, and the page asks again every 2 seconds while something runs. At a
+start, a picture left running by a stop is failed (it may have been paid
+for), anything else runs again. Every OpenAI reply is kept on disk as it
+came (`CREATE_KEEP_DIR`) before it is read; uploads and pictures are kept in
+`CREATE_FILES`. A session's first save makes its set in the library and
+remembers the id at once, so every later save adds to the same folder.
+
+The brief pages of decision 0015 are gone; their tables (`brief`,
+`reference`, `option`, `save`, `job`, `event`) and rows stay, untouched, and
+`/create/new` and `/create/briefs/{id}` land on the chat.
 
 ### For Desk and other apps: `create_api`
 
-`contract/sql/create/`: views `brief_v1` (state draft, reading, making,
-ready or failed), `option_v1` (a picture's `image_url` is its path on
-Create's address), `save_v1` (`library_set_id` once saved), and two
-functions, the same rows the pages write:
+`contract/sql/create/`: views `session_v1`, `turn_v1` (state making, done
+or failed), `item_v1` (a picture's `image_url` is its path on Create's
+address) and `session_save_v1` (`library_set_id` once saved), and three
+functions, the same the page calls:
 
-- `create_api.new_brief_v1(p_input JSONB, p_requested_by TEXT, p_origin TEXT) RETURNS BIGINT`:
-  a brief and its first round. `p_input`: `name`, `vertical_id`,
-  `vertical_name`, `ages`, `images` (default 6), `headlines` (default 10),
-  `angles`, `own_headlines`, `extra`, `references` (`[{"kind": "spy_ad" |
-  "library_creative", "id"}]`). The same `p_origin` again returns the same
-  brief.
-- `create_api.save_set_v1(p_brief_id, p_option_ids BIGINT[], p_name, p_requested_by, p_origin, p_ai_label DEFAULT 'ai') RETURNS BIGINT`:
-  a save of done options of that brief; its set id appears on `save_v1`.
+- `create_api.new_session_v1(p_name, p_vertical_id, p_vertical_name, p_requested_by, p_origin) RETURNS BIGINT`.
+- `create_api.send_turn_v1(p_session_id, p_prompt, p_picked BIGINT[], p_images, p_headlines, p_requested_by, p_origin) RETURNS BIGINT`:
+  picked items must be the session's and done.
+- `create_api.save_items_v1(p_session_id, p_item_ids BIGINT[], p_ai_label, p_requested_by, p_origin) RETURNS BIGINT`.
 
-Callers log in with a role granted `create_api_read`.
+The same `p_origin` again returns the same row. The brief views and
+functions (`brief_v1`, `option_v1`, `save_v1`, `new_brief_v1`,
+`save_set_v1`) are still published until a contract step drops them; Desk's
+catalog (`contract/actions/create.json`) no longer uses them. Callers log
+in with a role granted `create_api_read`.
 
 ### Create's API (for its pages)
 
@@ -82,19 +88,17 @@ Under `/create/api/`, JSON, errors `{"error": "<pt-BR line>"}`. The person
 is Cloudflare Access's `Cf-Access-Authenticated-User-Email`; a change sent
 from another site's page is refused.
 
-- `GET status`, `GET rules`.
-- `GET briefs?before=&limit=`, `POST briefs` (the fields, plus `refs`),
-  `GET briefs/{id}` (the brief, references, options with warnings, saves,
-  log), `PATCH briefs/{id}`.
-- `POST briefs/{id}/references` (`{"ref": "spy:ad:123"}` or a multipart
-  `file`), `DELETE references/{id}`.
-- `POST briefs/{id}/read`, `POST briefs/{id}/make` (no body: the brief's
-  counts; or `{"images", "headlines", "new_angle"}`).
-- `PATCH options/{id}` (`chosen`, `starred`, `text` for a headline),
-  `POST options/{id}/again` (`{"note"}`).
-- `POST briefs/{id}/save` (`{"option_ids", "name", "ai_label"}`), `GET saves/{id}`.
-- `GET /create/files/options/{id}`, `/create/files/references/{id}`: the
-  pictures. `GET /create/library-api/…`: the library's reads.
+- `GET status`, `GET rules`, `GET verticals` (the fixed list by category).
+- `GET sessions?vertical=&limit=`, `POST sessions` (`{"name", "vertical_id"}`),
+  `GET sessions/{id}` (the session, turns, items with warnings, saves),
+  `PATCH sessions/{id}` (`{"name"}`).
+- `POST sessions/{id}/turns` (`{"prompt", "picked", "images", "headlines"}`).
+- `POST sessions/{id}/items`: a multipart `file`, or `{"headline"}`,
+  `{"library_creative": id}`, `{"library_headline": id, "headline"}`.
+  `PATCH items/{id}` (`{"text"}`, a headline not yet saved).
+- `POST sessions/{id}/saves` (`{"item_ids", "ai_label"}`), `GET saves/{id}`.
+- `GET /create/files/items/{id}`: a picture. `GET /create/library-api/…`:
+  the library's reads.
 
 ### Settings
 

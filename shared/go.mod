@@ -3,9 +3,11 @@ module github.com/Raposa-Industries/adhunters/shared
 go 1.25.0
 
 require (
-	github.com/klauspost/compress v1.19.2
+	github.com/Raposa-Industries/adhunters/kit v0.0.0-20260930224041-612911902e2d
+	github.com/klauspost/compress v1.20.1
 	github.com/minio/minio-go/v7 v7.3.0
 	golang.org/x/net v0.58.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
