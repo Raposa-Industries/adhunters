@@ -11,9 +11,9 @@ concurrency:
 
 jobs:
   go:
-    # GitHub-hosted until the Blacksmith account is activated; then switch both
-    # jobs to blacksmith-4vcpu-ubuntu-2404 / blacksmith-2vcpu-ubuntu-2404.
-    runs-on: ubuntu-24.04
+    # Blacksmith runners need the Blacksmith GitHub app on the org, or jobs
+    # wait for a runner that never comes.
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     services:
       postgres:
         image: postgres:17
@@ -26,7 +26,7 @@ jobs:
       PG_TEST_URL: postgres://postgres:test@localhost:5432/postgres?sslmode=disable
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: useblacksmith/setup-go@v6
         with:
           go-version-file: go.work
       - name: gofmt
@@ -44,10 +44,10 @@ jobs:
           done
 
   web:
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: useblacksmith/setup-node@v5
         with:
           node-version: 22
       - name: shared ad page code tests (pairing, checks, bulk sheet)
@@ -58,7 +58,7 @@ jobs:
         run: node --test funnels/web/test/*.test.js
 
   terraform:
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: platform/terraform
@@ -72,7 +72,7 @@ jobs:
       - run: terraform validate
 
   observe:
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     env:
       PROMETHEUS_VERSION: 3.7.1
       ALERTMANAGER_VERSION: 0.28.1
