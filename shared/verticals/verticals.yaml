@@ -37,7 +37,7 @@ categories:
         not:
           - {what: "Blood pressure claims, even with cholesterol beside them", goes: blood-pressure}
         keywords: [cholesterol, clogged arteries, artery, arteries, heart health, cardiovascular, plaque buildup]
-        hints: [heart, ldl]
+        hints: [heart, ldl, cardiologist*]
       - id: circulation
         name: Circulation
         covers: Poor circulation in the legs and feet, swelling, varicose veins, compression socks.
@@ -83,8 +83,8 @@ categories:
         not:
           - {what: "Memory games and quizzes", goes: games}
           - {what: "Memory foam products", goes: gadgets}
-        keywords: [memory loss, brain fog, cognitive, cognition, alzheimer*, dementia, brain health, forgetful*]
-        hints: [memory, brain, mental clarity]
+        keywords: [memory loss, brain fog, cognitive, cognition, alzheimer*, dementia, brain health, forgetful*, fading recall]
+        hints: [memory, brain, mental clarity, recall]
       - id: sleep
         name: Sleep
         covers: Insomnia, falling and staying asleep, snoring and sleep apnea.
@@ -152,7 +152,7 @@ categories:
           - {what: "Joint pain or arthritis", goes: joint-pain}
           - {what: "Sciatica and back pain", goes: back-pain}
           - {what: "Swollen legs or poor circulation", goes: circulation}
-        keywords: [neuropathy, nerve pain, nerve damage, neuralgia, burning feet, tingling feet, numb feet, pins and needles]
+        keywords: [neuropathy, nerve pain, nerve damage, neuralgia, burning feet, tingling feet, numb feet, pins and needles, numb finger*, numb hand*, tingling hand*, numbness in hand*]
         hints: [tingling, numbness, nerve]
       - id: foot-pain
         name: Foot Pain
@@ -318,7 +318,7 @@ categories:
         name: Debt Relief
         covers: Debt consolidation, settlement and forgiveness, taxes owed to the IRS.
         not: []
-        keywords: [debt relief, debt consolidation, credit card debt, debt free, loan forgiveness, tax debt, tax relief, back taxes, owe taxes, tax forgiveness, irs]
+        keywords: [debt relief, debt consolidation, credit card debt, debt free, loan forgiveness, tax debt, tax relief, back taxes, owe taxes, tax forgiveness, irs, minimum payment*]
         hints: [debt]
       - id: mortgage
         name: Mortgage
@@ -331,8 +331,8 @@ categories:
         covers: Stocks, retirement savings, gold IRAs and precious metals.
         not:
           - {what: "Crypto", goes: crypto}
-        keywords: [gold ira, precious metals, dividend*, stock market, retirement savings, 401k, annuit*, invest*, options trad*, stock trad*, day trad*]
-        hints: [retirement, stocks, portfolio, gold, silver]
+        keywords: [gold ira, precious metals, dividend*, stock market, retirement savings, 401k, annuit*, invest*, options trad*, stock trad*, day trad*, cash sweep, brokerage]
+        hints: [retirement, stocks, portfolio, gold, silver, apy]
       - id: crypto
         name: Crypto
         covers: Crypto trading and coins.
@@ -360,8 +360,8 @@ categories:
         name: Medicare
         covers: Medicare, Medicaid, ACA and other health plans, OTC and flex cards.
         not: []
-        keywords: [medicare, medicaid, health insurance, obamacare, health plan*, otc card, flex card]
-        hints: [aca, enrollment]
+        keywords: [medicare, medicaid, health insurance, obamacare, health plan*, otc card, flex card, senior benefit*, seniors born]
+        hints: [aca, enrollment, social security, benefits]
       - id: life-insurance
         name: Life Insurance
         covers: Life, final expense and burial insurance.
@@ -401,7 +401,7 @@ categories:
         name: Home Services
         covers: Home security, pest control, home warranties, water filters.
         not: []
-        keywords: [home security, security camera*, pest control, home warranty, water filter*, tap water, bottled water]
+        keywords: [home security, security camera*, pest control, home warranty, water filter*, tap water, bottled water, hard water, showerhead*, shower head*, water softener*]
         hints: []
 
   - id: shopping
@@ -414,7 +414,7 @@ categories:
           - {what: "Health devices sold for a condition: that condition's vertical"}
           - {what: "Rugs, lamps, decorations, garden products", goes: home-garden}
           - {what: "Phones, apps and phone tips", goes: phones-apps}
-        keywords: [gadget*, free shipping, shop now, cookware, non-stick, nonstick, frying pan*, skillet*, pots and pans, cast iron, memory foam, kitchen knife*, chef knife*, knife maker*]
+        keywords: [gadget*, free shipping, shop now, cookware, non-stick, nonstick, frying pan*, skillet*, pots and pans, cast iron, memory foam, kitchen knife*, chef knife*, knife maker*, kitchen tool*, kitchen gadget*, pizza oven*]
         hints: [deal, discount*, sale, order now, pan, knife, knives]
       - id: fashion
         name: Fashion
@@ -429,7 +429,7 @@ categories:
         not:
           - {what: "Roofing, windows, remodels", goes: home-improvement}
           - {what: "Home security, pest control, water filters", goes: home-services}
-        keywords: [home decor, rug*, lamp*, decoration*, ornament*, bedding, curtain*, garden*, backyard, lawn]
+        keywords: [home decor, rug*, lamp*, decoration*, ornament*, bedding, curtain*, garden*, backyard, lawn, basket, storage container*]
         hints: [decor, cozy, halloween, christmas, butterfl*]
       - id: phones-apps
         name: Phones & Apps

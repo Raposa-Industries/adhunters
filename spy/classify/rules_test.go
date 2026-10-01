@@ -83,6 +83,17 @@ func TestRulesLiveMisses(t *testing.T) {
 		{"Building Options Trades From Scratch?", "investing"},
 		{"Most gardens miss the one thing butterflies actually need", "home-garden"},
 		{"This Classic Men's Mid-Length Jacket Sells Out Every Fall", "fashion"},
+		// The 2026-10-01 04:33 check's most seen ads with no vertical.
+		{"Hand Surgeon: Numb Fingers at 2 AM Are a Warning Sign People Ignore", "neuropathy"},
+		{"Seniors Born 1939-1969 Receive 9 Benefits This Month If They Ask", "medicare"},
+		{"Hard water: best filtered showerheads in 2026", "home-services"},
+		{"The Small Kitchen Tool Everyone Wants At Home", "gadgets"},
+		{"Her Shop Closes This Month — 600 Baskets Left, No More Coming", "home-garden"},
+		{"See the Math: One Plan vs. 27 Years of Minimum Payments", "debt-relief"},
+		{"8.1% APY Cash Sweep for 2 Months? Yes please.", "investing"},
+		{"Ooni's Multi-Fuel Oven is a Game Changer–See Why", ""},
+		{"The 3 Habits That Signal Fading Recall (Number 3 Surprised Me)", "memory-loss"},
+		{`Cardiologist: "If You Eat Olives Daily This Is What Happens"`, ""},
 	} {
 		if a := r.Classify(Text{Ad: c.headline}); a.Vertical != c.vertical {
 			t.Errorf("%q: vertical %q, want %q (points %v)", c.headline, a.Vertical, c.vertical, a.Points)

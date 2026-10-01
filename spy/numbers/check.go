@@ -94,9 +94,12 @@ var checkParts = []checkPart{
 		UNION ALL SELECT 'accounts with no operator now, grouped', count(*)::text
 			FROM spy.grouping_member m WHERE m.member = 'account' AND m.grp IS NOT NULL
 			  AND NOT EXISTS (SELECT 1 FROM spy.account_operator ao WHERE ao.account_id = m.member_id)`},
-	{"Biggest differences (proposed group: accounts from today's operators)", `
+	{"Biggest differences (proposed group: accounts from today's operators; what tied most of its accounts in)", `
 		SELECT COALESCE(g.display_name, 'group ' || g.grp) || CASE WHEN g.operator_id IS NULL THEN ' (new)' ELSE ' (OP' || g.operator_id || ')' END,
 		       string_agg(COALESCE('OP' || ao.operator_id, 'none') || ' ' || n, ', ' ORDER BY n DESC)
+		       || COALESCE(' · ' || (SELECT string_agg(left(r, 60) || ' ' || c, ', ' ORDER BY c DESC, r)
+		                            FROM (SELECT COALESCE(m.reason, 'none') r, count(*) c FROM spy.grouping_member m
+		                                  WHERE m.grp = g.grp AND m.member = 'account' GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT 2) x), '')
 		FROM (SELECT m.grp, ao.operator_id, count(*) n
 		      FROM spy.grouping_member m LEFT JOIN spy.account_operator ao ON ao.account_id = m.member_id
 		      WHERE m.member = 'account' AND m.grp IS NOT NULL GROUP BY 1, 2) ao
