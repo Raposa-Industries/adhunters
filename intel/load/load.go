@@ -189,6 +189,20 @@ func decodeRows(body []byte, key string) ([]row, error) {
 	return rows, nil
 }
 
+// decodeList reads a whole campaign or group list. An answer without a
+// results array is not a list at all: it is an error, never an empty list,
+// since an empty list would start every campaign's way to gone.
+func decodeList(body []byte) ([]row, error) {
+	var probe map[string]json.RawMessage
+	if err := json.Unmarshal(body, &probe); err != nil {
+		return nil, err
+	}
+	if raw, ok := probe["results"]; !ok || len(raw) == 0 || raw[0] != '[' {
+		return nil, fmt.Errorf("list answer has no results array")
+	}
+	return decodeRows(body, "results")
+}
+
 // str reads a field as text; numbers as written, null and missing as "".
 func (r row) str(k string) string {
 	switch v := r[k].(type) {

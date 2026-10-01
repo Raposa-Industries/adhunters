@@ -58,7 +58,8 @@ How the numbers are judged:
   grouped into one message per round. Intel adds two statuses of its own:
   - **deleted**, once the campaign has been missing from every campaign list
     for 15 minutes (Taboola's list sometimes leaves out a campaign that is
-    still there);
+    still there). An answer without a list in it is a load error, never an
+    empty list;
   - **campaign group deleted**, once its group has been missing from the
     group list for 15 minutes. Realize shows "Campaign Group Was Deleted",
     while the campaign list keeps the old status.
@@ -151,7 +152,10 @@ items in Taboola's review queue, so cleanup deletes the items first
 group for every new campaign and keeps it afterwards, so cleanup and `purge`
 delete those groups last; `-groups a,b` names groups of campaigns made before
 the client recorded them. The client deletes only AutoGen groups named with
-our prefix that no campaign in the account still uses.
+our prefix that no campaign in the account still uses. A campaign counts as
+deleted only when the DELETE answers TERMINATED or reading it back gives 404;
+one still readable is a cleanup failure (on 2026-09-29 a DELETE left T12 in
+place and it was recorded as deleted).
 
 Images must go up with an image content type; Taboola refuses
 `application/octet-stream`.

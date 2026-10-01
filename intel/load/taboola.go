@@ -49,7 +49,7 @@ func settingsOf(r row) row {
 }
 
 func tbCampaigns(ctx context.Context, tx pgx.Tx, a answer, body []byte) error {
-	rows, err := decodeRows(body, "results")
+	rows, err := decodeList(body)
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ const inDeletedGroup = `(c.group_id IS NOT NULL
 // no list has shown for goneAfter is gone, and each campaign still listed in
 // it gets GROUP_DELETED.
 func tbGroups(ctx context.Context, tx pgx.Tx, a answer, body []byte) error {
-	rows, err := decodeRows(body, "results")
+	rows, err := decodeList(body)
 	if err != nil {
 		return err
 	}

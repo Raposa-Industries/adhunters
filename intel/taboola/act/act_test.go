@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -33,6 +34,8 @@ func fake(t *testing.T) (*httptest.Server, *atomic.Int32) {
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/items/mass"):
 			w.Write([]byte(`{"results":[{"id":"501"},{"id":"502"}]}`))
 			return
+		case r.Method == http.MethodDelete:
+			body["status"] = "TERMINATED"
 		case r.Method == http.MethodPost && (strings.HasSuffix(r.URL.Path, "/campaigns/") || strings.HasSuffix(r.URL.Path, "/duplicate/") || strings.HasSuffix(r.URL.Path, "/items/")):
 			body["id"] = float64(100 + next.Add(1))
 			if _, ok := body["spending_limit"]; !ok {
@@ -256,5 +259,46 @@ func TestDeleteCampaignGroupOnlyEmptyAutoGenGroups(t *testing.T) {
 	}
 	if !c.State().Deleted["group:50"] {
 		t.Fatal("state lacks the deleted group")
+	}
+}
+
+func TestDeleteCampaignCountsOnlyWhenGone(t *testing.T) {
+	for _, tc := range []struct {
+		name, del string
+		back      int
+		deleted   bool
+	}{
+		{"terminated", `{"id":"5","status":"TERMINATED"}`, 200, true},
+		{"read back 404", `{"id":"5","status":"PAUSED"}`, 404, true},
+		{"still readable", `{"id":"5","status":"DEPLETED"}`, 200, false},
+		{"read back fails", `{"id":"5"}`, 500, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.URL.Path == tokenPath:
+					w.Write([]byte(`{"access_token":"tok","expires_in":43200}`))
+				case r.Method == http.MethodDelete:
+					w.Write([]byte(tc.del))
+				default:
+					w.WriteHeader(tc.back)
+					w.Write([]byte(`{"id":"5","status":"DEPLETED"}`))
+				}
+			}))
+			defer srv.Close()
+			g := guard(t)
+			os.WriteFile(g.StateFile, []byte(`{"campaigns":{"5":20}}`), 0o640)
+			c, _ := New(srv.URL, "id", "s", g)
+			_, err := c.DeleteCampaign(context.Background(), "5")
+			if got := c.State().Deleted["5"]; got != tc.deleted {
+				t.Fatalf("recorded deleted %v, want %v (err %v)", got, tc.deleted, err)
+			}
+			if tc.deleted != (err == nil) {
+				t.Fatalf("err %v", err)
+			}
+			if !tc.deleted && tc.back == 200 && !errors.Is(err, ErrStillThere) {
+				t.Fatalf("got %v, want ErrStillThere", err)
+			}
+		})
 	}
 }

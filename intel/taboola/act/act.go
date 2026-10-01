@@ -209,14 +209,33 @@ func (c *Client) DuplicateCampaign(ctx context.Context, id string, body Obj) (Ob
 	return out, c.remember(func(s *State) { c.noteCampaign(s, out) }, out)
 }
 
-// DeleteCampaign deletes (terminates) one of our campaigns.
+// ErrStillThere means Taboola answered a DELETE but the campaign is still
+// there: its answer was not TERMINATED and reading it back did not 404.
+var ErrStillThere = errors.New("taboola act: still there after delete")
+
+// DeleteCampaign deletes (terminates) one of our campaigns. It records the
+// campaign as deleted only when the answer says TERMINATED or reading it
+// back gives 404; any other answer is ErrStillThere and nothing is recorded
+// (on 2026-09-29 a 2xx DELETE left T12 in place, recorded as deleted).
 func (c *Client) DeleteCampaign(ctx context.Context, id string) (Obj, error) {
 	if err := c.owned(id, ""); err != nil {
 		return nil, err
 	}
-	out, err := c.send(ctx, http.MethodDelete, c.acct("campaigns/"+url.PathEscape(id)), nil)
+	path := c.acct("campaigns/" + url.PathEscape(id))
+	out, err := c.send(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return out, err
+	}
+	if str(out["status"]) != "TERMINATED" {
+		back, err := c.do(ctx, http.MethodGet, path+"/", nil, "", nil)
+		var he *httpError
+		switch {
+		case errors.As(err, &he) && he.status == http.StatusNotFound:
+		case err != nil:
+			return out, fmt.Errorf("%w: campaign %s answered %q; reading it back: %v", ErrStillThere, id, str(out["status"]), err)
+		default:
+			return out, fmt.Errorf("%w: campaign %s answered %q and still reads %q", ErrStillThere, id, str(out["status"]), str(back["status"]))
+		}
 	}
 	return out, c.remember(func(s *State) { s.Deleted[id] = true }, out)
 }
@@ -489,7 +508,7 @@ func (c *Client) do(ctx context.Context, method, path string, body []byte, ctype
 	case errors.As(err, &st):
 		var out Obj
 		json.Unmarshal(st.Body, &out)
-		return out, fmt.Errorf("taboola act: %s %s: HTTP %d: %s", method, path, st.Status, api.Snippet(st.Body))
+		return out, &httpError{status: st.Status, msg: fmt.Sprintf("taboola act: %s %s: HTTP %d: %s", method, path, st.Status, api.Snippet(st.Body))}
 	case err != nil:
 		return nil, err
 	}
@@ -497,6 +516,14 @@ func (c *Client) do(ctx context.Context, method, path string, body []byte, ctype
 	json.Unmarshal(res.Body, &out)
 	return out, nil
 }
+
+// httpError is an answer Taboola gave with an error status.
+type httpError struct {
+	status int
+	msg    string
+}
+
+func (e *httpError) Error() string { return e.msg }
 
 func str(v any) string {
 	switch x := v.(type) {

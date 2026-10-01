@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"strings"
@@ -211,5 +212,35 @@ func TestGroupDeleted(t *testing.T) {
 	step("g4", 40*time.Minute, "taboola.groups", groups())
 	if s := statuses("502"); s != "PENDING_APPROVAL,GROUP_DELETED" {
 		t.Fatalf("never-seen group: %q", s)
+	}
+}
+
+// A list answer without a results array is a load error, not an empty list:
+// it never moves a campaign or group towards gone.
+func TestListWithoutResultsIsNotEmpty(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	l := &load.Loader{DB: db, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	t0 := time.Date(2026, 10, 1, 18, 0, 0, 0, time.UTC)
+	step := func(id string, at time.Duration, kind, body string) {
+		t.Helper()
+		put(t, db, id, "taboola", "acme-1-sc", kind, nil, t0.Add(at), body)
+		if _, err := l.Pending(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	step("g0", 0, "taboola.groups", `{"results":[{"id":"9001","name":"G","status":"RUNNING"}]}`)
+	step("c0", time.Minute, "taboola.campaigns", `{"results":[{"id":"501","campaign_group_id":9001,"status":"RUNNING","is_active":true}]}`)
+	for i, body := range []string{`{}`, `{"results":null}`, `{"error":"busy"}`} {
+		at := time.Duration(20+i*20) * time.Minute
+		step(fmt.Sprint("g", i+1), at, "taboola.groups", body)
+		step(fmt.Sprint("c", i+1), at+time.Minute, "taboola.campaigns", body)
+	}
+	var gone, groupGone, errs int
+	db.QueryRow(ctx, `SELECT count(*) FROM intel.tb_campaign WHERE gone_at IS NOT NULL`).Scan(&gone)
+	db.QueryRow(ctx, `SELECT count(*) FROM intel.tb_group WHERE gone_at IS NOT NULL`).Scan(&groupGone)
+	db.QueryRow(ctx, `SELECT count(*) FROM intel.answer WHERE load_error IS NOT NULL`).Scan(&errs)
+	if gone != 0 || groupGone != 0 || errs != 6 {
+		t.Fatalf("gone %d, groups gone %d, load errors %d (want 0, 0, 6)", gone, groupGone, errs)
 	}
 }
