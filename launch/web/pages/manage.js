@@ -483,7 +483,7 @@ function numbersLine(nums) {
   const at = nums.refreshed_at ? new Date(nums.refreshed_at) : null;
   const when = at && !isNaN(at) ? ', atualizados ' + at.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
   if (!Object.keys(nums.campaigns || {}).length) return 'O Intel ainda não tem números destas campanhas neste período' + when + '.';
-  return 'Números do Intel' + when + '. ' + (tracked ? 'Vendas e receita do RedTrack.' : 'Vendas, receita e lucro aparecem quando o RedTrack estiver ligado no Intel.');
+  return 'Números do Intel' + when + '. ' + (tracked ? 'Vendas e receita do RedTrack.' : 'Ainda sem vendas do RedTrack neste período: vendas, receita e lucro aparecem quando chegarem.');
 }
 
 // picker is one step of the breadcrumb: a small label over the value, and a
