@@ -353,10 +353,13 @@ On your computer, from the repository root:
 OPENAI_API_KEY=sk-... go run ./create/cmd/create-web
 ```
 
-Then open http://127.0.0.1:8091.
+Then open http://127.0.0.1:8091/old/ (the root goes on to `/launch/`,
+which on the data box is Launch; the page and its API also answer under
+`/old/`, and the old `/api/` paths still work for open tabs).
 
 On the data box it is the `create-web` unit, installed by
-`platform/servers/setup.sh` and reached at https://hunt-teste.fyi through a
+`platform/servers/setup.sh` and reached at https://hunt-teste.fyi/old/ (the
+site's root opens Launch since 2026-10-01) through a
 Cloudflare Tunnel behind Cloudflare Access (platform/OPERATIONS.md). Install
 cloudflared once, on the data box:
 

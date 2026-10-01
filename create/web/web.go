@@ -45,6 +45,22 @@ func Handler() http.Handler {
 	return serve(sub)
 }
 
+// OldPath is where the old launcher page lives now that the site's root
+// opens Launch.
+const OldPath = "/old/"
+
+// Root routes create-web's address: "/" opens the new Launch (the tunnel
+// sends /launch to launch-web), the old launcher page and its API stay
+// reachable under OldPath, and every other path goes to app unchanged, so
+// /api/ and /_ads/ keep answering old bookmarks and open tabs.
+func Root(app http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("GET /{$}", http.RedirectHandler("/launch/", http.StatusFound))
+	mux.Handle(OldPath, http.StripPrefix(strings.TrimSuffix(OldPath, "/"), app))
+	mux.Handle("/", app)
+	return mux
+}
+
 // serve is Handler over any folder, for tests.
 func serve(sub fs.FS) http.Handler {
 	files := http.FileServerFS(sub)

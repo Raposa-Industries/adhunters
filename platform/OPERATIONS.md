@@ -155,8 +155,11 @@ Rolling back one binary on a box:
 
 ## Create's page on hunt-teste.fyi
 
-`create-web` listens only on `127.0.0.1:8091` on the data box. People reach
-it at https://hunt-teste.fyi through a Cloudflare Tunnel (`cloudflared` on
+`create-web` listens only on `127.0.0.1:8091` on the data box. Its tunnel
+hostname serves every path no app claims, so it sends https://hunt-teste.fyi/
+on to Launch (`/launch/`) and serves the old launcher page at
+https://hunt-teste.fyi/old/ until the owner says to remove it. People reach
+it through a Cloudflare Tunnel (`cloudflared` on
 the data box dials out to Cloudflare, so no port opens), behind Cloudflare
 Access, which asks for an allowed email before the page loads. Access is
 what stops strangers spending OpenAI credit: never publish the hostname
