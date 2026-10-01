@@ -49,7 +49,7 @@ asked, from Tracks' counts.
 | Part | What | Kept in | Refreshed |
 |---|---|---|---|
 | Ranges | Presence, share of voice, momentum with its likely range and word, lifespan, launch hit rate, for creatives, operators, verticals and publishers over any start and end | computed when asked | never stored |
-| Last 24 hours | The ranges over the last 24 closed hours, stored so lists open fast | `creative_recent`, `operator_recent`, `recent_window` | when Tracks closes an hour |
+| Last 24 hours | The ranges over the last 24 closed hours, stored so lists open fast. They end at the first hour not closed in the last 6 days, so holes in the collector's history (hours it never scraped) never hold them back | `creative_recent`, `operator_recent`, `recent_window` | when Tracks closes an hour |
 | Read model | Totals per creative, operator and publisher (today, yesterday, 3, 7 and 30 days), who runs it, its vertical, new, running, junk | `creative_stats`, `operator_stats`, `publisher_stats`, `creative_day` | every 5 minutes |
 | Size | Share and rank in its vertical, over 24 hours and 7 days; scaled | `size_stats` | hourly |
 | Direction | Rising, steady, fading or stopped right now, against the same hours of the usual weeks, with a sentence for people | `direction_stats`, `direction_event` | every 5 minutes |

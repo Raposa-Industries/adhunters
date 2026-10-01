@@ -303,3 +303,32 @@ func TestLifespanAndHitRate(t *testing.T) {
 		t.Errorf("vertical range: %d rows, err %v", verticals, err)
 	}
 }
+
+// The collector's history has hours it never scraped, and Tracks closes empty
+// hours only for the last 7 days. A hole 10 days back is history; a hole 3
+// hours back is an hour still closing, and closed hours stop there.
+func TestRecentEndAfterOldHoles(t *testing.T) {
+	b := newBench(t)
+	end := now.Truncate(time.Hour)
+	recentEnd := func() time.Time {
+		t.Helper()
+		var got time.Time
+		if err := b.db.QueryRow(b.ctx, `SELECT spy.recent_end($1)`, now).Scan(&got); err != nil {
+			t.Fatal(err)
+		}
+		return got.UTC()
+	}
+	hole := end.AddDate(0, 0, -10)
+	b.closeHours(end.AddDate(0, 0, -16), hole)
+	b.closeHours(hole.Add(time.Hour), end)
+	if got := recentEnd(); !got.Equal(end) {
+		t.Errorf("with a hole 10 days back: %v, want %v", got, end)
+	}
+	if n, err := b.r.Recent(b.ctx); err != nil {
+		t.Fatalf("last 24 hours: %d, %v", n, err)
+	}
+	b.exec(`DELETE FROM tracks_api.closed_hour_v1 WHERE hour = $1`, end.Add(-3*time.Hour))
+	if got, want := recentEnd(), end.Add(-3*time.Hour); !got.Equal(want) {
+		t.Errorf("with an hour still closing: %v, want %v", got, want)
+	}
+}
