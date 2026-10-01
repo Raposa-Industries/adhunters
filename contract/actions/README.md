@@ -20,6 +20,17 @@ There is no kind for what only a person may do: confirming, turning spending
 on. Those are never listed, so Desk can never be given them. A change of a
 bid or a cap is only ever an ask: a person decides it on Launch's page.
 
+Turning a campaign or an ad on (starting, resuming, unpausing) is never
+listed either, for any app (decided 1 Oct 2026: "never run a campaign
+without me giving the go"); only a person does it, in Taboola. Launch's asks
+only pause, change, copy or move, and its copies are made paused. `Load`
+refuses a change or ask whose name, function, args, fixed values, choices or
+input fields carry a word of turning on (start, resume, unpause, activate,
+active, enable, run, running, live, play, "turn on", "switch on"; the full
+list is `turnOnWords`), so such an entry fails `go test ./actions/` and
+Desk's binaries refuse to run with it. Its `says` and descriptions are prose
+and are not read; a read may still show what runs.
+
 ## One entry
 
 ```json

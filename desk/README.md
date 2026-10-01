@@ -74,12 +74,16 @@ minute later.
 
 - **The catalog is the only door.** Desk reaches an app only through what
   `contract/actions/<app>.json` lists, each one a view or function the app
-  publishes. Confirming and turning spending on are never listed, so Desk
-  can never be given them; a change of bid or cap is only ever an ask,
-  which a person confirms on Launch's page.
+  publishes. Confirming and turning a campaign or ad on (starting,
+  resuming, unpausing) are never listed, and the catalog refuses an entry
+  that would turn something on, so Desk can never be given them; a change
+  of bid or cap is only ever an ask, which a person confirms on Launch's
+  page.
 - **Taboola.** Every Taboola write goes through Launch, where a person
   confirms it; campaigns and ads are always made paused and only a person
-  starts them, in Taboola. Headlines are always in English. Taboola's
+  turns them on, in Taboola (decided 1 Oct 2026: "never run a campaign
+  without me giving the go"). Desk never asks an app or a person to turn one
+  on. Headlines are always in English. Taboola's
   policies are warnings; the AI label is the person's choice.
 - **Plans first.** Changes and asks run only as steps of a plan its person
   OK'd. Each action has a `per_day` cap on Desk's calls. Reads run in a

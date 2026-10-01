@@ -177,7 +177,7 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | conversation | One person's talk with Desk, on Desk's page. Only that person sees it, and Desk acts in it for them, with their rights. |
 | turn | Desk answering what is new in a conversation: calls to Claude and the tools it asks for, until it answers in words. |
 | action | One thing an app lets a teammate do: one view or function in its `<app>_api`, listed in the action catalog. A read looks; a change changes the app's own data or starts its work; an ask asks the app for something a person then confirms on the app's own screen. |
-| action catalog | Every app's actions, one file per app in `contract/actions/`. Desk can do only what it lists, and it lists no confirm. |
+| action catalog | Every app's actions, one file per app in `contract/actions/`. Desk can do only what it lists, and it lists no confirm and nothing that turns a campaign or ad on. |
 | plan | Work Desk proposes in a conversation: a goal and its plan steps, shown with every input. Nothing in it runs before the conversation's person OKs it. A new plan replaces one still waiting for its OK. |
 | plan step | One numbered part of a plan ("step" inside Desk): an action (a change or an ask), a choice, or a person's to-do. It can take a value from an earlier one: the id a change returned, the ids chosen. |
 | OK | A person's yes to a plan on Desk's page, for the plan exactly as they saw it: a plan changed since is not approved. Confirming an ask is not an OK; that happens on the owning app's screen. |
