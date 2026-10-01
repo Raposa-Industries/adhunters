@@ -125,6 +125,8 @@ func parse(ctx context.Context, tx pgx.Tx, a answer, body []byte) error {
 		return tbAccounts(ctx, tx, a, body)
 	case "taboola.campaigns":
 		return tbCampaigns(ctx, tx, a, body)
+	case "taboola.groups":
+		return tbGroups(ctx, tx, a, body)
 	case "taboola.items":
 		return tbItems(ctx, tx, a, body)
 	case "taboola.campaign_day":

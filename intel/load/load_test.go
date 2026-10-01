@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -154,5 +155,61 @@ func TestBadAnswerIsKept(t *testing.T) {
 	var e string
 	if err := db.QueryRow(ctx, `SELECT load_error FROM intel.answer`).Scan(&e); err != nil || e == "" {
 		t.Fatalf("no load error recorded: %v", err)
+	}
+}
+
+func TestGroupDeleted(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	l := &load.Loader{DB: db, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	t0 := time.Date(2026, 10, 1, 18, 0, 0, 0, time.UTC)
+	groups := func(ids ...string) string {
+		var rows []string
+		for _, id := range ids {
+			rows = append(rows, `{"id":"`+id+`","name":"G","status":"PAUSED"}`)
+		}
+		return `{"results":[` + strings.Join(rows, ",") + `]}`
+	}
+	camp := func(id, group, status string) string {
+		return `{"id":"` + id + `","name":"C` + id + `","campaign_group_id":` + group + `,"status":"` + status + `","is_active":false}`
+	}
+	step := func(id string, at time.Duration, kind, body string) {
+		t.Helper()
+		put(t, db, id, "taboola", "acme-1-sc", kind, nil, t0.Add(at), body)
+		if _, err := l.Pending(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	statuses := func(campaign string) string {
+		var s string
+		db.QueryRow(ctx, `SELECT string_agg(status, ',' ORDER BY valid_from) FROM intel.tb_campaign_status
+			WHERE campaign_id = $1::bigint`, campaign).Scan(&s)
+		return s
+	}
+	step("g0", 0, "taboola.groups", groups("9001"))
+	step("c0", time.Minute, "taboola.campaigns", `{"results":[`+camp("501", "9001", "DEPLETED")+`]}`)
+	// One group list without it is not enough.
+	step("g1", 5*time.Minute, "taboola.groups", groups())
+	step("c1", 6*time.Minute, "taboola.campaigns", `{"results":[`+camp("501", "9001", "DEPLETED")+`]}`)
+	if s := statuses("501"); s != "DEPLETED" {
+		t.Fatalf("after one list: %q", s)
+	}
+	// Gone for 15 minutes: the campaign, still listed as depleted, is in a
+	// deleted group, and stays so.
+	step("g2", 20*time.Minute, "taboola.groups", groups())
+	step("c2", 21*time.Minute, "taboola.campaigns", `{"results":[`+camp("501", "9001", "DEPLETED")+`,`+camp("502", "9002", "PENDING_APPROVAL")+`]}`)
+	if s := statuses("501"); s != "DEPLETED,GROUP_DELETED" {
+		t.Fatalf("group gone: %q", s)
+	}
+	// A group made after the last group list is not taken as deleted.
+	step("g3", 25*time.Minute, "taboola.groups", groups())
+	if s := statuses("502"); s != "PENDING_APPROVAL" {
+		t.Fatalf("new group: %q", s)
+	}
+	// A group never seen, still missing 15 minutes after its campaign
+	// appeared, is deleted (T12's group was deleted before Intel read groups).
+	step("g4", 40*time.Minute, "taboola.groups", groups())
+	if s := statuses("502"); s != "PENDING_APPROVAL,GROUP_DELETED" {
+		t.Fatalf("never-seen group: %q", s)
 	}
 }

@@ -100,13 +100,19 @@ func tbCampaigns(ctx context.Context, tx pgx.Tx, a answer, body []byte) error {
 				               WHERE campaign_id = $1 AND valid_from <= $2 ORDER BY valid_from DESC LIMIT 1) last
 				WHERE last.settings = $3::jsonb)
 			ON CONFLICT DO NOTHING`, id, a.FetchedAt, settings)
+		// A campaign in a deleted group keeps its old status in this list;
+		// Realize shows "Campaign Group Was Deleted", and so does Intel.
 		b.Queue(`
+			WITH s AS (
+				SELECT CASE WHEN `+inDeletedGroup+` THEN 'GROUP_DELETED' ELSE $4::text END AS status
+				FROM intel.tb_campaign c WHERE c.campaign_id = $1
+			)
 			INSERT INTO intel.tb_campaign_status (campaign_id, valid_from, account, status)
-			SELECT $1, $2, $3, $4
+			SELECT $1, $2, $3, s.status FROM s
 			WHERE $4 <> '' AND NOT EXISTS (
 				SELECT 1 FROM (SELECT status FROM intel.tb_campaign_status
 				               WHERE campaign_id = $1 AND valid_from <= $2 ORDER BY valid_from DESC LIMIT 1) last
-				WHERE last.status = $4)
+				WHERE last.status = s.status)
 			ON CONFLICT DO NOTHING`, id, a.FetchedAt, a.Account, r.str("status"))
 	}
 	if ids == nil {
@@ -127,6 +133,61 @@ func tbCampaigns(ctx context.Context, tx pgx.Tx, a answer, body []byte) error {
 		SELECT campaign_id, $3, $1, 'DELETED' FROM gone
 		ON CONFLICT DO NOTHING`,
 		a.Account, ids, a.FetchedAt, a.FetchedAt.Add(-goneAfter))
+	return tx.SendBatch(ctx, b).Close()
+}
+
+// inDeletedGroup is true for a campaign c whose group the account's group
+// list no longer shows: a group seen before that has been gone for
+// goneAfter, or one never seen in a group list read goneAfter after the
+// campaign was first seen (a group made after the last group list is not
+// counted as deleted).
+const inDeletedGroup = `(c.group_id IS NOT NULL
+	AND NOT EXISTS (SELECT 1 FROM intel.tb_group g WHERE g.group_id = c.group_id AND g.gone_at IS NULL)
+	AND EXISTS (SELECT 1 FROM intel.tb_group_list l WHERE l.account = c.account
+		AND l.fetched_at >= c.first_seen_at + interval '15 minutes'))`
+
+// tbGroups keeps an account's campaign groups. A group the list lacks that
+// no list has shown for goneAfter is gone, and each campaign still listed in
+// it gets GROUP_DELETED.
+func tbGroups(ctx context.Context, tx pgx.Tx, a answer, body []byte) error {
+	rows, err := decodeRows(body, "results")
+	if err != nil {
+		return err
+	}
+	b := &pgx.Batch{}
+	ids := []int64{}
+	for _, r := range rows {
+		id, ok := r.id("id")
+		if !ok {
+			continue
+		}
+		ids = append(ids, id)
+		b.Queue(`
+			INSERT INTO intel.tb_group (group_id, account, name, status, first_seen_at, fetched_at)
+			VALUES ($1, $2, $3, $4, $5, $5)
+			ON CONFLICT (group_id) DO UPDATE SET account = EXCLUDED.account, name = EXCLUDED.name,
+				status = EXCLUDED.status, fetched_at = EXCLUDED.fetched_at, gone_at = NULL,
+				first_seen_at = LEAST(intel.tb_group.first_seen_at, EXCLUDED.first_seen_at)
+			WHERE intel.tb_group.fetched_at <= EXCLUDED.fetched_at`,
+			id, a.Account, r.str("name"), r.str("status"), a.FetchedAt)
+	}
+	b.Queue(`UPDATE intel.tb_group SET gone_at = $3
+		WHERE account = $1 AND gone_at IS NULL AND fetched_at < $4 AND NOT (group_id = ANY($2))`,
+		a.Account, ids, a.FetchedAt, a.FetchedAt.Add(-goneAfter))
+	b.Queue(`
+		INSERT INTO intel.tb_group_list (account, fetched_at) VALUES ($1, $2)
+		ON CONFLICT (account) DO UPDATE SET fetched_at = GREATEST(intel.tb_group_list.fetched_at, EXCLUDED.fetched_at)`,
+		a.Account, a.FetchedAt)
+	b.Queue(`
+		INSERT INTO intel.tb_campaign_status (campaign_id, valid_from, account, status)
+		SELECT c.campaign_id, $2, c.account, 'GROUP_DELETED'
+		FROM intel.tb_campaign c
+		WHERE c.account = $1 AND c.gone_at IS NULL AND `+inDeletedGroup+`
+		  AND NOT EXISTS (
+			SELECT 1 FROM (SELECT status FROM intel.tb_campaign_status
+			               WHERE campaign_id = c.campaign_id AND valid_from <= $2 ORDER BY valid_from DESC LIMIT 1) last
+			WHERE last.status = 'GROUP_DELETED')
+		ON CONFLICT DO NOTHING`, a.Account, a.FetchedAt)
 	return tx.SendBatch(ctx, b).Close()
 }
 

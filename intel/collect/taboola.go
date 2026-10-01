@@ -17,6 +17,7 @@ import (
 const (
 	KindTbAccounts    = "taboola.accounts"
 	KindTbCampaigns   = "taboola.campaigns"
+	KindTbGroups      = "taboola.groups"
 	KindTbItems       = "taboola.items"
 	KindTbCampaignDay = "taboola.campaign_day"
 	KindTbSiteDay     = "taboola.site_day"
@@ -125,11 +126,25 @@ func (t *Taboola) Settings(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-// Statuses reads every account's campaign list alone, often, so a change
-// of delivery status is seen within minutes (one request per account).
+// Statuses reads every account's campaign groups and campaign list, often,
+// so a change of delivery status is seen within minutes (two requests per
+// account).
 func (t *Taboola) Statuses(ctx context.Context) error {
-	_, err := t.campaignLists(ctx)
-	return err
+	accs, err := t.Known(ctx)
+	if err != nil {
+		return err
+	}
+	// The groups first: a campaign whose group was deleted stays in the
+	// campaign list with its old status (Realize says "Campaign Group Was
+	// Deleted"), and only the group list shows the group is gone.
+	var errs []error
+	for _, acc := range accs {
+		if _, err := t.get(ctx, KindTbGroups, acc.ID, url.PathEscape(acc.ID)+"/campaigns_group/", nil, nil); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	_, err = t.campaignLists(ctx)
+	return errors.Join(append(errs, err)...)
 }
 
 type campaignList struct {
