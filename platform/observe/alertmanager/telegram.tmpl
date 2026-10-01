@@ -1,7 +1,11 @@
-{{/* One Telegram message per alert group: what, where, and the runbook. */}}
+{{/* One Telegram message per alert group: what, where, and the runbook.
+     A cleared alert shows its rule's "resolved" annotation, never its
+     summary: the summary was written while it fired (its numbers are from
+     then and it says what to do), so it would read as a new alert. In a
+     group that still fires, an alert that cleared gets a ✅ of its own. */}}
 {{ define "adhunters.telegram" -}}
 {{ if eq .Status "resolved" }}✅ Cleared{{ else if eq .CommonLabels.tier "page" }}🔴 PAGE{{ else }}🟠{{ end }} <b>{{ .CommonLabels.alertname | html }}</b>
-{{ range .Alerts }}{{ if eq $.Status "resolved" }}{{ else }}• {{ end }}{{ .Annotations.summary | html }}
+{{ range .Alerts }}{{ if eq .Status "resolved" }}{{ if ne $.Status "resolved" }}✅ {{ end }}{{ with .Annotations.resolved }}{{ . | html }}{{ else }}Back to normal.{{ end }}{{ else }}• {{ .Annotations.summary | html }}{{ end }}
 {{ end -}}
-{{ with (index .Alerts 0).Annotations.runbook_url }}<a href="{{ . }}">Runbook</a>{{ end }}{{ with .ExternalURL }} · <a href="{{ . }}">Alertmanager</a>{{ end }}
+{{ if ne .Status "resolved" }}{{ with (index .Alerts 0).Annotations.runbook_url }}<a href="{{ . }}">Runbook</a>{{ end }}{{ with .ExternalURL }} · <a href="{{ . }}">Alertmanager</a>{{ end }}{{ end }}
 {{- end }}

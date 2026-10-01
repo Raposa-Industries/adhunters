@@ -57,6 +57,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | page version | One distinct content of a page (title, headings, text, pixels, contacts), kept once however often it is seen. |
 | seller | The merchant account on a checkout platform (a ClickBank vendor, a Digistore24 product owner) that a page names. |
 | imported hour | An hour before the switch-over whose counts were copied from the old collector's database (`import-old`). The loader never closes it again and a replay refuses it. |
+| sign-in | The team's one username and password at hunt-teste.fyi, checked by create-web in front of every app (a 30-day cookie). It replaced Cloudflare Access on 2026-10-01. (Not a Taboola or database login.) |
 | Frame | The shell every app's pages sit in (`shared/frame`): the app selector, page tabs, ⌘K search and account in the top bar, and a left column that holds only filters. |
 | mascot | The AdHunters fox: the original artwork, cut out of its background, in `shared/frame/assets/mascot.svg`. Every app shows it in its crouch, breathing and swaying its tail, while a page loads. (Not Raposa: that is the app that investigates landing pages.) |
 | Direction | Which way an ad is moving: rising, steady, fading or stopped, judged against its usual value. |

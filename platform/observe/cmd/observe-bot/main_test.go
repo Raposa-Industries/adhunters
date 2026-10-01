@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -70,8 +71,21 @@ func TestRelaySendsEachNewIssueOnceAndKeepsItsPlace(t *testing.T) {
 	}
 	// Telegram down: the cursor stays, so the issue goes out next time.
 	fail = true
-	if n, next, err := relayOnce(context.Background(), c, start); err == nil || n != 0 || !next.Equal(start) {
+	n, next, err := relayOnce(context.Background(), c, start)
+	if err == nil || n != 0 || !next.Equal(start) {
 		t.Fatalf("n=%d next=%v err=%v", n, next, err)
+	}
+
+	// Sentry itself failing is marked, so the relay logs it as a warning and
+	// does not report it to Sentry again; a Telegram failure is not.
+	if errors.Is(err, errPoll) {
+		t.Fatalf("a Telegram failure counted as a Sentry poll failure: %v", err)
+	}
+	c.errs.Token = ""
+	c.errs.URL = "http://127.0.0.1:1"
+	c.errs.Backoff = time.Millisecond
+	if _, _, err := relayOnce(context.Background(), c, start); !errors.Is(err, errPoll) {
+		t.Fatalf("want a poll error, got %v", err)
 	}
 
 	f := filepath.Join(t.TempDir(), "sentry-cursor")

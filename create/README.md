@@ -6,8 +6,8 @@ only), which stays as it is. Two binaries live here:
 
 - `create`: Create itself, rebuilt on auto-creative's steps (below,
   [decision 0015](../decisions/0015-create-briefs.md)).
-- `create-web`: was the campaign launcher page. Since 2026-10-01 it only
-  sends every request on hunt-teste.fyi that no app claims to Launch.
+- `create-web`: the team's sign-in, in front of every app on hunt-teste.fyi
+  (below). It was the campaign launcher page until 2026-10-01.
 
 ## Create (`create`)
 
@@ -348,17 +348,45 @@ runs with `TABOOLA_ONLY_OWN=1`, and whatever it made (the ids in the state
 file) is deleted after the test. Names are free: the owner dropped the test
 prefix on 2026-09-29.
 
+## The sign-in (`create-web`)
+
+Every request to hunt-teste.fyi goes through `create-web`. It replaced
+Cloudflare Access on 2026-10-01 (owner's word) with our own sign-in:
+
+- One username and password for the whole team (`SIGNIN_USER`,
+  `SIGNIN_PASSWORD_HASH` in `/etc/adhunters/create-web.env`). Only a
+  PBKDF2-SHA256 hash is kept, printed by `create-web hash-password` (it reads
+  the password on stdin). It refuses to start without both.
+- A page at `/_signin` (Portuguese). A good password sets a signed cookie
+  (`ah_session`, HttpOnly, Secure, SameSite=Lax) that lasts 30 days and is
+  renewed past half of that. `/_signin/out` signs out. A new password signs
+  everyone out, since the cookie's key comes from the hash.
+- Without a valid cookie, a page opened in the browser goes to the sign-in
+  and back after it; anything else (the apps' API calls) gets 401.
+- Ten wrong passwords from one address (Cloudflare's `Cf-Connecting-Ip`)
+  within 15 minutes block that address for the rest of the 15 minutes.
+- Signed in, each request goes to the app whose path it starts with
+  (`web.Apps`: `/launch`, `/create`, `/intel`, `/spy`, `/funnels`, `/desk`)
+  as it is, streams included, with the session cookie taken off; every other
+  path goes to `/launch/`. The apps listen only on localhost and do no
+  sign-in of their own.
+
+Landing sites (funnels-edge) have their own hostnames and no sign-in.
+
 ## Run it
 
-Since 2026-10-01 `create-web` no longer serves the launcher page or its API:
-the owner retired it for Launch, and the binary only sends every request on
-to `/launch/` (`go run ./create/cmd/create-web`, then any path on
-http://127.0.0.1:8091 answers with that redirect). The page's code above
-stays in `web/launcher/` until it is deleted.
+```
+printf 'a long password' | go run ./create/cmd/create-web hash-password
+SIGNIN_USER=team SIGNIN_PASSWORD_HASH=pbkdf2-sha256:… go run ./create/cmd/create-web
+open http://127.0.0.1:8091/
+```
+
+The old launcher's code above stays in `web/launcher/` until it is deleted.
 
 On the data box it is the `create-web` unit, installed by
 `platform/servers/setup.sh` and reached at https://hunt-teste.fyi through a
-Cloudflare Tunnel behind Cloudflare Access (platform/OPERATIONS.md). Install
+Cloudflare Tunnel whose only hunt-teste.fyi rule points at it
+(platform/OPERATIONS.md). Install
 cloudflared once, on the data box:
 
 ```

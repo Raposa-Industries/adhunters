@@ -9,6 +9,7 @@ groups:
           tier: chat
         annotations:
           summary: Raposa's keeper has found the browser runner down for 15 minutes.
+          resolved: Raposa's browser runner is up again.
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raposa-browser-down.md
 
       - alert: WatchDeliveryFailing
@@ -17,4 +18,5 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $value | humanize }} watch event(s) could not be sent to Pushcut in the last 30 minutes.'
+          resolved: 'Watch events reach Pushcut again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/watch-delivery-failing.md
