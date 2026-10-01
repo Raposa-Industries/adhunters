@@ -200,7 +200,12 @@ and two crawls minutes apart compared as no change.
 
 `rules/*.yaml` are Prometheus rule files, one Grafana Cloud namespace per
 file. Every alert needs a `tier` label (`page`, `chat` or `heartbeat`), a
-`summary` and a `runbook_url` to a file in `runbooks/`.
+`summary` and a `runbook_url` to a file in `runbooks/`, and every alert that
+reaches Telegram a `resolved` line: what is true once it clears. The ✅
+Cleared message shows that line instead of the summary, because Grafana
+keeps an alert's annotations from its last firing evaluation, so the summary's
+numbers and its "top it up" would read as a new alert. For the same reason a
+`resolved` line uses only labels, never `$value`.
 `push.sh check` validates the rules, runs `tests/rules_test.yaml`, checks the
 runbooks and validates the Alertmanager config; CI runs it on every PR.
 

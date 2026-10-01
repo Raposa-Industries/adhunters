@@ -11,6 +11,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $labels.service }} ({{ $labels.instance }}) on the {{ $labels.box }} box has not answered on /metrics for 5 minutes.'
+          resolved: '{{ $labels.service }} ({{ $labels.instance }}) on the {{ $labels.box }} box is answering again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/service-down.md
 
       - alert: ServiceRestarting
@@ -19,6 +20,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $labels.service }} ({{ $labels.instance }}) on the {{ $labels.box }} box restarted {{ $value }} times in 30 minutes.'
+          resolved: '{{ $labels.service }} ({{ $labels.instance }}) on the {{ $labels.box }} box has stopped restarting.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/service-restarting.md
 
       - alert: TaskLate
@@ -27,4 +29,5 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $labels.service }} task {{ $labels.task }} last succeeded {{ $value | humanizeDuration }} ago, later than it promises.'
+          resolved: '{{ $labels.service }} task {{ $labels.task }} is succeeding on time again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/task-late.md

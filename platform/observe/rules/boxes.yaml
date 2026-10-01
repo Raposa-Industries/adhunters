@@ -14,6 +14,7 @@ groups:
           tier: page
         annotations:
           summary: 'The {{ $labels.box }} box has sent no metrics for over 5 minutes.'
+          resolved: 'The {{ $labels.box }} box is sending metrics again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/box-gone.md
 
       - alert: DiskFullSoon
@@ -26,6 +27,7 @@ groups:
           tier: page
         annotations:
           summary: '{{ $labels.mountpoint }} on the {{ $labels.box }} box will be full within 6 hours at the current rate.'
+          resolved: '{{ $labels.mountpoint }} on the {{ $labels.box }} box is no longer filling fast enough to be full within 6 hours.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/disk-full-soon.md
 
       - alert: DiskFilling
@@ -37,6 +39,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $labels.mountpoint }} on the {{ $labels.box }} box has {{ $value | humanizePercentage }} free.'
+          resolved: '{{ $labels.mountpoint }} on the {{ $labels.box }} box has enough free space again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/disk-filling.md
 
       - alert: MemoryLow
@@ -46,6 +49,7 @@ groups:
           tier: chat
         annotations:
           summary: 'The {{ $labels.box }} box has {{ $value | humanizePercentage }} of its memory free.'
+          resolved: 'The {{ $labels.box }} box has enough free memory again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/memory-low.md
 
       - alert: OutOfMemoryKill
@@ -54,6 +58,7 @@ groups:
           tier: chat
         annotations:
           summary: 'The kernel killed a process for memory on the {{ $labels.box }} box.'
+          resolved: 'No more out-of-memory kills on the {{ $labels.box }} box.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/out-of-memory-kill.md
 
       - alert: UnitFailed
@@ -63,6 +68,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $labels.name }} has failed on the {{ $labels.box }} box.'
+          resolved: '{{ $labels.name }} on the {{ $labels.box }} box is no longer failed.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/unit-failed.md
 
   - name: postgres
@@ -75,6 +81,7 @@ groups:
           tier: page
         annotations:
           summary: Postgres on the data box is not answering.
+          resolved: Postgres on the data box is answering again.
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/postgres-down.md
 
       - alert: PostgresConnections
@@ -85,6 +92,7 @@ groups:
           tier: chat
         annotations:
           summary: 'Postgres has {{ $value }} connections open, near its limit of 80.'
+          resolved: 'Postgres connections are back under the warning level.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/postgres-connections.md
 
   - name: backups
@@ -100,6 +108,7 @@ groups:
           tier: page
         annotations:
           summary: WAL archiving is failing and the newest archived WAL file is over 15 minutes old. Recent changes exist only on the data box.
+          resolved: WAL archiving is working again.
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/wal-archive-failing.md
 
       - alert: BackupLate
@@ -109,6 +118,7 @@ groups:
           tier: page
         annotations:
           summary: 'The newest database backup finished {{ $value | humanizeDuration }} ago.'
+          resolved: 'A new database backup has finished.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/backup-late.md
 
       - alert: BackupRepoUnreadable
@@ -118,4 +128,5 @@ groups:
           tier: chat
         annotations:
           summary: pgBackRest cannot read the backup repository, or reports the stanza unhealthy.
+          resolved: pgBackRest can read the backup repository again.
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/backup-late.md

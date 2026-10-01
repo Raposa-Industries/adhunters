@@ -12,6 +12,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $labels.credit }} is down to {{ $value | printf "%.1f" }} {{ $labels.unit }}, under its warning level. Top it up.'
+          resolved: '{{ $labels.credit }} is back above its warning level.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
 
       # At the rate of the last 6 hours it is gone within a day (or it is
@@ -25,6 +26,7 @@ groups:
           tier: page
         annotations:
           summary: '{{ $labels.credit }} runs out within a day at the current rate ({{ $value | printf "%.1f" }} {{ $labels.unit }} left). Top it up now.'
+          resolved: '{{ $labels.credit }} is no longer set to run out within a day.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
 
       - alert: RenewalDue
@@ -33,6 +35,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $labels.renewal }} renews or must be paid in {{ $value | humanizeDuration }}. Check the card or the balance behind it.'
+          resolved: '{{ $labels.renewal }} is no longer due soon (paid, renewed, or its date moved).'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/renewal-due.md
 
       # The second half catches the very first refusal: the counter is
@@ -45,4 +48,5 @@ groups:
           tier: page
         annotations:
           summary: '{{ $labels.provider }} refused {{ $labels.service }} for lack of credit ({{ $value | printf "%.0f" }} calls in 10 minutes). Work that needs it has stopped.'
+          resolved: '{{ $labels.provider }} has stopped refusing {{ $labels.service }} for lack of credit.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/out-of-credit.md
