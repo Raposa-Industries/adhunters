@@ -1,0 +1,21 @@
+{{define "lp"}}{{template "top" .}}
+<header class="page-head"><div><h1>{{.LP}}</h1>{{template "fresh" .}}</div></header>
+
+<section class="block">
+  <h3>Passos</h3>
+  {{with index .Steps .LP}}{{template "funnel" .}}{{else}}<p class="empty">Ninguém chegou nesta página com esses filtros.</p>{{end}}
+</section>
+
+{{if .ByCamp}}<section class="block">
+  <h3>Por campanha (sub1)</h3>
+  <p class="lead">Quantos de quem abriu a página chegaram em cada passo, por campanha da Taboola. O sub1 vem do link do RedTrack.</p>
+  <div class="table-wrap"><table class="list">
+  <thead><tr><th>Campanha</th><th class="num">Abriram</th>{{range .Cols}}<th class="num" title="{{.}}">{{stepName .}}</th>{{end}}</tr></thead>
+  <tbody>{{range $c := .ByCamp}}<tr>
+    <td>{{if $c.Sub1}}<a href="{{lpPath $.Site $.LP}}&amp;w={{$.Window}}{{if $.Device}}&amp;device={{$.Device}}{{end}}&amp;sub1={{$c.Sub1}}">{{$c.Sub1}}</a>{{else}}<span class="faint">{{orNone $c.Sub1}}</span>{{end}}</td>
+    <td class="num">{{int $c.Views}}</td>
+    {{range $i, $col := $.Cols}}{{$n := index64 $c.Reached $i}}<td class="num">{{int $n}} <span class="faint">({{pct (share $n $c.Views)}})</span></td>{{end}}
+  </tr>{{end}}</tbody>
+  </table></div>
+</section>{{end}}
+{{template "bottom" .}}{{end}}

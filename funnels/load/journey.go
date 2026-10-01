@@ -27,6 +27,7 @@ type Journey struct {
 	VisibleMS  int64
 	MaxScroll  int
 	HadInput   bool
+	Net        string // the visitor's network (/24 or /48), from the first event that has one
 	BotSuspect bool
 	BotReason  string
 	Steps      []Step
@@ -136,6 +137,9 @@ func Build(events []Event) Journey {
 		if j.Country == "" {
 			j.Country = e.Country
 		}
+		if j.Net == "" {
+			j.Net = e.Net
+		}
 		j.HadInput = j.HadInput || e.HadInput
 		webdriver = webdriver || e.Webdriver
 		var f evFields
@@ -233,6 +237,15 @@ func Build(events []Event) Journey {
 	}
 	j.BotSuspect, j.BotReason = len(why) > 0, strings.Join(why, ", ")
 	return j
+}
+
+// suspect flags a journey as a bot suspect for one more reason.
+func (j *Journey) suspect(why string) {
+	j.BotSuspect = true
+	if j.BotReason != "" {
+		j.BotReason += ", "
+	}
+	j.BotReason += why
 }
 
 // addRanges merges the page script's watched ranges into rs, dropping any

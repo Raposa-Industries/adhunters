@@ -19,7 +19,7 @@ The apps people use are AdHunters Spy, Create, Intel, Funnels and Raposa
 | `spy/` | AdHunters Spy: research app and its derived numbers (any range, momentum, Size, Direction). Was adhunters-v4; the numbers move here from the collector. | numbers built, not deployed; app later |
 | `intel/` | AdHunters Intel: our campaigns' performance, briefs and alerts. | RedTrack client and probe, read-only Taboola client and probe; app later |
 | `create/` | AdHunters Create: images and headlines. Was auto-creative. | bulk upload page (`create-web`): make options from a brief, choose, pair, download Taboola's bulk sheet; not deployed |
-| `funnels/` | AdHunters Funnels: landing sites, journeys through them, and our own VSL player. | edge (hosting, page script, collector) and loader built, not deployed; app later |
+| `funnels/` | AdHunters Funnels: landing sites, journeys through them, and our own VSL player. | edge (hosting, page script, collector) and loader deployed; pages (`funnels-web`) built, not deployed |
 | `launch/` | AdHunters Launch: every write on an ad network. The account's groups and campaigns as a tree; new desktop and mobile pairs, paused; move, copy, pause, change; presets, History, drafts. | built on a fake Taboola, not deployed |
 | `desk/` | AdHunters Desk: ask for work by talking. Desk reads the apps, proposes a plan, and after a person's OK carries it out through each app's `_api`, the door the app's own buttons use. | conversations, plans, choices, to-dos and the stop switch built, not deployed; makes creatives through Create; waits on Launch's actions |
 

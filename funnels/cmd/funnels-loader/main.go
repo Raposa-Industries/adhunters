@@ -5,11 +5,17 @@
 //	funnels-loader run    -archive s3://adhunters-raw/funnels [-spool /var/lib/funnels/spool] [-close-after 1h]
 //	funnels-loader replay -archive … -from 2026-09-30T00:00:00Z -to 2026-10-01T00:00:00Z
 //	funnels-loader status
+//	funnels-loader networks fetch|list
+//	funnels-loader networks import -source NAME FILE
 //
 // run archives sealed files from the spool (the edge runs on the same box),
 // loads each archived file into events, and closes each dirty hour an hour
-// after it ends: its journeys are rebuilt and its counts computed. replay
-// marks a range's files pending again; the running loader does the work.
+// after it ends: its journeys are rebuilt and its counts computed. Until
+// then the hour is counted every few minutes into the drafts, which the
+// pages show as partial. Once an hour it drops events past -keep-events, and
+// once a day it fetches the clouds' published networks for the bot check.
+// replay marks a range's files pending again; the running loader does the
+// work.
 //
 // The database URL comes from DATABASE_URL; the archive's keys from
 // S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY and S3_SECRET_KEY. /healthz and
@@ -58,6 +64,8 @@ func main() {
 		err = replayCmd(os.Args[2:])
 	case "status":
 		err = statusCmd()
+	case "networks":
+		err = networksCmd(os.Args[2:])
 	default:
 		usage()
 	}
@@ -68,7 +76,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: funnels-loader run|migrate|replay|status|version [flags]")
+	fmt.Fprintln(os.Stderr, "usage: funnels-loader run|migrate|replay|status|networks|version [flags]")
 	os.Exit(2)
 }
 
@@ -111,6 +119,9 @@ func runCmd(args []string) error {
 	spoolDir := fs.String("spool", envOr("FUNNELS_SPOOL", "/var/lib/funnels/spool"), "the edge's spool on this box; empty when none")
 	closeAfter := fs.Duration("close-after", time.Hour, "how long after an hour ends its journeys are counted")
 	every := fs.Duration("every", 10*time.Second, "between passes")
+	draftEvery := fs.Duration("draft-every", 5*time.Minute, "how often an hour still open is counted again")
+	keepEvents := fs.Duration("keep-events", 90*24*time.Hour, "how long events stay in the database (the archive keeps everything); 0 keeps them")
+	netsEvery := fs.Duration("networks-every", 24*time.Hour, "how often the clouds' networks are fetched; 0 never")
 	_ = fs.Parse(args)
 	if *archiveURI == "" {
 		return errors.New("-archive is required")
@@ -129,11 +140,15 @@ func runCmd(args []string) error {
 
 	srv := ops.New("funnels-loader", version)
 	metrics := load.NewMetrics(srv.Registry)
-	l := load.New(load.Config{DB: db, Store: store, Spool: *spoolDir, CloseAfter: *closeAfter, Log: log, Metrics: metrics})
+	l := load.New(load.Config{DB: db, Store: store, Spool: *spoolDir, CloseAfter: *closeAfter, DraftEvery: *draftEvery,
+		KeepEvents: *keepEvents, Log: log, Metrics: metrics})
 	tasks := srv.Tasks()
 	tasks.Promise("funnels_archive", 5*time.Minute)
 	tasks.Promise("funnels_load", 15*time.Minute)
 	tasks.Promise("funnels_hour_close", 2*time.Hour+*closeAfter)
+	if *netsEvery > 0 {
+		tasks.Promise("funnels_networks", 2**netsEvery+time.Hour)
+	}
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 	log.Info("loader running", "archive", store.String(), "spool", *spoolDir, "close_after", closeAfter.String())
 
@@ -142,8 +157,13 @@ func runCmd(args []string) error {
 		go func() { opsDone <- srv.Serve(ctx, log, ops.Addr()) }()
 		t := time.NewTicker(*every)
 		defer t.Stop()
+		var lastHourly time.Time
 		for {
 			pass(ctx, l, tasks, log)
+			if time.Since(lastHourly) >= time.Hour {
+				hourly(ctx, l, tasks, log, *netsEvery)
+				lastHourly = time.Now()
+			}
 			select {
 			case <-ctx.Done():
 				return <-opsDone
@@ -183,6 +203,9 @@ func pass(ctx context.Context, l *load.Loader, tasks *ops.Tasks, log *slog.Logge
 	if err != nil {
 		log.Error("closing hours", "err", err)
 	}
+	if _, derr := l.DraftOpen(ctx); derr != nil {
+		log.Error("counting open hours", "err", derr)
+	}
 	st, serr := l.Status(ctx)
 	if serr != nil {
 		log.Error("reading the loader's status", "err", serr)
@@ -190,6 +213,29 @@ func pass(ctx context.Context, l *load.Loader, tasks *ops.Tasks, log *slog.Logge
 	// Nothing left to close is a success too, or a quiet night looks late.
 	if err != nil || closed > 0 || (serr == nil && st.DirtyHours == 0) {
 		tasks.Done("funnels_hour_close", start, int64(closed), err)
+	}
+}
+
+// hourly drops old events and fetches the networks lists that are due.
+func hourly(ctx context.Context, l *load.Loader, tasks *ops.Tasks, log *slog.Logger, netsEvery time.Duration) {
+	if _, err := l.DropOldEvents(ctx); err != nil {
+		log.Error("dropping old events", "err", err)
+	}
+	if netsEvery <= 0 {
+		return
+	}
+	due, err := l.NetworksDue(ctx, netsEvery)
+	if err != nil {
+		log.Error("reading the networks lists", "err", err)
+		return
+	}
+	for _, src := range due {
+		start := time.Now()
+		n, err := l.FetchNetworks(ctx, src, nil)
+		tasks.Done("funnels_networks", start, int64(n), err)
+		if err != nil {
+			log.Error("fetching data-center networks", "source", src.Name, "err", err)
+		}
 	}
 }
 
@@ -237,6 +283,74 @@ func statusCmd() error {
 	fmt.Printf("pending files %d, quarantined %d, dirty hours %d, last closed hour %s\n", st.Pending, st.Quarantined, st.DirtyHours, last)
 	if st.Quarantined > 0 {
 		os.Exit(1)
+	}
+	return nil
+}
+
+func networksCmd(args []string) error {
+	if len(args) == 0 {
+		return errors.New("usage: funnels-loader networks fetch|list|import -source NAME FILE")
+	}
+	fs := flag.NewFlagSet("networks", flag.ExitOnError)
+	archiveURI := fs.String("archive", os.Getenv("FUNNELS_ARCHIVE"), "where the lists are kept as received")
+	source := fs.String("source", "", "import: the list's name, like hetzner or ovh")
+	_ = fs.Parse(args[1:])
+	ctx := context.Background()
+	db, err := openDB(ctx, 1)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	c := load.Config{DB: db, Log: logx.New("funnels-loader", version)}
+	if args[0] != "list" {
+		if *archiveURI == "" {
+			return errors.New("-archive is required: every list is kept as received")
+		}
+		if c.Store, err = archive.Open(*archiveURI); err != nil {
+			return err
+		}
+	}
+	l := load.New(c)
+	switch args[0] {
+	case "fetch":
+		for _, src := range load.NetworkSources {
+			n, err := l.FetchNetworks(ctx, src, nil)
+			if err != nil {
+				return fmt.Errorf("%s: %w", src.Name, err)
+			}
+			fmt.Printf("%s: %d networks\n", src.Name, n)
+		}
+	case "import":
+		if *source == "" || fs.NArg() != 1 {
+			return errors.New("usage: funnels-loader networks import -source NAME FILE")
+		}
+		b, err := os.ReadFile(fs.Arg(0))
+		if err != nil {
+			return err
+		}
+		n, err := l.ImportNetworks(ctx, *source, b, nil)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s: %d networks\n", *source, n)
+	case "list":
+		rows, err := db.Query(ctx, `SELECT source, prefixes, loaded_at FROM funnels.dc_network_load ORDER BY source`)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var s string
+			var n int
+			var at time.Time
+			if err := rows.Scan(&s, &n, &at); err != nil {
+				return err
+			}
+			fmt.Printf("%-12s %7d networks, %s\n", s, n, at.UTC().Format(time.RFC3339))
+		}
+		return rows.Err()
+	default:
+		return errors.New("usage: funnels-loader networks fetch|list|import -source NAME FILE")
 	}
 	return nil
 }

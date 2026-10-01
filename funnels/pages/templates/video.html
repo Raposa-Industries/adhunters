@@ -1,0 +1,25 @@
+{{define "video"}}{{template "top" .}}
+<header class="page-head"><div><h1>{{.Title}}</h1>{{template "fresh" .}}</div></header>
+
+<section class="block">
+  <h3>Retenção</h3>
+  <p class="lead">Parte de quem deu play que ainda ouvia em cada segundo (com som; um segundo conta uma vez por jornada).{{if .Sub1}} A curva não é guardada por campanha: aqui vale só o filtro de aparelho.{{end}}</p>
+  <div class="panel">{{if .Chart}}{{.Chart}}{{else}}<p class="empty">Ninguém deu play com esses filtros.</p>{{end}}</div>
+</section>
+
+<section class="block">
+  <h3>Por braço do teste A/B</h3>
+  <div class="table-wrap"><table class="list">
+  <thead><tr><th>Braço</th><th class="num">Carregou</th><th class="num">Play</th><th class="num">Play / carregou</th><th class="num">Média ouvida</th><th class="num">Chegou na oferta</th></tr></thead>
+  <tbody>{{range .Arms}}<tr><td>{{armName .Arm}}</td><td class="num">{{int .Loads}}</td><td class="num">{{int .Plays}}</td><td class="num">{{pct .PlayShare}}</td><td class="num">{{secs .AvgWatched}}</td><td class="num">{{pct .PitchShare}}</td></tr>{{end}}</tbody>
+  </table></div>
+</section>
+
+<section class="block">
+  <h3>Por aparelho</h3>
+  <div class="table-wrap"><table class="list">
+  <thead><tr><th>Aparelho</th><th class="num">Carregou</th><th class="num">Autoplay</th><th class="num">Play</th><th class="num">Play / carregou</th><th class="num">Média ouvida</th><th class="num">Chegou na oferta</th></tr></thead>
+  <tbody>{{range .Devs}}<tr><td>{{deviceName .Device}}</td><td class="num">{{int .Loads}}</td><td class="num">{{int .Autoplays}}</td><td class="num">{{int .Plays}}</td><td class="num">{{pct .PlayShare}}</td><td class="num">{{secs .AvgWatched}}</td><td class="num">{{pct .PitchShare}}</td></tr>{{end}}</tbody>
+  </table></div>
+</section>
+{{template "bottom" .}}{{end}}

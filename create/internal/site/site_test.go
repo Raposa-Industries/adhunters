@@ -14,9 +14,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/briefs"
 	"github.com/Raposa-Industries/adhunters/create/internal/library"
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
+	"github.com/Raposa-Industries/adhunters/create/internal/sessions"
 	"github.com/Raposa-Industries/adhunters/create/internal/site"
 	"github.com/Raposa-Industries/adhunters/create/internal/testdb"
 	"github.com/Raposa-Industries/adhunters/shared/files"
@@ -71,11 +71,14 @@ func call(t *testing.T, h http.Handler, method, path, ct string, body io.Reader,
 
 func TestSite(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	var w *briefs.Worker
-	st := briefs.New(testdb.New(t), &files.Dir{Root: t.TempDir()}, func() {})
-	w = briefs.NewWorker(st, ai{}, &lib{}, log)
+	st := sessions.New(testdb.New(t), &files.Dir{Root: t.TempDir()}, func() {})
+	w := sessions.NewWorker(st, ai{}, &lib{}, log)
 	browse := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) { _, _ = rw.Write([]byte("lib " + r.URL.Path)) })
-	h := site.New(st, browse, on{}, log, "test").Handler()
+	web, err := site.New(st, &lib{}, browse, on{}, log, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := web.Handler()
 	drain := func() {
 		for {
 			ran, err := w.RunOne(context.Background())
@@ -88,62 +91,74 @@ func TestSite(t *testing.T) {
 		}
 	}
 
-	for _, p := range []string{"/create/", "/create/new", "/create/briefs/3", "/create/library", "/create/static/app.js", "/create/_frame/frame.js"} {
+	for _, p := range []string{"/create/", "/create/s/3", "/create/library", "/create/rules", "/create/static/app.js", "/create/_frame/frame.js"} {
 		if code := call(t, h, "GET", p, "", nil, nil); code != 200 {
 			t.Errorf("%s: %d", p, code)
 		}
 	}
+	for _, p := range []string{"/create/new", "/create/briefs/3"} {
+		if code := call(t, h, "GET", p, "", nil, nil); code != http.StatusFound {
+			t.Errorf("%s should land on the chat: %d", p, code)
+		}
+	}
+	var vs struct {
+		Categories []struct {
+			Verticals []struct{ ID, Name string }
+		}
+	}
+	if code := call(t, h, "GET", "/create/api/verticals", "", nil, &vs); code != 200 || len(vs.Categories) < 10 {
+		t.Fatalf("verticals: %d %d", code, len(vs.Categories))
+	}
 
-	var d briefs.Detail
-	if code := call(t, h, "POST", "/create/api/briefs", "application/json", strings.NewReader(`{"vertical_id":"memory-loss","images":1,"headlines":2,"refs":["nope:1"]}`), &d); code != 400 {
-		t.Errorf("bad ref: %d", code)
+	var sess sessions.Session
+	if code := call(t, h, "POST", "/create/api/sessions", "application/json", strings.NewReader(`{"name":"X","vertical_id":"made-up"}`), &sess); code != 400 {
+		t.Errorf("a vertical not on the list: %d", code)
 	}
-	if code := call(t, h, "POST", "/create/api/briefs", "application/json", strings.NewReader(`{"vertical_id":"memory-loss","vertical_name":"Memory Loss","images":1,"headlines":2}`), &d); code != 201 || d.Brief.RequestedBy != "mari@example.com" {
-		t.Fatalf("new brief: %d %+v", code, d.Brief)
+	if code := call(t, h, "POST", "/create/api/sessions", "application/json", strings.NewReader(`{"name":"Colher","vertical_id":"memory-loss"}`), &sess); code != 201 ||
+		sess.VerticalName != "Memory Loss" || sess.MadeBy != "mari@example.com" {
+		t.Fatalf("new session: %d %+v", code, sess)
 	}
-	id := itoa(d.Brief.ID)
+	id := itoa(sess.ID)
 
 	var body bytes.Buffer
 	mw := multipart.NewWriter(&body)
 	fw, _ := mw.CreateFormFile("file", "ad.png")
 	_ = png.Encode(fw, image.NewRGBA(image.Rect(0, 0, 60, 40)))
 	_ = mw.Close()
-	var ref briefs.Reference
-	if code := call(t, h, "POST", "/create/api/briefs/"+id+"/references", mw.FormDataContentType(), &body, &ref); code != 201 || ref.URL == "" {
-		t.Fatalf("upload: %d %+v", code, ref)
+	var up sessions.Item
+	if code := call(t, h, "POST", "/create/api/sessions/"+id+"/items", mw.FormDataContentType(), &body, &up); code != 201 || up.ImageURL == "" || up.Origin != "upload" {
+		t.Fatalf("upload: %d %+v", code, up)
 	}
-	if code := call(t, h, "GET", ref.URL, "", nil, nil); code != 200 {
-		t.Errorf("reference file: %d", code)
+	if code := call(t, h, "GET", up.ImageURL, "", nil, nil); code != 200 {
+		t.Errorf("item file: %d", code)
+	}
+	var typed sessions.Item
+	if code := call(t, h, "POST", "/create/api/sessions/"+id+"/items", "application/json", strings.NewReader(`{"headline":"This SHOCKING Memory Trick"}`), &typed); code != 201 ||
+		len(typed.Warnings) < 2 {
+		t.Fatalf("typed headline with its warnings: %d %+v", code, typed)
+	}
+	if code := call(t, h, "POST", "/create/api/sessions/"+id+"/items", "application/json", strings.NewReader(`{"library_creative":5}`), nil); code != 400 {
+		t.Errorf("a creative the library does not have: %d", code)
 	}
 
-	if code := call(t, h, "POST", "/create/api/briefs/"+id+"/make", "", nil, nil); code != 202 {
-		t.Fatalf("make: %d", code)
+	b, _ := json.Marshal(sessions.Send{Prompt: "make it brighter", Picked: []int64{up.ID, typed.ID}, Images: 1, Headlines: 2})
+	var turn sessions.Turn
+	if code := call(t, h, "POST", "/create/api/sessions/"+id+"/turns", "application/json", bytes.NewReader(b), &turn); code != 202 || turn.State != "making" {
+		t.Fatalf("send: %d %+v", code, turn)
 	}
 	drain()
-	call(t, h, "GET", "/create/api/briefs/"+id, "", nil, &d)
-	if d.Brief.State != "ready" || len(d.Options) != 3 {
-		t.Fatalf("after making: %+v", d)
-	}
-	var head briefs.Option
-	for _, o := range d.Options {
-		if o.Kind == "headline" && strings.Contains(o.Text, "SHOCKING") {
-			head = o
-		}
-	}
-	if len(head.Warnings) < 2 {
-		t.Errorf("warnings: %+v", head.Warnings)
+	var d sessions.Detail
+	call(t, h, "GET", "/create/api/sessions/"+id, "", nil, &d)
+	if len(d.Turns) != 1 || d.Turns[0].State != "done" || len(d.Items) != 5 {
+		t.Fatalf("after the turn: %+v", d)
 	}
 	var ids []int64
-	for _, o := range d.Options {
-		var got briefs.Option
-		if code := call(t, h, "PATCH", "/create/api/options/"+itoa(o.ID), "application/json", strings.NewReader(`{"chosen":true}`), &got); code != 200 || !got.Chosen {
-			t.Fatalf("choose: %d %+v", code, got)
-		}
-		ids = append(ids, o.ID)
+	for _, it := range d.Items {
+		ids = append(ids, it.ID)
 	}
-	b, _ := json.Marshal(map[string]any{"option_ids": ids, "name": "ML test", "ai_label": "ai"})
-	var sv briefs.Save
-	if code := call(t, h, "POST", "/create/api/briefs/"+id+"/save", "application/json", bytes.NewReader(b), &sv); code != 202 {
+	b, _ = json.Marshal(map[string]any{"item_ids": ids, "ai_label": "ai"})
+	var sv sessions.Save
+	if code := call(t, h, "POST", "/create/api/sessions/"+id+"/saves", "application/json", bytes.NewReader(b), &sv); code != 202 {
 		t.Fatalf("save: %d", code)
 	}
 	drain()
@@ -151,9 +166,13 @@ func TestSite(t *testing.T) {
 	if sv.State != "done" || sv.LibrarySetID == nil || *sv.LibrarySetID != 9 {
 		t.Fatalf("saved: %+v", sv)
 	}
+	var list struct{ Sessions []sessions.Session }
+	if code := call(t, h, "GET", "/create/api/sessions?vertical=memory-loss", "", nil, &list); code != 200 || len(list.Sessions) != 1 || list.Sessions[0].Images != 2 {
+		t.Fatalf("sessions: %d %+v", code, list)
+	}
 
 	// A change from another site's page is refused.
-	req := httptest.NewRequest("POST", "/create/api/briefs/"+id+"/make", nil)
+	req := httptest.NewRequest("POST", "/create/api/sessions/"+id+"/turns", nil)
 	req.Header.Set("Origin", "https://evil.example")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -162,19 +181,6 @@ func TestSite(t *testing.T) {
 	}
 	if code := call(t, h, "GET", "/create/library-api/api/sets", "", nil, nil); code != 200 {
 		t.Errorf("library browse: %d", code)
-	}
-}
-
-func TestParseRef(t *testing.T) {
-	for in, want := range map[string]string{"spy:ad:12": "spy_ad 12", "library:creative:4": "library_creative 4", "spy:ad:x": "", "drive:file:1": ""} {
-		k, id, ok := site.ParseRef(in)
-		got := ""
-		if ok {
-			got = k + " " + id
-		}
-		if got != want {
-			t.Errorf("%s: %q", in, got)
-		}
 	}
 }
 

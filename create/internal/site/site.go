@@ -1,7 +1,9 @@
 // Package site is Create's pages and their API, under /create/ on the
-// shared shell (shared/frame). The pages are plain files (pages/); every
-// change goes through the API, which writes the same rows create_api
-// exposes, and the worker does the paid work.
+// shared shell (shared/frame). The page is a chat (pages/): a session in a
+// vertical, turns sent with a prompt and the items picked, and the pictures
+// and headlines each turn makes. Every change goes through the API, which
+// calls the same create_api functions Desk does, and the worker does the
+// paid work.
 //
 // Errors are {"error": "<one line in pt-BR>"}: 400 bad input, 404 not
 // found, 413 too big, 500 anything else.
@@ -20,17 +22,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/briefs"
+	"github.com/Raposa-Industries/adhunters/create/internal/library"
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
+	"github.com/Raposa-Industries/adhunters/create/internal/sessions"
 	"github.com/Raposa-Industries/adhunters/shared/frame"
+	"github.com/Raposa-Industries/adhunters/shared/verticals"
 )
 
 //go:embed pages
 var pagesFS embed.FS
-
-// Angles are the angles the brief page offers, the team's words (the
-// design canvas, 2026-09-29); a person can type others.
-var Angles = []string{"Variação próxima", "Colher", "Canudo", "Copinho", "Garrafa", "Antes de tomar", "Reação depois de tomar"}
 
 // Status is what the pages are told about the service.
 type Status interface {
@@ -38,18 +38,62 @@ type Status interface {
 	OpenAIWhy() string
 }
 
+// Library is what the site needs of the library beyond its reads: a
+// creative's bytes, to add it to a session.
+type Library interface {
+	File(ctx context.Context, id string) ([]byte, error)
+}
+
 // Site serves Create.
 type Site struct {
-	st      *briefs.Store
+	st      *sessions.Store
+	lib     Library
 	browse  http.Handler
 	status  Status
 	log     *slog.Logger
 	version string
+	vert    []verticalGroup
+}
+
+// verticalGroup is one category of the verticals list, as the page shows it.
+type verticalGroup struct {
+	ID        string         `json:"id"`
+	Name      string         `json:"name"`
+	Verticals []verticalItem `json:"verticals"`
+}
+
+type verticalItem struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // New returns the site. browse serves the library's reads (library.Client.Browse).
-func New(st *briefs.Store, browse http.Handler, status Status, log *slog.Logger, version string) *Site {
-	return &Site{st: st, browse: browse, status: status, log: log, version: version}
+func New(st *sessions.Store, lib Library, browse http.Handler, status Status, log *slog.Logger, version string) (*Site, error) {
+	list, err := verticals.Load()
+	if err != nil {
+		return nil, err
+	}
+	var groups []verticalGroup
+	for _, c := range list.Categories {
+		g := verticalGroup{ID: c.ID, Name: c.Name}
+		for _, v := range c.Verticals {
+			g.Verticals = append(g.Verticals, verticalItem{ID: v.ID, Name: v.Name})
+		}
+		groups = append(groups, g)
+	}
+	return &Site{st: st, lib: lib, browse: browse, status: status, log: log, version: version, vert: groups}, nil
+}
+
+// verticalName is the name of a vertical of the list, "" when it is not one.
+func (s *Site) verticalName(id string) string {
+	for _, g := range s.vert {
+		for _, v := range g.Verticals {
+			if v.ID == id {
+				return v.Name
+			}
+		}
+	}
+	return ""
 }
 
 // Handler routes everything under /create/.
@@ -74,28 +118,28 @@ func (s *Site) Handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(b)
 	}
-	for _, p := range []string{"GET /create/{$}", "GET /create/new", "GET /create/briefs/{id}", "GET /create/library", "GET /create/rules"} {
+	for _, p := range []string{"GET /create/{$}", "GET /create/s/{id}", "GET /create/library", "GET /create/rules"} {
 		mux.HandleFunc(p, index)
 	}
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/create/", http.StatusFound) })
-	mux.HandleFunc("GET /create", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/create/", http.StatusFound) })
+	home := func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/create/", http.StatusFound) }
+	// The brief pages' old addresses land on the chat.
+	for _, p := range []string{"GET /{$}", "GET /create", "GET /create/new", "GET /create/briefs/{id}"} {
+		mux.HandleFunc(p, home)
+	}
 
 	mux.HandleFunc("GET /create/api/status", s.getStatus)
 	mux.HandleFunc("GET /create/api/rules", s.rules)
-	mux.HandleFunc("GET /create/api/briefs", s.list)
-	mux.HandleFunc("POST /create/api/briefs", s.newBrief)
-	mux.HandleFunc("GET /create/api/briefs/{id}", s.detail)
-	mux.HandleFunc("PATCH /create/api/briefs/{id}", s.change)
-	mux.HandleFunc("POST /create/api/briefs/{id}/references", s.addReference)
-	mux.HandleFunc("DELETE /create/api/references/{id}", s.removeReference)
-	mux.HandleFunc("POST /create/api/briefs/{id}/read", s.read)
-	mux.HandleFunc("POST /create/api/briefs/{id}/make", s.make)
-	mux.HandleFunc("POST /create/api/briefs/{id}/save", s.save)
-	mux.HandleFunc("PATCH /create/api/options/{id}", s.mark)
-	mux.HandleFunc("POST /create/api/options/{id}/again", s.again)
+	mux.HandleFunc("GET /create/api/verticals", s.verticals)
+	mux.HandleFunc("GET /create/api/sessions", s.list)
+	mux.HandleFunc("POST /create/api/sessions", s.newSession)
+	mux.HandleFunc("GET /create/api/sessions/{id}", s.detail)
+	mux.HandleFunc("PATCH /create/api/sessions/{id}", s.rename)
+	mux.HandleFunc("POST /create/api/sessions/{id}/turns", s.send)
+	mux.HandleFunc("POST /create/api/sessions/{id}/items", s.addItem)
+	mux.HandleFunc("POST /create/api/sessions/{id}/saves", s.save)
+	mux.HandleFunc("PATCH /create/api/items/{id}", s.editItem)
 	mux.HandleFunc("GET /create/api/saves/{id}", s.getSave)
-	mux.HandleFunc("GET /create/files/options/{id}", s.optionFile)
-	mux.HandleFunc("GET /create/files/references/{id}", s.referenceFile)
+	mux.HandleFunc("GET /create/files/items/{id}", s.itemFile)
 	return sameSite(mux)
 }
 
@@ -130,77 +174,42 @@ func (s *Site) getStatus(w http.ResponseWriter, r *http.Request) {
 
 func (s *Site) rules(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
-		"blocked": openai.BlockedWords, "angles": Angles,
-		"max_images": openai.MaxImages, "max_headlines": openai.MaxHeadlines,
-		"example_verticals": openai.ExampleVerticals(),
+		"blocked": openai.BlockedWords, "max_images": sessions.MaxImages, "max_headlines": sessions.MaxHeadlines,
+		"max_picked": sessions.MaxPicked,
 	})
 }
 
+func (s *Site) verticals(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"categories": s.vert})
+}
+
 func (s *Site) list(w http.ResponseWriter, r *http.Request) {
-	before, _ := strconv.ParseInt(r.URL.Query().Get("before"), 10, 64)
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	list, err := s.st.Briefs(r.Context(), before, limit)
+	list, err := s.st.Sessions(r.Context(), r.URL.Query().Get("vertical"), limit)
 	if s.fail(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"briefs": list})
+	writeJSON(w, http.StatusOK, map[string]any{"sessions": list})
 }
 
-// newBriefBody is a new brief, with its references by id ("spy:ad:123",
-// "library:creative:45"), as the ?ref= of a link from Spy or the library.
-type newBriefBody struct {
-	briefs.Input
-	Refs []string `json:"refs"`
-}
-
-func (s *Site) newBrief(w http.ResponseWriter, r *http.Request) {
-	var in newBriefBody
+func (s *Site) newSession(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Name       string `json:"name"`
+		VerticalID string `json:"vertical_id"`
+	}
 	if !readJSON(w, r, &in) {
 		return
 	}
-	var kinds, ids []string
-	for _, ref := range in.Refs {
-		kind, id, ok := ParseRef(ref)
-		if !ok {
-			writeError(w, http.StatusBadRequest, "referência inválida: "+ref)
-			return
-		}
-		kinds, ids = append(kinds, kind), append(ids, id)
+	name := s.verticalName(in.VerticalID)
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "escolha uma vertical da lista")
+		return
 	}
-	b, err := s.st.NewBrief(r.Context(), in.Input, who(r))
+	v, err := s.st.NewSession(r.Context(), in.Name, in.VerticalID, name, who(r))
 	if s.fail(w, err) {
 		return
 	}
-	for i := range kinds {
-		if _, err := s.st.AddReference(r.Context(), b.ID, kinds[i], ids[i]); s.fail(w, err) {
-			return
-		}
-	}
-	d, err := s.st.Detail(r.Context(), b.ID)
-	if s.fail(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusCreated, d)
-}
-
-// ParseRef reads a reference link: spy:ad:<id> or library:creative:<id>.
-func ParseRef(ref string) (kind, id string, ok bool) {
-	parts := strings.Split(strings.TrimSpace(ref), ":")
-	if len(parts) != 3 || parts[2] == "" {
-		return "", "", false
-	}
-	switch parts[0] + ":" + parts[1] {
-	case "spy:ad":
-		kind = briefs.RefSpyAd
-	case "library:creative":
-		kind = briefs.RefLibraryCreative
-	default:
-		return "", "", false
-	}
-	if _, err := strconv.ParseInt(parts[2], 10, 64); err != nil {
-		return "", "", false
-	}
-	return kind, parts[2], true
+	writeJSON(w, http.StatusCreated, v)
 }
 
 func (s *Site) detail(w http.ResponseWriter, r *http.Request) {
@@ -215,105 +224,119 @@ func (s *Site) detail(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, d)
 }
 
-func (s *Site) change(w http.ResponseWriter, r *http.Request) {
+func (s *Site) rename(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(w, r)
 	if !ok {
 		return
 	}
-	var in briefs.Input
+	var in struct {
+		Name string `json:"name"`
+	}
 	if !readJSON(w, r, &in) {
 		return
 	}
-	b, err := s.st.Change(r.Context(), id, in)
+	v, err := s.st.Rename(r.Context(), id, in.Name)
 	if s.fail(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, b)
+	writeJSON(w, http.StatusOK, v)
 }
 
-func (s *Site) addReference(w http.ResponseWriter, r *http.Request) {
+func (s *Site) send(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	var in sessions.Send
+	if !readJSON(w, r, &in) {
+		return
+	}
+	t, err := s.st.Send(r.Context(), id, in, who(r))
+	if s.fail(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusAccepted, t)
+}
+
+// addItem adds a picture from the person's computer (multipart, field
+// file), or JSON: {"headline": text} typed, {"library_creative": id}, or
+// {"library_headline": id, "headline": text} from the library.
+func (s *Site) addItem(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(w, r)
 	if !ok {
 		return
 	}
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
-		r.Body = http.MaxBytesReader(w, r.Body, briefs.MaxReference+1<<20)
+		r.Body = http.MaxBytesReader(w, r.Body, sessions.MaxUpload+1<<20)
 		f, _, err := r.FormFile("file")
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "envie a imagem no campo file")
 			return
 		}
 		defer f.Close()
-		b, err := io.ReadAll(io.LimitReader(f, briefs.MaxReference+1))
+		b, err := io.ReadAll(io.LimitReader(f, sessions.MaxUpload+1))
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "a imagem não chegou inteira")
 			return
 		}
-		ref, err := s.st.AddUpload(r.Context(), id, b)
+		it, err := s.st.AddPicture(r.Context(), id, "upload", "", b)
 		if s.fail(w, err) {
 			return
 		}
-		writeJSON(w, http.StatusCreated, ref)
+		writeJSON(w, http.StatusCreated, it)
 		return
 	}
 	var in struct {
-		Ref string `json:"ref"`
+		Headline        string `json:"headline"`
+		LibraryCreative int64  `json:"library_creative"`
+		LibraryHeadline int64  `json:"library_headline"`
 	}
 	if !readJSON(w, r, &in) {
 		return
 	}
-	kind, refID, ok := ParseRef(in.Ref)
-	if !ok {
-		writeError(w, http.StatusBadRequest, "referência inválida: use spy:ad:<id> ou library:creative:<id>")
-		return
-	}
-	ref, err := s.st.AddReference(r.Context(), id, kind, refID)
-	if s.fail(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusCreated, ref)
-}
-
-func (s *Site) removeReference(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
-	if !ok {
-		return
-	}
-	if s.fail(w, s.st.RemoveReference(r.Context(), id)) {
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (s *Site) read(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
-	if !ok {
-		return
-	}
-	b, err := s.st.Read(r.Context(), id)
-	if s.fail(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusAccepted, b)
-}
-
-func (s *Site) make(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
-	if !ok {
-		return
-	}
-	var round *briefs.Round
-	if r.ContentLength != 0 {
-		round = &briefs.Round{}
-		if !readJSON(w, r, round) {
+	var it sessions.Item
+	var err error
+	switch {
+	case in.LibraryCreative > 0:
+		ref := strconv.FormatInt(in.LibraryCreative, 10)
+		b, ferr := s.lib.File(r.Context(), ref)
+		if errors.Is(ferr, library.ErrNotFound) {
+			writeError(w, http.StatusBadRequest, "esse criativo não está na biblioteca")
 			return
 		}
+		if ferr != nil {
+			s.log.Error("create library file", "creative", ref, "err", ferr)
+			writeError(w, http.StatusBadGateway, "a biblioteca não respondeu; tente de novo")
+			return
+		}
+		it, err = s.st.AddPicture(r.Context(), id, "library", ref, b)
+	case in.LibraryHeadline > 0:
+		it, err = s.st.AddHeadline(r.Context(), id, "library", strconv.FormatInt(in.LibraryHeadline, 10), in.Headline)
+	default:
+		it, err = s.st.AddHeadline(r.Context(), id, "typed", "", in.Headline)
 	}
-	b, err := s.st.Make(r.Context(), id, round)
 	if s.fail(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusAccepted, b)
+	writeJSON(w, http.StatusCreated, it)
+}
+
+func (s *Site) editItem(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	var in struct {
+		Text string `json:"text"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	it, err := s.st.EditHeadline(r.Context(), id, in.Text)
+	if s.fail(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, it)
 }
 
 func (s *Site) save(w http.ResponseWriter, r *http.Request) {
@@ -322,14 +345,13 @@ func (s *Site) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		OptionIDs []int64 `json:"option_ids"`
-		Name      string  `json:"name"`
-		AILabel   string  `json:"ai_label"`
+		ItemIDs []int64 `json:"item_ids"`
+		AILabel string  `json:"ai_label"`
 	}
 	if !readJSON(w, r, &in) {
 		return
 	}
-	v, err := s.st.Save(r.Context(), id, in.OptionIDs, in.Name, in.AILabel, who(r))
+	v, err := s.st.Save(r.Context(), id, in.ItemIDs, in.AILabel, who(r))
 	if s.fail(w, err) {
 		return
 	}
@@ -348,54 +370,12 @@ func (s *Site) getSave(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, v)
 }
 
-func (s *Site) mark(w http.ResponseWriter, r *http.Request) {
+func (s *Site) itemFile(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(w, r)
 	if !ok {
 		return
 	}
-	var m briefs.Mark
-	if !readJSON(w, r, &m) {
-		return
-	}
-	o, err := s.st.MarkOption(r.Context(), id, m)
-	if s.fail(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusOK, o)
-}
-
-func (s *Site) again(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathID(w, r)
-	if !ok {
-		return
-	}
-	var in struct {
-		Note string `json:"note"`
-	}
-	if !readJSON(w, r, &in) {
-		return
-	}
-	o, err := s.st.Again(r.Context(), id, in.Note)
-	if s.fail(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusAccepted, o)
-}
-
-func (s *Site) optionFile(w http.ResponseWriter, r *http.Request) {
-	s.file(w, r, s.st.OptionFile)
-}
-
-func (s *Site) referenceFile(w http.ResponseWriter, r *http.Request) {
-	s.file(w, r, s.st.ReferenceFile)
-}
-
-func (s *Site) file(w http.ResponseWriter, r *http.Request, open func(context.Context, int64) (io.ReadCloser, string, error)) {
-	id, ok := pathID(w, r)
-	if !ok {
-		return
-	}
-	rc, mediaType, err := open(r.Context(), id)
+	rc, mediaType, err := s.st.ItemFile(r.Context(), id)
 	if s.fail(w, err) {
 		return
 	}
@@ -436,12 +416,12 @@ func (s *Site) fail(w http.ResponseWriter, err error) bool {
 	if err == nil {
 		return false
 	}
-	var bad briefs.BadInput
+	var bad sessions.BadInput
 	var tooBig *http.MaxBytesError
 	switch {
 	case errors.As(err, &bad):
 		writeError(w, http.StatusBadRequest, string(bad))
-	case errors.Is(err, briefs.ErrNotFound):
+	case errors.Is(err, sessions.ErrNotFound):
 		writeError(w, http.StatusNotFound, "não encontrado")
 	case errors.As(err, &tooBig):
 		writeError(w, http.StatusRequestEntityTooLarge, "arquivo grande demais")

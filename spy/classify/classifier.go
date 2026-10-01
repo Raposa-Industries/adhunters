@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/Raposa-Industries/adhunters/spy/verticals"
+	"github.com/Raposa-Industries/adhunters/shared/verticals"
 )
 
 const (
@@ -20,6 +20,12 @@ const (
 	perClass = 600
 	// retrainEvery is how old the newest model may get.
 	retrainEvery = 24 * time.Hour
+	// regrowth retrains early once the creatives worth training on reach
+	// this many times what the newest model learned from (a model trained
+	// while the first reads were still filling in learns from a few), and
+	// at least minRegrowth more.
+	regrowth    = 1.5
+	minRegrowth = 200
 	// retryAfter waits this long after training failed or had too little data.
 	retryAfter = time.Hour
 	// keepModels is how many models spy.class_model keeps.
@@ -277,6 +283,11 @@ func (c *Classifier) ensureModel(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("read newest model: %w", err)
 	}
 	due := none || time.Since(trainedAt) >= retrainEvery
+	if !due && hash == c.hash {
+		if due, err = c.grown(ctx, id); err != nil {
+			return false, err
+		}
+	}
 	if !due && hash != c.hash {
 		var pending bool
 		if err := c.db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM spy.creative_class WHERE rules_hash <> $1)`, c.hash).
@@ -306,6 +317,42 @@ func (c *Classifier) ensureModel(ctx context.Context) (bool, error) {
 	}
 	c.model, c.modelID = m, id
 	return false, nil
+}
+
+// grown says whether the creatives worth training on have grown by
+// regrowth since model id was trained.
+func (c *Classifier) grown(ctx context.Context, id int32) (bool, error) {
+	var used int
+	if err := c.db.QueryRow(ctx, `SELECT examples + COALESCE((eval->>'test')::int, 0) FROM spy.class_model WHERE id = $1`, id).
+		Scan(&used); err != nil {
+		return false, err
+	}
+	rows, err := c.db.Query(ctx, `
+		SELECT k.rules_vertical_id, count(*)
+		FROM spy.creative_class k
+		LEFT JOIN spy.creative_stats cs USING (creative_id)
+		WHERE k.rules_confidence >= 0.6 AND k.rules_vertical_id IS NOT NULL AND k.rules_hash = $1
+		  AND NOT COALESCE(cs.is_junk, FALSE)
+		GROUP BY 1`, c.hash)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	now := 0
+	for rows.Next() {
+		var v string
+		var n int
+		if err := rows.Scan(&v, &n); err != nil {
+			return false, err
+		}
+		if vv, ok := c.rules.Vertical(v); ok && !vv.CatchAll {
+			now += min(n, perClass)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	return float64(now) >= regrowth*float64(used) && now-used >= minRegrowth, nil
 }
 
 // Train learns from the creatives the rules are sure about (catch-alls and
@@ -448,21 +495,24 @@ func (c *Classifier) modelPass(ctx context.Context) (answered, declined int, err
 	var (
 		ansID, keepID          []int32
 		ansCat, ansVert, ansEv []string
+		keepEv                 []string
 		ansConf                []float64
 	)
 	for _, t := range texts {
 		a := asks[t.id]
 		guesses, ok := c.model.Predict(t.text.Doc())
-		if !ok || guesses[0].P < minAnswer || (a.rulesVertical != "" && guesses[0].P <= a.rulesConf) {
-			keepID = append(keepID, t.id)
-			continue
-		}
-		v, _ := c.rules.Vertical(guesses[0].Vertical)
 		top := make([]map[string]any, 0, 3)
 		for _, g := range guesses[:min(3, len(guesses))] {
 			top = append(top, map[string]any{"vertical": g.Vertical, "p": round3(g.P)})
 		}
 		ev, _ := json.Marshal(map[string]any{"model": c.modelID, "top": top})
+		if !ok || guesses[0].P < minAnswer || (a.rulesVertical != "" && guesses[0].P <= a.rulesConf) {
+			// Kept to see what it would have said; never used as an answer.
+			keepID = append(keepID, t.id)
+			keepEv = append(keepEv, string(ev))
+			continue
+		}
+		v, _ := c.rules.Vertical(guesses[0].Vertical)
 		ansID = append(ansID, t.id)
 		ansCat = append(ansCat, v.Category)
 		ansVert = append(ansVert, v.ID)
@@ -482,9 +532,10 @@ func (c *Classifier) modelPass(ctx context.Context) (answered, declined int, err
 		return 0, 0, err
 	}
 	if _, err := tx.Exec(ctx, `
-		UPDATE spy.creative_class SET category_id = rules_category_id, vertical_id = rules_vertical_id,
-		       confidence = rules_confidence, source = rules_source, model_id = $1, model_at = now()
-		WHERE creative_id = ANY($2::int[])`, c.modelID, keepID); err != nil {
+		UPDATE spy.creative_class k SET category_id = rules_category_id, vertical_id = rules_vertical_id,
+		       confidence = rules_confidence, source = rules_source, model_top = u.ev::jsonb, model_id = $1, model_at = now()
+		FROM unnest($2::int[], $3::text[]) AS u(id, ev)
+		WHERE k.creative_id = u.id`, c.modelID, keepID, keepEv); err != nil {
 		return 0, 0, err
 	}
 	return len(ansID), len(keepID), tx.Commit(ctx)

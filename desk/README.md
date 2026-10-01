@@ -54,11 +54,11 @@ reads as down. Units and example settings are in [deploy/](deploy/).
    Each step's news is an event in the conversation. When the plan ends,
    Desk takes a turn to say what came of it, with the links.
 
-For example, "faz um brief de Tinnitus com 6 imagens e me mostra as
-melhores" becomes a plan of three steps: `create.new_brief` (Create makes
-the options), a choice among that brief's `create.options`, and
-`create.save_set` with the ids the person picked, which puts them in the
-library as one set for Launch.
+For example, "faz 6 imagens de Tinnitus e me mostra as melhores" becomes a
+plan of four steps: `create.new_session` (a session in Tinnitus),
+`create.send` in that session (Create makes the pictures), a choice among
+its `create.items`, and `create.save_items` with the ids the person picked,
+which puts them in the session's library folder for Launch.
 
 A step that waits is looked at again every 30 s; a pick or a to-do marked
 done moves it at once. An app that refuses a call (its own check, a

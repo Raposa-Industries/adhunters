@@ -46,6 +46,12 @@ type Config struct {
 	// CloseAfter is how long after an hour ends its journeys are counted:
 	// long enough for most of them to have ended.
 	CloseAfter time.Duration
+	// DraftEvery is how often an hour still open is counted again into the
+	// drafts.
+	DraftEvery time.Duration
+	// KeepEvents is how long events stay in funnels.event; journeys and
+	// counts stay, and replay loads a range's events again. 0 keeps them.
+	KeepEvents time.Duration
 	Log        *slog.Logger
 	Metrics    *Metrics
 	Now        func() time.Time
@@ -92,7 +98,11 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 }
 
 // Loader does the work; each step is safe to repeat.
-type Loader struct{ c Config }
+type Loader struct {
+	c      Config
+	nets   *Networks // the data-center networks, read again every 10 minutes
+	netsAt time.Time
+}
 
 // New makes a loader.
 func New(c Config) *Loader {
@@ -104,6 +114,9 @@ func New(c Config) *Loader {
 	}
 	if c.CloseAfter == 0 {
 		c.CloseAfter = time.Hour
+	}
+	if c.DraftEvery == 0 {
+		c.DraftEvery = 5 * time.Minute
 	}
 	return &Loader{c: c}
 }
@@ -356,6 +369,8 @@ func (l *Loader) write(ctx context.Context, tx pgx.Tx, key string, events []Even
 		    WHERE journey = ANY($1) GROUP BY journey
 		    UNION
 		    SELECT hour FROM funnels.journey WHERE id = ANY($1)
+		    UNION
+		    SELECT hour FROM funnels_draft.journey WHERE id = ANY($1)
 		) x
 		ON CONFLICT (hour) DO UPDATE SET dirty_since = COALESCE(funnels.hour_state.dirty_since, now())`, journeys)
 	if err != nil {
@@ -414,7 +429,8 @@ func (l *Loader) CloseDue(ctx context.Context) (int, error) {
 	return len(hours), nil
 }
 
-// CloseHour rebuilds the journeys that started in hour and its counts.
+// CloseHour rebuilds the journeys that started in hour and its counts, and
+// drops its drafts.
 func (l *Loader) CloseHour(ctx context.Context, hour time.Time) error {
 	hour = hour.UTC()
 	tx, err := l.c.DB.Begin(ctx)
@@ -427,35 +443,16 @@ func (l *Loader) CloseHour(ctx context.Context, hour time.Time) error {
 	if _, err := tx.Exec(ctx, `SELECT 1 FROM funnels.hour_state WHERE hour = $1 FOR UPDATE`, hour); err != nil {
 		return err
 	}
-	journeys, err := l.journeysOf(ctx, tx, hour)
+	ids, err := l.rebuild(ctx, tx, hour, finalSchema)
 	if err != nil {
 		return err
 	}
-	// A journey whose first event moved to this hour (a late file) is still
-	// stored under its old hour until then; that hour is dirty too.
-	ids := make([]string, len(journeys))
-	for i, j := range journeys {
-		ids[i] = j.ID
-	}
-	if _, err := tx.Exec(ctx, `DELETE FROM funnels.journey WHERE hour = $1 OR id = ANY($2)`, hour, ids); err != nil {
+	if err := clear(ctx, tx, hour, ids, draftSchema); err != nil {
 		return err
-	}
-	if err := copyJourneys(ctx, tx, journeys); err != nil {
-		return err
-	}
-	for _, t := range []string{"journey_hourly", "step_hourly", "video_hourly", "video_second_hourly"} {
-		if _, err := tx.Exec(ctx, `DELETE FROM funnels.`+t+` WHERE hour = $1`, hour); err != nil {
-			return err
-		}
-	}
-	for _, q := range countQueries {
-		if _, err := tx.Exec(ctx, q, hour); err != nil {
-			return err
-		}
 	}
 	_, err = tx.Exec(ctx, `
 		INSERT INTO funnels.hour_state (hour, closed_at, journeys) VALUES ($1, now(), $2)
-		ON CONFLICT (hour) DO UPDATE SET closed_at = now(), journeys = $2, dirty_since = NULL`, hour, len(journeys))
+		ON CONFLICT (hour) DO UPDATE SET closed_at = now(), journeys = $2, dirty_since = NULL, draft_at = NULL`, hour, len(ids))
 	if err != nil {
 		return err
 	}
@@ -465,13 +462,124 @@ func (l *Loader) CloseHour(ctx context.Context, hour time.Time) error {
 	if l.c.Metrics != nil {
 		l.c.Metrics.Hours.Inc()
 	}
-	l.c.Log.Info("hour closed", "hour", hour.Format(time.RFC3339), "journeys", len(journeys))
+	l.c.Log.Info("hour closed", "hour", hour.Format(time.RFC3339), "journeys", len(ids))
 	return nil
+}
+
+// DraftOpen counts the hours that have never closed (the hour under way
+// and the ones waiting for CloseAfter) into the draft tables, each at most
+// once every DraftEvery, so the pages can show them, marked partial. It
+// returns how many hours it counted.
+func (l *Loader) DraftOpen(ctx context.Context) (int, error) {
+	now := l.c.Now()
+	rows, err := l.c.DB.Query(ctx, `
+		SELECT hour FROM funnels.hour_state
+		WHERE closed_at IS NULL AND dirty_since IS NOT NULL AND (draft_at IS NULL OR draft_at <= $1)
+		ORDER BY hour`, now.Add(-l.c.DraftEvery))
+	if err != nil {
+		return 0, err
+	}
+	hours, err := pgx.CollectRows(rows, pgx.RowTo[time.Time])
+	if err != nil {
+		return 0, err
+	}
+	for i, h := range hours {
+		if err := l.draftHour(ctx, h.UTC(), now); err != nil {
+			return i, fmt.Errorf("counting the open hour %s: %w", h.UTC().Format(time.RFC3339), err)
+		}
+	}
+	return len(hours), nil
+}
+
+func (l *Loader) draftHour(ctx context.Context, hour, now time.Time) error {
+	tx, err := l.c.DB.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var closed bool
+	if err := tx.QueryRow(ctx, `SELECT closed_at IS NOT NULL FROM funnels.hour_state WHERE hour = $1 FOR UPDATE`, hour).Scan(&closed); err != nil {
+		return err
+	}
+	if closed { // it closed since the list was read
+		return nil
+	}
+	if _, err := l.rebuild(ctx, tx, hour, draftSchema); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE funnels.hour_state SET draft_at = $2 WHERE hour = $1`, hour, now); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// The schemas journeys and counts are written to: funnels for closed hours,
+// funnels_draft for hours still open.
+const (
+	finalSchema = "funnels"
+	draftSchema = "funnels_draft"
+)
+
+// rebuild writes the journeys that started in hour, and the hour's counts,
+// into schema, replacing what was there. It returns the journeys' ids.
+func (l *Loader) rebuild(ctx context.Context, tx pgx.Tx, hour time.Time, schema string) ([]string, error) {
+	journeys, err := l.journeysOf(ctx, tx, hour)
+	if err != nil {
+		return nil, err
+	}
+	// A journey whose first event moved to this hour (a late file) is still
+	// stored under its old hour until then; that hour is dirty too.
+	ids := make([]string, len(journeys))
+	for i, j := range journeys {
+		ids[i] = j.ID
+	}
+	if err := clear(ctx, tx, hour, ids, schema); err != nil {
+		return nil, err
+	}
+	if err := copyJourneys(ctx, tx, schema, journeys); err != nil {
+		return nil, err
+	}
+	for _, q := range countQueries {
+		if _, err := tx.Exec(ctx, inSchema(q, schema), hour); err != nil {
+			return nil, err
+		}
+	}
+	return ids, nil
+}
+
+// clear deletes an hour's journeys (and the journeys ids, wherever they
+// started) and its counts from schema.
+func clear(ctx context.Context, tx pgx.Tx, hour time.Time, ids []string, schema string) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM `+schema+`.journey WHERE hour = $1 OR id = ANY($2)`, hour, ids); err != nil {
+		return err
+	}
+	for _, t := range []string{"journey_hourly", "step_hourly", "video_hourly", "video_second_hourly"} {
+		if _, err := tx.Exec(ctx, `DELETE FROM `+schema+`.`+t+` WHERE hour = $1`, hour); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// inSchema points a count query's journey and count tables at schema.
+func inSchema(q, schema string) string {
+	return strings.ReplaceAll(q, "funnels.", schema+".")
 }
 
 // journeysOf rebuilds the journeys whose first event is in hour, from every
 // event they have, whenever it arrived.
 func (l *Loader) journeysOf(ctx context.Context, tx pgx.Tx, hour time.Time) ([]Journey, error) {
+	nets, err := l.networks(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+	build := func(evs []Event) Journey {
+		j := Build(evs)
+		if src, ok := nets.Match(j.Net); ok {
+			j.suspect("data-center network (" + src + ")")
+		}
+		return j
+	}
 	rows, err := tx.Query(ctx, `
 		WITH c AS (
 		    SELECT DISTINCT journey FROM funnels.event
@@ -499,7 +607,7 @@ func (l *Loader) journeysOf(ctx context.Context, tx pgx.Tx, hour time.Time) ([]J
 		_ = json.Unmarshal(subs, &e.Subs)
 		e.ReceivedAt = e.ReceivedAt.UTC()
 		if len(cur) > 0 && cur[0].Journey != e.Journey {
-			out = append(out, Build(cur))
+			out = append(out, build(cur))
 			cur = nil
 		}
 		cur = append(cur, e)
@@ -508,12 +616,12 @@ func (l *Loader) journeysOf(ctx context.Context, tx pgx.Tx, hour time.Time) ([]J
 		return nil, err
 	}
 	if len(cur) > 0 {
-		out = append(out, Build(cur))
+		out = append(out, build(cur))
 	}
 	return out, nil
 }
 
-func copyJourneys(ctx context.Context, tx pgx.Tx, js []Journey) error {
+func copyJourneys(ctx context.Context, tx pgx.Tx, schema string, js []Journey) error {
 	var jr, sr, vr [][]any
 	for _, j := range js {
 		subs, _ := json.Marshal(j.Subs)
@@ -535,23 +643,24 @@ func copyJourneys(ctx context.Context, tx pgx.Tx, js []Journey) error {
 				v.WatchedS, v.LastS, v.ReachedPitch})
 		}
 	}
-	if _, err := tx.CopyFrom(ctx, pgx.Identifier{"funnels", "journey"},
+	if _, err := tx.CopyFrom(ctx, pgx.Identifier{schema, "journey"},
 		[]string{"id", "hour", "started_at", "last_at", "site", "first_lp", "last_lp", "last_step", "lps", "clickid",
 			"sub1", "sub4", "sub8", "subs", "device", "country", "visible_ms", "max_scroll", "had_input", "bot_suspect", "bot_reason"},
 		pgx.CopyFromRows(jr)); err != nil {
 		return err
 	}
-	if _, err := tx.CopyFrom(ctx, pgx.Identifier{"funnels", "journey_step"},
+	if _, err := tx.CopyFrom(ctx, pgx.Identifier{schema, "journey_step"},
 		[]string{"journey", "seq", "lp", "step", "at"}, pgx.CopyFromRows(sr)); err != nil {
 		return err
 	}
-	_, err := tx.CopyFrom(ctx, pgx.Identifier{"funnels", "journey_video"},
+	_, err := tx.CopyFrom(ctx, pgx.Identifier{schema, "journey_video"},
 		[]string{"journey", "video", "arm", "lp", "len_s", "pitch_s", "autoplayed", "played", "watched", "watched_s",
 			"last_s", "reached_pitch"}, pgx.CopyFromRows(vr))
 	return err
 }
 
-// countQueries compute one closed hour's counts from its journeys ($1).
+// countQueries compute one hour's counts from its journeys ($1). They name
+// the funnels schema; inSchema points them at the drafts.
 var countQueries = []string{
 	`INSERT INTO funnels.journey_hourly (hour, site, first_lp, sub1, sub4, sub8, device, country, journeys,
 	     with_click_id, with_input, visible_ms, bots)
@@ -591,6 +700,41 @@ var countQueries = []string{
 	 CROSS JOIN LATERAL generate_series(0, v.last_s) s
 	 WHERE j.hour = $1 AND NOT j.bot_suspect AND v.played AND v.last_s >= 0 AND v.watched @> s
 	 GROUP BY j.hour, v.video, v.arm, j.device, s`,
+}
+
+// DropOldEvents deletes the events older than KeepEvents, a batch at a
+// time, but none from an hour still to close (or after it): a journey is
+// rebuilt from all its events. Journeys and counts stay; replay loads a
+// range's events again from the archive. It returns how many it deleted.
+func (l *Loader) DropOldEvents(ctx context.Context) (int64, error) {
+	if l.c.KeepEvents <= 0 {
+		return 0, nil
+	}
+	cutoff := l.c.Now().Add(-l.c.KeepEvents).UTC().Truncate(time.Hour)
+	var dirty *time.Time
+	if err := l.c.DB.QueryRow(ctx, `SELECT min(hour) FROM funnels.hour_state WHERE dirty_since IS NOT NULL`).Scan(&dirty); err != nil {
+		return 0, err
+	}
+	if dirty != nil && dirty.Before(cutoff) {
+		cutoff = dirty.UTC()
+	}
+	var total int64
+	for ctx.Err() == nil {
+		tag, err := l.c.DB.Exec(ctx, `
+			DELETE FROM funnels.event WHERE ctid = ANY (ARRAY(
+			    SELECT ctid FROM funnels.event WHERE received_at < $1 LIMIT 20000))`, cutoff)
+		if err != nil {
+			return total, err
+		}
+		total += tag.RowsAffected()
+		if tag.RowsAffected() < 20000 {
+			break
+		}
+	}
+	if total > 0 {
+		l.c.Log.Info("old events dropped", "before", cutoff.Format(time.RFC3339), "events", total)
+	}
+	return total, ctx.Err()
 }
 
 // Replay marks the raw files of a range pending again, so the running

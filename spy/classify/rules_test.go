@@ -3,7 +3,7 @@ package classify
 import (
 	"testing"
 
-	"github.com/Raposa-Industries/adhunters/spy/verticals"
+	"github.com/Raposa-Industries/adhunters/shared/verticals"
 )
 
 func rules(t *testing.T) *Rules {

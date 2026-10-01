@@ -64,15 +64,16 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 
 | Word | Means |
 |---|---|
-| brief | The starting point a person gives Create: the vertical, optional reference images and headlines, and optional extra instructions. Ads are always in English. Also the one-line idea Create writes for each image it will make. |
+| session | One chat in Create: a vertical and a name, which are also the library folders what it saves goes in (`<vertical>/<session>`). The same name in the same vertical is the same session. |
+| turn | One message a person sends in a session: a prompt, the items they picked, and how many pictures and headlines to make from them. |
+| item | One picture or headline in a session: made by a turn, or brought in from the computer, the library or typed. Any item can be picked for the next turn. |
+| pick | Choosing items in a session, for the next turn to start from or to save. Picked pictures are changed as the prompt says (or varied, with no prompt); picked headlines are varied. |
+| brief | The words Create gives the picture model for one picture. Before 1 Oct 2026 (decision 0015) also the starting point of the old brief pages, replaced by sessions (decision 0019). |
 | performing ads | Ads a person gives Create because they are doing well. Create reads them for their pattern (what is fixed, what can vary) and makes new images in it; they are never sent to the image model. |
-| angle | The kind of image an idea is: a close variation of what works, or a new way of showing the product ("Colher", "Canudo", "Reação depois de tomar"). Options are grouped by it. |
+| angle | The kind of image an idea is: a close variation of what works, or a new way of showing the product ("Colher", "Canudo", "Reação depois de tomar"). A text call names one for each brief it writes. |
 | blocked words | The team's list of words and phrases Taboola has blocked for them in titles (a few in descriptions too). Create avoids them, warns about them and offers other words in their place; it never refuses them. |
-| option | An image or headline Create made from a brief. Nothing is used until a person chooses it. |
-| reference | A picture a brief is made from: a Spy ad, a creative in the library, or a file from the person's computer. Create keeps its bytes before reading it. |
 | analysis | What the performing ads share, aspect by aspect: what to keep and what can vary. Create writes it when it reads them; the person edits it before making options. |
-| round | One ask for options from a brief: headlines and picture ideas in one plan, then one picture per idea. "Mais 3, ângulo novo" is a round too. |
-| save | Chosen options written into the library as one set, with the person's AI label. |
+| save | Picked items written into the library, in their session's set (folder), with the person's AI label for made pictures. |
 | pairing | How the chosen creatives, headlines and CTAs become ads. Mixed: the longest list once each, the shorter ones repeated in turn until it runs out (10 images, 5 headlines and 2 CTAs make 10 ads). One to one: the person picks each pair. Every combination: each creative with each headline and each CTA. |
 | CTA | The button on an ad ("Read More", "Learn More"). Taboola takes one per item, from its own list; a person may pick several and pairing spreads them. |
 | ad id | Our own id for an ad: `ah-`, then the first 10 hex characters of the creative's SHA-256, a dash, and the first 10 of the headline's. It goes in Taboola's Custom ID (30 characters at most), so results can come back to the ad. |
@@ -86,7 +87,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | Word | Means |
 |---|---|
 | library | The creatives and headlines the team keeps, shared by Create and Launch, with a copy of each file in the team's Google Drive folder. The apps never call it Drive. See [decision 0014](decisions/0014-library.md). |
-| set | Creatives and headlines made or uploaded together: one brief in Create, one folder in Drive. Launch picks a set to make ads from. |
+| set | Creatives and headlines made or uploaded together: one session in Create, one folder in Drive. Launch picks a set to make ads from. |
 | safe copy | The library's own copy of a picture's bytes, kept before its row is written, so a file deleted in Drive is never lost. |
 | minted name | A creative's name from its vertical's code, the network letter and a counter that only goes up (`BPT43`), given when an app saves it. Never given twice. |
 | hidden | Taken out of the library's lists by a person. Nothing in the library is deleted. |
@@ -141,7 +142,7 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | check | One scrape, seen from Spy: one look at one publisher on one device. Rates are per check. |
 | presence | Sightings per 100 checks of the network. How often you would see the ad if you looked now. |
 | sparkline | A small line of a creative's presence per day, beside it in a list. |
-| vertical | The market a creative sells into ("Blood Pressure", "Joint Pain"), one of the fixed list in [spy/verticals](spy/verticals/verticals.yaml). Never a name a classifier made up. |
+| vertical | The market a creative sells into ("Blood Pressure", "Joint Pain"), one of the fixed list in [shared/verticals](shared/verticals/verticals.yaml). Never a name a classifier made up. |
 | category | A group of verticals ("Heart", "Pain"), for filtering: a category first, then its verticals. |
 | catch-all | A vertical that takes what fits nowhere else in its category ("Other health"). The classifier picks it only when no specific vertical scored. |
 | unsure | A vertical answer with confidence under 0.6. Lists show it with a question mark; the model may replace it. |
@@ -237,4 +238,6 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | retention curve | For each second of a video, the plays that heard it. |
 | pitch | The second a video starts selling. Set per video; the buy button can appear then. |
 | arm | One of the choices an A/B test splits journeys between (a video, a pitch time). A journey always gets the same arm. |
-| bot suspect | A journey that looks automated: the browser says so, its user agent is missing or a bot's, or it had no input and under 1 s in view. Kept and flagged, left out of the counts. |
+| bot suspect | A journey that looks automated: the browser says so, its user agent is missing or a bot's, it had no input and under 1 s in view, or it came from a data-center network. Kept and flagged, left out of the counts. |
+| data-center network | A network a cloud or hosting company publishes as its own (AWS, Google Cloud, or a list imported by hand). People rarely browse from one. |
+| draft count | The counts of an hour that has not closed yet, made every few minutes so the pages can show it, marked partial. Never published in `funnels_api`. |
