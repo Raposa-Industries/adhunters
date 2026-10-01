@@ -52,6 +52,12 @@ function add(sum, n) {
   return sum;
 }
 
+// tracked is false while Intel has no sales from the tracker at all (its
+// RedTrack key not in yet): sales, CPA, revenue, profit and ROI then show
+// "—" instead of a loss as big as the spend.
+let tracked = true;
+const sold = (show) => (n) => (tracked ? show(n) : '—');
+
 // COLUMNS are the number columns every table shares, in Realize's order.
 const COLUMNS = [
   ['spent', 'Gasto', (n) => usd(n.spent)],
@@ -59,11 +65,11 @@ const COLUMNS = [
   ['clicks', 'Cliques', (n) => (n.has ? int.format(n.clicks) : '—')],
   ['ctr', 'CTR', (n) => (n.impressions ? pct.format(n.clicks / n.impressions) : '—')],
   ['cpc', 'CPC médio', (n) => (n.clicks ? money(n.spent / n.clicks) : '—')],
-  ['sales', 'Vendas', (n) => (n.has ? int.format(n.sales) : '—')],
-  ['cpa', 'CPA', (n) => (n.sales ? money(Math.round((n.spent / n.sales) * 100) / 100) : '—')],
-  ['revenue', 'Receita', (n) => usd(n.revenue)],
-  ['profit', 'Lucro', (n) => (n.has ? h('span', { class: n.profit < 0 ? 'down' : n.profit > 0 ? 'up' : '' }, money(n.profit) || 'US$ 0') : '—')],
-  ['roi', 'ROI', (n) => (n.spent && n.has ? pct.format(n.profit / n.spent) : '—')],
+  ['sales', 'Vendas', sold((n) => (n.has ? int.format(n.sales) : '—'))],
+  ['cpa', 'CPA', sold((n) => (n.sales ? money(Math.round((n.spent / n.sales) * 100) / 100) : '—'))],
+  ['revenue', 'Receita', sold((n) => usd(n.revenue))],
+  ['profit', 'Lucro', sold((n) => (n.has ? h('span', { class: n.profit < 0 ? 'down' : n.profit > 0 ? 'up' : '' }, money(n.profit) || 'US$ 0') : '—'))],
+  ['roi', 'ROI', sold((n) => (n.spent && n.has ? pct.format(n.profit / n.spent) : '—'))],
 ];
 
 function sortValue(n, key) {
@@ -112,6 +118,7 @@ export async function manage(ctx) {
   const trees = await Promise.all(chosen.map((a) => api(`${NET}/${encodeURIComponent(a.id)}/tree`).then((t) => ({ a, t }), (e) => ({ a, error: e.message }))));
   const nums = await api(`numbers?window=${at.w}` + (at.account === 'all' ? '' : '&accounts=' + encodeURIComponent(at.account))).catch(() => ({ available: false, campaigns: {}, ads: {} }));
   loading.remove();
+  tracked = Object.values(nums.campaigns || {}).some((n) => n.sales || n.revenue);
 
   const groups = [];
   const campaigns = [];
@@ -474,7 +481,9 @@ function drawMoves(main, before, moves, campById, groupById) {
 function numbersLine(nums) {
   if (!nums.available) return 'Os números aparecem quando o Intel estiver ligado.';
   const at = nums.refreshed_at ? new Date(nums.refreshed_at) : null;
-  return 'Números do Intel' + (at && !isNaN(at) ? ', atualizados ' + at.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '. Vendas e receita do RedTrack.';
+  const when = at && !isNaN(at) ? ', atualizados ' + at.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  if (!Object.keys(nums.campaigns || {}).length) return 'O Intel ainda não tem números destas campanhas neste período' + when + '.';
+  return 'Números do Intel' + when + '. ' + (tracked ? 'Vendas e receita do RedTrack.' : 'Vendas, receita e lucro aparecem quando o RedTrack estiver ligado no Intel.');
 }
 
 // picker is one step of the breadcrumb: a small label over the value, and a
