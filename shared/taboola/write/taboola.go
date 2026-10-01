@@ -441,12 +441,48 @@ func (c *Client) tokenError(ctx context.Context, e *api.TokenError) error {
 type obj = map[string]any
 
 // sendJSON sends body as JSON and decodes the answer into an object.
+// turnsOn reports whether a JSON body sets is_active true anywhere in it.
+func turnsOn(raw []byte) bool {
+	var v any
+	if json.Unmarshal(raw, &v) != nil {
+		return true // not ours to send
+	}
+	var walk func(any) bool
+	walk = func(v any) bool {
+		switch x := v.(type) {
+		case map[string]any:
+			for k, e := range x {
+				if k == "is_active" && e != false {
+					return true
+				}
+				if walk(e) {
+					return true
+				}
+			}
+		case []any:
+			for _, e := range x {
+				if walk(e) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	return walk(v)
+}
+
 func (c *Client) sendJSON(ctx context.Context, method, path string, body any, retry5xx bool) (obj, error) {
 	k := call{method: method, path: path, retry5xx: retry5xx}
 	if body != nil {
 		raw, err := json.Marshal(body)
 		if err != nil {
 			return nil, err
+		}
+		// The owner's rule: nothing here ever turns a campaign or an ad on;
+		// only a person does, in Taboola's dashboard. Checked on the bytes
+		// sent, whatever built them.
+		if turnsOn(raw) {
+			return nil, refuse("o Launch nunca liga campanha nem anúncio: só uma pessoa liga, no Taboola")
 		}
 		k.body, k.ctype, k.kept = raw, "application/json", json.RawMessage(raw)
 	}

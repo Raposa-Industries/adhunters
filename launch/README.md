@@ -71,6 +71,11 @@ or saved in a preset:
 
 ## How the writes work
 
+- **Never turned on.** The owner's rule (2026-10-01): no campaign or ad runs
+  without their go. No Launch action, Intel `?do=` link or Desk request can
+  start one (the kinds are pause, pause ads, change, copy and move), and the
+  Taboola client refuses any body with `is_active` other than false before
+  it is sent.
 - **Paused, checked.** Every campaign Taboola makes (new or a copy) must
   come back with `is_active` false; one that comes back running, or without
   saying, is paused at once and that pause is checked. A copy above the

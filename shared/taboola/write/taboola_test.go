@@ -988,7 +988,7 @@ func TestAdsPauseAndChange(t *testing.T) {
 func TestSettingsFromEnv(t *testing.T) {
 	env := map[string]string{"TABOOLA_ACCOUNTS": " a-sc, ,b-sc", "TABOOLA_ONLY_OWN": "1", "TABOOLA_MAX_CPC": "0.5"}
 	s, err := SettingsFromEnv(func(k string) string { return env[k] }, "/x/state.json")
-	if err != nil || fmt.Sprint(s.Accounts) != "[a-sc b-sc]" || !s.OnlyOwn || s.MaxCPC != 0.5 || s.MaxDailyCap != 100 || s.StateFile != "/x/state.json" || s.Base != DefaultBase {
+	if err != nil || fmt.Sprint(s.Accounts) != "[a-sc b-sc]" || !s.OnlyOwn || s.MaxCPC != 0.5 || s.MaxDailyCap != 500 || s.StateFile != "/x/state.json" || s.Base != DefaultBase {
 		t.Fatalf("%+v %v", s, err)
 	}
 	for k, v := range map[string]string{"TABOOLA_ACCOUNTS": "z-network", "TABOOLA_ONLY_OWN": "yes", "TABOOLA_MAX_DAILY_CAP": "-1"} {
@@ -1008,7 +1008,7 @@ func TestSettingsFromEnv(t *testing.T) {
 // brought down to them.
 func TestNewCampaignSettled(t *testing.T) {
 	answers := map[string]string{
-		"acme-sc/campaigns/":              `{"id":"31","is_active":true,"daily_cap":10}`,
+		"acme-sc/campaigns/":               `{"id":"31","is_active":true,"daily_cap":10}`,
 		"acme-sc/campaigns/101/duplicate/": `{"id":"32","daily_cap":900,"cpc":4,"bid_strategy":"FIXED"}`,
 		"acme-sc/campaigns/102/duplicate/": `{"id":"33","is_active":false,"daily_cap":900,"bid_strategy":"MAX_CONVERSIONS"}`,
 	}
@@ -1048,5 +1048,27 @@ func TestNewCampaignSettled(t *testing.T) {
 	}
 	if strings.Join(fixes, "\n") != strings.Join(want, "\n") {
 		t.Errorf("fixes:\n%s\nwant:\n%s", strings.Join(fixes, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// Nothing sent may turn a campaign or an ad on, however the body was built.
+func TestNeverTurnsOn(t *testing.T) {
+	f := newFake(t, func(w http.ResponseWriter, r *http.Request, body []byte) { io.WriteString(w, `{"is_active":false}`) })
+	c, _ := client(t, f.srv.URL)
+	var r *Refused
+	for _, body := range []any{
+		obj{"is_active": true},
+		obj{"collection": []any{obj{"title": "a", "is_active": false}, obj{"title": "b", "is_active": true}}},
+		obj{"is_active": "true"},
+	} {
+		if _, err := c.sendJSON(ctx, http.MethodPost, "acme-sc/campaigns/101/", body, false); !errors.As(err, &r) {
+			t.Errorf("%v: %v", body, err)
+		}
+	}
+	if len(f.seen()) != 0 {
+		t.Fatalf("a body that turns something on reached Taboola: %+v", f.seen())
+	}
+	if _, err := c.sendJSON(ctx, http.MethodPost, "acme-sc/campaigns/101/", obj{"is_active": false, "cpc": 0.3}, false); err != nil {
+		t.Fatal(err)
 	}
 }
