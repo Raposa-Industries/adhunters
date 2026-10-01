@@ -316,9 +316,9 @@ categories:
         hints: [loan, borrow, lender*]
       - id: debt-relief
         name: Debt Relief
-        covers: Debt consolidation, settlement and forgiveness.
+        covers: Debt consolidation, settlement and forgiveness, taxes owed to the IRS.
         not: []
-        keywords: [debt relief, debt consolidation, credit card debt, debt free, loan forgiveness]
+        keywords: [debt relief, debt consolidation, credit card debt, debt free, loan forgiveness, tax debt, tax relief, back taxes, owe taxes, tax forgiveness, irs]
         hints: [debt]
       - id: mortgage
         name: Mortgage
@@ -331,7 +331,7 @@ categories:
         covers: Stocks, retirement savings, gold IRAs and precious metals.
         not:
           - {what: "Crypto", goes: crypto}
-        keywords: [gold ira, precious metals, dividend*, stock market, retirement savings, 401k, annuit*, invest*]
+        keywords: [gold ira, precious metals, dividend*, stock market, retirement savings, 401k, annuit*, invest*, options trad*, stock trad*, day trad*]
         hints: [retirement, stocks, portfolio, gold, silver]
       - id: crypto
         name: Crypto
@@ -399,9 +399,9 @@ categories:
         hints: [remodel*, contractor*, renovat*, roof]
       - id: home-services
         name: Home Services
-        covers: Home security, pest control, home warranties.
+        covers: Home security, pest control, home warranties, water filters.
         not: []
-        keywords: [home security, security camera*, pest control, home warranty]
+        keywords: [home security, security camera*, pest control, home warranty, water filter*, tap water, bottled water]
         hints: []
 
   - id: shopping
@@ -409,18 +409,34 @@ categories:
     verticals:
       - id: gadgets
         name: Gadgets
-        covers: Products and gadgets, cookware, memory foam.
+        covers: Products and gadgets, cookware, knives, memory foam.
         not:
           - {what: "Health devices sold for a condition: that condition's vertical"}
-        keywords: [gadget*, free shipping, shop now, cookware, non-stick, nonstick, frying pan*, skillet*, pots and pans, cast iron, memory foam]
-        hints: [deal, discount*, sale, order now, pan]
+          - {what: "Rugs, lamps, decorations, garden products", goes: home-garden}
+          - {what: "Phones, apps and phone tips", goes: phones-apps}
+        keywords: [gadget*, free shipping, shop now, cookware, non-stick, nonstick, frying pan*, skillet*, pots and pans, cast iron, memory foam, kitchen knife*, chef knife*, knife maker*]
+        hints: [deal, discount*, sale, order now, pan, knife, knives]
       - id: fashion
         name: Fashion
         covers: Clothes, shoes, jewelry.
         not:
           - {what: "Orthopedic shoes", goes: foot-pain}
-        keywords: [jewelry, jewellery, sneakers, fashion, handbag*, dresses, apparel, denim, bra]
+        keywords: [jewelry, jewellery, sneakers, fashion, handbag*, dresses, apparel, denim, bra, sweatshirt*, sweater*, hoodie*, cashmere, jacket*, menswear, womenswear]
         hints: [shoes, outfit*]
+      - id: home-garden
+        name: Home & Garden
+        covers: Home decor, rugs, lamps, bedding, seasonal decorations and garden products.
+        not:
+          - {what: "Roofing, windows, remodels", goes: home-improvement}
+          - {what: "Home security, pest control, water filters", goes: home-services}
+        keywords: [home decor, rug*, lamp*, decoration*, ornament*, bedding, curtain*, garden*, backyard, lawn]
+        hints: [decor, cozy, halloween, christmas, butterfl*]
+      - id: phones-apps
+        name: Phones & Apps
+        covers: Phone tips and settings, apps, VPNs, ad blockers, antivirus.
+        not: []
+        keywords: [iphone*, samsung, android, smartphone*, vpn, antivirus, ad blocker*, adblock*, phone setting*]
+        hints: [phone, app, wifi]
 
   - id: other
     name: Other
@@ -457,10 +473,10 @@ categories:
         hints: [travel*, hotel*, flights]
       - id: cars
         name: Cars
-        covers: Buying cars, SUVs and trucks.
+        covers: Buying cars, SUVs and trucks, and car care products.
         not:
           - {what: "Car insurance", goes: auto-insurance}
-        keywords: [new cars, used cars, car deals, suv, pickup truck*, electric vehicle*]
+        keywords: [new cars, used cars, car deals, suv, pickup truck*, electric vehicle*, car scratch*, scratch remover*, car paint, car care]
         hints: [car, vehicle*, truck*]
       - id: games
         name: Games
@@ -473,5 +489,11 @@ categories:
         name: Pets
         covers: Dog and cat food, health and products.
         not: []
-        keywords: [dog food, cat food, puppy, puppies, kitten*, pet owner*]
-        hints: [dog, cat, pet]
+        keywords: [dog food, cat food, puppy, puppies, kitten*, pet owner*, dog, k9, canine*, dog owner*, cat litter]
+        hints: [cat, pet]
+      - id: celebrity-viral
+        name: Celebrity & Viral
+        covers: Celebrity gossip, homes and net worth, viral stories; content that sells no product.
+        not: []
+        keywords: [celebrity, celebrities, net worth, mansion*, hollywood, red carpet]
+        hints: [new house, famous, actress*, actor*]
