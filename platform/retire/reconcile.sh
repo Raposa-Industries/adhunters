@@ -28,12 +28,13 @@ row() { printf '%-34s %14s %14s  %s\n' "$@"; }
 # keys NAME OLD_SQL NEW_SQL: each side's natural keys, and how many old keys
 # are missing from the new side (with up to 5 examples).
 keys() {
-    old -c "$2" | LC_ALL=C sort -u > "$work/$1.old"
-    new -c "$3" | LC_ALL=C sort -u > "$work/$1.new"
-    LC_ALL=C comm -23 "$work/$1.old" "$work/$1.new" > "$work/$1.missing"
-    local m; m=$(wc -l < "$work/$1.missing")
-    row "$1" "$(wc -l < "$work/$1.old")" "$(wc -l < "$work/$1.new")" "missing in new: $m"
-    [ "$m" -gt 0 ] && head -5 "$work/$1.missing" | sed 's/^/      e.g. /'
+    local f="$work/${1//[^a-z0-9]/_}" m
+    old -c "$2" | LC_ALL=C sort -u > "$f.old"
+    new -c "$3" | LC_ALL=C sort -u > "$f.new"
+    LC_ALL=C comm -23 "$f.old" "$f.new" > "$f.missing"
+    m=$(wc -l < "$f.missing")
+    row "$1" "$(wc -l < "$f.old")" "$(wc -l < "$f.new")" "missing in new: $m"
+    [ "$m" -gt 0 ] && head -5 "$f.missing" | sed 's/^/      e.g. /'
 }
 
 echo "Reconciliation $(date -u +%FT%TZ), old days compared before $before"
@@ -106,6 +107,15 @@ awk -F, 'NR==FNR {o[$1","$2]=$3; k[$1","$2]=1; next} {n[$1","$2]=$3; k[$1","$2]=
 cat "$work/day.cmp"
 echo "$(grep -c 'differs' "$work/day.cmp") day/count pairs differ"
 
+say "2b. The last day before $before, before the switch-over at 22:00: creatives each side saw"
+last=$(date -u -d "$before - 1 day" +%F)
+row "" old new ""
+keys "creatives $last <22:00" \
+    "SELECT DISTINCT c.creative_key FROM spy.ad_hourly h JOIN spy.ad a ON a.id=h.ad_id JOIN spy.creative c ON c.id=a.creative_id WHERE h.hour >= '$last' AND h.hour < '$last 22:00Z'" \
+    "SELECT DISTINCT c.creative_key FROM tracks.ad_hourly h JOIN tracks.ad a ON a.id=h.ad_id JOIN tracks.creative c ON c.id=a.creative_id WHERE h.hour >= '$last' AND h.hour < '$last 22:00Z'"
+old -c "SELECT 'old sightings, scrapes <22:00', sum(sightings), sum(scrapes) FROM spy.ad_hourly WHERE hour >= '$last' AND hour < '$last 22:00Z'"
+new -c "SELECT 'new sightings, scrapes <22:00', sum(sightings), sum(scrapes) FROM tracks.ad_hourly WHERE hour >= '$last' AND hour < '$last 22:00Z'"
+
 say "3. Hours the collector never counted (09-14 to $before)"
 old <<'SQL'
 WITH h AS (SELECT generate_series((SELECT min(hour) FROM spy.publisher_hourly), (:'before'::timestamptz - interval '1 hour'), interval '1 hour') AS hour)
@@ -122,12 +132,14 @@ SELECT '  oldest ad_hourly vs ad_daily', (SELECT min(hour) FROM spy.ad_hourly), 
 SQL
 
 say "4. Creative pairs (one row per pair before $before)"
-row "" old new ""
-for p in link campaign; do
-    o=$(old -c "SELECT count(*)||' / '||COALESCE(sum(sightings),0) FROM spy.creative_$p WHERE first_seen_at < :'before'")
-    n=$(new -c "SELECT count(*)||' / '||COALESCE(sum(sightings),0) FROM tracks.creative_${p}_daily WHERE day < :'before'")
-    row "creative_$p (pairs / sightings)" "$o" "$n" ""
-done
+old <<'SQL'
+SELECT 'old creative_link (pairs, sightings)', count(*), COALESCE(sum(sightings),0) FROM spy.creative_link WHERE first_seen_at < :'before';
+SELECT 'old creative_campaign (pairs, sightings)', count(*), COALESCE(sum(sightings),0) FROM spy.creative_campaign WHERE first_seen_at < :'before';
+SQL
+new <<'SQL'
+SELECT 'new creative_link_daily (rows, sightings)', count(*), COALESCE(sum(sightings),0) FROM tracks.creative_link_daily WHERE day < :'before';
+SELECT 'new creative_campaign_daily (rows, sightings)', count(*), COALESCE(sum(sightings),0) FROM tracks.creative_campaign_daily WHERE day < :'before';
+SQL
 
 say "5. Spy's copy (old rows; what spy.import_mark says it copied and skipped)"
 old <<'SQL'
@@ -167,7 +179,7 @@ SELECT 'raposa_job newest', max(requested_at) FROM spy.raposa_job;
 SQL
 
 say "9. Old tables, biggest first (live rows, size)"
-old -c "SELECT schemaname||'.'||relname, n_live_tup, pg_size_pretty(pg_total_relation_size(relid)) FROM pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC" | column -t -s, | head -130
+old -c "SELECT schemaname||'.'||relname, n_live_tup, pg_size_pretty(pg_total_relation_size(relid)) FROM pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC" | awk -F, '{printf "  %-48s %12s  %s\n", $1, $2, $3}' | head -130
 
 say "10. The archive (adhunters-raw/legacy)"
 if command -v rclone >/dev/null; then
