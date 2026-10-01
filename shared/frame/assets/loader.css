@@ -1,5 +1,5 @@
-/* The loading screen: the mascot, the AdHunters fox (mascot.svg), crouched and
-   ready to pounce, on the Ember ground. frame.css imports this file, so every
+/* The loading screen: the mascot, the AdHunters fox (mascot.svg), idling in
+   its crouch, on the Ember ground. frame.css imports this file, so every
    app has it with no change of its own.
 
    Two ways it shows:
@@ -16,7 +16,7 @@ body:not(.fr)::before {
   inset: 0;
   z-index: 100;
   pointer-events: none;
-  background: var(--ground, #09090c) url("mascot.svg") center / min(240px, 60vw) auto no-repeat;
+  background: var(--ground, #09090c) url("mascot.svg") center / min(280px, 70vw) auto no-repeat;
   opacity: 0;
   animation: fr-boot 20s linear forwards;
 }
@@ -38,7 +38,7 @@ body:not(.fr)::before {
 }
 .fr-loader::before {
   content: "";
-  width: 160px;
-  aspect-ratio: 248 / 160;
+  width: 180px;
+  aspect-ratio: 858 / 566;
   background: url("mascot.svg") center / contain no-repeat;
 }
