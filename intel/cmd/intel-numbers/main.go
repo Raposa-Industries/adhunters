@@ -9,8 +9,9 @@
 //	intel-numbers status
 //
 // DATABASE_URL owns the intel schemas. TELEGRAM_BOT_TOKEN and
-// TELEGRAM_CHAT_ID, when set, send each new alert to "AdHunters alerts";
-// INTEL_BASE_URL (https://hunt-teste.fyi for now) makes the message link back.
+// TELEGRAM_CHAT_ID, when set, send each new alert, delivery status change and
+// suggestion to "AdHunters alerts"; INTEL_BASE_URL (https://hunt-teste.fyi for
+// now) makes the links absolute, so a suggestion opens Launch in one tap.
 // It never talks to Taboola or RedTrack, and never writes anywhere but the
 // intel schemas.
 package main
@@ -164,6 +165,9 @@ func (r *rounds) round(ctx context.Context) error {
 	list, err := judge.Suggest(ctx, r.db, d, s, found)
 	if err == nil {
 		n, err = judge.Keep(ctx, r.db, list, d.Now)
+	}
+	if err == nil {
+		_, err = judge.SendSuggestions(ctx, r.db, r.log, s, d.Now, r.send, r.base)
 	}
 	r.done("suggestions", start, int64(n), err)
 	if err != nil {

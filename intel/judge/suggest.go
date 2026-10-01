@@ -3,6 +3,8 @@ package judge
 import (
 	"context"
 	"fmt"
+	"html"
+	"log/slog"
 	"math"
 	"net/url"
 	"sort"
@@ -265,4 +267,66 @@ func Keep(ctx context.Context, db *pgxpool.Pool, list []Suggestion, now time.Tim
 		return 0, err
 	}
 	return len(list), tx.Commit(ctx)
+}
+
+// SendSuggestions sends the open suggestions not sent yet as one message per
+// round, each with its Launch link made absolute with baseURL, so one tap in
+// Telegram opens Launch with the change filled in. Suggestions older than
+// suggestion_alert_max_age_hours are left for the pages. Without a sender
+// nothing is marked, so they go once Telegram is set.
+func SendSuggestions(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, s Settings, now time.Time, send Sender, baseURL string) (int, error) {
+	if send == nil {
+		return 0, nil
+	}
+	maxAge := time.Duration(s.get("suggestion_alert_max_age_hours", 6) * float64(time.Hour))
+	rows, err := db.Query(ctx, `
+		SELECT s.id, s.account, s.campaign_id, COALESCE(c.name, ''), s.title, s.why, s.launch_url
+		FROM intel.suggestion s LEFT JOIN intel.tb_campaign c ON c.campaign_id = s.campaign_id
+		WHERE s.state = 'open' AND s.sent_at IS NULL AND s.created_at >= $1
+		ORDER BY s.created_at, s.id
+		LIMIT 20`, now.Add(-maxAge))
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	var ids []int64
+	var parts []string
+	base := strings.TrimRight(baseURL, "/")
+	for rows.Next() {
+		var id, campaign int64
+		var account, name, title, why, link string
+		if err := rows.Scan(&id, &account, &campaign, &name, &title, &why, &link); err != nil {
+			return 0, err
+		}
+		ids = append(ids, id)
+		label := name
+		if label == "" {
+			label = fmt.Sprintf("campaign %d", campaign)
+		}
+		part := fmt.Sprintf("<b>%s</b>\n%s (%s · %d)\n%s", html.EscapeString(title), html.EscapeString(label),
+			html.EscapeString(account), campaign, html.EscapeString(why))
+		if base != "" && link != "" {
+			part += fmt.Sprintf("\n<a href=\"%s\">Open in Launch</a>", html.EscapeString(base+link))
+		}
+		parts = append(parts, part)
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	head := "Suggestion"
+	if len(ids) > 1 {
+		head = fmt.Sprintf("%d suggestions", len(ids))
+	}
+	msg := "<b>Intel · " + head + "</b>\n\n" + strings.Join(parts, "\n\n")
+	if err := send.Send(ctx, msg, false); err != nil {
+		log.Error("suggestions not sent", "err", err, "count", len(ids))
+		return 0, nil
+	}
+	if _, err := db.Exec(ctx, `UPDATE intel.suggestion SET sent_at = $2 WHERE id = ANY($1)`, ids, now); err != nil {
+		return 0, err
+	}
+	return len(ids), nil
 }
