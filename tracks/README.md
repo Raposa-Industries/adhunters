@@ -183,6 +183,7 @@ published in `tracks_api` and listed in [`contract/sql/tracks/`](../contract/sql
 tracks-walker run    -archive s3://adhunters-raw [-lines proxies.env] [-workers 2] [-rewalk 6h] [-timeout 15s]
 tracks-walker replay -archive s3://adhunters-raw -from 2026-10-01T00:00:00Z -to 2026-10-02T00:00:00Z
 tracks-walker walk   -url https://… [-referer https://publisher/] [-lines proxies.env]
+tracks-walker import-old
 ```
 
 `run` reads `tracks.walks_due`: ads seen in the last hour with a saved link,
@@ -215,6 +216,27 @@ classify from the landing page.
 `walk` walks one link and prints the pages without bodies and what was read
 from them; nothing is saved. Without `-lines` it goes from the machine's own
 address, so use that only on a laptop.
+
+`import-old` copies the collector's landing pages (its funnel walker's and
+its quick investigations', `spy.landing_page_version` and
+`spy.landing_page_use`) into walks, reading `OLD_DATABASE_URL` and never
+writing it. The collector kept each page's versions and, apart, which
+creative and ad led to the page; so each such use becomes one walk per
+version seen while the use was (record id `old-<use>-<version>`, dated the
+last time both were seen), with the page as step 0 (status 200: the
+collector kept only pages that answered) and the first page past it it
+recorded as step 1, without content. A use without an ad gets its
+creative's most seen ad, and each walk its creative's most clicked link.
+Versions are hashed as `run` hashes its own. Running it again replaces the
+copied walks. It needs tracks-loader's login (it reads creatives, ads and
+counts), and runs after `tracks-loader import-old`; then
+`spy-numbers refresh -pages-since` with a date before the collector's first
+page brings them into Spy. On the data box, from the deploy's build folder
+(the walker itself is installed only on the worker):
+
+```
+cd ~/adhunters && sudo bash -c 'set -a; . /etc/adhunters/tracks-loader.env; . /etc/adhunters/tracks-bridge.env; ./bin/tracks-walker import-old'
+```
 
 `DATABASE_URL` is the `tracks_walker` login: it reads `sighting`, `link` and
 `publisher` and writes only the walk tables (grants in `0010_walks.sql`,
