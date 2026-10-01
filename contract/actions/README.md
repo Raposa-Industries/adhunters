@@ -13,7 +13,7 @@ parameters with a matching type, and each column is one it returns.
 | Kind | Does | Desk may run it |
 |---|---|---|
 | `read` | Looks; changes nothing. | Any time. |
-| `change` | Changes the app's own data or starts its work (a brief, an investigation). | Only as a step of a plan a person OK'd. |
+| `change` | Changes the app's own data or starts its work (a turn in Create, an investigation). | Only as a step of a plan a person OK'd. |
 | `ask` | Asks the app for something a person then confirms on the app's own screen (Launch's Pedidos). The app does nothing until they do. | Only as a step of a plan a person OK'd. |
 
 There is no kind for what only a person may do: confirming, turning spending
