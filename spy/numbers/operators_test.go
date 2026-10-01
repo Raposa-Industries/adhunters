@@ -212,4 +212,13 @@ func TestAgencyRootFromTodaysOperators(t *testing.T) {
 	if got := b.text(`SELECT string_agg(name_root || ' ' || operator_count, ', ') FROM spy.agency`); got != "bigagency 3" {
 		t.Errorf("agencies: %s", got)
 	}
+
+	// An agency the collector named (import-old) is one too.
+	b.exec(`INSERT INTO spy.agency (name_root, name, operator_count, imported) VALUES ('onebrand', 'One Brand Media', 2, TRUE)`)
+	if _, err := b.r.Operators(b.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := b.text(groups); got != "account:1,client1.com / account:4,onebrand.com" {
+		t.Errorf("groups with an imported agency: %s", got)
+	}
 }

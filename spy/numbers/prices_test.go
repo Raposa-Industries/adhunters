@@ -43,6 +43,20 @@ func TestPrices(t *testing.T) {
 	if got := b.float(`SELECT sum(auctions)::float8 FROM spy.price_day`); got != 4 {
 		t.Errorf("after a second run: %v auctions, want 4", got)
 	}
+
+	// Rows copied from the collector stay, unless Tracks has the same ad,
+	// publisher, device and day: then Tracks' row replaces the copy.
+	b.exec(`DELETE FROM spy.price_day WHERE day = $1 AND publisher_id = 1`, today)
+	b.exec(`INSERT INTO spy.price_day (day, ad_id, creative_id, publisher_id, device_id, auctions, rtb, clearing_n, clearing_sum,
+	                                   bid_n, bid_sum, second_n, second_sum, imported)
+		VALUES ($1, 100, 10, 1, 2, 50, 0, 50, 5, 0, 0, 0, 0, TRUE), ($1, 100, 10, 1, 1, 9, 0, 9, 0.9, 0, 0, 0, 0, TRUE)`, today)
+	if _, err := b.r.Prices(b.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := b.text(`SELECT string_agg(format('%s %s %s', device_id, auctions, imported), ', ' ORDER BY device_id)
+		FROM spy.price_day WHERE day = $1 AND publisher_id = 1`, today); got != "1 9 t, 2 3 f" {
+		t.Errorf("copied rows after a refresh: %s", got)
+	}
 }
 
 func TestSeries(t *testing.T) {

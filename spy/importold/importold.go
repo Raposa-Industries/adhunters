@@ -1,9 +1,13 @@
-// Package importold copies Spy's groupings from the collector's database:
-// which operator each account belongs to, the operators themselves, and the
-// vertical of each creative. The copy is repeatable: each run replaces what
-// the last one wrote. Once the setting operators_from is 'grouping', Spy
-// groups operators itself (spy.regroup_operators) and the operators are no
-// longer copied. The verticals go to spy.creative_vertical_old, only to
+// Package importold copies what Spy needs from the collector's database:
+// which operator each account belongs to, the operators themselves (with
+// names typed by hand and their seller), the vertical of each creative, and
+// what the collector learned about sites (clues, sellers, which accounts'
+// clicks reached them), its hand grouping fixes, its agencies and its
+// history of Direction changes (collector.go), and its auction prices
+// (prices.go). The copy is repeatable: each run replaces what the last one
+// wrote. Once the setting operators_from is 'grouping', Spy groups
+// operators itself (spy.regroup_operators) and the operators are no longer
+// copied. The verticals go to spy.creative_vertical_old, only to
 // compare with Spy's own classifier (decision 0017); no number reads them.
 //
 // It only reads the old database (open it with a read-only login). Accounts
@@ -33,10 +37,13 @@ type Result struct {
 	Operators Counts
 	Accounts  Counts
 	Verticals Counts
+	Pages     Pages
+	Prices    Prices
 }
 
-// Run copies the three groupings from old into db in one transaction and
-// records each in spy.import_mark.
+// Run copies everything from old into db and records each part in
+// spy.import_mark: the groupings and pages in one transaction, then the
+// prices (prices.go) in another.
 func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, error) {
 	var res Result
 	var from string
@@ -48,7 +55,9 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 	if !copyOps {
 		log.Info("operators come from Spy's own grouping; copying the verticals only")
 	}
-	ops, err := read(ctx, old, `SELECT id, name, display_name, kind, vertical FROM spy.operator`, 5)
+	ops, err := read(ctx, old, `
+		SELECT o.id, o.name, o.display_name, o.kind, o.vertical, o.name_is_manual, se.platform || ' ' || se.account
+		FROM spy.operator o LEFT JOIN spy.seller se ON se.id = o.seller_id`, 7)
 	if err != nil {
 		return res, fmt.Errorf("old operators: %w", err)
 	}
@@ -85,7 +94,8 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	if _, err := tx.Exec(ctx, `
-		CREATE TEMP TABLE old_operator (id INTEGER, name TEXT, display_name TEXT, kind TEXT, vertical TEXT) ON COMMIT DROP;
+		CREATE TEMP TABLE old_operator (id INTEGER, name TEXT, display_name TEXT, kind TEXT, vertical TEXT,
+		    name_is_manual BOOLEAN, seller TEXT) ON COMMIT DROP;
 		CREATE TEMP TABLE old_account (network TEXT, external_id TEXT, operator_id INTEGER) ON COMMIT DROP;
 		CREATE TEMP TABLE old_vertical (creative_key TEXT, vertical TEXT, subvertical TEXT, shown_vertical TEXT,
 		    confidence NUMERIC, unsure BOOLEAN, source TEXT, health_from_funnel BOOLEAN) ON COMMIT DROP`); err != nil {
@@ -96,7 +106,7 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 		cols  []string
 		rows  [][]any
 	}{
-		{"old_operator", []string{"id", "name", "display_name", "kind", "vertical"}, ops},
+		{"old_operator", []string{"id", "name", "display_name", "kind", "vertical", "name_is_manual", "seller"}, ops},
 		{"old_account", []string{"network", "external_id", "operator_id"}, accs},
 		{"old_vertical", []string{"creative_key", "vertical", "subvertical", "shown_vertical", "confidence", "unsure", "source", "health_from_funnel"}, verts},
 	} {
@@ -107,17 +117,22 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 
 	var n int64
 	if copyOps {
-		// Operators keep their ids, so OP123 stays OP123. One the collector no
-		// longer has is removed with its accounts.
+		// Operators keep their ids, so OP123 stays OP123, and a name typed by
+		// hand stays one: Spy's grouping keeps it. One the collector no longer
+		// has is removed with its accounts.
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO spy.operator (id, name, display_name, kind, vertical, updated_at)
+			INSERT INTO spy.operator (id, name, display_name, kind, vertical, name_is_manual, seller, updated_at)
 			SELECT id, COALESCE(name, 'OP' || id), display_name,
-			       CASE WHEN kind IN ('direct', 'affiliate', 'arbitrage') THEN kind ELSE 'direct' END, vertical, now()
+			       CASE WHEN kind IN ('direct', 'affiliate', 'arbitrage') THEN kind ELSE 'direct' END, vertical,
+			       COALESCE(name_is_manual, FALSE) AND display_name IS NOT NULL, seller, now()
 			FROM old_operator WHERE id IS NOT NULL
 			ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, display_name = EXCLUDED.display_name,
-			    kind = EXCLUDED.kind, vertical = EXCLUDED.vertical, updated_at = now()
-			WHERE (spy.operator.name, spy.operator.display_name, spy.operator.kind, spy.operator.vertical)
-			      IS DISTINCT FROM (EXCLUDED.name, EXCLUDED.display_name, EXCLUDED.kind, EXCLUDED.vertical)`); err != nil {
+			    kind = EXCLUDED.kind, vertical = EXCLUDED.vertical, name_is_manual = EXCLUDED.name_is_manual,
+			    seller = EXCLUDED.seller, updated_at = now()
+			WHERE (spy.operator.name, spy.operator.display_name, spy.operator.kind, spy.operator.vertical,
+			       spy.operator.name_is_manual, spy.operator.seller)
+			      IS DISTINCT FROM (EXCLUDED.name, EXCLUDED.display_name, EXCLUDED.kind, EXCLUDED.vertical,
+			       EXCLUDED.name_is_manual, EXCLUDED.seller)`); err != nil {
 			return res, fmt.Errorf("operators: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM spy.operator o WHERE NOT EXISTS (SELECT 1 FROM old_operator x WHERE x.id = o.id)`); err != nil {
@@ -169,7 +184,14 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 	}
 	res.Verticals = Counts{Copied: int(n), Skipped: len(verts) - int(n)}
 
-	marks := map[string]Counts{"verticals": res.Verticals}
+	if res.Pages, err = copyPages(ctx, old, tx, copyOps); err != nil {
+		return res, err
+	}
+
+	marks := map[string]Counts{"verticals": res.Verticals, "sites": res.Pages.Sites, "clues": res.Pages.Clues,
+		"site_clues": res.Pages.SiteClues, "sellers": res.Pages.Sellers, "site_sellers": res.Pages.SiteSellers,
+		"account_sites": res.Pages.AccountSites, "grouping_fixes": res.Pages.Fixes, "agencies": res.Pages.Agencies,
+		"direction_events": res.Pages.Events}
 	if copyOps {
 		marks["operators"], marks["accounts"] = res.Operators, res.Accounts
 	}
@@ -186,7 +208,20 @@ func Run(ctx context.Context, old, db *pgxpool.Pool, log *slog.Logger) (Result, 
 	log.Info("old groupings copied",
 		"operators", res.Operators.Copied,
 		"accounts", res.Accounts.Copied, "accounts_skipped", res.Accounts.Skipped,
-		"verticals", res.Verticals.Copied, "verticals_skipped", res.Verticals.Skipped)
+		"verticals", res.Verticals.Copied, "verticals_skipped", res.Verticals.Skipped,
+		"sites", res.Pages.Sites.Copied, "clues", res.Pages.Clues.Copied, "site_clues", res.Pages.SiteClues.Copied,
+		"sellers", res.Pages.Sellers.Copied, "site_sellers", res.Pages.SiteSellers.Copied,
+		"account_sites", res.Pages.AccountSites.Copied, "account_sites_skipped", res.Pages.AccountSites.Skipped,
+		"fixes", res.Pages.Fixes.Copied, "fixes_skipped", res.Pages.Fixes.Skipped, "agencies", res.Pages.Agencies.Copied,
+		"events", res.Pages.Events.Copied, "events_skipped", res.Pages.Events.Skipped)
+
+	if res.Prices, err = copyPrices(ctx, old, db); err != nil {
+		return res, err
+	}
+	log.Info("old prices copied",
+		"auctions", res.Prices.Auctions.Copied, "auctions_skipped", res.Prices.Auctions.Skipped,
+		"newsbreak", res.Prices.NewsBreak.Copied, "newsbreak_skipped", res.Prices.NewsBreak.Skipped,
+		"rows", res.Prices.Rows, "kept", res.Prices.Kept)
 	return res, nil
 }
 
