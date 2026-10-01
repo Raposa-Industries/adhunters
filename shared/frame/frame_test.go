@@ -20,6 +20,8 @@ func TestServesTheFramesFilesWithTheirTypes(t *testing.T) {
 		"/launch/_frame/frame.js":                  "text/javascript; charset=utf-8",
 		"/launch/_frame/core.js":                   "text/javascript; charset=utf-8",
 		"/launch/_frame/frame.css":                 "text/css; charset=utf-8",
+		"/launch/_frame/loader.css":                "text/css; charset=utf-8",
+		"/launch/_frame/mascot.svg":                "image/svg+xml",
 		"/launch/_frame/fonts/archivo-125.woff2":   "font/woff2",
 		"/launch/_frame/fonts/plex-mono-600.woff2": "font/woff2",
 	} {
@@ -57,5 +59,23 @@ func TestTheModuleImportsOnlyItsNeighbour(t *testing.T) {
 		if strings.HasPrefix(line, "import ") && !strings.Contains(line, "from './") {
 			t.Errorf("frame.js imports from outside its folder: %s", line)
 		}
+	}
+}
+
+func TestEveryAppGetsTheLoadingFox(t *testing.T) {
+	// Apps load only frame.css, so the loader comes in through it.
+	css := get(t, Handler(), http.MethodGet, "/frame.css").Body.String()
+	if !strings.Contains(css, `@import url("loader.css")`) {
+		t.Error("frame.css does not import loader.css")
+	}
+	loader := get(t, Handler(), http.MethodGet, "/loader.css").Body.String()
+	for _, want := range []string{"body:not(.fr)::before", ".fr-loader", `url("mascot.svg")`} {
+		if !strings.Contains(loader, want) {
+			t.Errorf("loader.css has no %s", want)
+		}
+	}
+	svg := get(t, Handler(), http.MethodGet, "/mascot.svg").Body.String()
+	if !strings.Contains(svg, "prefers-reduced-motion: reduce") {
+		t.Error("mascot.svg moves even when people ask for less motion")
 	}
 }

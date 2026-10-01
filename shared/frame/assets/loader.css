@@ -1,0 +1,44 @@
+/* The loading screen: the mascot, the AdHunters fox (mascot.svg), idling in
+   its crouch, on the Ember ground. frame.css imports this file, so every
+   app has it with no change of its own.
+
+   Two ways it shows:
+   - While an app boots: until mountFrame marks the body (.fr), the whole page
+     is the fox. It waits a moment before it appears, so a page that is ready
+     at once never flashes it, and it steps aside by itself after a while, so
+     a page whose script failed is never hidden for good.
+   - Inside a page: any element with class fr-loader shows the fox over its
+     own text, e.g. <div class="fr-loader">Carregando campanhas…</div>. */
+
+body:not(.fr)::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background: var(--ground, #09090c) url("mascot.svg") center / min(280px, 70vw) auto no-repeat;
+  opacity: 0;
+  animation: fr-boot 20s linear forwards;
+}
+@keyframes fr-boot {
+  0%, 1.5% { opacity: 0; }
+  3%, 97% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}
+
+.fr-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: var(--muted, #9a948d);
+  font-size: 13px;
+  text-align: center;
+}
+.fr-loader::before {
+  content: "";
+  width: 180px;
+  aspect-ratio: 858 / 566;
+  background: url("mascot.svg") center / contain no-repeat;
+}
