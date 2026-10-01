@@ -27,7 +27,7 @@ render() {
 
 # runbooks: each alert has a tier and a runbook_url pointing at a file here.
 runbooks() {
-    local fail=0 alerts urls tiers url f
+    local fail=0 alerts urls tiers beats resolved url f
     alerts=$(grep -h '^ *- alert:' "$here"/rules/*.yaml | wc -l)
     urls=$(grep -h 'runbook_url:' "$here"/rules/*.yaml | wc -l)
     tiers=$(grep -hE '^ *tier: (page|chat|heartbeat)$' "$here"/rules/*.yaml | wc -l)
@@ -35,11 +35,20 @@ runbooks() {
         echo "$alerts alerts but $urls runbook_url and $tiers tier labels" >&2
         fail=1
     fi
+    # Every alert that reaches Telegram says in "resolved" what clearing
+    # means (telegram.tmpl shows it instead of the summary); the heartbeat
+    # never clears.
+    beats=$(grep -hE '^ *tier: heartbeat$' "$here"/rules/*.yaml | wc -l)
+    resolved=$(grep -h '^ *resolved:' "$here"/rules/*.yaml | wc -l)
+    if [ "$resolved" != $((alerts - beats)) ]; then
+        echo "$((alerts - beats)) alerts reach Telegram but $resolved have a resolved annotation" >&2
+        fail=1
+    fi
     while read -r url; do
         f=${url#https://github.com/Raposa-Industries/adhunters/blob/main/}
         [ -f "$repo/$f" ] || { echo "missing runbook $f" >&2; fail=1; }
     done < <(grep -ho 'runbook_url: .*' "$here"/rules/*.yaml | cut -d' ' -f2)
-    [ "$fail" = 0 ] && echo "runbooks ok: $alerts alerts, each with a tier and a runbook"
+    [ "$fail" = 0 ] && echo "runbooks ok: $alerts alerts, each with a tier and a runbook, and a resolved line where it can clear"
     return $fail
 }
 

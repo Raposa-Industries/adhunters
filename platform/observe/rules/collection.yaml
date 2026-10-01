@@ -14,6 +14,7 @@ groups:
           tier: page
         annotations:
           summary: No successful scrape on any box for 3 minutes. Collection is stopped.
+          resolved: Scrapes are succeeding again. Collection is running.
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-stopped.md
 
       - alert: CaptureLow
@@ -26,6 +27,7 @@ groups:
           tier: page
         annotations:
           summary: 'Successful scrapes are at {{ $value | humanize }} a second, under 70% of the same time last week, for 10 minutes.'
+          resolved: 'Successful scrapes are back near last week''s rate.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-low.md
 
       - alert: CaptureInstanceQuiet
@@ -35,6 +37,7 @@ groups:
           tier: chat
         annotations:
           summary: 'Capture {{ $labels.instance }} on the {{ $labels.box }} box has written nothing to its spool for {{ $value | humanizeDuration }}.'
+          resolved: 'Capture {{ $labels.instance }} on the {{ $labels.box }} box is writing to its spool again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-instance-quiet.md
 
       - alert: CaptureErrors
@@ -46,6 +49,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $value | humanizePercentage }} of {{ $labels.network }} scrapes are failing (timeouts, blocks, errors).'
+          resolved: '{{ $labels.network }} scrape failures are back to normal.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-errors.md
 
       - alert: PublisherQuiet
@@ -58,6 +62,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $labels.network }} {{ $labels.publisher }} ({{ $labels.device }}) has answered with ads 60% less than last week for 2 hours.'
+          resolved: '{{ $labels.network }} {{ $labels.publisher }} ({{ $labels.device }}) is answering with ads at its usual rate again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/publisher-quiet.md
 
       - alert: ShipperBehind
@@ -67,6 +72,7 @@ groups:
           tier: chat
         annotations:
           summary: 'The {{ $labels.box }} box has a sealed raw file waiting {{ $value | humanizeDuration }} to be archived.'
+          resolved: 'The {{ $labels.box }} box has archived its waiting raw files.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/shipper-behind.md
 
       - alert: LoaderLag
@@ -76,6 +82,7 @@ groups:
           tier: chat
         annotations:
           summary: 'The loader is {{ $value | humanizeDuration }} behind capture.'
+          resolved: 'The loader has caught up with capture.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/loader-lag.md
 
       - alert: RawFileQuarantined
@@ -84,6 +91,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $value }} raw file(s) are quarantined and wait for a fix and a replay.'
+          resolved: 'No raw files are quarantined any more.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raw-file-quarantined.md
 
       # Only while tracks-bridge runs (platform/SWITCH-OVER.md): today's Spy
@@ -95,6 +103,7 @@ groups:
           tier: chat
         annotations:
           summary: 'Today''s Spy is {{ $value | humanizeDuration }} behind: tracks-bridge has not written the newest scrapes into the collector''s database.'
+          resolved: 'tracks-bridge has caught up: today''s Spy has the newest scrapes.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/bridge-behind.md
 
       - alert: BridgeFileQuarantined
@@ -103,6 +112,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $value }} raw file(s) could not be written into the collector''s database; today''s Spy is missing them.'
+          resolved: 'No raw files are waiting to be written into the collector''s database any more.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/bridge-behind.md
 
       - alert: FormatDrift
@@ -114,6 +124,7 @@ groups:
           tier: chat
         annotations:
           summary: '{{ $value | humanizePercentage }} of {{ $labels.network }} answers no longer parse. The feed format may have changed.'
+          resolved: '{{ $labels.network }} answers parse normally again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/format-drift.md
 
       - alert: HourNotClosed
@@ -125,4 +136,5 @@ groups:
           tier: chat
         annotations:
           summary: 'The newest closed hour started {{ $value | humanizeDuration }} ago. Hourly counts are late.'
+          resolved: 'Hourly counts are on time again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/hour-not-closed.md

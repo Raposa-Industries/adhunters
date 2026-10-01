@@ -31,6 +31,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"html"
@@ -289,7 +290,15 @@ func relay(ctx context.Context, log *slog.Logger, c *config, tasks *ops.Tasks, e
 			}
 		}
 		tasks.Done("sentry_relay", start, int64(n), err)
-		if err != nil && ctx.Err() == nil {
+		switch {
+		case err == nil || ctx.Err() != nil:
+		case errors.Is(err, errPoll):
+			// Not an error report: Sentry being slow would only make one more
+			// Sentry issue. adhunters_task_runs_total{task="sentry_relay",
+			// result="error"} counts these, and TaskLate fires when the relay
+			// has not got through for its promise.
+			log.Warn("relay Sentry issues", "err", err)
+		default:
 			log.Error("relay Sentry issues", "err", err)
 		}
 		select {
@@ -300,13 +309,17 @@ func relay(ctx context.Context, log *slog.Logger, c *config, tasks *ops.Tasks, e
 	}
 }
 
+// errPoll marks a relay failure in asking Sentry itself, as opposed to
+// sending to Telegram.
+var errPoll = errors.New("ask Sentry for new issues")
+
 // relayOnce sends the issues first seen after cursor, oldest first, and
 // returns how many went out and the new cursor. It stops at the first failed
 // send, so that issue is tried again next time.
 func relayOnce(ctx context.Context, c *config, cursor time.Time) (int, time.Time, error) {
 	issues, err := c.errs.NewSince(ctx, cursor)
 	if err != nil {
-		return 0, cursor, err
+		return 0, cursor, fmt.Errorf("%w: %w", errPoll, err)
 	}
 	sent := 0
 	for _, is := range issues {

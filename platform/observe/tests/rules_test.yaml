@@ -28,6 +28,7 @@ tests:
               tier: page
             exp_annotations:
               summary: No successful scrape on any box for 3 minutes. Collection is stopped.
+              resolved: Scrapes are succeeding again. Collection is running.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-stopped.md
 
   # Scrapes still come in, but every one fails: that is stopped too.
@@ -45,6 +46,7 @@ tests:
               tier: page
             exp_annotations:
               summary: No successful scrape on any box for 3 minutes. Collection is stopped.
+              resolved: Scrapes are succeeding again. Collection is running.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/capture-stopped.md
 
   # The data box stops sending; the worker box keeps going.
@@ -66,6 +68,7 @@ tests:
               box: data
             exp_annotations:
               summary: The data box has sent no metrics for over 5 minutes.
+              resolved: The data box is sending metrics again.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/box-gone.md
 
   # A task that promised every 10 minutes last succeeded at minute 0.
@@ -90,6 +93,7 @@ tests:
               box: data
             exp_annotations:
               summary: tracks-loader task hour_close last succeeded 11m 0s ago, later than it promises.
+              resolved: tracks-loader task hour_close is succeeding on time again.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/task-late.md
 
   # The newest backup finished at time 0; the check runs 27 hours later.
@@ -108,6 +112,7 @@ tests:
               tier: page
             exp_annotations:
               summary: The newest database backup finished 1d 3h 0m 0s ago.
+              resolved: A new database backup has finished.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/backup-late.md
 
   # Residential traffic drains slowly (0.03 GB an hour from 3 GB): under
@@ -140,6 +145,7 @@ tests:
               box: data
             exp_annotations:
               summary: fal is down to 18.0 USD, under its warning level. Top it up.
+              resolved: fal is back above its warning level.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
       - eval_time: 10h
         alertname: CreditRunningOut
@@ -153,6 +159,7 @@ tests:
               box: data
             exp_annotations:
               summary: fal runs out within a day at the current rate (18.0 USD left). Top it up now.
+              resolved: fal is no longer set to run out within a day.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
       - eval_time: 36h
         alertname: CreditLow
@@ -166,6 +173,7 @@ tests:
               box: data
             exp_annotations:
               summary: iproyal is down to 1.9 GB, under its warning level. Top it up.
+              resolved: iproyal is back above its warning level.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/credit-low.md
       - eval_time: 36h
         alertname: CreditRunningOut
@@ -193,6 +201,7 @@ tests:
               box: data
             exp_annotations:
               summary: proxies-datacenter renews or must be paid in 6d 0h 0m 0s. Check the card or the balance behind it.
+              resolved: proxies-datacenter is no longer due soon (paid, renewed, or its date moved).
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/renewal-due.md
 
   # A service is refused for lack of credit once at 30m: the new counter
@@ -213,6 +222,7 @@ tests:
               box: data
             exp_annotations:
               summary: openai refused forge-api for lack of credit (1 calls in 10 minutes). Work that needs it has stopped.
+              resolved: openai has stopped refusing forge-api for lack of credit.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/out-of-credit.md
       - eval_time: 45m
         alertname: OutOfCredit
@@ -235,6 +245,7 @@ tests:
               tier: page
             exp_annotations:
               summary: funnels-edge cannot write beacons to its spool; visitor events are being lost.
+              resolved: funnels-edge is writing beacons to its spool again.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/funnels-spool-failing.md
       - eval_time: 11m
         alertname: FunnelsSpoolFailing
