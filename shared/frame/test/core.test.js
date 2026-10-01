@@ -6,8 +6,8 @@ import { APPS, apps, tail, switchTo, Chord, typing, fold, score, rank, marks, in
 test('apps are in the order the team works, each with its own key', () => {
   assert.deepEqual(APPS.map((a) => a.id), ['spy', 'create', 'launch', 'intel', 'funnels', 'raposa', 'desk']);
   assert.equal(new Set(APPS.map((a) => a.key)).size, APPS.length);
-  assert.equal(apps({ intel: true }).find((a) => a.id === 'intel').ready, true);
-  assert.equal(APPS.find((a) => a.id === 'intel').ready, false, 'the list itself is not changed');
+  assert.equal(apps({ raposa: true }).find((a) => a.id === 'raposa').ready, true);
+  assert.equal(APPS.find((a) => a.id === 'raposa').ready, false, 'the list itself is not changed');
 });
 
 test('tail is what follows the app in the path', () => {
@@ -45,7 +45,7 @@ test('G then a letter names an app, within the window', () => {
 test('a chord only reaches the apps it was given', () => {
   const c = new Chord(apps().filter((a) => a.ready));
   c.key('g', 0);
-  assert.equal(c.key('i', 10), null, 'Intel is not up yet');
+  assert.equal(c.key('r', 10), null, 'Raposa is not up yet');
 });
 
 test('letters typed in a field are text, not shortcuts', () => {

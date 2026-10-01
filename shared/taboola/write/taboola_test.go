@@ -560,7 +560,7 @@ func TestRetries(t *testing.T) {
 					return
 				}
 				if r.Method == "POST" {
-					io.WriteString(w, `{"id":"9","status":"RUNNING"}`)
+					io.WriteString(w, `{"id":"9","status":"RUNNING","is_active":false}`)
 					return
 				}
 				campaignsAnswer(w, r, body)
@@ -598,7 +598,7 @@ func TestEveryExchangeKeptWithoutSecrets(t *testing.T) {
 		case r.URL.Path == apiPrefix+uploadPath:
 			io.WriteString(w, `{"value":"https://cdn/x.png"}`)
 		case r.Method == "POST":
-			io.WriteString(w, `{"id":"9"}`)
+			io.WriteString(w, `{"id":"9","is_active":false}`)
 		case strings.HasSuffix(r.URL.Path, "allowed-accounts/"):
 			w.WriteHeader(500)
 			io.WriteString(w, "oops, not json")
@@ -1000,5 +1000,53 @@ func TestSettingsFromEnv(t *testing.T) {
 		}, ""); err == nil {
 			t.Errorf("%s=%s accepted", k, v)
 		}
+	}
+}
+
+// A campaign Taboola makes is checked: one that comes back running (or
+// without saying) is paused at once, and a copy above the ceilings is
+// brought down to them.
+func TestNewCampaignSettled(t *testing.T) {
+	answers := map[string]string{
+		"acme-sc/campaigns/":              `{"id":"31","is_active":true,"daily_cap":10}`,
+		"acme-sc/campaigns/101/duplicate/": `{"id":"32","daily_cap":900,"cpc":4,"bid_strategy":"FIXED"}`,
+		"acme-sc/campaigns/102/duplicate/": `{"id":"33","is_active":false,"daily_cap":900,"bid_strategy":"MAX_CONVERSIONS"}`,
+	}
+	f := newFake(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
+		p := strings.TrimPrefix(r.URL.Path, apiPrefix)
+		if a, ok := answers[p]; ok {
+			io.WriteString(w, a)
+			return
+		}
+		var b map[string]any
+		_ = json.Unmarshal(body, &b)
+		b["id"] = strings.Split(strings.TrimPrefix(p, "acme-sc/campaigns/"), "/")[0]
+		_ = json.NewEncoder(w).Encode(b)
+	})
+	c, _ := client(t, f.srv.URL)
+	cp, err := c.CreateCampaign(ctx, "acme-sc", NewCampaign{Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10})
+	if err != nil || cp.IsActive {
+		t.Fatalf("%+v %v", cp, err)
+	}
+	cp, err = c.DuplicateCampaign(ctx, "acme-sc", "101", NewCampaign{Name: "copy"})
+	if err != nil || cp.IsActive || cp.DailyCap != c.s.MaxDailyCap || cp.CPC != c.s.MaxCPC {
+		t.Fatalf("%+v %v", cp, err)
+	}
+	if _, err := c.DuplicateCampaign(ctx, "acme-sc", "102", NewCampaign{Name: "copy"}); err != nil {
+		t.Fatal(err)
+	}
+	var fixes []string
+	for _, x := range f.seen() {
+		if !strings.HasSuffix(x.Path, "/duplicate/") && x.Path != "acme-sc/campaigns/" {
+			fixes = append(fixes, x.Path+" "+string(x.Body))
+		}
+	}
+	want := []string{
+		`acme-sc/campaigns/31/ {"is_active":false}`,
+		fmt.Sprintf(`acme-sc/campaigns/32/ {"cpc":%v,"daily_cap":%v,"is_active":false}`, c.s.MaxCPC, c.s.MaxDailyCap),
+		fmt.Sprintf(`acme-sc/campaigns/33/ {"daily_cap":%v,"is_active":false}`, c.s.MaxDailyCap),
+	}
+	if strings.Join(fixes, "\n") != strings.Join(want, "\n") {
+		t.Errorf("fixes:\n%s\nwant:\n%s", strings.Join(fixes, "\n"), strings.Join(want, "\n"))
 	}
 }

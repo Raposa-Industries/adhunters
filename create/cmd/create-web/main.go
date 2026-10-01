@@ -31,7 +31,7 @@
 //	                        account is refused at boot
 //	TABOOLA_BASE_URL        https://backstage.taboola.com (a local fake, for trying)
 //	TABOOLA_MAX_CPC         1.00  highest bid (USD) a new campaign may have
-//	TABOOLA_MAX_DAILY_CAP   100   highest daily cap (USD); a total budget is at
+//	TABOOLA_MAX_DAILY_CAP   500   highest daily cap (USD); a total budget is at
 //	                              most 30 of them
 //	TABOOLA_ONLY_OWN        unset; 1 for a lent account: only campaigns and
 //	                        groups made here are listed or touched

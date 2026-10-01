@@ -11,8 +11,8 @@ export const APPS = [
   { id: 'spy', name: 'Spy', key: 'S', about: 'Anúncios que estão funcionando', ready: true },
   { id: 'create', name: 'Create', key: 'C', about: 'Imagens e headlines', ready: true },
   { id: 'launch', name: 'Launch', key: 'L', about: 'Criar e mudar campanhas', ready: true },
-  { id: 'intel', name: 'Intel', key: 'I', about: 'O que está performando', ready: false },
-  { id: 'funnels', name: 'Funnels', key: 'F', about: 'Landing pages e funis', ready: false },
+  { id: 'intel', name: 'Intel', key: 'I', about: 'O que está performando', ready: true },
+  { id: 'funnels', name: 'Funnels', key: 'F', about: 'Landing pages e funis', ready: true },
   { id: 'raposa', name: 'Raposa', key: 'R', about: 'Investigar operadores', ready: false },
   { id: 'desk', name: 'Desk', key: 'D', about: 'Pedir trabalho conversando', ready: false },
 ];

@@ -2,6 +2,8 @@ package write
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -428,8 +430,52 @@ func (c *Client) CreateCampaign(ctx context.Context, account string, n NewCampai
 	if err := c.rememberOrSay(account, cp.ID, ""); err != nil {
 		return cp, err
 	}
+	if cp, err = c.settle(ctx, account, out, cp); err != nil {
+		return cp, err
+	}
 	c.log.Info("taboola campaign created", "account", account, "campaign", cp.ID, "active", cp.IsActive,
 		"cpc", cp.CPC, "daily_cap", cp.DailyCap, "spending_limit", cp.SpendingLimit, "group", cp.CampaignGroupID)
+	return cp, nil
+}
+
+// settle checks a campaign Taboola just made, as its answer out says. It
+// must say is_active false: when it says true or nothing, the campaign is
+// paused now and that pause is checked. A copy keeps its source's daily cap
+// and CPC, which may be above this client's ceilings: those are brought down
+// to the ceiling (the copy is paused, so nothing spent at the old ones).
+func (c *Client) settle(ctx context.Context, account string, out obj, cp Campaign) (Campaign, error) {
+	fix := obj{}
+	if active, ok := out["is_active"].(bool); !ok || active {
+		fix["is_active"] = false
+	}
+	if c.s.MaxDailyCap > 0 && cp.DailyCap > c.s.MaxDailyCap {
+		fix["daily_cap"] = c.s.MaxDailyCap
+	}
+	bid := strings.ToUpper(cp.BidStrategy)
+	if c.s.MaxCPC > 0 && cp.CPC > c.s.MaxCPC && bid != "MAX_CONVERSIONS" && bid != "TARGET_CPA" {
+		fix["cpc"] = c.s.MaxCPC
+	}
+	if len(fix) == 0 {
+		return cp, nil
+	}
+	if _, ok := fix["is_active"]; !ok {
+		fix["is_active"] = false
+	}
+	got, err := c.sendJSON(ctx, http.MethodPost, campaignPath(account, cp.ID)+"/", fix, true)
+	if err != nil {
+		return cp, errors.New("campanha " + cp.ID + " feita, mas não consegui confirmar que está pausada e dentro dos tetos: " + Message(err))
+	}
+	if got["is_active"] != false {
+		return cp, &Error{Status: http.StatusOK, Message: "a Taboola não confirmou a pausa da campanha " + cp.ID + ": pause no Taboola"}
+	}
+	cp.IsActive = false
+	if v, ok := fix["daily_cap"].(float64); ok {
+		cp.DailyCap = v
+	}
+	if v, ok := fix["cpc"].(float64); ok {
+		cp.CPC = v
+	}
+	c.log.Warn("taboola campaign settled after creation", "account", account, "campaign", cp.ID, "fix", fmt.Sprint(fix))
 	return cp, nil
 }
 
@@ -465,6 +511,9 @@ func (c *Client) DuplicateCampaign(ctx context.Context, account, from string, n 
 	}
 	cp := campaignFrom(out)
 	if err := c.rememberOrSay(account, cp.ID, ""); err != nil {
+		return cp, err
+	}
+	if cp, err = c.settle(ctx, account, out, cp); err != nil {
 		return cp, err
 	}
 	c.log.Info("taboola campaign copied", "account", account, "from", from, "campaign", cp.ID, "active", cp.IsActive, "group", cp.CampaignGroupID)

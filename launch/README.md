@@ -51,7 +51,8 @@ or saved in a preset:
   `city_targeting` EXCLUDE shape (string ids) was accepted and kept on the
   paused test of 2026-09-30 (research/taboola-api/launch-test-2026-09-30).
 - **Budget:** US$ 500 a day, no spending limit. The ceiling
-  (`TABOOLA_MAX_DAILY_CAP`) is 500 in the example settings.
+  (`TABOOLA_MAX_DAILY_CAP`) is 500 in the example settings, and 500 when
+  the line is missing.
 - **Bid:** Maximize conversions (CPA), a target CPA optional; Taboola sets
   each bid (`bid_strategy` MAX_CONVERSIONS, no `cpc`, kept as
   OPTIMIZED_CONVERSIONS on the paused test; TARGET_CPA with `target_cpa` is
@@ -70,6 +71,10 @@ or saved in a preset:
 
 ## How the writes work
 
+- **Paused, checked.** Every campaign Taboola makes (new or a copy) must
+  come back with `is_active` false; one that comes back running, or without
+  saying, is paused at once and that pause is checked. A copy above the
+  ceilings (its source's daily cap or fixed CPC) is brought down to them.
 - **New campaign.** The group (when new; without a group budget it is
   `spending_limit_model` NONE, accepted on the paused test), then the
   desktop campaign (Taboola `DESK`) and/or the mobile one (`PHON`; tablets
