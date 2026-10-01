@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -107,6 +108,43 @@ INSERT INTO spy.raposa_step VALUES
     (2, 2, 3, 'cta', 'Order now', 'https://offer.test/order');
 INSERT INTO spy.raposa_variant (id, job_id, path_hash, page_ids, first_page_id, label, visits, share_pct) VALUES
     (1, 1, md5('path')::uuid, '{2,3}', 2, 'The offer', 2, 100);
+`
+
+// laterSchema is what the collector's migrations 043-045 added: the verdict
+// rule, screenshots, and continuous sampling in windows.
+const laterSchema = `
+ALTER TABLE spy.raposa_visit ADD COLUMN mismatch JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE spy.raposa_job ADD COLUMN verdict_rule SMALLINT NOT NULL DEFAULT 1,
+    ADD COLUMN verdict_evidence JSONB NOT NULL DEFAULT '[]'::jsonb, ADD COLUMN no_verdict BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN continuous BOOLEAN NOT NULL DEFAULT false, ADD COLUMN next_window_at TIMESTAMPTZ,
+    ADD COLUMN windows_done INTEGER NOT NULL DEFAULT 0, ADD COLUMN stopped_for_good BOOLEAN NOT NULL DEFAULT false;
+CREATE TABLE spy.raposa_shot (id INTEGER PRIMARY KEY, visit_id INTEGER NOT NULL REFERENCES spy.raposa_visit(id),
+    side TEXT NOT NULL, page_id INTEGER REFERENCES spy.raposa_page(id),
+    content_hash UUID NOT NULL REFERENCES spy.raposa_asset(content_hash), width SMALLINT NOT NULL DEFAULT 0,
+    height INTEGER NOT NULL DEFAULT 0, taken_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    blocked_requests INTEGER NOT NULL DEFAULT 0, blocked_hosts TEXT[] NOT NULL DEFAULT '{}',
+    hidden_overlays SMALLINT NOT NULL DEFAULT 0, collapsed_slots INTEGER NOT NULL DEFAULT 0,
+    hidden JSONB NOT NULL DEFAULT '[]'::jsonb, words_settled BOOLEAN, device TEXT, timezone TEXT, line_key TEXT,
+    UNIQUE (visit_id, side));
+CREATE TABLE spy.raposa_window (id INTEGER PRIMARY KEY, job_id INTEGER NOT NULL REFERENCES spy.raposa_job(id),
+    window_no INTEGER NOT NULL, speed_up BOOLEAN NOT NULL DEFAULT false, started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ended_at TIMESTAMPTZ, visits INTEGER NOT NULL DEFAULT 0, dark_visits INTEGER NOT NULL DEFAULT 0,
+    reviewer_loads INTEGER NOT NULL DEFAULT 0, res_bytes BIGINT NOT NULL DEFAULT 0, is_cloaked BOOLEAN,
+    verdict_evidence JSONB NOT NULL DEFAULT '[]'::jsonb, note TEXT, UNIQUE (job_id, window_no));
+ALTER TABLE spy.raposa_visit ADD COLUMN window_id INTEGER REFERENCES spy.raposa_window(id);
+`
+
+const laterData = `
+UPDATE spy.raposa_job SET verdict_rule = 3, verdict_evidence = '[{"page": 2, "reviewer_loads": 10}]',
+    continuous = true, windows_done = 1 WHERE id = 1;
+INSERT INTO spy.raposa_window (id, job_id, window_no, visits, dark_visits, is_cloaked) VALUES (7, 1, 1, 2, 1, true);
+UPDATE spy.raposa_visit SET window_id = 7 WHERE id IN (2, 4);
+UPDATE spy.raposa_visit SET mismatch = '[{"kind": "pixels"}]' WHERE id = 1;
+INSERT INTO spy.raposa_asset (content_hash, media_type, size_bytes, bytes) VALUES
+    (md5('shot dark')::uuid, 'image/png', 9, 'shot dark'), (md5('shot white')::uuid, 'image/png', 10, 'shot white');
+INSERT INTO spy.raposa_shot (id, visit_id, side, page_id, content_hash, width, height, blocked_hosts) VALUES
+    (1, 2, 'dark', NULL, md5('shot dark')::uuid, 390, 2000, '{ads.test}'),
+    (2, 2, 'white', 1, md5('shot white')::uuid, 390, 1800, '{}');
 `
 
 func exec(t *testing.T, db *pgxpool.Pool, sql string, args ...any) {
@@ -270,7 +308,9 @@ func TestImport(t *testing.T) {
 		lines = append(lines, l)
 	}
 	rows.Close()
-	if len(lines) != 3 || lines[0] != "line one" || !strings.Contains(lines[2], "job 1") {
+	// What raposa has no column for comes first, then the collector's log.
+	if len(lines) != 5 || !strings.HasPrefix(lines[0], "visits the collector called candidate") ||
+		!strings.Contains(lines[1], "disguise gone") || lines[2] != "line one" || !strings.Contains(lines[4], "job 1") {
 		t.Fatalf("log %q", lines)
 	}
 
@@ -314,5 +354,103 @@ func TestImportNeedsTheOldStore(t *testing.T) {
 	_ = db.QueryRow(ctx, `SELECT count(*) FROM raposa.page`).Scan(&n)
 	if n != 0 {
 		t.Fatalf("%d pages written; the failed job's must not be", n)
+	}
+}
+
+// A collector with migrations 043-045: the screenshots become page files,
+// and the verdict rule, the windows and a visit's mismatch go into the log.
+func TestImportKeepsTheRest(t *testing.T) {
+	ctx := context.Background()
+	old := testdb.Empty(t)
+	exec(t, old, oldSchema)
+	exec(t, old, oldData)
+	exec(t, old, laterSchema)
+	exec(t, old, laterData)
+	db := testdb.New(t)
+	testdb.Tracks(t, db)
+	exec(t, db, `INSERT INTO tracks_api.creative_v1 (id, creative_key) VALUES (5, 'ck-a')`)
+	dir := t.TempDir()
+	oldFiles, _ := files.Open("file://" + filepath.Join(dir, "old"))
+	video := filepath.Join(dir, "video")
+	if err := os.WriteFile(video, []byte("big video"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := oldFiles.Put(ctx, md5hex("big video"), "video/mp4", video, 9); err != nil {
+		t.Fatal(err)
+	}
+	newFiles, _ := files.Open("file://" + filepath.Join(dir, "new"))
+	cfg := Config{Old: old, New: db, OldFiles: oldFiles, Files: newFiles, TmpDir: dir, DryRun: true}
+	for _, dry := range []bool{true, false} {
+		cfg.DryRun = dry
+		r, err := Run(ctx, cfg)
+		if err != nil || r.Copied != 2 || r.Failed != 0 {
+			t.Fatalf("dry run %v: %+v %v", dry, r, err)
+		}
+	}
+	var first int64
+	_ = db.QueryRow(ctx, `SELECT investigation_id FROM raposa.imported_investigation WHERE old_id = 1`).Scan(&first)
+
+	// The screenshots: the dark one on the page its visit landed on, the
+	// white one on the page the collector named, both stored.
+	var onLanded, onWhite int
+	_ = db.QueryRow(ctx, `SELECT count(*) FROM raposa.page_asset pa JOIN raposa.visit v ON v.landed_page_id = pa.page_id
+		WHERE pa.role = 'screenshot' AND pa.content_hash = md5('shot dark')::uuid AND v.investigation_id = $1
+		AND pa.source_url = 'screenshot:visit-' || v.id || ':dark'`, first).Scan(&onLanded)
+	_ = db.QueryRow(ctx, `SELECT count(*) FROM raposa.page_asset pa JOIN raposa.investigation i ON i.white_page_id = pa.page_id
+		WHERE pa.role = 'screenshot' AND pa.content_hash = md5('shot white')::uuid AND i.id = $1`, first).Scan(&onWhite)
+	if onLanded != 1 || onWhite != 1 {
+		t.Fatalf("screenshots: %d on the landed page, %d on the white page", onLanded, onWhite)
+	}
+	for _, s := range []string{"shot dark", "shot white"} {
+		rc, err := newFiles.Get(ctx, files.Key(md5hex(s)))
+		if err != nil {
+			t.Fatalf("%s: %v", s, err)
+		}
+		_ = rc.Close()
+	}
+
+	var visit2, visit4 int64
+	_ = db.QueryRow(ctx, `SELECT min(id) + 1, min(id) + 3 FROM raposa.visit WHERE investigation_id = $1`, first).Scan(&visit2, &visit4)
+	var log string
+	_ = db.QueryRow(ctx, `SELECT string_agg(line, E'\n' ORDER BY id) FROM raposa.log WHERE investigation_id = $1`, first).Scan(&log)
+	for _, want := range []string{
+		`"verdict_rule": 3`,
+		`"verdict_evidence": [{"page": 2, "reviewer_loads": 10}]`,
+		`"windows_done": 1`,
+		"the collector's sampling round 1 (spy.raposa_window), as it kept it: {",
+		`"dark_visits": 1`,
+		fmt.Sprintf("its visits: %d, %d", visit2, visit4),
+		`(the collector's 1), kept as it was: {"mismatch": [{"kind": "pixels"}]}`,
+		fmt.Sprintf("screenshot of the dark page at visit %d: file %s", visit2, uuidOf("shot dark")),
+		`"blocked_hosts": ["ads.test"]`,
+	} {
+		if !strings.Contains(log, want) {
+			t.Errorf("the log has no %q:\n%s", want, log)
+		}
+	}
+	// The columns copied into place are not repeated.
+	if strings.Contains(log, `"window_id"`) || strings.Contains(log, `"stage"`) || strings.Contains(log, `"white_page_id"`) {
+		t.Errorf("the log repeats a copied column:\n%s", log)
+	}
+}
+
+func uuidOf(s string) string {
+	h := md5.Sum([]byte(s))
+	return uuidText(h)
+}
+
+func TestRanges(t *testing.T) {
+	for _, c := range []struct {
+		ids  []int64
+		want string
+	}{
+		{nil, "none"},
+		{[]int64{4}, "4"},
+		{[]int64{3, 4, 5, 9, 12, 13, 14}, "3-5, 9, 12-14"},
+		{[]int64{1, 3}, "1, 3"},
+	} {
+		if got := ranges(c.ids); got != c.want {
+			t.Errorf("ranges(%v) = %q, want %q", c.ids, got, c.want)
+		}
 	}
 }

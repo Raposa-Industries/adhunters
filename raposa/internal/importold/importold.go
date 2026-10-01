@@ -1,7 +1,10 @@
 // Package importold copies the investigations the collector's Raposa made
-// (spy.raposa_job and the tables under it, adhunters-collector e20148c) into
-// the raposa schema, with their visits, steps, variants, pages, the files
-// those pages kept and their log.
+// (spy.raposa_job and the tables under it, adhunters-collector e20148c and
+// its migrations 043-045) into the raposa schema, with their visits, steps,
+// variants, pages, the files those pages kept, the screenshots of their dark
+// verdicts and their log. What raposa has no column for (the verdict rule
+// and its evidence, the rounds of continuous sampling, a visit's mismatch)
+// goes into the investigation's log as it was, so nothing in a job is lost.
 //
 // It only reads the collector's database. Each job is copied in one
 // transaction that also records it in raposa.imported_investigation, so a
@@ -17,8 +20,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"os"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -109,8 +114,15 @@ func Run(ctx context.Context, cfg Config) (Report, error) {
 	if err != nil {
 		return r, err
 	}
-	disguises, err := disguiseMap(ctx, cfg)
+	disguises, codes, err := disguiseMap(ctx, cfg)
 	if err != nil {
+		return r, err
+	}
+	// The collector's migrations 043 and 045 added these; an older
+	// collector has neither.
+	var hasWindows, hasShots bool
+	if err := cfg.Old.QueryRow(ctx, `SELECT to_regclass('spy.raposa_window') IS NOT NULL,
+		to_regclass('spy.raposa_shot') IS NOT NULL`).Scan(&hasWindows, &hasShots); err != nil {
 		return r, err
 	}
 	cfg.Log.Info("import: jobs read", "jobs", len(jobs), "copied before", len(done))
@@ -129,7 +141,8 @@ func Run(ctx context.Context, cfg Config) (Report, error) {
 			continue
 		}
 		j.creativeID = id
-		c := &copier{cfg: cfg, r: &r, disguises: disguises, pages: map[int32]int32{}}
+		c := &copier{cfg: cfg, r: &r, disguises: disguises, codes: codes, hasWindows: hasWindows, hasShots: hasShots,
+			pages: map[int32]int32{}, visitIDs: map[int32]visitRef{}}
 		if err := c.copyJob(ctx, j); err != nil {
 			if ctx.Err() != nil {
 				return r, ctx.Err()
@@ -240,8 +253,9 @@ func creativeIDs(ctx context.Context, db *pgxpool.Pool, jobs []job) (map[string]
 	return out, nil
 }
 
-// disguiseMap maps the collector's disguise ids to raposa's, by code.
-func disguiseMap(ctx context.Context, cfg Config) (map[int16]int16, error) {
+// disguiseMap maps the collector's disguise ids to raposa's, by code, and
+// returns the collector's codes too.
+func disguiseMap(ctx context.Context, cfg Config) (map[int16]int16, map[int16]string, error) {
 	byCode := map[string]int16{}
 	if err := collect(ctx, cfg.New, `SELECT code, id FROM raposa.disguise`, func(rows pgx.Rows) error {
 		var code string
@@ -250,21 +264,22 @@ func disguiseMap(ctx context.Context, cfg Config) (map[int16]int16, error) {
 		byCode[code] = id
 		return err
 	}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := map[int16]int16{}
+	out, codes := map[int16]int16{}, map[int16]string{}
 	err := collect(ctx, cfg.Old, `SELECT id, code FROM spy.raposa_disguise`, func(rows pgx.Rows) error {
 		var id int16
 		var code string
 		if err := rows.Scan(&id, &code); err != nil {
 			return err
 		}
+		codes[id] = code
 		if n, ok := byCode[code]; ok {
 			out[id] = n
 		}
 		return nil
 	})
-	return out, err
+	return out, codes, err
 }
 
 // status maps the collector's status to raposa's, with the stage and note a
@@ -290,15 +305,35 @@ func status(j job) (st, stage, note string, ended bool) {
 }
 
 type copier struct {
-	cfg       Config
-	r         *Report
-	disguises map[int16]int16
-	pages     map[int32]int32 // the collector's page id to raposa's
-	tx        pgx.Tx
-	visits    int
-	pagesNew  int
-	files     int
-	fileBytes int64
+	cfg                  Config
+	r                    *Report
+	disguises            map[int16]int16
+	codes                map[int16]string // the collector's disguise codes
+	hasWindows, hasShots bool             // the collector has spy.raposa_window, spy.raposa_shot
+	pages                map[int32]int32  // the collector's page id to raposa's
+	visitIDs             map[int32]visitRef
+	white                *int32    // the job's white page here
+	notes                []logLine // what raposa has no column for, for the log
+	tx                   pgx.Tx
+	visits               int
+	pagesNew             int
+	files                int
+	fileBytes            int64
+}
+
+// visitRef is one copied visit: its id here and the page it landed on here.
+type visitRef struct {
+	id     int64
+	landed *int32
+}
+
+type logLine struct {
+	at   time.Time
+	line string
+}
+
+func (c *copier) note(at time.Time, line string) {
+	c.notes = append(c.notes, logLine{at, line})
 }
 
 func (c *copier) copyJob(ctx context.Context, j job) error {
@@ -337,6 +372,7 @@ func (c *copier) copyJob(ctx context.Context, j job) error {
 		}
 		white = &id
 	}
+	c.white = white
 
 	st, stage, note, ended := status(j)
 	completed := j.completedAt
@@ -376,6 +412,12 @@ func (c *copier) copyJob(ctx context.Context, j job) error {
 	if err := c.copyVariants(ctx, j, inv); err != nil {
 		return err
 	}
+	if err := c.copyWindows(ctx, j); err != nil {
+		return err
+	}
+	if err := c.copyShots(ctx, j); err != nil {
+		return err
+	}
 	if err := c.copyLog(ctx, j, inv); err != nil {
 		return err
 	}
@@ -405,8 +447,9 @@ func (c *copier) count() error {
 // blocked, a bot defence served instead of the site (raposa's error);
 // candidate (043), a page the reviewer never got that was not yet called dark
 // (raposa's dark: the visit did not get the reviewer's page; the verdict comes
-// from the job itself); and unfinished (044), a page that never finished
-// loading (raposa's error: nothing to judge).
+// from the job itself; the log names these visits); and unfinished (044), a
+// page that never finished loading (raposa's error: nothing to judge). The
+// error text starts with the collector's word.
 func visitOutcome(outcome string, errText *string) (string, *string) {
 	note := ""
 	switch outcome {
@@ -419,10 +462,65 @@ func visitOutcome(outcome string, errText *string) (string, *string) {
 	default:
 		note = "the collector's outcome " + outcome
 	}
-	if errText == nil || *errText == "" {
-		errText = &note
+	if errText != nil && *errText != "" {
+		note += ": " + *errText
 	}
-	return "error", errText
+	return "error", &note
+}
+
+// visitCopied, jobCopied and shotCopied are the collector's columns that have
+// a place here; kept() gathers the rest.
+var (
+	visitCopied = []string{"id", "job_id", "purpose", "rung", "attempt", "steps_count", "disguise_id", "line_key", "place",
+		"device", "engine", "link_kind", "target_url", "referer", "exit_ip", "error", "outcome", "landed_page_id",
+		"status_code", "redirect_hops", "bytes_used", "duration_ms", "started_at", "window_id"}
+	jobCopied = []string{"id", "uid", "creative_id", "ad_id", "status", "mode", "origin", "target_click_url",
+		"publisher_referer", "target_device", "stage", "stage_note", "stop_requested", "is_cloaked", "rung_reached",
+		"breach_rung", "white_page_id", "visits_target", "visits_done", "variants_count", "bytes_used",
+		"cloaked_confidence", "reviewer_data", "raposa_data", "checkout_data", "retry_of", "attempt", "requested_at",
+		"started_at", "completed_at", "logs"}
+	shotCopied = []string{"id", "visit_id", "side", "page_id", "content_hash", "taken_at"}
+)
+
+// keptJSON is SQL for the columns of row that the import has no place for,
+// as one JSON object without the empty ones (null, "", [] and {}), or NULL
+// when none is left. drop is the parameter holding the columns it copies. It
+// reads whatever columns the collector's table has, so a column added there
+// later is kept too.
+func keptJSON(row, drop string) string {
+	return `(SELECT jsonb_object_agg(key, value) FROM jsonb_each(to_jsonb(` + row + `) - ` + drop + `::text[])
+		WHERE value NOT IN ('null', '""', '[]', '{}'))`
+}
+
+func kept(row, drop string) string { return keptJSON(row, drop) + "::text" }
+
+// ranges writes ascending ids as "3-5, 9, 12-14".
+func ranges(ids []int64) string {
+	if len(ids) == 0 {
+		return "none"
+	}
+	var b strings.Builder
+	for i := 0; i < len(ids); {
+		k := i
+		for k+1 < len(ids) && ids[k+1] == ids[k]+1 {
+			k++
+		}
+		if b.Len() > 0 {
+			b.WriteString(", ")
+		}
+		if k == i {
+			fmt.Fprintf(&b, "%d", ids[i])
+		} else {
+			fmt.Fprintf(&b, "%d-%d", ids[i], ids[k])
+		}
+		i = k + 1
+	}
+	return b.String()
+}
+
+func uuidText(h [16]byte) string {
+	s := hex.EncodeToString(h[:])
+	return s[:8] + "-" + s[8:12] + "-" + s[12:16] + "-" + s[16:20] + "-" + s[20:]
 }
 
 func (c *copier) copyVisits(ctx context.Context, j job, inv int64) error {
@@ -439,23 +537,35 @@ func (c *copier) copyVisits(ctx context.Context, j job, inv int64) error {
 		hops                                                []byte
 		bytes, ms                                           int32
 		at                                                  time.Time
+		kept                                                *string
 	}
 	var vs []visit
 	err := collect(ctx, c.cfg.Old, `
 		SELECT id, purpose, rung, attempt, steps_count, disguise_id, line_key, place, device, engine, link_kind,
 		       target_url, referer, exit_ip, error, outcome, landed_page_id, status_code, redirect_hops,
-		       bytes_used, duration_ms, started_at
-		FROM spy.raposa_visit WHERE job_id = $1 ORDER BY id`, func(rows pgx.Rows) error {
+		       bytes_used, duration_ms, started_at, `+kept("v", "$2")+`
+		FROM spy.raposa_visit v WHERE job_id = $1 ORDER BY id`, func(rows pgx.Rows) error {
 		var v visit
 		err := rows.Scan(&v.id, &v.purpose, &v.rung, &v.attempt, &v.steps, &v.disguise, &v.line, &v.place, &v.device,
 			&v.eng, &v.linkKind, &v.target, &v.referer, &v.exitIP, &v.errText, &v.outcome, &v.landed, &v.status,
-			&v.hops, &v.bytes, &v.ms, &v.at)
+			&v.hops, &v.bytes, &v.ms, &v.at, &v.kept)
 		vs = append(vs, v)
 		return err
-	}, j.id)
+	}, j.id, visitCopied)
 	if err != nil {
 		return fmt.Errorf("read the visits: %w", err)
 	}
+	// Per job, not per visit, so a long sample does not bury the log.
+	var candidates []int64
+	unknownDisguise := map[string][]int64{}
+	defer func() {
+		if len(candidates) > 0 {
+			c.note(j.requestedAt, "visits the collector called candidate (a page the reviewer never got, not yet called dark), dark here: "+ranges(candidates))
+		}
+		for _, code := range slices.Sorted(maps.Keys(unknownDisguise)) {
+			c.note(j.requestedAt, fmt.Sprintf("visits on the collector's disguise %s, which raposa does not have: %s", code, ranges(unknownDisguise[code])))
+		}
+	}()
 	for _, v := range vs {
 		var disguise *int16
 		if v.disguise != nil {
@@ -485,6 +595,20 @@ func (c *copier) copyVisits(ctx context.Context, j job, inv int64) error {
 			return fmt.Errorf("insert visit %d: %w", v.id, err)
 		}
 		c.visits++
+		c.visitIDs[v.id] = visitRef{id: id, landed: landed}
+		if v.outcome == "candidate" {
+			candidates = append(candidates, id)
+		}
+		if v.disguise != nil && disguise == nil {
+			code := c.codes[*v.disguise]
+			if code == "" {
+				code = fmt.Sprintf("id %d", *v.disguise)
+			}
+			unknownDisguise[code] = append(unknownDisguise[code], id)
+		}
+		if v.kept != nil {
+			c.note(v.at, fmt.Sprintf("visit %d (the collector's %d), kept as it was: %s", id, v.id, *v.kept))
+		}
 
 		type step struct {
 			no              int16
@@ -567,27 +691,151 @@ func (c *copier) copyVariants(ctx context.Context, j job, inv int64) error {
 	return nil
 }
 
-// copyLog turns the collector's log, one text, into one row per line.
+// copyLog writes the investigation's log: the notes on what raposa has no
+// column for, then the collector's log, one text, as one row per line, then
+// the job's own columns raposa has no place for. The screens show the newest
+// lines first.
 func (c *copier) copyLog(ctx context.Context, j job, inv int64) error {
+	var headline *string // when Tracks has no ad with it
+	if j.adID == nil {
+		headline = j.headline
+	}
 	var text string
-	if err := c.cfg.Old.QueryRow(ctx, `SELECT logs FROM spy.raposa_job WHERE id = $1`, j.id).Scan(&text); err != nil {
+	var rest *string
+	if err := c.cfg.Old.QueryRow(ctx, `
+		SELECT logs, NULLIF(COALESCE(`+keptJSON("j", "$2")+`, '{}')
+		       || jsonb_strip_nulls(jsonb_build_object('headline', $3::text)), '{}')::text
+		FROM spy.raposa_job j WHERE id = $1`, j.id, jobCopied, headline).Scan(&text, &rest); err != nil {
 		return fmt.Errorf("read the log: %w", err)
 	}
-	var lines []string
-	for _, l := range strings.Split(text, "\n") {
-		if l = strings.TrimRight(l, "\r"); strings.TrimSpace(l) != "" {
-			lines = append(lines, l)
-		}
-	}
-	lines = append(lines, fmt.Sprintf("copied from the collector's job %d", j.id))
 	at := j.requestedAt
 	if j.startedAt != nil {
 		at = *j.startedAt
 	}
+	lines := c.notes
+	for _, l := range strings.Split(text, "\n") {
+		if l = strings.TrimRight(l, "\r"); strings.TrimSpace(l) != "" {
+			lines = append(lines, logLine{at, l})
+		}
+	}
+	if rest != nil {
+		lines = append(lines, logLine{at, "the collector's job, kept as it was: " + *rest})
+	}
+	lines = append(lines, logLine{at, fmt.Sprintf("copied from the collector's job %d", j.id)})
+	ats := make([]time.Time, len(lines))
+	texts := make([]string, len(lines))
+	for i, l := range lines {
+		ats[i], texts[i] = l.at, l.line
+	}
 	_, err := c.tx.Exec(ctx, `
 		INSERT INTO raposa.log (investigation_id, at, line)
-		SELECT $1, $2, l FROM unnest($3::text[]) WITH ORDINALITY AS t(l, n) ORDER BY n`, inv, at, lines)
+		SELECT $1, a, l FROM unnest($2::timestamptz[], $3::text[]) WITH ORDINALITY AS t(a, l, n) ORDER BY n`, inv, ats, texts)
 	return err
+}
+
+// copyWindows notes each round of the collector's continuous sampling (045)
+// in the log, with the visits it made.
+func (c *copier) copyWindows(ctx context.Context, j job) error {
+	if !c.hasWindows {
+		return nil
+	}
+	type window struct {
+		no     int32
+		at     time.Time
+		row    string
+		visits []int32
+	}
+	var ws []window
+	if err := collect(ctx, c.cfg.Old, `
+		SELECT w.window_no, w.started_at, COALESCE(`+kept("w", "$2")+`, '{}'),
+		       ARRAY(SELECT v.id FROM spy.raposa_visit v WHERE v.window_id = w.id ORDER BY v.id)
+		FROM spy.raposa_window w WHERE w.job_id = $1 ORDER BY w.window_no`, func(rows pgx.Rows) error {
+		var w window
+		err := rows.Scan(&w.no, &w.at, &w.row, &w.visits)
+		ws = append(ws, w)
+		return err
+	}, j.id, []string{"id", "job_id", "window_no"}); err != nil {
+		return fmt.Errorf("read the windows: %w", err)
+	}
+	for _, w := range ws {
+		ids := make([]int64, 0, len(w.visits))
+		for _, v := range w.visits {
+			if ref, ok := c.visitIDs[v]; ok {
+				ids = append(ids, ref.id)
+			}
+		}
+		c.note(w.at, fmt.Sprintf("the collector's sampling round %d (spy.raposa_window), as it kept it: %s; its visits: %s", w.no, w.row, ranges(ids)))
+	}
+	return nil
+}
+
+// copyShots copies the screenshots the collector took when it judged a visit
+// dark (043): the dark page the visit landed on and the white page beside
+// it. Each becomes a file of that page here, role screenshot, and a line in
+// the log with how it was taken.
+func (c *copier) copyShots(ctx context.Context, j job) error {
+	if !c.hasShots {
+		return nil
+	}
+	type shot struct {
+		visit int32
+		side  string
+		page  *int32
+		file  oldAsset
+		at    time.Time
+		rest  *string
+	}
+	var shots []shot
+	if err := collect(ctx, c.cfg.Old, `
+		SELECT s.visit_id, s.side, s.page_id, a.content_hash, a.media_type, a.size_bytes, a.object_key,
+		       a.skipped_reason, a.bytes IS NOT NULL, s.taken_at, `+kept("s", "$2")+`
+		FROM spy.raposa_shot s
+		JOIN spy.raposa_visit v ON v.id = s.visit_id
+		JOIN spy.raposa_asset a ON a.content_hash = s.content_hash
+		WHERE v.job_id = $1 ORDER BY s.id`, func(rows pgx.Rows) error {
+		var s shot
+		err := rows.Scan(&s.visit, &s.side, &s.page, &s.file.hash, &s.file.media, &s.file.size, &s.file.objectKey,
+			&s.file.skipped, &s.file.hasBytes, &s.at, &s.rest)
+		shots = append(shots, s)
+		return err
+	}, j.id, shotCopied); err != nil {
+		return fmt.Errorf("read the screenshots: %w", err)
+	}
+	for _, s := range shots {
+		visit := c.visitIDs[s.visit]
+		var page *int32
+		switch {
+		case s.page != nil:
+			id, err := c.page(ctx, *s.page)
+			if err != nil {
+				return err
+			}
+			page = &id
+		case s.side == "dark":
+			page = visit.landed
+		default:
+			page = c.white
+		}
+		if err := c.ensureAsset(ctx, s.file); err != nil {
+			return fmt.Errorf("screenshot of visit %d: %w", s.visit, err)
+		}
+		where := "kept with no page"
+		if page != nil {
+			if _, err := c.tx.Exec(ctx, `
+				INSERT INTO raposa.page_asset (page_id, content_hash, role, source_url)
+				VALUES ($1, $2, 'screenshot', $3) ON CONFLICT DO NOTHING`,
+				*page, s.file.hash, fmt.Sprintf("screenshot:visit-%d:%s", visit.id, s.side)); err != nil {
+				return err
+			}
+			where = fmt.Sprintf("a file of page %d", *page)
+		}
+		line := fmt.Sprintf("screenshot of the %s page at visit %d: file %s, %s", s.side, visit.id, uuidText(s.file.hash), where)
+		if s.rest != nil {
+			line += "; " + *s.rest
+		}
+		c.note(s.at, line)
+	}
+	return nil
 }
 
 // page returns raposa's id for the collector's page, copying the page and
@@ -678,11 +926,8 @@ func (c *copier) page(ctx context.Context, old int32) (int32, error) {
 // storage under raposa/files/<md5>.
 func (c *copier) copyFiles(ctx context.Context, oldPage, page int32) error {
 	type use struct {
-		hash                [16]byte
-		role, source, media string
-		size                int64
-		objectKey, skipped  *string
-		hasBytes            bool
+		file         oldAsset
+		role, source string
 	}
 	var uses []use
 	if err := collect(ctx, c.cfg.Old, `
@@ -691,40 +936,58 @@ func (c *copier) copyFiles(ctx context.Context, oldPage, page int32) error {
 		FROM spy.raposa_page_asset pa JOIN spy.raposa_asset a ON a.content_hash = pa.content_hash
 		WHERE pa.page_id = $1`, func(rows pgx.Rows) error {
 		var u use
-		err := rows.Scan(&u.hash, &u.role, &u.source, &u.media, &u.size, &u.objectKey, &u.skipped, &u.hasBytes)
+		err := rows.Scan(&u.file.hash, &u.role, &u.source, &u.file.media, &u.file.size, &u.file.objectKey,
+			&u.file.skipped, &u.file.hasBytes)
 		uses = append(uses, u)
 		return err
 	}, oldPage); err != nil {
 		return err
 	}
 	for _, u := range uses {
-		var have bool
-		if err := c.tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM raposa.asset WHERE content_hash = $1)`, u.hash).Scan(&have); err != nil {
+		if err := c.ensureAsset(ctx, u.file); err != nil {
 			return err
-		}
-		if !have {
-			objectKey, err := c.copyFile(ctx, u.hash, u.media, u.hasBytes, deref(u.objectKey))
-			if err != nil {
-				return err
-			}
-			skipped := u.skipped
-			if objectKey != nil {
-				skipped = nil
-			}
-			if _, err := c.tx.Exec(ctx, `
-				INSERT INTO raposa.asset (content_hash, media_type, size_bytes, object_key, skipped_reason)
-				VALUES ($1, $2, $3, $4, $5) ON CONFLICT (content_hash) DO NOTHING`,
-				u.hash, u.media, u.size, objectKey, skipped); err != nil {
-				return err
-			}
 		}
 		if _, err := c.tx.Exec(ctx, `
 			INSERT INTO raposa.page_asset (page_id, content_hash, role, source_url)
-			VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`, page, u.hash, u.role, u.source); err != nil {
+			VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`, page, u.file.hash, u.role, u.source); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// oldAsset is one spy.raposa_asset row, without its bytes.
+type oldAsset struct {
+	hash               [16]byte
+	media              string
+	size               int64
+	objectKey, skipped *string
+	hasBytes           bool
+}
+
+// ensureAsset copies one of the collector's files into raposa.asset, and its
+// bytes into the files store, when raposa does not have it yet.
+func (c *copier) ensureAsset(ctx context.Context, a oldAsset) error {
+	var have bool
+	if err := c.tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM raposa.asset WHERE content_hash = $1)`, a.hash).Scan(&have); err != nil {
+		return err
+	}
+	if have {
+		return nil
+	}
+	objectKey, err := c.copyFile(ctx, a.hash, a.media, a.hasBytes, deref(a.objectKey))
+	if err != nil {
+		return err
+	}
+	skipped := a.skipped
+	if objectKey != nil {
+		skipped = nil
+	}
+	_, err = c.tx.Exec(ctx, `
+		INSERT INTO raposa.asset (content_hash, media_type, size_bytes, object_key, skipped_reason)
+		VALUES ($1, $2, $3, $4, $5) ON CONFLICT (content_hash) DO NOTHING`,
+		a.hash, a.media, a.size, objectKey, skipped)
+	return err
 }
 
 // copyFile puts one file of the collector's into the files store and
