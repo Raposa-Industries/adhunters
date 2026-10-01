@@ -35,7 +35,7 @@ var checkParts = []checkPart{
 			FROM (SELECT checkout_platform, count(*) n FROM w WHERE checkout_platform IS NOT NULL GROUP BY 1) c), 'none')
 		UNION ALL SELECT 'creatives walked / running', (SELECT count(DISTINCT creative_id) FROM w) || ' / '
 			|| (SELECT count(DISTINCT creative_id) FROM spy.creative_recent)
-		UNION ALL SELECT 'last walk', COALESCE((SELECT to_char(max(at), 'YYYY-MM-DD HH24:MI "UTC"') FROM tracks_api.walk_page_v1), 'never')`},
+		UNION ALL SELECT 'last walk', COALESCE((SELECT to_char(at, 'YYYY-MM-DD HH24:MI "UTC"') FROM tracks_api.walk_page_v1 ORDER BY at DESC LIMIT 1), 'never')`},
 	{"Pages in Spy", `
 		SELECT 'read to', COALESCE((SELECT to_char(read_to, 'YYYY-MM-DD HH24:MI "UTC"') FROM spy.page_mark), 'never')
 		UNION ALL SELECT 'sites', count(*)::text FROM spy.site
