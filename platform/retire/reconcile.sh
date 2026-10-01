@@ -131,6 +131,13 @@ SELECT '  oldest scrape row held', min(scraped_at) FROM spy.scrape;
 SELECT '  oldest ad_hourly vs ad_daily', (SELECT min(hour) FROM spy.ad_hourly), (SELECT min(day) FROM spy.ad_daily);
 SQL
 
+say "3b. Before 09-14 and in the gap hours: the frozen v4 tables (they became no spy.* counts)"
+old <<'SQL' || echo "  (v4 rollup not readable as expected)"
+SELECT '  v4 hourly rollup days', min(hour_bucket)::date, max(hour_bucket)::date, count(DISTINCT hour_bucket::date) FROM public.adhunters_sighting_hourly_rollup;
+SELECT '  v4 rollup sightings before 09-14', COALESCE(sum(total_sightings),0) FROM public.adhunters_sighting_hourly_rollup WHERE hour_bucket < '2026-09-14';
+SELECT '  v4 rollup per day', hour_bucket::date, sum(total_sightings) FROM public.adhunters_sighting_hourly_rollup GROUP BY 2 ORDER BY 2;
+SQL
+
 say "4. Creative pairs (one row per pair before $before)"
 old <<'SQL'
 SELECT 'old creative_link (pairs, sightings)', count(*), COALESCE(sum(sightings),0) FROM spy.creative_link WHERE first_seen_at < :'before';
@@ -192,6 +199,15 @@ if command -v rclone >/dev/null; then
     echo "legacy total: $(rclone size archive:adhunters-raw/legacy 2>&1 | tr '\n' ' ')"
 else
     echo "rclone is not installed (platform/retire/save-old-data.sh setup)"
+fi
+echo "Old tables missing from the main dump's table of contents (spy.sighting and public.adhunters_sighting have their own files):"
+main=$(rclone lsf archive:adhunters-raw/legacy/prodbox --include 'adplatform_v2-main-*.dump' 2>/dev/null | sort | tail -1)
+if [ -n "$main" ]; then
+    { rclone cat "archive:adhunters-raw/legacy/prodbox/$main" | pg_restore -l 2>/dev/null || true; } |
+        awk '$4 == "TABLE" && $5 != "DATA" {print $5"."$6}' | LC_ALL=C sort -u > "$work/toc"
+    old -c "SELECT n.nspname||'.'||c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('r','p') AND NOT c.relispartition AND n.nspname NOT IN ('pg_catalog','information_schema')" | LC_ALL=C sort -u > "$work/tables"
+    echo "  $main: $(wc -l < "$work/toc") tables in it, $(wc -l < "$work/tables") in the database; missing:"
+    LC_ALL=C comm -23 "$work/tables" "$work/toc" | sed 's/^/    /'
 fi
 echo "retire-save-db, last lines:"
 journalctl -u retire-save-db -n 5 -o cat --no-pager 2>&1
