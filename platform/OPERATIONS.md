@@ -260,6 +260,18 @@ Alerts reach Telegram once `/etc/adhunters/intel-numbers.env` has the same
 `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as `observe-bot.env`, then
 `sudo systemctl restart intel-numbers`.
 
+## Spy on hunt-teste.fyi/spy/
+
+`spy-web` listens only on `127.0.0.1:8097` on the data box, metrics on
+`127.0.0.1:9116` (spy/README.md). It is reached on the same address and
+behind the same Access application as the launcher page: in the tunnel
+(Networks › Tunnels › `adhunters-data` › Public hostname), add a hostname
+`hunt-teste.fyi` with path `^/spy`, service `http://localhost:8097`, and move
+it above the one that serves the whole hostname. spy-web checks Access's
+signed token on every request, so `/etc/adhunters/spy-web.env` needs
+`ACCESS_TEAM=https://<team>.cloudflareaccess.com` and `ACCESS_AUD=` (the AUD
+tag of that Access application), then `sudo systemctl restart spy-web`.
+
 ## Funnels on hunt-teste.fyi/funnels/
 
 `funnels-web` listens only on `127.0.0.1:8099` on the data box
