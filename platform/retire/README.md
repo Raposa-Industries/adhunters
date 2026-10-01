@@ -10,7 +10,8 @@ waits for the owner's word, as `platform/SWITCH-OVER.md` says.
 
 Run them on your own computer, Tailscale up, from the repository. `ssh bigworker`
 and `ssh admin@adhunters-data` must work; the Auto-Creative steps also need
-`ssh prod`.
+`ssh prod`. They ask for prodbox's password (or key passphrase) once at the
+start and reuse that connection for 15 minutes.
 
 | Script | What it does |
 |---|---|

@@ -97,20 +97,17 @@ gz)
     done
     ;;
 auto-creative)
-    # ssh runs without prompts (BatchMode), so prod's key must already be in
-    # your ssh agent: its passphrase can't be asked half way through.
-    ssh -o BatchMode=yes -o ConnectTimeout=15 prod true 2>/dev/null || {
-        echo "ssh prod needs its key in your ssh agent first:" >&2
-        echo '  ssh-add "$(ssh -G prod | awk '"'"'/^identityfile/{print $2; exit}'"'"' | sed "s|^~|$HOME|")"' >&2
-        echo '(if ssh-add cannot reach an agent: eval "$(ssh-agent)" first, in the same terminal)' >&2
-        exit 1
-    }
+    # prodbox may want a password, so its ssh is opened once here, where it
+    # can ask, and both copies below ride that connection (15 minutes).
+    prod_ssh=(ssh -o ConnectTimeout=15 -o ControlMaster=auto -o "ControlPath=$HOME/.ssh/retire-%C" -o ControlPersist=15m)
+    say "connecting to prodbox (asks for its password once)"
+    "${prod_ssh[@]}" prod true
     say "Auto-Creative on prodbox: its database (pg_dump) and its MinIO volume (tar) -> adhunters-raw/legacy/auto-creative"
     dest=archive:adhunters-raw/legacy/auto-creative
-    ssh "${ssh_opts[@]}" prod "docker exec auto-creative-postgres-1 sh -c 'pg_dump -U \"\$POSTGRES_USER\" -Fc \"\$POSTGRES_DB\"'" \
+    "${prod_ssh[@]}" prod "docker exec auto-creative-postgres-1 sh -c 'pg_dump -U \"\$POSTGRES_USER\" -Fc \"\$POSTGRES_DB\"'" \
         | on_data "sudo rclone --config /root/.config/rclone/rclone.conf rcat $dest/autocreative-$day.dump"
     on_data "sudo rclone --config /root/.config/rclone/rclone.conf cat $dest/autocreative-$day.dump | pg_restore -l | grep -c 'TABLE DATA'" | sed 's/^/tables with data: /'
-    ssh "${ssh_opts[@]}" prod 'tar -C "$(docker volume inspect -f "{{.Mountpoint}}" auto-creative_miniodata)" --warning=no-file-changed -czf - .; [ $? -le 1 ]' \
+    "${prod_ssh[@]}" prod 'tar -C "$(docker volume inspect -f "{{.Mountpoint}}" auto-creative_miniodata)" --warning=no-file-changed -czf - .; [ $? -le 1 ]' \
         | on_data "sudo rclone --config /root/.config/rclone/rclone.conf rcat $dest/miniodata-$day.tar.gz"
     on_data "sudo rclone --config /root/.config/rclone/rclone.conf cat $dest/miniodata-$day.tar.gz | tar -tzf - | wc -l" | sed 's/^/files in the MinIO copy: /'
     on_data "sudo rclone --config /root/.config/rclone/rclone.conf ls $dest"

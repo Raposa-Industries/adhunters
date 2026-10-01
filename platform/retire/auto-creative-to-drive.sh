@@ -4,7 +4,7 @@
 # folder: <vertical>/Auto-Creative/<name>.<ext>, each file keeping the name
 # Auto-Creative gave it (MMT48, or its number). It only reads prodbox. Run it
 # on your own computer (Tailscale up, `ssh prod` working), from the
-# repository:
+# repository. It asks for prodbox's password (or key passphrase) once:
 #
 #   platform/retire/auto-creative-to-drive.sh [folder]   (default ~/auto-creative-for-drive)
 #
@@ -22,22 +22,19 @@ set -euo pipefail
 out=${1:-$HOME/auto-creative-for-drive}
 data=admin@adhunters-data
 ssh_opts=(-o ConnectTimeout=15 -o BatchMode=yes)
+# prodbox may want a password, so its ssh is opened once here, where it can
+# ask, and every later ssh to it rides that connection (15 minutes).
+prod_ssh=(ssh -o ConnectTimeout=15 -o ControlMaster=auto -o "ControlPath=$HOME/.ssh/retire-%C" -o ControlPersist=15m)
 port=19000
 mkdir -p "$out"
 work=$(mktemp -d)
-trap 'rm -rf "$work"; [ -n "${tunnel:-}" ] && kill "$tunnel" 2>/dev/null || true' EXIT
+trap 'rm -rf "$work"; [ -n "${fwd:-}" ] && "${prod_ssh[@]}" -O cancel -L "$fwd" prod 2>/dev/null; true' EXIT
 
-# ssh runs without prompts (BatchMode), so prod's key must already be in
-# your ssh agent: its passphrase can't be asked half way through.
-ssh -o BatchMode=yes -o ConnectTimeout=15 prod true 2>/dev/null || {
-    echo "ssh prod needs its key in your ssh agent first:" >&2
-    echo '  ssh-add "$(ssh -G prod | awk '"'"'/^identityfile/{print $2; exit}'"'"' | sed "s|^~|$HOME|")"' >&2
-    echo '(if ssh-add cannot reach an agent: eval "$(ssh-agent)" first, in the same terminal)' >&2
-    exit 1
-}
+echo "== connecting to prodbox (asks for its password once)"
+"${prod_ssh[@]}" prod true
 
 echo "== reading Auto-Creative's pictures (kept creatives only)"
-ac_psql() { ssh "${ssh_opts[@]}" prod "docker exec -i auto-creative-postgres-1 sh -c 'psql -X -q --csv -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"'"; }
+ac_psql() { "${prod_ssh[@]}" prod "docker exec -i auto-creative-postgres-1 sh -c 'psql -X -q --csv -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"'"; }
 ac_psql > "$out/auto-creative-manifest.csv" <<'SQL'
 SELECT i.id, i.object_key, i.content_type, i.width, i.height, i.exported_name, i.vertical_number,
        v.code, v.platform_letter, v.name AS vertical_name, array_to_string(v.synonyms, '|') AS synonyms,
@@ -51,7 +48,7 @@ SQL
 ac_psql > "$work/ac-verticals.csv" <<'SQL'
 SELECT code, platform_letter, name, array_to_string(synonyms, '|') AS synonyms, next_number FROM verticals ORDER BY code;
 SQL
-bucket=$(ssh "${ssh_opts[@]}" prod 'docker exec auto-creative-api-1 printenv S3_BUCKET' 2>/dev/null || true)
+bucket=$("${prod_ssh[@]}" prod 'docker exec auto-creative-api-1 printenv S3_BUCKET' 2>/dev/null || true)
 bucket=${bucket:-auto-creative}
 
 echo "== the library's verticals (data box)"
@@ -60,9 +57,8 @@ SELECT id, name, code, network_letter, next_number, drive_folder_id IS NOT NULL 
 SQL
 
 echo "== downloading through a tunnel to prodbox's MinIO (bucket $bucket)"
-ssh "${ssh_opts[@]}" -N -o ExitOnForwardFailure=yes -L "$port:127.0.0.1:9000" prod &
-tunnel=$!
-sleep 3
+fwd=$port:127.0.0.1:9000
+"${prod_ssh[@]}" -O forward -L "$fwd" prod
 
 python3 - "$out" "$work" "$bucket" "$port" <<'PY'
 import csv, os, sys, urllib.request, urllib.parse, urllib.error, collections, json
