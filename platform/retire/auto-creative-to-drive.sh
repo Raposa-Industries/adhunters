@@ -48,8 +48,10 @@ SQL
 ac_psql > "$work/ac-verticals.csv" <<'SQL'
 SELECT code, platform_letter, name, array_to_string(synonyms, '|') AS synonyms, next_number FROM verticals ORDER BY code;
 SQL
-bucket=$("${prod_ssh[@]}" prod 'docker exec auto-creative-api-1 printenv S3_BUCKET' 2>/dev/null || true)
-bucket=${bucket:-auto-creative}
+# The api image is distroless (no shell, no printenv), so the bucket comes
+# from the container's config; compose defaults it to auto-creative.
+bucket=$("${prod_ssh[@]}" prod "docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' auto-creative-api-1" 2>/dev/null | sed -n 's/^S3_BUCKET=//p' | tr -d '\r' || true)
+[[ $bucket =~ ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$ ]] || bucket=auto-creative
 
 echo "== the library's verticals (data box)"
 ssh "${ssh_opts[@]}" "$data" "sudo -u postgres psql -X -q --csv -v ON_ERROR_STOP=1 -d adhunters" > "$work/lib-verticals.csv" <<'SQL'
@@ -61,7 +63,7 @@ fwd=$port:127.0.0.1:9000
 "${prod_ssh[@]}" -O forward -L "$fwd" prod
 
 python3 - "$out" "$work" "$bucket" "$port" <<'PY'
-import csv, os, sys, urllib.request, urllib.parse, urllib.error, collections, json
+import csv, os, sys, urllib.request, urllib.parse, collections, json
 out, work, bucket, port = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 rows = list(csv.DictReader(open(os.path.join(out, "auto-creative-manifest.csv"))))
 lib = list(csv.DictReader(open(os.path.join(work, "lib-verticals.csv"))))
@@ -115,8 +117,10 @@ for r in rows:
             f.write(resp.read())
         os.rename(path + ".part", path)
         counts[top] += 1
-    except (urllib.error.URLError, OSError) as e:
+    except Exception as e:  # one bad picture never stops the rest
         failed.append((r["id"], r["object_key"], str(e)))
+        if os.path.exists(path + ".part"):
+            os.remove(path + ".part")
 
 print("\nKept creatives: %d, saved: %d, failed: %d" % (len(rows), sum(counts.values()), len(failed)))
 in_drive = {v["name"] for v in lib if v["in_drive"] == "t"}
