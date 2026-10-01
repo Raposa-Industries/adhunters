@@ -6,15 +6,20 @@
 # OLD_DATABASE_URL (as save-old-data.sh finds it). Run it on your own computer
 # (Tailscale up), from the repository:
 #
-#   platform/retire/compare-collection.sh [yyyy-mm-dd]   (default: yesterday, UTC)
+#   platform/retire/compare-collection.sh [day] [old collector's day]
 #
-# Tracks keeps sightings 3 days, so the day must be one of the last three.
+# The day defaults to yesterday (UTC). Tracks keeps sightings 3 days, so it must
+# be one of the last three. After the switch-over the old collector no longer
+# scrapes, so give its last full day as the second argument (2026-10-01):
+# Tracks' day is then compared with that one.
 # Avoid 00:00-00:15 and 04:00-04:30 UTC, when the collector adds and drops
 # its sighting partitions.
 set -euo pipefail
 
 day=${1:-$(date -u -d yesterday +%F)}
 next=$(date -u -d "$day + 1 day" +%F)
+old_day=${2:-$day}
+old_next=$(date -u -d "$old_day + 1 day" +%F)
 data=admin@adhunters-data
 ssh_opts=(-o ConnectTimeout=15 -o BatchMode=yes)
 work=$(mktemp -d)
@@ -24,20 +29,20 @@ f=$(ssh "${ssh_opts[@]}" "$data" 'for f in /etc/adhunters/tracks-bridge.env /etc
     sudo grep -q "^OLD_DATABASE_URL=postgres" "$f" 2>/dev/null && { echo "$f"; exit 0; }; done; exit 1') ||
     { echo "no OLD_DATABASE_URL on the data box (platform/retire/README.md)" >&2; exit 1; }
 
-old() { ssh "${ssh_opts[@]}" "$data" "sudo bash -c 'set -a; . $f; set +a; PGOPTIONS=\"-c default_transaction_read_only=on -c statement_timeout=0\" psql \"\$OLD_DATABASE_URL\" -X -q --csv -v ON_ERROR_STOP=1 -v d0=\"$day 00:00Z\" -v d1=\"$next 00:00Z\"'"; }
+old() { ssh "${ssh_opts[@]}" "$data" "sudo bash -c 'set -a; . $f; set +a; PGOPTIONS=\"-c default_transaction_read_only=on -c statement_timeout=0\" psql \"\$OLD_DATABASE_URL\" -X -q --csv -v ON_ERROR_STOP=1 -v d0=\"$old_day 00:00Z\" -v d1=\"$old_next 00:00Z\"'"; }
 new() { ssh "${ssh_opts[@]}" "$data" "sudo -u postgres psql -d adhunters -X -q --csv -v ON_ERROR_STOP=1 -v d0='$day 00:00Z' -v d1='$next 00:00Z'"; }
 
-echo "== $day: reading the old collector (prodbox)"
+echo "== $old_day: reading the old collector (prodbox)"
 old > "$work/old-lines.csv" <<'SQL'
 SELECT to_char(date_trunc('hour', s.scraped_at AT TIME ZONE 'UTC'), 'HH24') AS hour, coalesce(l.code, '-') AS line,
        'ok' AS outcome, count(*) AS scrapes, sum(s.ad_count) AS ads
 FROM spy.scrape s LEFT JOIN spy.proxy_line l ON l.id = s.proxy_line_id
-WHERE s.scraped_at >= :'d0' AND s.scraped_at < :'d1' GROUP BY 1, 2;
+WHERE s.scraped_at >= :'d0' AND s.scraped_at < :'d1' AND (s.worker_node IS NULL OR s.worker_node NOT LIKE 'tracks:%') GROUP BY 1, 2;
 SQL
 old > "$work/old-pubs.csv" <<'SQL'
 SELECT p.name AS publisher, d.code AS device, 'ok' AS outcome, count(*) AS scrapes, sum(s.ad_count) AS ads
 FROM spy.scrape s JOIN spy.publisher p ON p.id = s.publisher_id JOIN spy.device d ON d.id = s.device_id
-WHERE s.scraped_at >= :'d0' AND s.scraped_at < :'d1' GROUP BY 1, 2;
+WHERE s.scraped_at >= :'d0' AND s.scraped_at < :'d1' AND (s.worker_node IS NULL OR s.worker_node NOT LIKE 'tracks:%') GROUP BY 1, 2;
 SQL
 old > "$work/old-creatives.csv" <<'SQL'
 SELECT c.creative_key, count(*) AS sightings
@@ -66,9 +71,9 @@ SQL
 workers=$(ssh "${ssh_opts[@]}" admin@adhunters-worker 'for u in a b; do systemctl is-active -q tracks-capture@$u && sudo sed -n "s/^WORKERS=//p" /etc/adhunters/tracks-capture@$u.env; done' 2>/dev/null | awk '{n += $1} END {print n ? n : "?"}')
 sweepers=$(ssh "${ssh_opts[@]}" bigworker "sed -n 's/^SWEEPER_CONCURRENCY=//p' /opt/adhunters-collector/secrets/collector.env" 2>/dev/null || true)
 
-python3 - "$work" "$day" "${workers:-?}" "${sweepers:-default}" <<'PY'
+python3 - "$work" "$day" "${workers:-?}" "${sweepers:-default}" "$old_day" <<'PY'
 import csv, math, os, sys, statistics, collections
-work, day, workers, sweepers = sys.argv[1:5]
+work, day, workers, sweepers, old_day = sys.argv[1:6]
 def load(name):
     return list(csv.DictReader(open(os.path.join(work, name))))
 ANSWERED = {"ok", "empty"}
@@ -106,7 +111,10 @@ f = ns / os_ if os_ else 0
 pct = lambda a, b: "%.1f%%" % (100.0 * a / b) if b else "-"
 per = lambda a, b: "%.2f" % (a / b) if b else "-"
 
-print("\n# %s (UTC): Tracks vs the old collector\n" % day)
+if old_day == day:
+    print("\n# %s (UTC): Tracks vs the old collector\n" % day)
+else:
+    print("\n# Tracks on %s vs the old collector on %s (UTC)\n" % (day, old_day))
 print("%-34s %14s %14s" % ("", "old collector", "Tracks"))
 print("%-34s %14s %14s" % ("capture workers / sweepers", sweepers, workers))
 print("%-34s %14d %14d" % ("proxy lines used", len([k for k in ol if k != "-"]), len([k for k in nl if k != "-"])))
