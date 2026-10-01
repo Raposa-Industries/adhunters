@@ -424,15 +424,14 @@ library_box() {
 
 # create_box: AdHunters Create (create/README.md). It owns the create_app and
 # create_api schemas ("create" is a reserved word in SQL) and runs their
-# migrations; Desk calls create_api through create_api_read. It reads Spy
-# ads through tracks_api and saves into the library over HTTP.
+# migrations; Desk calls create_api through create_api_read. It reads no
+# other app's views, and saves into the library over HTTP.
 create_box() {
     say "the create_app login"
     psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'create_api_read') THEN CREATE ROLE create_api_read NOLOGIN; END IF; END \$\$"
     local create_pw
     create_pw=$(login create_app)
     psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO create_app"
-    psql_su -d adhunters -c "GRANT tracks_api_read TO create_app"
     install_bin create
     install -m 0644 "$create_src/deploy/create.service" /etc/systemd/system/create.service
     systemctl daemon-reload
