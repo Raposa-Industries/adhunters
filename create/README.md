@@ -19,7 +19,8 @@ Create is a chat, as auto-creative was, with iteration added (decision 0019):
    name the session in the left column, or open one already there. The
    vertical and the name are the library folders what it saves goes in
    (`<vertical>/<session>`); a name used before in that vertical opens that
-   session again. Click the name to rename it.
+   session again. Click the name to rename it; once saved, its library
+   folder (and the Drive folder) takes the new name too.
 2. **Send.** Write what you want, set how many pictures (up to 8) and
    headlines (up to 20), and press Enviar (Ctrl+Enter). One text call writes
    the headlines and, for several pictures from words alone, one brief per
@@ -34,6 +35,13 @@ Create is a chat, as auto-creative was, with iteration added (decision 0019):
 4. **Bring your own.** + Imagem do computador, + Da biblioteca (pictures and
    headlines of the session's vertical) and + Escrever headline add items
    that can be picked like any other.
+   **From Spy** (decision 0022): Spy's "Criar variações" links to
+   `/create/?from=spy&creative=<id>` (`tracks_api.creative_v1.id`). Create
+   opens a session in the ad's vertical (from `spy_api.creative_class_v1`;
+   the person picks one when Spy has none), named "Spy <id> · <brand>", with
+   the ad's picture and newest headline added (origin `spy`) and picked. The
+   same ad again opens the same session. The picture is downloaded by
+   Create's server from public addresses only.
 5. **Warnings.** Every headline shows Taboola's warnings (hidden characters,
    length, capitals, cure claims, disease names, amounts, the team's blocked
    words with a swap button); they never block. A headline is edited in
@@ -77,10 +85,8 @@ functions, the same the page calls:
 - `create_api.save_items_v1(p_session_id, p_item_ids BIGINT[], p_ai_label, p_requested_by, p_origin) RETURNS BIGINT`.
 
 The same `p_origin` again returns the same row. The brief views and
-functions (`brief_v1`, `option_v1`, `save_v1`, `new_brief_v1`,
-`save_set_v1`) are still published until a contract step drops them; Desk's
-catalog (`contract/actions/create.json`) no longer uses them. Callers log
-in with a role granted `create_api_read`.
+functions were dropped by migration 0005 (decision 0021); their tables and
+rows stay. Callers log in with a role granted `create_api_read`.
 
 ### Create's API (for its pages)
 
@@ -91,7 +97,12 @@ from another site's page is refused.
 - `GET status`, `GET rules`, `GET verticals` (the fixed list by category).
 - `GET sessions?vertical=&limit=`, `POST sessions` (`{"name", "vertical_id"}`),
   `GET sessions/{id}` (the session, turns, items with warnings, saves),
-  `PATCH sessions/{id}` (`{"name"}`).
+  `PATCH sessions/{id}` (`{"name"}`; renames the library set too, and a
+  name the library refuses puts the old one back).
+- `GET spy/{creative}` (the ad, its vertical's name and the session name it
+  would get), `POST spy/{creative}/session` (`{"vertical_id", "name"}`, both
+  optional when Spy knows the vertical): `{"session", "picked", "warning"}`;
+  the page opens `/create/s/<id>?pick=<ids>`.
 - `POST sessions/{id}/turns` (`{"prompt", "picked", "images", "headlines"}`).
 - `POST sessions/{id}/items`: a multipart `file`, or `{"headline"}`,
   `{"library_creative": id}`, `{"library_headline": id, "headline"}`.

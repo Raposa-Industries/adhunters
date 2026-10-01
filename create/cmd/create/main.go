@@ -30,6 +30,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
 	"github.com/Raposa-Industries/adhunters/create/internal/sessions"
 	"github.com/Raposa-Industries/adhunters/create/internal/site"
+	"github.com/Raposa-Industries/adhunters/create/internal/spyad"
 	"github.com/Raposa-Industries/adhunters/create/migrations"
 	"github.com/Raposa-Industries/adhunters/kit/keep"
 	"github.com/Raposa-Industries/adhunters/kit/logx"
@@ -138,7 +139,7 @@ func serve(args []string) error {
 	tasks := srv.Tasks()
 	worker.Done = func(kind string, start time.Time, err error) { tasks.Done("work-"+kind, start, 1, err) }
 
-	web, err := site.New(st, lib, lib.Browse(), openAIStatus{ai}, log, version)
+	web, err := site.New(st, lib, spyad.New(db, log), lib.Browse(), openAIStatus{ai}, log, version)
 	if err != nil {
 		return err
 	}

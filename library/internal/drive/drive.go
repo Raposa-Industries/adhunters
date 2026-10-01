@@ -432,6 +432,19 @@ func (c *Client) Replace(ctx context.Context, id, mediaType string, data []byte)
 	return f, json.Unmarshal(raw, &f)
 }
 
+// Rename gives a file or folder a new name. The library renames only the
+// set folders it made, when the app that owns the set renames it.
+func (c *Client) Rename(ctx context.Context, id, name string) error {
+	meta, err := json.Marshal(map[string]any{"name": name})
+	if err != nil {
+		return err
+	}
+	_, err = c.do(ctx, request{method: http.MethodPatch, contentType: "application/json",
+		url:  c.app.ends().API + "/drive/v3/files/" + url.PathEscape(id) + "?supportsAllDrives=true&fields=id",
+		body: func() ([]byte, error) { return meta, nil }})
+	return err
+}
+
 // Label sets the library's own properties on a file, so our id rides on it.
 // Only the library's OAuth client can read them; people never see them.
 func (c *Client) Label(ctx context.Context, id string, props map[string]string) error {

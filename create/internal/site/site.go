@@ -25,6 +25,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/create/internal/library"
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
 	"github.com/Raposa-Industries/adhunters/create/internal/sessions"
+	"github.com/Raposa-Industries/adhunters/create/internal/spyad"
 	"github.com/Raposa-Industries/adhunters/shared/frame"
 	"github.com/Raposa-Industries/adhunters/shared/verticals"
 )
@@ -42,12 +43,20 @@ type Status interface {
 // creative's bytes, to add it to a session.
 type Library interface {
 	File(ctx context.Context, id string) ([]byte, error)
+	RenameSet(ctx context.Context, id int64, name string) error
+}
+
+// Spy reads a Spy ad and downloads its picture (spyad.Reader).
+type Spy interface {
+	Ad(ctx context.Context, id int64) (spyad.Ad, error)
+	Picture(ctx context.Context, url string) ([]byte, error)
 }
 
 // Site serves Create.
 type Site struct {
 	st      *sessions.Store
 	lib     Library
+	spy     Spy
 	browse  http.Handler
 	status  Status
 	log     *slog.Logger
@@ -68,7 +77,7 @@ type verticalItem struct {
 }
 
 // New returns the site. browse serves the library's reads (library.Client.Browse).
-func New(st *sessions.Store, lib Library, browse http.Handler, status Status, log *slog.Logger, version string) (*Site, error) {
+func New(st *sessions.Store, lib Library, spy Spy, browse http.Handler, status Status, log *slog.Logger, version string) (*Site, error) {
 	list, err := verticals.Load()
 	if err != nil {
 		return nil, err
@@ -81,7 +90,7 @@ func New(st *sessions.Store, lib Library, browse http.Handler, status Status, lo
 		}
 		groups = append(groups, g)
 	}
-	return &Site{st: st, lib: lib, browse: browse, status: status, log: log, version: version, vert: groups}, nil
+	return &Site{st: st, lib: lib, spy: spy, browse: browse, status: status, log: log, version: version, vert: groups}, nil
 }
 
 // verticalName is the name of a vertical of the list, "" when it is not one.
@@ -134,6 +143,8 @@ func (s *Site) Handler() http.Handler {
 	mux.HandleFunc("POST /create/api/sessions", s.newSession)
 	mux.HandleFunc("GET /create/api/sessions/{id}", s.detail)
 	mux.HandleFunc("PATCH /create/api/sessions/{id}", s.rename)
+	mux.HandleFunc("GET /create/api/spy/{id}", s.spyAd)
+	mux.HandleFunc("POST /create/api/spy/{id}/session", s.spySession)
 	mux.HandleFunc("POST /create/api/sessions/{id}/turns", s.send)
 	mux.HandleFunc("POST /create/api/sessions/{id}/items", s.addItem)
 	mux.HandleFunc("POST /create/api/sessions/{id}/saves", s.save)
@@ -235,11 +246,142 @@ func (s *Site) rename(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &in) {
 		return
 	}
-	v, err := s.st.Rename(r.Context(), id, in.Name)
+	ctx := r.Context()
+	old, err := s.st.Session(ctx, id)
 	if s.fail(w, err) {
 		return
 	}
+	v, err := s.st.Rename(ctx, id, in.Name)
+	if s.fail(w, err) {
+		return
+	}
+	// Saved already: its library set and Drive folder take the new name.
+	if v.LibrarySetID != nil && v.Name != old.Name {
+		if err := s.lib.RenameSet(ctx, *v.LibrarySetID, v.Name); err != nil {
+			if _, rerr := s.st.Rename(context.WithoutCancel(ctx), id, old.Name); rerr != nil {
+				s.log.Error("session name not put back", "session", id, "err", rerr)
+			}
+			var le *library.Error
+			if errors.As(err, &le) && le.Status == http.StatusBadRequest {
+				writeError(w, http.StatusBadRequest, "a biblioteca já tem uma pasta com esse nome nesta vertical")
+				return
+			}
+			s.fail(w, err)
+			return
+		}
+	}
 	writeJSON(w, http.StatusOK, v)
+}
+
+// spyRef is how an item from a Spy ad points at it.
+func spyRef(id int64) string { return "spy:creative:" + strconv.FormatInt(id, 10) }
+
+// spyName is a session's name for a Spy ad: "Spy 123 · Brand".
+func spyName(a spyad.Ad) string {
+	name := "Spy " + strconv.FormatInt(a.CreativeID, 10)
+	brand := strings.NewReplacer("/", " ", "\\", " ").Replace(openai.CleanLine(a.Brand))
+	if brand != "" {
+		name += " · " + brand
+	}
+	if r := []rune(name); len(r) > 120 {
+		name = strings.TrimSpace(string(r[:120]))
+	}
+	return name
+}
+
+// spyAd is what the page shows before opening a session from a Spy ad.
+func (s *Site) spyAd(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	a, err := s.spy.Ad(r.Context(), id)
+	if errors.Is(err, spyad.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "o Spy não tem esse anúncio")
+		return
+	}
+	if s.fail(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ad": a, "vertical_name": s.verticalName(a.VerticalID), "name": spyName(a)})
+}
+
+// spySession opens a session for a Spy ad (decisions/0022): in the ad's
+// vertical, or the one the person chose, with the ad's picture and headline
+// added. The same ad again returns that session and the items it has.
+func (s *Site) spySession(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	var in struct {
+		VerticalID string `json:"vertical_id"`
+		Name       string `json:"name"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	ctx := r.Context()
+	a, err := s.spy.Ad(ctx, id)
+	if errors.Is(err, spyad.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "o Spy não tem esse anúncio")
+		return
+	}
+	if s.fail(w, err) {
+		return
+	}
+	vert := in.VerticalID
+	if vert == "" {
+		vert = a.VerticalID
+	}
+	vname := s.verticalName(vert)
+	if vname == "" {
+		writeError(w, http.StatusBadRequest, "escolha uma vertical da lista")
+		return
+	}
+	name := in.Name
+	if strings.TrimSpace(name) == "" {
+		name = spyName(a)
+	}
+	v, err := s.st.NewSession(ctx, name, vert, vname, who(r))
+	if s.fail(w, err) {
+		return
+	}
+	ref := spyRef(id)
+	have, err := s.st.ItemsFrom(ctx, v.ID, ref)
+	if s.fail(w, err) {
+		return
+	}
+	var picture, headline bool
+	picked := []int64{}
+	for _, it := range have {
+		picture = picture || it.Kind == "image"
+		headline = headline || it.Kind == "headline"
+		picked = append(picked, it.ID)
+	}
+	warn := ""
+	if !picture {
+		b, err := s.spy.Picture(ctx, a.ImageURL)
+		var it sessions.Item
+		if err == nil {
+			it, err = s.st.AddPicture(ctx, v.ID, "spy", ref, b)
+		}
+		if err != nil {
+			s.log.Warn("spy picture not added", "creative", id, "err", err)
+			warn = "não deu para trazer a imagem do anúncio; envie-a do computador"
+		} else {
+			picked = append(picked, it.ID)
+		}
+	}
+	if !headline && strings.TrimSpace(a.Headline) != "" {
+		it, err := s.st.AddHeadline(ctx, v.ID, "spy", ref, a.Headline)
+		if err != nil {
+			s.log.Warn("spy headline not added", "creative", id, "err", err)
+		} else {
+			picked = append(picked, it.ID)
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"session": v, "picked": picked, "warning": warn})
 }
 
 func (s *Site) send(w http.ResponseWriter, r *http.Request) {

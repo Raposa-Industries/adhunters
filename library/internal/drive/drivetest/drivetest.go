@@ -231,9 +231,13 @@ func (d *Drive) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var meta struct {
+			Name          string            `json:"name"`
 			AppProperties map[string]string `json:"appProperties"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&meta)
+		if meta.Name != "" {
+			f.Name = meta.Name
+		}
 		if f.AppProperties == nil {
 			f.AppProperties = map[string]string{}
 		}

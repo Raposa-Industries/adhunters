@@ -105,6 +105,9 @@ func (s *Syncer) Run(ctx context.Context) (Result, error) {
 // ---- out ---------------------------------------------------------------------
 
 func (s *Syncer) out(ctx context.Context, res *Result) error {
+	if err := s.renames(ctx, res); err != nil {
+		return err
+	}
 	db := s.st.DB()
 	rows, err := db.Query(ctx, `
 		SELECT c.id, c.name, c.media_type, COALESCE(c.vertical_id, ''),
@@ -145,6 +148,47 @@ func (s *Syncer) out(ctx context.Context, res *Result) error {
 		res.Written++
 	}
 	return s.headlines(ctx, res)
+}
+
+// renames gives each renamed set's Drive folder the set's new name.
+func (s *Syncer) renames(ctx context.Context, res *Result) error {
+	db := s.st.DB()
+	rows, err := db.Query(ctx, `SELECT id, name, drive_folder_id FROM library.set WHERE rename_folder AND drive_folder_id IS NOT NULL ORDER BY id`)
+	if err != nil {
+		return err
+	}
+	type renamed struct {
+		id           int64
+		name, folder string
+	}
+	list, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (renamed, error) {
+		var x renamed
+		err := r.Scan(&x.id, &x.name, &x.folder)
+		return x, err
+	})
+	if err != nil {
+		return err
+	}
+	for _, x := range list {
+		err := s.drive.Rename(ctx, x.folder, x.name)
+		if err != nil && !isNotFound(err) {
+			if errors.Is(err, drive.ErrSignedOut) || ctx.Err() != nil {
+				return err
+			}
+			s.log.Error("set folder not renamed in drive", "set", x.id, "err", err)
+			continue
+		}
+		// A folder no longer there is made again, with the new name, when
+		// something next goes in it.
+		if _, err := db.Exec(ctx, `UPDATE library.set SET rename_folder = false WHERE id = $1 AND name = $2`, x.id, x.name); err != nil {
+			return err
+		}
+		if _, err := db.Exec(ctx, `UPDATE library.drive_file SET name = $2 WHERE file_id = $1`, x.folder, x.name); err != nil {
+			return err
+		}
+		res.Written++
+	}
+	return nil
 }
 
 func (s *Syncer) upload(ctx context.Context, id int64, name, mt, folder string) error {

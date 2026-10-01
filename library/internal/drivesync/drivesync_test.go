@@ -216,3 +216,42 @@ func read(t *testing.T, st *store.Store, id int64, thumb bool) []byte {
 	}
 	return b
 }
+
+func TestRenamedSetRenamesItsFolder(t *testing.T) {
+	ctx := context.Background()
+	fake := drivetest.New(t)
+	st := store.New(testdb.New(t))
+	sy := drivesync.New(st, drive.New(fake.App(), "refresh"), drivetest.Root, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	set, _ := st.AddSet(ctx, store.NewSet{Name: "Colher", VerticalID: "tinnitus", Origin: store.OriginCreate})
+	other, _ := st.AddSet(ctx, store.NewSet{Name: "Copo", VerticalID: "tinnitus", Origin: store.OriginCreate})
+	if _, _, err := st.AddCreative(ctx, store.NewCreative{VerticalID: "tinnitus", SetID: set.ID, Origin: store.OriginCreate}, pic(t, 1)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.RenameSet(ctx, set.ID, other.Name); err == nil {
+		t.Error("renamed onto another set's name")
+	}
+	got, err := st.RenameSet(ctx, set.ID, "Colher de sopa")
+	if err != nil || got.Name != "Colher de sopa" {
+		t.Fatalf("rename: %+v %v", got, err)
+	}
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	up := fake.Find("TNT1.png")
+	if len(up) != 1 {
+		t.Fatalf("uploaded %+v", up)
+	}
+	if f, _ := fake.Get(up[0].Parents[0]); f.Name != "Colher de sopa" {
+		t.Errorf("folder is %q", f.Name)
+	}
+	if len(fake.Find("Colher")) != 0 {
+		t.Error("the old folder is still there")
+	}
+	// Nothing more to rename on the next pass.
+	if res, err := sy.Run(ctx); err != nil || res.Written != 0 {
+		t.Errorf("third pass %+v %v", res, err)
+	}
+}
