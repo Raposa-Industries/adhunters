@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150" role="img" aria-label="Mascote do AdHunters">
+<!-- The mascot: the AdHunters fox, flat and crouched, ready to pounce. It loops on its
+     own (coil, tail flick, eyes narrow, a twitch forward, reset) and holds
+     still for people who ask for less motion. Pure SVG and CSS, so it runs
+     as an <img>, a CSS background or inline. -->
+<style>
+  .fx-body, .fx-head, .fx-tail, .fx-eye, .fx-shadow, .fx-hind, .fx-front {
+    transform-box: view-box;
+    animation: 2.6s cubic-bezier(.45, 0, .25, 1) infinite;
+  }
+  .fx-body { animation-name: fx-body; }
+  .fx-head { transform-origin: 168px 90px; animation-name: fx-head; }
+  .fx-tail { transform-origin: 62px 80px; animation-name: fx-tail; }
+  .fx-eye { transform-origin: 202px 91px; animation-name: fx-eye; }
+  .fx-shadow { transform-origin: 120px 140px; animation-name: fx-shadow; }
+  .fx-hind { transform-origin: 60px 140px; animation-name: fx-hind; }
+  .fx-front { transform-origin: 160px 140px; animation-name: fx-front; }
+  @keyframes fx-body {
+    0%, 8% { transform: translate(0, 0); }
+    38%, 54% { transform: translate(-6px, 7px); }
+    62% { transform: translate(9px, 1px); }
+    74%, 100% { transform: translate(0, 0); }
+  }
+  @keyframes fx-head {
+    0%, 8% { transform: rotate(0); }
+    38%, 54% { transform: rotate(5deg); }
+    62% { transform: rotate(-3deg); }
+    74%, 100% { transform: rotate(0); }
+  }
+  @keyframes fx-tail {
+    0%, 8% { transform: rotate(0); }
+    18% { transform: rotate(-9deg); }
+    28% { transform: rotate(5deg); }
+    38% { transform: rotate(-7deg); }
+    48% { transform: rotate(4deg); }
+    58% { transform: rotate(-16deg); }
+    74%, 100% { transform: rotate(0); }
+  }
+  @keyframes fx-eye {
+    0%, 8% { transform: scaleY(1); }
+    38%, 54% { transform: scaleY(.5); }
+    62% { transform: scaleY(.3); }
+    76%, 100% { transform: scaleY(1); }
+  }
+  @keyframes fx-shadow {
+    0%, 8% { transform: scaleX(1); }
+    38%, 54% { transform: scaleX(1.06); }
+    62% { transform: translateX(6px) scaleX(1.02); }
+    74%, 100% { transform: scaleX(1); }
+  }
+  /* The legs bend instead of sliding: they squash as the body sinks. */
+  @keyframes fx-hind {
+    0%, 8% { transform: skewX(0) scaleY(1); }
+    38%, 54% { transform: skewX(4deg) scaleY(.93); }
+    62% { transform: skewX(-6deg) scaleY(1); }
+    74%, 100% { transform: skewX(0) scaleY(1); }
+  }
+  @keyframes fx-front {
+    0%, 8% { transform: skewX(0) scaleY(1); }
+    38%, 54% { transform: skewX(3deg) scaleY(.93); }
+    62% { transform: skewX(-5deg) scaleY(.99); }
+    74%, 100% { transform: skewX(0) scaleY(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fx-body, .fx-head, .fx-tail, .fx-eye, .fx-shadow, .fx-hind, .fx-front { animation: none; }
+  }
+</style>
+<defs>
+  <clipPath id="fx-tail-clip">
+    <path d="M72 90C34 94 10 76 11 46 12 30 22 18 34 12 28 32 32 52 48 62 58 68 70 70 82 70Z"/>
+  </clipPath>
+</defs>
+<ellipse class="fx-shadow" cx="118" cy="140" rx="86" ry="4" fill="#ff7a1a" opacity=".12"/>
+<!-- far legs, a shade darker -->
+<g class="fx-hind" fill="#c9580f">
+  <path d="M84 96 72 118l8 18h11l-7-17 14-19Z"/>
+</g>
+<g class="fx-front" fill="#c9580f">
+  <path d="M136 94c6 14 22 22 40 22 6 0 10 4 8 10l-8 2c-2-4-6-6-14-6-18 0-30-10-34-22Z"/>
+  <path d="m178 127 2 5 2-5.5Zm5-1.5 2.5 4.5 1-5Z" fill="#fff8ee"/>
+</g>
+<g class="fx-body">
+  <g class="fx-tail">
+    <path d="M72 90C34 94 10 76 11 46 12 30 22 18 34 12 28 32 32 52 48 62 58 68 70 70 82 70Z" fill="#ff7a1a"/>
+    <path clip-path="url(#fx-tail-clip)" d="M0 0h60v36l-8-4-6 10-8-6-8 12-8-8-8 10-8-6-14 4Z" fill="#ffe2b0"/>
+  </g>
+  <path d="M48 92C42 74 60 64 82 66c20 0 40-10 60-8 16 2 26 12 32 26l-4 20c-20 6-50 4-70 0-20-3-46 2-52-12Z" fill="#ff7a1a"/>
+  <path d="M138 104c10-3 22-4 32 0l-2 8c-12 2-24-1-30-8Z" fill="#ffe2b0"/>
+  <g class="fx-head">
+    <path d="M176 72 154 48l36 18Z" fill="#c9580f"/>
+    <path d="M162 92c-2-18 14-28 32-26 10 1 16 6 20 12l18 18c0 5-4 8-10 8l-16 6c-18 3-36-4-44-18Z" fill="#ff7a1a"/>
+    <path d="M184 70 170 40l30 28Z" fill="#ff7a1a"/>
+    <path d="M186 66 176 48l18 17Z" fill="#ffe2b0"/>
+    <path d="M204 110c-14 3-30 1-42-6l-12 2 8-7-10-3 14-1 14 2 20 0 26 7Z" fill="#ffe2b0"/>
+    <path d="M190 80l24 8" stroke="#140a04" stroke-width="3.5" stroke-linecap="round"/>
+    <g class="fx-eye"><path d="M194 86l18 6-5 4-12-4Z" fill="#140a04"/></g>
+    <path d="M218 90l3 5" stroke="#c9580f" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="231" cy="99" r="4" fill="#140a04"/>
+    <path d="M228 103l-20 5" stroke="#140a04" stroke-width="2" stroke-linecap="round"/>
+    <path d="m210 107 3 7 3-8Z" fill="#fff8ee"/>
+  </g>
+</g>
+<!-- near legs -->
+<g class="fx-hind" fill="#ff7a1a">
+  <path d="M60 90 44 116l8 20h12l-8-19 22-21Z"/>
+  <path d="M48 134h18v5H46Z" fill="#c9580f"/>
+</g>
+<g class="fx-front" fill="#ff7a1a">
+  <path d="M146 98c4 14 4 26 6 38h13c-3-12-2-24 0-36Z"/>
+  <path d="M150 134h18v5h-20Z" fill="#c9580f"/>
+</g>
+</svg>

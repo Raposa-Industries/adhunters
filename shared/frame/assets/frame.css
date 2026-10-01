@@ -5,6 +5,7 @@
    from another site. Class names start with fr- for the Frame itself; the
    parts below it (buttons, chips, fields, tables, badges) are plain names an
    app uses as they are. */
+@import url("loader.css"); /* the fox on loading screens */
 @font-face { font-family: "Archivo"; src: url("fonts/archivo-125.woff2") format("woff2"); font-weight: 700 800; font-stretch: 125%; font-display: swap; }
 @font-face { font-family: "IBM Plex Sans"; src: url("fonts/plex-sans.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
 @font-face { font-family: "IBM Plex Mono"; src: url("fonts/plex-mono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
