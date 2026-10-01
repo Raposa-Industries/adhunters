@@ -79,7 +79,7 @@ db)
     on_data "sudo systemctl reset-failed retire-save-db 2>/dev/null; sudo systemd-run --unit=retire-save-db --description='Save the old database to the archive' \
         -p EnvironmentFile=$f --setenv=RCLONE_CONFIG=/root/.config/rclone/rclone.conf --setenv=FRESH_MAIN=${FRESH_MAIN:-} \
         -p Nice=10 /bin/bash /var/tmp/retire/save-db.sh"
-    echo "Follow it:  ssh $data 'journalctl -u retire-save-db -f -o cat'"
+    echo "Follow it:  ssh $data 'sudo journalctl -u retire-save-db -f -o cat'"
     ;;
 gz)
     say "bigworker's /opt/backups/spy-sightings -> adhunters-raw/legacy/spy-sightings"

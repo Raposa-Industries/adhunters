@@ -17,7 +17,7 @@ start and reuse that connection for 15 minutes.
 |---|---|
 | `save-old-data.sh check` | What there is, and whether the rest can run: rclone on the data box, a login on the old database and what it can read, bigworker's archived days with their row counts. |
 | `save-old-data.sh setup` | Installs rclone on the data box with an `archive` remote, using the object storage keys in `tracks-loader.env` (never shown). |
-| `save-old-data.sh db` | Starts `save-db.sh` on the data box as the unit `retire-save-db`: the old database into the bucket (below). Follow it with `journalctl -u retire-save-db -f -o cat`. Run it again once a week until the collector stops; it adds only the days closed since. `FRESH_MAIN=1` also makes a new main dump (the final one). |
+| `save-old-data.sh db` | Starts `save-db.sh` on the data box as the unit `retire-save-db`: the old database into the bucket (below). Follow it with `sudo journalctl -u retire-save-db -f -o cat` on the data box. Run it again once a week until the collector stops; it adds only the days closed since. `FRESH_MAIN=1` also makes a new main dump (the final one). |
 | `save-old-data.sh gz` | bigworker's `/opt/backups/spy-sightings` into the bucket, each file checked against its `.sha256`. |
 | `save-old-data.sh auto-creative` | Auto-Creative's database (`pg_dump`) and its MinIO volume (`tar`) into the bucket. |
 | `auto-creative-to-drive.sh [folder]` | The creatives the team kept in Auto-Creative, as `<vertical>/Auto-Creative/<name>.<ext>` on your computer, ready to drag into the library's Drive folder. Also raises the library's counters past Auto-Creative's, so new names never repeat old ones. |
