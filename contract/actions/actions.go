@@ -18,8 +18,10 @@
 //
 // What only a person may do (a confirm, turning spending on) is never an
 // action: the list has no kind for it, so Desk cannot be given it by
-// mistake. A view or function changes shape only as a new version, so an
-// action names the exact version it calls.
+// mistake. Nor is turning a campaign or ad on: Load refuses a change or ask
+// that speaks of starting, resuming or unpausing anything (turnOnWords). A
+// view or function changes shape only as a new version, so an action names
+// the exact version it calls.
 package actions
 
 import (
@@ -306,7 +308,13 @@ func (a Action) check() error {
 	case Read:
 		return a.checkRead()
 	case Change, Ask:
-		return a.checkCall()
+		if err := a.checkCall(); err != nil {
+			return err
+		}
+		if w := a.turnsOn(); w != "" {
+			return fmt.Errorf("%q would turn something on: only a person turns a campaign or ad on, in Taboola", w)
+		}
+		return nil
 	case "":
 		return fmt.Errorf("kind is read, change or ask")
 	default:
@@ -488,6 +496,75 @@ func (a Action) checkArgs() error {
 		return fmt.Errorf("an ask records who it is for, to show on the confirm screen: one arg is from person")
 	}
 	return nil
+}
+
+// turnOnWords are the words of turning something on. No change or ask may
+// carry one in its name, function, args, fixed values, choices or input
+// fields: only a person turns a campaign or ad on, in Taboola (decided
+// 1 Oct 2026: "never run a campaign without me giving the go"). "started"
+// is not one: a move's originals may wait for a person to start the copies.
+var turnOnWords = map[string]bool{
+	"start": true, "resume": true, "resumed": true, "unpause": true, "unpaused": true, "activate": true,
+	"activated": true, "reactivate": true, "active": true, "enable": true, "enabled": true, "run": true,
+	"running": true, "live": true, "play": true,
+}
+
+var wordRe = regexp.MustCompile(`[a-z0-9]+`)
+
+// turnsOn returns the first word of a change or ask that speaks of turning
+// something on ("turn on" and "switch on" count too), or "". Its says and
+// descriptions are prose for the model and are not read.
+func (a Action) turnsOn() string {
+	texts := []string{a.Name, a.Call}
+	for _, g := range a.Args {
+		texts = append(texts, g.Name, string(g.Const))
+		texts = append(texts, g.Enum...)
+		var s any
+		if json.Unmarshal(g.Schema, &s) == nil {
+			texts = append(texts, schemaWords(s)...)
+		}
+	}
+	for _, t := range texts {
+		w := wordRe.FindAllString(strings.ToLower(t), -1)
+		for i := range w {
+			if turnOnWords[w[i]] {
+				return w[i]
+			}
+			if (w[i] == "turn" || w[i] == "switch") && i+1 < len(w) && w[i+1] == "on" {
+				return w[i] + " on"
+			}
+		}
+	}
+	return ""
+}
+
+// schemaWords returns a schema's property names and its enum and const
+// values, all the way down.
+func schemaWords(s any) []string {
+	m, ok := s.(map[string]any)
+	if !ok {
+		return nil
+	}
+	var out []string
+	if e, ok := m["enum"].([]any); ok {
+		for _, v := range e {
+			out = append(out, fmt.Sprint(v))
+		}
+	}
+	if v, ok := m["const"]; ok {
+		out = append(out, fmt.Sprint(v))
+	}
+	props, _ := m["properties"].(map[string]any)
+	names := make([]string, 0, len(props))
+	for name := range props {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		out = append(out, name)
+		out = append(out, schemaWords(props[name])...)
+	}
+	return append(out, schemaWords(m["items"])...)
 }
 
 // CheckSchema refuses what strict tool schemas do not take: every object

@@ -299,3 +299,44 @@ func TestRefusals(t *testing.T) {
 		}
 	}
 }
+
+// Nothing in the list turns a campaign or ad on: only a person does, in
+// Taboola (decided 1 Oct 2026: "never run a campaign without me giving the
+// go"). A change or ask that speaks of turning on, in its name, function,
+// args, fixed values, choices or input fields, is refused. A read may still
+// show what runs.
+func TestNothingTurnsOn(t *testing.T) {
+	good := `{"name": "demo.ask_thing", "version": 1, "kind": "ask", "says": "x", "call": "demo_api.ask_thing_v1",
+		"args": [{"name": "kind", "const": "pause"}, {"name": "who", "from": "person"},
+			{"name": "input", "type": "object", "says": "i", "schema": {"type": "object", "additionalProperties": false,
+				"properties": {"originals": {"type": "string", "enum": ["when_started", "now"]}}}}],
+		"returns": "id", "per_day": 5, "link": "/demo/r/{returned}",
+		"follow": {"view": "demo_api.request_v1", "id": "id", "state": "state", "done": ["done"], "failed": ["refused"]}}`
+	load := func(body string) error {
+		_, err := LoadFS(fstest.MapFS{"demo.json": {Data: []byte(`{"app": "demo", "actions": [` + body + `]}`)}})
+		return err
+	}
+	if err := load(good); err != nil {
+		t.Fatalf("the good one (a person starting the copies is not turning on): %v", err)
+	}
+	for name, body := range map[string]string{
+		"resume in the name":      strings.Replace(good, `"demo.ask_thing"`, `"demo.resume_campaigns"`, 1),
+		"turn on in the name":     strings.Replace(good, `"demo.ask_thing"`, `"demo.turn_on_ads"`, 1),
+		"an unpause function":     strings.Replace(good, `demo_api.ask_thing_v1`, `demo_api.unpause_v1`, 1),
+		"start as the fixed kind": strings.Replace(good, `"const": "pause"`, `"const": "start"`, 1),
+		"active in a fixed value": strings.Replace(good, `"const": "pause"`, `"const": {"is_active": true}`, 1),
+		"an is_active field":      strings.Replace(good, `"originals": {`, `"is_active": {"type": "boolean"}, "originals": {`, 1),
+		"running as a choice":     strings.Replace(good, `"now"]`, `"now", "running"]`, 1),
+		"an arg to enable": strings.Replace(good, `{"name": "who", "from": "person"}`,
+			`{"name": "who", "from": "person"}, {"name": "enable", "type": "boolean", "says": "e"}`, 1),
+	} {
+		if err := load(body); err == nil || !strings.Contains(err.Error(), "only a person turns") {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	read := `{"name": "demo.things", "version": 1, "kind": "read", "says": "x", "view": "demo_api.thing_v1",
+		"columns": ["id", "is_active"], "limit": 10, "filters": [{"column": "is_active", "op": "=", "type": "boolean"}]}`
+	if err := load(read); err != nil {
+		t.Errorf("a read of what runs: %v", err)
+	}
+}
