@@ -1,0 +1,11 @@
+{{define "hosting"}}{{template "top" .}}
+<header class="page-head"><div><h1>Hospedagem</h1>
+<p class="lead">Os sites que o Funnels serve, com as versões publicadas. Publicar e voltar uma versão é pela linha de comando no servidor (<span class="mono">funnels-edge publish</span>, <span class="mono">funnels-edge serve</span>).</p></div></header>
+{{with .Problem}}<p class="note fail">{{.}}</p>{{end}}
+{{range .Hosted}}<article class="panel">
+  <div class="card-head"><h2><a href="{{sitePath .Host}}">{{.Host}}</a></h2>
+    {{if .Clarity}}<span class="badge running" title="Projeto do Clarity">Clarity {{.Clarity}}</span>{{else}}<span class="badge">sem Clarity</span>{{end}}</div>
+  {{with .Err}}<p class="note fail">{{.}}</p>{{end}}
+  <ul class="steps">{{range .Versions}}<li>{{if .Current}}<b>{{version .Name}}</b> <span class="badge running">no ar</span>{{else}}{{version .Name}}{{end}} <span class="mono faint">{{.Name}}</span></li>{{end}}</ul>
+</article>{{else}}{{if not .Problem}}<p class="empty">Nenhum site publicado ainda.</p>{{end}}{{end}}
+{{template "bottom" .}}{{end}}

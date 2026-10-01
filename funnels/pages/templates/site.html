@@ -1,0 +1,20 @@
+{{define "site"}}{{template "top" .}}
+<header class="page-head"><div><h1>{{.Site}}</h1>{{template "fresh" .}}</div></header>
+
+<section class="block">
+  <h3>Por onde as jornadas entraram</h3>
+  <div class="table-wrap"><table class="list">
+  <thead><tr><th>Primeira landing page</th><th class="num">Jornadas</th><th class="num">Com click id</th><th class="num">Tempo médio</th><th class="num">Robôs</th></tr></thead>
+  <tbody>{{range .LPs}}<tr>
+    <td><a href="{{lpPath .Site .LP}}&amp;{{$.Keep}}">{{.LP}}</a></td>
+    <td class="num">{{int .Journeys}}</td><td class="num">{{pct (share .WithClickID .Journeys)}}</td>
+    <td class="num">{{secs .AvgSeconds}}</td><td class="num faint">{{int .Bots}}</td>
+  </tr>{{else}}<tr><td colspan="5" class="faint">Nenhuma jornada com esses filtros.</td></tr>{{end}}</tbody>
+  </table></div>
+</section>
+
+{{range .StepOrder}}<section class="block">
+  <h3><a href="{{lpPath $.Site .}}&amp;{{$.Keep}}">{{.}}</a></h3>
+  {{template "funnel" (index $.Steps .)}}
+</section>{{end}}
+{{template "bottom" .}}{{end}}

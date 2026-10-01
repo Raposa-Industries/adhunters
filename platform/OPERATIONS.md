@@ -9,7 +9,7 @@ it in the same PR.
 | Box | Hetzner name | Type | Location | Private IP | Public IPv4 | Runs |
 |---|---|---|---|---|---|---|
 | worker | `adhunters-worker` | CX43 | Nuremberg (nbg1) | 10.20.1.10 | 2.28.193.220 (Primary IP, kept across rebuilds) | capture `@a` `@b`, shipper, Raposa |
-| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web, create, library, Desk, launch-web, funnels-edge, funnels-loader |
+| data | `adhunters-data` | CX43 | Nuremberg (nbg1) | 10.20.1.20 | changes on rebuild; nothing listens on it | Postgres 17, loader, observe-bot, backups, create-web, create, library, Desk, launch-web, funnels-edge, funnels-loader, funnels-web |
 | standby | `adhunters-standby` | CX23 | Falkenstein (fsn1) | 10.20.1.30 | 2.28.138.34 (Primary IP) | capture `@standby`, shipper |
 
 All three are in one Hetzner project, created by Terraform
@@ -254,6 +254,17 @@ secret, and a RedTrack key), then `sudo systemctl restart intel-collect`.
 Alerts reach Telegram once `/etc/adhunters/intel-numbers.env` has the same
 `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as `observe-bot.env`, then
 `sudo systemctl restart intel-numbers`.
+
+## Funnels on hunt-teste.fyi/funnels/
+
+`funnels-web` listens only on `127.0.0.1:8099` on the data box
+(funnels/README.md). It is reached on the same address and behind the same
+Access application as Intel and Spy: in the tunnel (Networks › Tunnels ›
+`adhunters-data` › Public hostname), add a hostname `hunt-teste.fyi` with
+path `^/funnels`, service `http://localhost:8099`, and move it above the one
+that serves the whole hostname. It needs nothing else: setup.sh makes its
+read-only `funnels_web` login. The landing domains stay separate and public
+(above).
 
 ## Launch's page
 

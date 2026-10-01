@@ -1,0 +1,30 @@
+{{define "journeys"}}{{template "top" .}}
+<header class="page-head"><div><h1>Jornadas</h1>
+<p class="lead">Cole o click id do RedTrack (ou o id da jornada) para ver o caminho de uma pessoa pelas páginas.</p></div></header>
+<form class="lookup" method="get" action="/funnels/journeys">
+  <input type="search" name="q" value="{{.Query}}" placeholder="click id" aria-label="Click id ou jornada" autocomplete="off">
+  <button type="submit" class="primary">Buscar</button>
+</form>
+{{if .Query}}{{range .Journeys}}<article class="panel journey">
+  <div class="card-head">
+    <span class="mono">{{.ID}}</span>
+    {{if .BotSuspect}}<span class="badge rejected" title="{{.BotReason}}">robô?</span>{{end}}
+    {{if .Draft}}<span class="badge paused">hora ainda aberta</span>{{end}}
+    <span class="faint">{{when .StartedAt}} a {{when .LastAt}}</span>
+  </div>
+  <dl class="facts">
+    <div><dt>Site</dt><dd><a href="{{sitePath .Site}}">{{.Site}}</a></dd></div>
+    <div><dt>Entrou por</dt><dd>{{.FirstLP}}</dd></div>
+    <div><dt>Parou em</dt><dd>{{.LastLP}} · {{stepName .LastStep}}</dd></div>
+    <div><dt>Click id</dt><dd class="mono">{{if .ClickID}}{{.ClickID}}{{else}}–{{end}}</dd></div>
+    <div><dt>sub1 / sub4 / sub8</dt><dd class="mono">{{orNone .Sub1}} / {{.Sub4}} / {{.Sub8}}</dd></div>
+    <div><dt>Aparelho</dt><dd>{{deviceName .Device}}{{if .Country}} · {{.Country}}{{end}}</dd></div>
+    <div><dt>Na tela</dt><dd>{{secs (share .VisibleMS 1000)}} · rolou {{.MaxScroll}}% · {{.LPs}} página(s)</dd></div>
+    {{if .BotReason}}<div><dt>Por que robô</dt><dd>{{.BotReason}}</dd></div>{{end}}
+  </dl>
+  <h3>Passos</h3>
+  <ol class="steps">{{range .Steps}}<li><span class="mono faint">{{when .At}}</span> {{.LP}} · {{stepName .Step}}</li>{{end}}</ol>
+  {{if .Videos}}<h3>Vídeos</h3>
+  <ul class="steps">{{range .Videos}}<li><a href="{{videoPath .Video}}">{{.Video}}</a>{{if .Arm}} (braço {{.Arm}}){{end}}: ouviu {{secs (share (int64 .WatchedS) 1)}}{{if .LenS}} de {{secs (share (int64 .LenS) 1)}}{{end}}{{if .Hit}}, chegou na oferta{{end}}{{if not .Played}}{{if .Autoplayed}}, só autoplay sem som{{end}}{{end}}</li>{{end}}</ul>{{end}}
+</article>{{else}}<p class="empty">Nenhuma jornada com esse id. Uma jornada aparece aqui alguns minutos depois da visita.</p>{{end}}{{end}}
+{{template "bottom" .}}{{end}}

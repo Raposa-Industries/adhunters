@@ -37,10 +37,12 @@ func must(t *testing.T, err error) {
 }
 func post(e *edge.Edge, body string) { send(e, body, iphone) }
 
-func send(e *edge.Edge, body, ua string) {
+func send(e *edge.Edge, body, ua string) { sendFrom(e, body, ua, "203.0.113.5") }
+
+func sendFrom(e *edge.Edge, body, ua, ip string) {
 	req := httptest.NewRequest("POST", "https://lp.example.com/e", strings.NewReader(body))
 	req.Header.Set("User-Agent", ua)
-	req.Header.Set("CF-Connecting-IP", "203.0.113.5")
+	req.Header.Set("CF-Connecting-IP", ip)
 	req.Header.Set("CF-IPCountry", "US")
 	e.Handler().ServeHTTP(httptest.NewRecorder(), req)
 }
@@ -106,15 +108,34 @@ func TestFromBeaconToCounts(t *testing.T) {
 		t.Errorf("bad beacons = %d", bad)
 	}
 
-	// Not due yet: 14:00 closes an hour after 15:00.
+	// Not due yet: 14:00 closes an hour after 15:00. Until then it is
+	// counted into the drafts, which funnels_api never shows.
 	if n, _ := l.CloseDue(ctx); n != 0 {
 		t.Errorf("closed %d hours too early", n)
+	}
+	if n, err := l.DraftOpen(ctx); err != nil || n != 1 {
+		t.Fatalf("drafted %d hours: %v", n, err)
+	}
+	if n, _ := l.DraftOpen(ctx); n != 0 {
+		t.Errorf("drafted again within DraftEvery: %d", n)
+	}
+	var drafted, published int
+	must(t, db.QueryRow(ctx, `SELECT (SELECT sum(journeys) FROM funnels_draft.journey_hourly),
+	    (SELECT count(*) FROM funnels_api.journey_hourly_v1)`).Scan(&drafted, &published))
+	if drafted != 2 || published != 0 {
+		t.Errorf("drafts: %d journeys, published rows %d", drafted, published)
 	}
 	clk.set(time.Date(2026, 9, 30, 16, 0, 0, 0, time.UTC))
 	n, err = l.CloseDue(ctx)
 	must(t, err)
 	if n != 1 {
 		t.Fatalf("closed %d hours, want 1", n)
+	}
+
+	var left int
+	must(t, db.QueryRow(ctx, `SELECT (SELECT count(*) FROM funnels_draft.journey) + (SELECT count(*) FROM funnels_draft.step_hourly)`).Scan(&left))
+	if left != 0 {
+		t.Errorf("%d draft rows left after the hour closed", left)
 	}
 
 	var journeys, bots int

@@ -309,7 +309,8 @@ funnels_box() {
     install -d -m 0750 -o funnels -g funnels /var/lib/funnels /var/lib/funnels/spool /var/lib/funnels/sites
     install_bin funnels-edge
     install_bin funnels-loader
-    for u in funnels-edge.service funnels-loader.service; do
+    install_bin funnels-web
+    for u in funnels-edge.service funnels-loader.service funnels-web.service; do
         install -m 0644 "$funnels_src/deploy/$u" "/etc/systemd/system/$u"
     done
     systemctl daemon-reload
@@ -318,11 +319,17 @@ funnels_box() {
     env_file funnels-edge "$(funnels_example funnels-edge | sed "s|^FUNNELS_IP_KEY=FILL_ME\$|FUNNELS_IP_KEY=$(openssl rand -hex 24)|")" funnels
     start funnels-edge funnels-edge
 
-    # funnels-loader owns the funnels and funnels_api schemas and runs their
-    # migrations; funnels_api_read must exist before the first one.
-    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'funnels_api_read') THEN CREATE ROLE funnels_api_read NOLOGIN; END IF; END \$\$"
-    local pw k v f=/etc/adhunters/funnels-loader.env
+    # funnels-loader owns the funnels, funnels_draft and funnels_api schemas
+    # and runs their migrations; funnels_api_read and funnels_web_read must
+    # exist before the migrations that grant them.
+    local r
+    for r in funnels_api_read funnels_web_read; do
+        psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '$r') THEN CREATE ROLE $r NOLOGIN; END IF; END \$\$"
+    done
+    local pw web_pw k v f=/etc/adhunters/funnels-loader.env
     pw=$(login funnels)
+    web_pw=$(login funnels_web)
+    psql_su -d adhunters -c "GRANT funnels_web_read TO funnels_web"
     psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO funnels"
     env_file funnels-loader "$(funnels_example funnels-loader)" funnels
     if [ -n "$pw" ]; then
@@ -336,6 +343,13 @@ funnels_box() {
         fi
     done
     start funnels-loader funnels-loader
+
+    # funnels-web: the pages under /funnels/, reading through funnels_web.
+    env_file funnels-web "$(funnels_example funnels-web)" funnels
+    if [ -n "$web_pw" ]; then
+        sed -i "s|^DATABASE_URL=postgres://funnels_web:FILL_ME@|DATABASE_URL=postgres://funnels_web:$web_pw@|" /etc/adhunters/funnels-web.env
+    fi
+    start funnels-web funnels-web
 }
 
 # ---- Intel on the data box -------------------------------------------------
@@ -826,6 +840,7 @@ launch-web              9111  launch-web      -
 create                  9112  create          -
 funnels-edge            9117  funnels-edge    -
 funnels-loader          9118  funnels-loader  -
+funnels-web             9123  funnels-web     -
 intel-collect           9113  intel-collect   -
 intel-numbers           9114  intel-numbers   -
 intel-web               9115  intel-web       -

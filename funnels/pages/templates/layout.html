@@ -1,0 +1,62 @@
+{{define "top"}}<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · Funnels</title>
+<link rel="stylesheet" href="/funnels/_frame/frame.css">
+<link rel="stylesheet" href="/funnels/_funnels/funnels.css">
+<script type="module" src="/funnels/_funnels/funnels.js"></script>
+</head>
+<body data-tab="{{.Tab}}" data-user="{{.User}}" data-hosting="{{if .Hosting}}1{{end}}">
+<aside data-frame="filters">
+  <div class="filter-group">
+    <h3>Período</h3>
+    <div class="chips">{{range .Windows}}<a class="win{{if .On}} on{{end}}" href="{{.Href}}"{{if .On}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}</div>
+  </div>
+  <div class="filter-group">
+    <h3>Aparelho</h3>
+    <div class="chips">{{range .Devices}}<a class="win{{if .On}} on{{end}}" href="{{.Href}}"{{if .On}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}</div>
+  </div>
+  {{if .Campaigns}}<div class="filter-group">
+    <h3>Campanha (sub1)</h3>
+    {{range .Campaigns}}{{if .Href}}<a class="acct{{if .On}} on{{end}}" href="{{.Href}}">{{.Label}}</a>{{else}}<span class="acct on">{{.Label}}</span>{{end}}{{end}}
+  </div>{{end}}
+</aside>
+<main>
+{{if .Crumbs}}<nav class="crumbs" aria-label="Onde você está">{{range $i, $c := .Crumbs}}{{if $i}}<span class="sep">/</span>{{end}}{{if $c.Href}}<a href="{{$c.Href}}?{{$.Keep}}">{{$c.Label}}</a>{{else}}<span aria-current="page">{{$c.Label}}</span>{{end}}{{end}}</nav>{{end}}
+{{end}}
+
+{{define "fresh"}}<p class="lead">{{windowName .Window}}{{if .Device}} · {{deviceName .Device}}{{end}}{{if .Sub1}} · campanha {{.Sub1}}{{end}}.
+{{if .Fresh.LastClosed}}Contas fechadas até {{hour .Fresh.LastClosed}}.{{else}}Nenhuma hora fechada ainda.{{end}}
+{{if .Fresh.OpenHours}}<span class="badge paused" title="Horas que ainda não fecharam: os números mudam até uma hora depois do fim de cada uma.">parcial</span> {{.Fresh.OpenHours}} hora(s) ainda aberta(s){{with .Fresh.DraftAt}}, contada(s) {{ago .}}{{end}}.{{end}}
+Robôs ficam fora das contas.</p>{{end}}
+
+{{define "bottom"}}
+</main>
+</body>
+</html>{{end}}
+
+{{define "videoRows"}}
+<div class="table-wrap"><table class="list">
+<thead><tr><th>Vídeo</th><th class="num">Carregou</th><th class="num">Autoplay</th><th class="num">Play</th><th class="num">Play / carregou</th><th class="num">Média ouvida</th><th class="num">Chegou na oferta</th></tr></thead>
+<tbody>{{range .}}<tr>
+  <td><a href="{{videoPath .Video}}">{{.Video}}</a></td>
+  <td class="num">{{int .Loads}}</td><td class="num">{{int .Autoplays}}</td><td class="num">{{int .Plays}}</td>
+  <td class="num">{{pct .PlayShare}}</td><td class="num">{{secs .AvgWatched}}</td><td class="num">{{pct .PitchShare}}</td>
+</tr>{{else}}<tr><td colspan="7" class="faint">Nenhum vídeo no período.</td></tr>{{end}}</tbody>
+</table></div>
+{{end}}
+
+{{define "funnel"}}
+<div class="table-wrap"><table class="list funnel">
+<thead><tr><th>Passo</th><th class="num">Chegaram</th><th class="bar-col"></th><th class="num">Da página</th><th class="num">Pararam aqui</th></tr></thead>
+<tbody>{{range .}}<tr>
+  <td>{{stepName .Step}}<div class="faint small-text mono">{{.Step}}</div></td>
+  <td class="num">{{int .Reached}}</td>
+  <td class="bar-col"><svg class="bar" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true"><rect class="track" width="100" height="6"/><rect width="{{bar .Share}}" height="6"/></svg></td>
+  <td class="num">{{pct .Share}}</td>
+  <td class="num">{{int .Stopped}} <span class="faint">({{pct .DropShare}})</span></td>
+</tr>{{end}}</tbody>
+</table></div>
+{{end}}
