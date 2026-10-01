@@ -30,9 +30,10 @@ Nothing here creates an account or holds a secret. Every secret is a
    Also create a third token, `bot`, with `metrics:read` (for observe-bot),
    and in Grafana (Administration > Service accounts) a service account with
    the Editor role and a token, for the dashboards.
-2. **Sentry** (sentry.io, free Developer plan). Create one Go project,
-   `adhunters-go`; all Go services report there, told apart by the `service`
-   tag. Note its DSN and your organization's slug. In Settings > Custom
+2. **Sentry** (sentry.io, free Developer plan). Create one Go project
+   (ours, made 30 Sep 2026 in the EU region: organization
+   `marcos-capistrano`, project `go`); all Go services report there, told
+   apart by the `service` tag. Note its DSN and your organization's slug. In Settings > Custom
    Integrations, create an internal integration with Issue & Event: Read and
    note its token, for observe-bot. An organization in the EU data region
    answers on `https://de.sentry.io`, so observe-bot's `SENTRY_URL` is that
