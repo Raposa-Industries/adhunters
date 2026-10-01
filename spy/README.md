@@ -107,7 +107,9 @@ collector's rules: sites sharing a strong clue belong together (a clue on
 more than `clue_max_sites`, 20, joins nothing); an account whose clicks
 reach at most 2 of those groups joins them, one reaching 3 or more is its
 own operator (arbitrage); accounts sharing a name root join, unless the
-root reaches 3 or more groups (an agency); accounts with the same email in
+root reaches 3 or more groups or its accounts belong to 3 or more operators
+today (an agency; the second test is migration 0012, for agencies whose
+other clients the walker has not reached yet); accounts with the same email in
 their name join; `grouping_fix` rows (join or split, by hand) win. A group
 keeps the operator most of its members have now, so OP codes stay. Kind is
 arbitrage, affiliate (a site selling through ClickBank, BuyGoods, MaxBounty,
@@ -120,7 +122,7 @@ grouped as today, moved, newly grouped, and on no landing page yet;
 `spy-numbers status` shows the last one. `spy-numbers check` shows what to
 read before switching: the walker's last 24 hours, the classifier, how the
 accounts with an operator now compare, and the proposed groups that differ
-most. Operators change only when the setting `operators_from` is
+most, with what tied most of each group's accounts in. Operators change only when the setting `operators_from` is
 `grouping`: then the grouping writes `operator`, `account_operator` and
 `site.operator_id`, and import-old copies the verticals only. An account no
 landing page has shown yet keeps the operator it has (migration 0011); one

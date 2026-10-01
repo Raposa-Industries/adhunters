@@ -180,3 +180,36 @@ func TestPagesAndOperators(t *testing.T) {
 		}
 	}
 }
+
+// An agency whose other clients the walker has not reached yet: its accounts
+// belong to 3 operators today, so the root does not join them.
+func TestAgencyRootFromTodaysOperators(t *testing.T) {
+	b := newBench(t)
+	week := now.AddDate(0, 0, -7)
+	b.exec(`INSERT INTO spy.operator (id, name) VALUES (31, 'a · OP31'), (32, 'b · OP32'), (33, 'c · OP33'), (34, 'd · OP34')`)
+	b.exec(`INSERT INTO tracks_api.account_v1 (id, external_id, first_seen_at, last_seen_at) VALUES
+		(1, 'bigagency-c1', $1, $2), (2, 'bigagency-c2', $1, $2), (3, 'bigagency-c3', $1, $2),
+		(4, 'onebrand-us1', $1, $2), (5, 'onebrand-us2', $1, $2)`, week, now)
+	b.exec(`INSERT INTO spy.account_operator VALUES (1, 31), (2, 32), (3, 33), (4, 34), (5, 34)`)
+	b.version(v1, "Client one", `{}`, nil, nil)
+	b.version(v2, "Brand", `{}`, nil, nil)
+	at := now.Add(-2 * time.Hour)
+	b.walk(1, 0, 10, 1, at, "client1.com", v1, 200, "", "")
+	b.walk(2, 0, 11, 4, at, "onebrand.com", v2, 200, "", "")
+	if _, err := b.r.Pages(b.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.r.Operators(b.ctx); err != nil {
+		t.Fatal(err)
+	}
+	groups := `SELECT string_agg(x, ' / ' ORDER BY x) FROM (
+		SELECT string_agg(COALESCE(s.domain, 'account:' || m.member_id), ',' ORDER BY m.member, s.domain, m.member_id) x
+		FROM spy.grouping_member m LEFT JOIN spy.site s ON m.member = 'site' AND s.id = m.member_id
+		WHERE m.grp IS NOT NULL GROUP BY m.grp) g`
+	if got := b.text(groups); got != "account:1,client1.com / account:4,account:5,onebrand.com" {
+		t.Errorf("groups: %s; the agency's unwalked accounts should stay apart, one brand's join", got)
+	}
+	if got := b.text(`SELECT string_agg(name_root || ' ' || operator_count, ', ') FROM spy.agency`); got != "bigagency 3" {
+		t.Errorf("agencies: %s", got)
+	}
+}
