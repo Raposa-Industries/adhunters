@@ -18,7 +18,7 @@ settings once.
 | Binary | Does | Ops port |
 |---|---|---|
 | `intel-collect run` | Reads every Taboola login and RedTrack account on a schedule and keeps each answer as received: first in its spool on disk, then in `intel.answer` ([decision 0016](../decisions/0016-intel-answers-in-postgres.md)). It parses nothing. `intel-collect once JOB` runs one job. | 9113 |
-| `intel-numbers run` | Every 2 minutes: loads new answers into tables, links moved campaigns, works out results, keeps alerts (each sent once to "AdHunters alerts" on Telegram) and suggestions. `reload -from D -to D` parses a range of answers again; `status` prints counts. Never talks to Taboola or RedTrack. | 9114 |
+| `intel-numbers run` | Every 2 minutes: loads new answers into tables, links moved campaigns, works out results, keeps alerts and suggestions (each sent once to "AdHunters alerts" on Telegram, suggestions with their Launch link). `reload -from D -to D` parses a range of answers again; `status` prints counts. Never talks to Taboola or RedTrack. | 9114 |
 | `intel-web` | The pages under `/intel/`, in the Frame (`shared/frame`), on `INTEL_WEB_ADDR` (127.0.0.1:8096) behind Cloudflare Access. Its one write is "not now" on a suggestion. | 9115 |
 
 What intel-collect reads, per Taboola login (Intel keeps to 40 standard and 8
@@ -62,7 +62,10 @@ How the numbers are judged:
 - **Suggestions:** pause ads that would not reach their spend without a sale
   1 time in 20 at the account's usual cost per sale (and spent $10 or more);
   pause the campaign when that is every running ad; halve the daily cap of a
-  runaway. "Not now" hides one for a day.
+  runaway. "Not now" hides one for a day. Each new one goes once to
+  "AdHunters alerts" with an "Open in Launch" link (`INTEL_BASE_URL` plus
+  the Launch path), grouped into one message per round; ones older than
+  `suggestion_alert_max_age_hours` (6) stay on the pages only.
 - Every threshold is a row in `intel.setting`, changed without a deploy.
 
 Moved campaigns: Taboola cannot change a campaign's group, so Launch moves
@@ -73,7 +76,12 @@ Launch publishes that view, nothing is linked.
 
 Intel publishes `intel_api` views for the other apps
 (`contract/sql/intel/`): campaign and ad results, open suggestions, alerts
-and campaign lines.
+and campaign lines. `intel_api_read` can read every view there, including
+ones a later migration adds (default privileges, migration 0007).
+
+Money is never converted: every amount is in the Taboola account's
+currency. All four ZoltaGroup accounts (and the network) are USD (checked
+2026-10-01), the same as RedTrack's revenue and what Launch shows.
 
 Tests need Postgres: `PG_TEST_URL=postgres://… go test ./...` (each test
 makes and drops its own database).

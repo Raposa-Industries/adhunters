@@ -286,3 +286,42 @@ func TestStatusChanges(t *testing.T) {
 		t.Fatalf("sent again")
 	}
 }
+
+func TestSendSuggestions(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	exec(t, db, `INSERT INTO intel.tb_campaign (campaign_id, account, group_id, name, status, is_active, settings, first_seen_at, fetched_at)
+		VALUES (1, 'acme-sc', 10, 'BP <mobile>', 'RUNNING', true, '{}', $1, $1)`, now)
+	// Open and new; open but too old for Telegram; already sent; dismissed.
+	exec(t, db, `INSERT INTO intel.suggestion (key, kind, account, group_id, campaign_id, item_ids, title, why, launch_url, state, created_at, seen_at, sent_at)
+		VALUES ('a', 'pause-ads', 'acme-sc', 10, 1, '{11}', 'Pause 1 ad', 'It spent $200 with no sale.',
+		        '/launch/taboola/acme-sc/g/10/c/1?do=pause-ads&ads=11&from=intel:1', 'open', $1, $1, NULL),
+		       ('b', 'pause-campaign', 'acme-sc', 10, 1, '{}', 'Pause old', 'x', '/launch/x', 'open', $2, $1, NULL),
+		       ('c', 'set-daily-cap', 'acme-sc', 10, 1, '{}', 'Cap sent', 'x', '/launch/y', 'open', $1, $1, $1),
+		       ('d', 'pause-ads', 'acme-sc', 10, 1, '{12}', 'Dismissed', 'x', '/launch/z', 'dismissed', $1, $1, NULL)`,
+		now.Add(-time.Minute), now.Add(-7*time.Hour))
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	s := judge.Settings{}
+	if n, err := judge.SendSuggestions(ctx, db, log, s, now, nil, ""); err != nil || n != 0 {
+		t.Fatalf("sent %d without a sender: %v", n, err)
+	}
+	sent := &fakeSender{}
+	if n, err := judge.SendSuggestions(ctx, db, log, s, now, sent, "https://hunt-teste.fyi/"); err != nil || n != 1 {
+		t.Fatalf("sent %d, want 1: %v", n, err)
+	}
+	msg := sent.msgs[0]
+	for _, want := range []string{"<b>Intel · Suggestion</b>", "<b>Pause 1 ad</b>", "BP &lt;mobile&gt; (acme-sc · 1)",
+		`<a href="https://hunt-teste.fyi/launch/taboola/acme-sc/g/10/c/1?do=pause-ads&amp;ads=11&amp;from=intel:1">Open in Launch</a>`} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("no %q in\n%s", want, msg)
+		}
+	}
+	for _, not := range []string{"Pause old", "Cap sent", "Dismissed"} {
+		if strings.Contains(msg, not) {
+			t.Errorf("sent %q:\n%s", not, msg)
+		}
+	}
+	if n, _ := judge.SendSuggestions(ctx, db, log, s, now, sent, ""); n != 0 || len(sent.msgs) != 1 {
+		t.Fatalf("sent again")
+	}
+}
