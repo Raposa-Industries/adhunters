@@ -80,8 +80,8 @@ question of its own visits instead.
 ## Copying the collector's investigations
 
 `raposa-engine import-old` copies every job of the collector's Raposa
-(`spy.raposa_job` and its visits, steps, variants, pages, page files and log)
-into the raposa schema. It only reads the collector's database. Each job is
+(`spy.raposa_job` and its visits, steps, variants, pages, page files,
+screenshots and log) into the raposa schema. It only reads the collector's database. Each job is
 copied in one transaction together with its row in
 `raposa.imported_investigation` (the job's old id and uid), so a job is
 copied whole or not at all, and running it again copies only what is missing.
@@ -112,9 +112,25 @@ waiting and runs here, and one running there is copied as stopped.
   `s3://$BLOB_BUCKET/raposa`), and each goes into the files store under its
   md5 after its bytes are checked. A job whose file cannot be read is not
   copied, and the command exits non-zero naming it.
-- **What changes**: the collector's `blocked` outcome becomes `error` with
-  the error `blocked`; disguises are matched on their code; `burn_scope` comes
-  from the click link's site; a paced retry keeps its release time.
+- **What changes**: the collector's visit outcomes fold into raposa's three.
+  `blocked` (a bot defence) and `unfinished` (a page that never finished
+  loading) become `error`, with that word first in the error. `candidate` (a
+  page the reviewer never got, not yet called dark) becomes `dark`: the visit
+  did not get the reviewer's page, and the job's verdict comes from the job
+  itself; the log lists those visits. Disguises are matched on their code; `burn_scope` comes from the
+  click link's site; a paced retry keeps its release time.
+- **Screenshots** (`spy.raposa_shot`, taken when a visit was judged dark)
+  become files of their page, role `screenshot`: the dark one on the page
+  the visit landed on, the white one on the white page. How each was taken
+  (size, what was blocked or hidden) is a line in the log.
+- **Kept in the log**: what raposa has no column for goes into the
+  investigation's log as the collector had it, so nothing in a job is lost:
+  the job's verdict rule and its evidence, `no_verdict`, its continuous
+  sampling fields, and the headline when Tracks has no ad with it; each
+  sampling round (`spy.raposa_window`) with the visits it made; each visit's
+  mismatch (what differed from the white page); and visits on a disguise
+  raposa does not have. A column the collector adds later is kept the same
+  way.
 - **Not copied**: evidence (the collector wrote it into Spy's landing page
   visits, which stay where they are), burned lines (rebuilt from the copied
   visits), settings (the report lists the ones the collector had at another
