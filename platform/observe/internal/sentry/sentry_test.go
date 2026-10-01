@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 )
@@ -32,5 +33,59 @@ func TestNewSince(t *testing.T) {
 	c.Token = "bad"
 	if _, err := c.NewSince(context.Background(), time.Time{}); err == nil {
 		t.Fatal("want an error")
+	}
+}
+
+// TestNewSinceRetries asks again after a slow answer or a 5xx, and never after
+// a 401, which is a setting rather than a slow spell.
+func TestNewSinceRetries(t *testing.T) {
+	var mu sync.Mutex
+	calls := 0
+	status := []int{0, 502, 200} // 0: too slow, the client times out
+	script := func(s []int) {
+		mu.Lock()
+		defer mu.Unlock()
+		calls, status = 0, s
+	}
+	count := func() int {
+		mu.Lock()
+		defer mu.Unlock()
+		return calls
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		code := 401
+		if calls < len(status) {
+			code = status[calls]
+		}
+		calls++
+		mu.Unlock()
+		switch code {
+		case 0:
+			time.Sleep(200 * time.Millisecond)
+		case 200:
+			_, _ = w.Write([]byte(`[{"id":"1","shortId":"GO-1","title":"x","firstSeen":"2026-09-28T12:01:00Z","count":"1"}]`))
+		default:
+			http.Error(w, "no", code)
+		}
+	}))
+	defer srv.Close()
+	c := &Client{URL: srv.URL, Org: "o", Project: "p", Token: "k",
+		HTTP: &http.Client{Timeout: 50 * time.Millisecond}, Backoff: time.Millisecond}
+	got, err := c.NewSince(context.Background(), time.Time{})
+	if err != nil || len(got) != 1 || count() != 3 {
+		t.Fatalf("got %v err %v after %d calls", got, err, count())
+	}
+
+	// Three tries in all, then the timeout is the error.
+	script([]int{0, 0, 0, 200})
+	if _, err := c.NewSince(context.Background(), time.Time{}); err == nil || count() != 3 {
+		t.Fatalf("err %v after %d calls", err, count())
+	}
+
+	// A 401 is not asked again.
+	script(nil)
+	if _, err := c.NewSince(context.Background(), time.Time{}); err == nil || count() != 1 {
+		t.Fatalf("err %v after %d calls", err, count())
 	}
 }
