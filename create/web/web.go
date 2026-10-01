@@ -46,16 +46,19 @@ func Handler() http.Handler {
 }
 
 // OldPath is where the old launcher page lives now that the site's root
-// opens Launch.
+// opens Home.
 const OldPath = "/old/"
 
-// Root routes create-web's address: "/" opens the new Launch (the tunnel
-// sends /launch to launch-web), the old launcher page and its API stay
+// Home is where the site's root sends people: Intel (the tunnel sends
+// /intel to intel-web).
+const Home = "/intel/"
+
+// Root routes create-web's address: "/" opens Home, the old launcher page and its API stay
 // reachable under OldPath, and every other path goes to app unchanged, so
 // /api/ and /_ads/ keep answering old bookmarks and open tabs.
 func Root(app http.Handler) http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("GET /{$}", http.RedirectHandler("/launch/", http.StatusFound))
+	mux.Handle("GET /{$}", http.RedirectHandler(Home, http.StatusFound))
 	mux.Handle(OldPath, http.StripPrefix(strings.TrimSuffix(OldPath, "/"), app))
 	mux.Handle("/", app)
 	return mux

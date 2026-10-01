@@ -134,7 +134,7 @@ func serve(args []string) error {
 		w.WriteHeader(http.StatusForbidden)
 		_, _ = w.Write([]byte(`{"error":"pedido vindo de outro site recusado"}` + "\n"))
 	}))
-	// The site's root opens Launch; the old page is at /old/.
+	// The site's root opens Intel; the old page is at /old/.
 	handler := web.Secure(web.Root(cop.Handler(mux)))
 
 	ln, err := net.Listen("tcp", *addr)

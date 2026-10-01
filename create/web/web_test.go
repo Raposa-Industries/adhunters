@@ -82,14 +82,14 @@ func TestTypesAndMissing(t *testing.T) {
 	}
 }
 
-func TestRootOpensLaunch(t *testing.T) {
+func TestRootOpensHome(t *testing.T) {
 	app := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, "app "+r.URL.Path)
 	})
 	h := Root(app)
 	for _, c := range []struct{ path, loc, body string }{
-		{"/", "/launch/", ""},
-		{"/?x=1", "/launch/", ""},
+		{"/", Home, ""},
+		{"/?x=1", Home, ""},
 		{"/old", "/old/", ""},
 		{"/old/", "", "app /"},
 		{"/old/app.js", "", "app /app.js"},
