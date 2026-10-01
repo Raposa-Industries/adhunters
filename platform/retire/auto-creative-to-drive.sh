@@ -27,6 +27,15 @@ mkdir -p "$out"
 work=$(mktemp -d)
 trap 'rm -rf "$work"; [ -n "${tunnel:-}" ] && kill "$tunnel" 2>/dev/null || true' EXIT
 
+# ssh runs without prompts (BatchMode), so prod's key must already be in
+# your ssh agent: its passphrase can't be asked half way through.
+ssh -o BatchMode=yes -o ConnectTimeout=15 prod true 2>/dev/null || {
+    echo "ssh prod needs its key in your ssh agent first:" >&2
+    echo '  ssh-add "$(ssh -G prod | awk '"'"'/^identityfile/{print $2; exit}'"'"' | sed "s|^~|$HOME|")"' >&2
+    echo '(if ssh-add cannot reach an agent: eval "$(ssh-agent)" first, in the same terminal)' >&2
+    exit 1
+}
+
 echo "== reading Auto-Creative's pictures (kept creatives only)"
 ac_psql() { ssh "${ssh_opts[@]}" prod "docker exec -i auto-creative-postgres-1 sh -c 'psql -X -q --csv -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"'"; }
 ac_psql > "$out/auto-creative-manifest.csv" <<'SQL'

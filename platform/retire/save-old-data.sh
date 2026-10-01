@@ -97,6 +97,14 @@ gz)
     done
     ;;
 auto-creative)
+    # ssh runs without prompts (BatchMode), so prod's key must already be in
+    # your ssh agent: its passphrase can't be asked half way through.
+    ssh -o BatchMode=yes -o ConnectTimeout=15 prod true 2>/dev/null || {
+        echo "ssh prod needs its key in your ssh agent first:" >&2
+        echo '  ssh-add "$(ssh -G prod | awk '"'"'/^identityfile/{print $2; exit}'"'"' | sed "s|^~|$HOME|")"' >&2
+        echo '(if ssh-add cannot reach an agent: eval "$(ssh-agent)" first, in the same terminal)' >&2
+        exit 1
+    }
     say "Auto-Creative on prodbox: its database (pg_dump) and its MinIO volume (tar) -> adhunters-raw/legacy/auto-creative"
     dest=archive:adhunters-raw/legacy/auto-creative
     ssh "${ssh_opts[@]}" prod "docker exec auto-creative-postgres-1 sh -c 'pg_dump -U \"\$POSTGRES_USER\" -Fc \"\$POSTGRES_DB\"'" \
