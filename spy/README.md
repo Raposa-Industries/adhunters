@@ -27,6 +27,7 @@ spy-numbers refresh [-rebuild] [-pages-since T]
                                    -pages-since reads the landing page walks from T again
 spy-numbers import-old             copies the groupings from the collector (OLD_DATABASE_URL, read only)
 spy-numbers status
+spy-numbers check                  the walker, the classifier and the grouping on live data, read only
 ```
 
 `/healthz` fails when the read model or Direction has not succeeded for 20
@@ -115,11 +116,16 @@ the seller and the code.
 
 It runs in shadow first. The answer goes to `grouping_group` and
 `grouping_member`, and each run's `grouping_run` row counts the accounts
-grouped as today, moved, and newly grouped; `spy-numbers status` shows the
-last one. Operators change only when the setting `operators_from` is
+grouped as today, moved, newly grouped, and on no landing page yet;
+`spy-numbers status` shows the last one. `spy-numbers check` shows what to
+read before switching: the walker's last 24 hours, the classifier, how the
+accounts with an operator now compare, and the proposed groups that differ
+most. Operators change only when the setting `operators_from` is
 `grouping`: then the grouping writes `operator`, `account_operator` and
-`site.operator_id`, and import-old copies the verticals only. Switching is
-one row:
+`site.operator_id`, and import-old copies the verticals only. An account no
+landing page has shown yet keeps the operator it has (migration 0011); one
+leaves its operator only when the grouping places it elsewhere or a hand fix
+splits it out. Switching is one row:
 
 ```
 UPDATE spy.setting SET text_value = 'grouping' WHERE name = 'operators_from';
@@ -211,8 +217,8 @@ EXECUTE on `raposa_api.request_investigation_v1`), writes
 `/etc/adhunters/spy-numbers.env` and `spy-web.env`, and starts both units.
 spy-web waits until `ACCESS_TEAM` and `ACCESS_AUD` are filled in from an
 Access application for the address. Without the Raposa grants the ad page
-leaves Raposa out. Once it answers, `shared/frame/core.js`
-can mark Spy ready so other apps' menus link to it.
+leaves Raposa out. Spy is marked ready in `shared/frame/assets/core.js`,
+so other apps' menus link to it.
 
 ## What it reads and publishes
 

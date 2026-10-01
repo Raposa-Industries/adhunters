@@ -8,7 +8,7 @@
 // path. `ready` says whether the app answers at that path yet; one that
 // does not shows as "em breve".
 export const APPS = [
-  { id: 'spy', name: 'Spy', key: 'S', about: 'Anúncios que estão funcionando', ready: false },
+  { id: 'spy', name: 'Spy', key: 'S', about: 'Anúncios que estão funcionando', ready: true },
   { id: 'create', name: 'Create', key: 'C', about: 'Imagens e headlines', ready: true },
   { id: 'launch', name: 'Launch', key: 'L', about: 'Criar e mudar campanhas', ready: true },
   { id: 'intel', name: 'Intel', key: 'I', about: 'O que está performando', ready: false },

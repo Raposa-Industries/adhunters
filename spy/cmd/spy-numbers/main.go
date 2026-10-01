@@ -9,6 +9,7 @@
 //	spy-numbers refresh [-rebuild] [-pages-since 2026-10-01T00:00:00Z]
 //	spy-numbers import-old
 //	spy-numbers status
+//	spy-numbers check
 //
 // The database URL comes from DATABASE_URL; the login reads tracks_api
 // (tracks_api_read) and owns the spy schemas. import-old copies the
@@ -60,6 +61,8 @@ func main() {
 		err = importCmd()
 	case "status":
 		err = statusCmd()
+	case "check":
+		err = checkCmd()
 	case "version":
 		fmt.Println(version)
 	default:
@@ -72,7 +75,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: spy-numbers run|migrate|refresh|import-old|status|version [flags]")
+	fmt.Fprintln(os.Stderr, "usage: spy-numbers run|migrate|refresh|import-old|status|check|version [flags]")
 	os.Exit(2)
 }
 
@@ -221,6 +224,18 @@ func importCmd() error {
 	return nil
 }
 
+// checkCmd prints what the walker, the classifier and the grouping did, to
+// read before switching to Spy's own grouping. It only reads.
+func checkCmd() error {
+	ctx := context.Background()
+	db, err := open(ctx, "DATABASE_URL", pg.WebStatementTimeout, 1)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	return numbers.Check(ctx, db, os.Stdout, time.Now())
+}
+
 // statusCmd prints where the last 24 hours end, how big each table is, and
 // when each grouping was last copied.
 func statusCmd() error {
@@ -239,7 +254,7 @@ func statusCmd() error {
 		                 (SELECT count(*) || ' sites, ' || (SELECT count(*) FROM spy.creative_page) || ' creatives' FROM spy.site)
 		UNION ALL SELECT 'operators from', COALESCE((SELECT text_value FROM spy.setting WHERE name = 'operators_from'), 'import'), ''
 		UNION ALL (SELECT 'last grouping', groups || ' groups; accounts: ' || accounts_same || ' same, ' || accounts_moved
-		                  || ' moved, ' || accounts_new || ' new' || CASE WHEN applied THEN ' (applied)' ELSE ' (proposed)' END,
+		                  || ' moved, ' || accounts_new || ' new, ' || accounts_unseen || ' on no page yet' || CASE WHEN applied THEN ' (applied)' ELSE ' (proposed)' END,
 		                  to_char(at, 'YYYY-MM-DD HH24:MI')
 		           FROM spy.grouping_run ORDER BY id DESC LIMIT 1)
 		UNION ALL (SELECT 'copied ' || what, copied::text || ' (' || skipped || ' skipped)', to_char(done_at, 'YYYY-MM-DD HH24:MI')

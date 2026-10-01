@@ -1,6 +1,7 @@
 package numbers
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -33,14 +34,15 @@ const (
 
 func TestPagesAndOperators(t *testing.T) {
 	b := newBench(t)
-	b.exec(`INSERT INTO spy.operator (id, name, display_name) VALUES (8, 'old · OP8', 'old')`)
+	b.exec(`INSERT INTO spy.operator (id, name, display_name) VALUES (8, 'old · OP8', 'old'), (20, 'unseen · OP20', 'unseen')`)
 	week := now.AddDate(0, 0, -7)
 	b.exec(`INSERT INTO tracks_api.account_v1 (id, external_id, first_seen_at, last_seen_at) VALUES
 		(1, 'acmehealth-sc', $1, $2), (2, 'acmehealth2-sc', $1 + interval '1 day', $2), (3, 'wideguy-sc', $1, $2),
 		(4, 'taboolaaccount-joe45gmailcom', $1, $2), (5, 'brandx-joe45gmailcom2-sc', $1, $2), (6, 'solo-sc', $1, $2),
 		(9, 'nobody-sc', $1, $2)`, week, now)
-	// Today's operators, as import-old copies them: 1 and 2 in OP7, 6 in OP8.
-	b.exec(`INSERT INTO spy.account_operator VALUES (1, 7), (2, 7), (6, 8)`)
+	// Today's operators, as import-old copies them: 1 and 2 in OP7, 6 in OP8,
+	// 9 (on no landing page) in OP20.
+	b.exec(`INSERT INTO spy.account_operator VALUES (1, 7), (2, 7), (6, 8), (9, 20)`)
 
 	fb := `{"facebook": ["1234567890123456"], "google": ["AW-123456789"], "redtrack": []}`
 	b.version(v1, "Acme BP", fb, []string{"support@acmehealth.com"}, []string{"Acme Health LLC"})
@@ -109,12 +111,23 @@ func TestPagesAndOperators(t *testing.T) {
 	if got := b.text(groups); got != want {
 		t.Errorf("groups:\n got %s\nwant %s", got, want)
 	}
-	if got := b.text(`SELECT format('%s %s %s %s', applied::text, accounts_same, accounts_moved, accounts_new)
-		FROM spy.grouping_run ORDER BY id DESC LIMIT 1`); got != "false 2 1 3" {
+	if got := b.text(`SELECT format('%s %s %s %s %s', applied::text, accounts_same, accounts_moved, accounts_new, accounts_unseen)
+		FROM spy.grouping_run ORDER BY id DESC LIMIT 1`); got != "false 2 1 3 1" {
 		t.Errorf("comparison: %s", got)
 	}
-	if got := b.text(`SELECT string_agg(account_id || '>' || operator_id, ' ' ORDER BY account_id) FROM spy.account_operator`); got != "1>7 2>7 6>8" {
+	if got := b.text(`SELECT string_agg(account_id || '>' || operator_id, ' ' ORDER BY account_id) FROM spy.account_operator`); got != "1>7 2>7 6>8 9>20" {
 		t.Errorf("shadow changed the operators in use: %s", got)
+	}
+
+	// The check lists the proposed groups that differ from today's operators.
+	var shadow strings.Builder
+	if err := Check(b.ctx, b.db, &shadow, now); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"acmehealth (OP7)  OP7 2, OP8 1", "(proposed only)", "of those, moved or split out             1"} {
+		if !strings.Contains(shadow.String(), want) {
+			t.Errorf("shadow check has no %q:\n%s", want, shadow.String())
+		}
 	}
 
 	// Applied, with a hand fix keeping other2.com apart.
@@ -129,9 +142,12 @@ func TestPagesAndOperators(t *testing.T) {
 	if got := b.text(`SELECT count(*)::text FROM spy.operator WHERE id = 8`); got != "0" {
 		t.Errorf("OP8 holds nothing now and should be gone")
 	}
+	if got := b.text(`SELECT count(*)::text FROM spy.operator WHERE id = 20`); got != "1" {
+		t.Errorf("OP20's account is on no landing page yet and keeps it")
+	}
 	if got := b.text(`SELECT string_agg(ao.account_id || '>' || o.display_name, ' ' ORDER BY ao.account_id)
 		FROM spy.account_operator ao JOIN spy.operator o ON o.id = ao.operator_id`); got !=
-		"1>acmehealth 2>acmehealth 3>wideguy 4>joe45gmailcom 5>joe45gmailcom 6>acmehealth" {
+		"1>acmehealth 2>acmehealth 3>wideguy 4>joe45gmailcom 5>joe45gmailcom 6>acmehealth 9>unseen" {
 		t.Errorf("accounts: %s", got)
 	}
 	if got := b.text(`SELECT format('%s %s', (operator_id IS NULL)::text, group_reason) FROM spy.site WHERE domain = 'other2.com'`); got != "true split by hand: not theirs" {
@@ -149,7 +165,18 @@ func TestPagesAndOperators(t *testing.T) {
 	if after := b.text(ids); after != before {
 		t.Errorf("ids moved on a second run: %s, then %s", before, after)
 	}
-	if got := b.text(`SELECT format('%s %s %s', accounts_same, accounts_moved, accounts_new) FROM spy.grouping_run ORDER BY id DESC LIMIT 1`); got != "6 0 0" {
+	if got := b.text(`SELECT format('%s %s %s %s', accounts_same, accounts_moved, accounts_new, accounts_unseen) FROM spy.grouping_run ORDER BY id DESC LIMIT 1`); got != "6 0 0 1" {
 		t.Errorf("second run comparison: %s", got)
+	}
+
+	var out strings.Builder
+	if err := Check(b.ctx, b.db, &out, now); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"walks with a page                 9", "ClickBank 2", "accounts with an operator now", "not on a landing page yet (keep theirs)",
+		"operators_from"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("check has no %q:\n%s", want, out.String())
+		}
 	}
 }
