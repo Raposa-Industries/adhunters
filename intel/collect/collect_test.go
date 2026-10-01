@@ -94,17 +94,30 @@ func TestTaboolaSettingsSpoolsEveryAnswer(t *testing.T) {
 }
 
 func TestRealtimeWindow(t *testing.T) {
-	f := &fakeTaboola{}
-	var q url.Values
-	tb := &Taboola{Login: "main", API: readerFunc(func(p string, v url.Values) { f.paths = append(f.paths, p); q = v }),
-		Spool: Spool{Dir: t.TempDir()}, Pace: &Pacer{disabled: true}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Now: func() time.Time { return time.Date(2026, 9, 30, 18, 7, 30, 0, time.UTC) }}
-	tb.accounts = []TbAccount{{ID: "acme-1-sc", TimeZone: "US/Eastern", loc: mustLoc(t, "US/Eastern")}}
-	if err := tb.Realtime(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	if q.Get("start_date") != "2026-09-30T13:05:00" || q.Get("end_date") != "2026-09-30T14:07:00" {
-		t.Fatalf("window %v", q)
+	// Taboola refuses 13:00 to 14:00 as "2 hours"; the span never starts on
+	// the hour unless it also ends in that hour.
+	for _, c := range []struct {
+		now        time.Time
+		start, end string
+	}{
+		{time.Date(2026, 9, 30, 18, 7, 30, 0, time.UTC), "2026-09-30T13:10:00", "2026-09-30T14:07:00"},
+		{time.Date(2026, 9, 30, 18, 0, 20, 0, time.UTC), "2026-09-30T13:05:00", "2026-09-30T14:00:00"},
+		{time.Date(2026, 9, 30, 18, 4, 0, 0, time.UTC), "2026-09-30T13:05:00", "2026-09-30T14:04:00"},
+		{time.Date(2026, 9, 30, 18, 57, 0, 0, time.UTC), "2026-09-30T14:00:00", "2026-09-30T14:57:00"},
+	} {
+		f := &fakeTaboola{}
+		var q url.Values
+		now := c.now
+		tb := &Taboola{Login: "main", API: readerFunc(func(p string, v url.Values) { f.paths = append(f.paths, p); q = v }),
+			Spool: Spool{Dir: t.TempDir()}, Pace: &Pacer{disabled: true}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+			Now: func() time.Time { return now }}
+		tb.accounts = []TbAccount{{ID: "acme-1-sc", TimeZone: "US/Eastern", loc: mustLoc(t, "US/Eastern")}}
+		if err := tb.Realtime(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		if q.Get("start_date") != c.start || q.Get("end_date") != c.end {
+			t.Errorf("at %s: window %v", c.now, q)
+		}
 	}
 }
 

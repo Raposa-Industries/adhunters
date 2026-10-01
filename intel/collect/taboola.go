@@ -232,8 +232,11 @@ func (t *Taboola) dayReports(ctx context.Context, acc TbAccount, from, to time.T
 }
 
 // Realtime reads the last hour of 5-minute buckets per campaign. Without a
-// campaign filter Taboola allows one hour at most; the runs overlap, and the
-// loader keeps the newest copy of each bucket. Taboola keeps these 24 hours.
+// campaign filter Taboola allows one hour at most, and it counts a span that
+// starts on the hour and ends in the next one as two hours (22:00 to 23:00 is
+// refused, 22:05 to 23:04 is not), so the span starts 55 minutes before the
+// end's 5-minute bucket. The runs overlap, and the loader keeps the newest
+// copy of each bucket. Taboola keeps these 24 hours.
 func (t *Taboola) Realtime(ctx context.Context) error {
 	accs, err := t.Known(ctx)
 	if err != nil {
@@ -243,7 +246,7 @@ func (t *Taboola) Realtime(ctx context.Context) error {
 	for _, acc := range accs {
 		now := t.Now().In(acc.loc)
 		end := now.Truncate(time.Minute)
-		start := end.Add(-time.Hour).Truncate(5 * time.Minute)
+		start := end.Truncate(5 * time.Minute).Add(-55 * time.Minute)
 		const layout = "2006-01-02T15:04:05"
 		q := url.Values{"start_date": {start.Format(layout)}, "end_date": {end.Format(layout)}}
 		p := map[string]any{"start": start.Format(time.RFC3339), "end": end.Format(time.RFC3339), "time_zone": acc.TimeZone}
