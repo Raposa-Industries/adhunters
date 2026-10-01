@@ -104,7 +104,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | move | Putting a campaign in another group. Taboola fixes a campaign's group when it is made, so a move is a copy in the new group; the original is paused when a person starts the copy (or at once, or never, as the person chose). |
 | draft | A new pair saved on the server to finish later. It is deleted when the pair is made. |
 | History | Everything Launch did on a network, one row per change: who did it, who asked (a person, Intel or Desk), before and after, and the result. |
-| old launcher | create-web's one-page campaign launcher, the prototype Launch replaced. At `/old/` on the team's address until the owner removes it. |
+| old launcher | create-web's one-page campaign launcher, the prototype Launch replaced. Retired on 2026-10-01: create-web now only redirects to Launch. |
 | request | A change another service (Desk) asks Launch for. It waits in Launch's Pedidos until a person confirms it, and only then is sent; or the person refuses it. |
 
 ## Intel

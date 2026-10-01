@@ -82,49 +82,17 @@ func TestTypesAndMissing(t *testing.T) {
 	}
 }
 
-func TestRootOpensHome(t *testing.T) {
-	app := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, "app "+r.URL.Path)
-	})
-	h := Root(app)
-	for _, c := range []struct{ path, loc, body string }{
-		{"/", Home, ""},
-		{"/?x=1", Home, ""},
-		{"/old", "/old/", ""},
-		{"/old/", "", "app /"},
-		{"/old/app.js", "", "app /app.js"},
-		{"/old/api/status", "", "app /api/status"},
-		{"/old/_ads/sheet.js", "", "app /_ads/sheet.js"},
-		{"/api/status", "", "app /api/status"},
-		{"/style.css", "", "app /style.css"},
+func TestRootSendsEverythingToLaunch(t *testing.T) {
+	h := Root()
+	for _, c := range []struct{ method, path string }{
+		{"GET", "/"}, {"GET", "/?x=1"}, {"GET", "/index.html"}, {"GET", "/app.js"},
+		{"GET", "/old/"}, {"GET", "/api/status"}, {"POST", "/api/plan"},
+		{"POST", "/api/taboola/campaigns"}, {"GET", "/_ads/sheet.js"},
 	} {
-		res := get(t, h, c.path)
-		body, _ := io.ReadAll(res.Body)
-		if c.loc != "" {
-			if res.StatusCode/100 != 3 || res.Header.Get("Location") != c.loc {
-				t.Errorf("%s: %d to %q, want a redirect to %q", c.path, res.StatusCode, res.Header.Get("Location"), c.loc)
-			}
-			continue
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(c.method, c.path, nil))
+		if rec.Code != http.StatusFound || rec.Header().Get("Location") != "/launch/" {
+			t.Errorf("%s %s: %d to %q, want a redirect to /launch/", c.method, c.path, rec.Code, rec.Header().Get("Location"))
 		}
-		if res.StatusCode != 200 || string(body) != c.body {
-			t.Errorf("%s: %d %q, want %q", c.path, res.StatusCode, body, c.body)
-		}
-	}
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest("POST", "/old/api/plan", nil))
-	if rec.Body.String() != "app /api/plan" {
-		t.Errorf("POST /old/api/plan reached %q", rec.Body.String())
-	}
-}
-
-func TestOldPageLoadsUnderOldPath(t *testing.T) {
-	h := Root(Handler())
-	res := get(t, h, "/old/")
-	body, _ := io.ReadAll(res.Body)
-	if res.StatusCode != 200 || !strings.Contains(string(body), `src="app.js"`) {
-		t.Fatalf("/old/: %d %.120s", res.StatusCode, body)
-	}
-	if res := get(t, h, "/old/app.js"); res.StatusCode != 200 {
-		t.Errorf("/old/app.js: %d", res.StatusCode)
 	}
 }

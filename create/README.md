@@ -6,8 +6,8 @@ only), which stays as it is. Two binaries live here:
 
 - `create`: Create itself, rebuilt on auto-creative's steps (below,
   [decision 0015](../decisions/0015-create-briefs.md)).
-- `create-web`: the campaign launcher page, which is becoming Launch. It
-  runs until Launch replaces it on the server.
+- `create-web`: was the campaign launcher page. Since 2026-10-01 it only
+  sends every request on hunt-teste.fyi that no app claims to Launch.
 
 ## Create (`create`)
 
@@ -128,7 +128,10 @@ DATABASE_URL=postgres://… CREATE_FILES=file:///tmp/create/files CREATE_KEEP_DI
 open http://127.0.0.1:8095/create/
 ```
 
-## The campaign launcher (`create-web`)
+## The campaign launcher (`create-web`, retired)
+
+Retired on 2026-10-01 for Launch; see "Run it". What follows describes the
+old page.
 
 One page, in Portuguese, for the team that puts ads on Taboola by hand. The
 ads themselves (headlines, descriptions, CTAs) are always in English. It is
@@ -347,19 +350,14 @@ prefix on 2026-09-29.
 
 ## Run it
 
-On your computer, from the repository root:
-
-```
-OPENAI_API_KEY=sk-... go run ./create/cmd/create-web
-```
-
-Then open http://127.0.0.1:8091/old/ (the root goes on to `/intel/`,
-which on the data box is Intel; the page and its API also answer under
-`/old/`, and the old `/api/` paths still work for open tabs).
+Since 2026-10-01 `create-web` no longer serves the launcher page or its API:
+the owner retired it for Launch, and the binary only sends every request on
+to `/launch/` (`go run ./create/cmd/create-web`, then any path on
+http://127.0.0.1:8091 answers with that redirect). The page's code above
+stays in `web/launcher/` until it is deleted.
 
 On the data box it is the `create-web` unit, installed by
-`platform/servers/setup.sh` and reached at https://hunt-teste.fyi/old/ (the
-site's root opens Intel since 2026-10-01) through a
+`platform/servers/setup.sh` and reached at https://hunt-teste.fyi through a
 Cloudflare Tunnel behind Cloudflare Access (platform/OPERATIONS.md). Install
 cloudflared once, on the data box:
 

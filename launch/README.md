@@ -188,9 +188,9 @@ Accounts are not in `launch_api`: they are the network login's, read live
 the unit. `LAUNCH_LIBRARY_URL` is the library's API (default
 `http://127.0.0.1:8093`; `off` for none). `platform/servers/setup.sh data`
 installs it on the data box with its login and the `launch_api_read` role
-(platform/OPERATIONS.md, "Launch's page"). It is at https://hunt-teste.fyi/launch/
-(the site's root opens Intel); the old launcher page is at
-https://hunt-teste.fyi/old/ until the owner says to remove it. Since 2026-10-01 the ZoltaGroup login is the team's live one
+(platform/OPERATIONS.md, "Launch's page"). https://hunt-teste.fyi/ opens it
+(create-web sends every request on to `/launch/`); the old launcher page
+is retired. Since 2026-10-01 the ZoltaGroup login is the team's live one
 (owner) and both apps hold it; Launch runs without `TABOOLA_ONLY_OWN` so the
 team can manage the campaigns already there.
 
