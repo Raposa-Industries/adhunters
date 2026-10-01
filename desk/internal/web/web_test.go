@@ -15,6 +15,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/desk/internal/store"
 	"github.com/Raposa-Industries/adhunters/desk/internal/testdb"
 	"github.com/Raposa-Industries/adhunters/desk/internal/web"
+	"github.com/Raposa-Industries/adhunters/shared/access"
 )
 
 type env struct {
@@ -27,11 +28,16 @@ func setup(t *testing.T) env {
 	pool := testdb.New(t)
 	testdb.Demo(t, pool)
 	s := store.New(pool)
-	srv, err := web.New(s, testdb.Catalog(t), slog.New(slog.NewTextHandler(io.Discard, nil)), "")
+	srv, err := web.New(s, testdb.Catalog(t), slog.New(slog.NewTextHandler(io.Discard, nil)), web.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	return env{store: s, h: srv.Handler()}
+}
+
+// as signs a request in as person, the way Access's check records it.
+func as(r *http.Request, person string) *http.Request {
+	return r.WithContext(access.WithEmail(r.Context(), person))
 }
 
 // do sends a request as person ("" for no one), a form when form is set.
@@ -46,7 +52,7 @@ func (e env) do(t *testing.T, person, method, target string, form url.Values) *h
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 	if person != "" {
-		r.Header.Set("Cf-Access-Authenticated-User-Email", person)
+		r = as(r, person)
 	}
 	rec := httptest.NewRecorder()
 	e.h.ServeHTTP(rec, r)
@@ -64,6 +70,37 @@ func TestSignInFirst(t *testing.T) {
 	}
 	if rec := e.do(t, "", "POST", "/desk/c", url.Values{"text": {"oi"}}); rec.Code != http.StatusUnauthorized {
 		t.Errorf("a conversation without a person: %d", rec.Code)
+	}
+}
+
+// With Access set, only its token says who is asking: Access's email header
+// alone (which anything on the box could send) opens nothing. On a laptop
+// the dev person is everyone.
+func TestWhoIsAsking(t *testing.T) {
+	pool := testdb.New(t)
+	testdb.Demo(t, pool)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	checked, err := web.New(store.New(pool), testdb.Catalog(t), log,
+		web.Config{Access: &access.Checker{Team: "https://acme.cloudflareaccess.com", Audience: "aud-1"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest("GET", "/desk/", nil)
+	r.Header.Set("Cf-Access-Authenticated-User-Email", ana)
+	rec := httptest.NewRecorder()
+	checked.Handler().ServeHTTP(rec, r)
+	if rec.Code != http.StatusForbidden || strings.Contains(rec.Body.String(), ana) {
+		t.Errorf("the email header without a token: %d %q", rec.Code, rec.Body.String())
+	}
+
+	dev, err := web.New(store.New(pool), testdb.Catalog(t), log, web.Config{DevPerson: "Mari@Example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec = httptest.NewRecorder()
+	dev.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/desk/", nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), mari) {
+		t.Errorf("the dev person: %d", rec.Code)
 	}
 }
 
@@ -111,7 +148,7 @@ func TestOtherSites(t *testing.T) {
 	for _, h := range [][2]string{{"Sec-Fetch-Site", "cross-site"}, {"Origin", "https://evil.example"}} {
 		r := httptest.NewRequest("POST", "/desk/switch", strings.NewReader("to=stop"))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		r.Header.Set("Cf-Access-Authenticated-User-Email", ana)
+		r = as(r, ana)
 		r.Header.Set(h[0], h[1])
 		rec := httptest.NewRecorder()
 		e.h.ServeHTTP(rec, r)

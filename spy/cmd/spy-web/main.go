@@ -27,6 +27,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
+	"github.com/Raposa-Industries/adhunters/shared/access"
 	"github.com/Raposa-Industries/adhunters/spy/web"
 )
 
@@ -50,14 +51,11 @@ func serve(args []string) error {
 	_ = fs.Parse(args)
 
 	log := logx.New("spy-web", version)
-	var access *web.Access
-	team, aud := os.Getenv("ACCESS_TEAM"), os.Getenv("ACCESS_AUD")
-	switch {
-	case team != "" && aud != "":
-		access = &web.Access{Team: team, Audience: aud}
-	case team != "" || aud != "":
-		return errors.New("set both ACCESS_TEAM and ACCESS_AUD, or neither")
-	default:
+	checker, err := access.FromEnv()
+	if err != nil {
+		return err
+	}
+	if checker == nil {
 		host, _, err := net.SplitHostPort(*addr)
 		if err != nil {
 			return fmt.Errorf("-addr: %w", err)
@@ -88,7 +86,7 @@ func serve(args []string) error {
 	}
 	defer db.Close()
 
-	pages, err := web.New(db, log, web.Config{Access: access})
+	pages, err := web.New(db, log, web.Config{Access: checker})
 	if err != nil {
 		return err
 	}
@@ -100,7 +98,7 @@ func serve(args []string) error {
 		return err
 	}
 	httpSrv := &http.Server{Handler: pages.Handler(), ReadHeaderTimeout: 10 * time.Second}
-	log.Info("pages listening", "addr", ln.Addr().String(), "access", access != nil)
+	log.Info("pages listening", "addr", ln.Addr().String(), "access", checker != nil)
 
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)

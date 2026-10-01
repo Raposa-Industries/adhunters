@@ -22,6 +22,7 @@ Launch replaces it), which `scripts/check-walls.sh` enforces.
 | `files` | Content-addressed file stores (`files/<md5>`): a folder, or an S3 bucket (Hetzner Object Storage) from `S3_*`. Moved from Raposa when the library needed it. | `raposa` (pages kept whole), `library` (safe copies) |
 | `text` | `CleanLine`: removes the hidden characters Taboola rejects and folds whitespace. | `library` (headlines) |
 | `verticals` | Our fixed list of verticals, grouped by category (`verticals.yaml`), and its loader. Moved from Spy when Create needed the list too. | `spy` (classifier, pages), `create` (a session's vertical) |
+| `access` | Cloudflare Access's login check: the signed token Access puts on every request (RS256, the application's AUD tag, the team as issuer, not expired), its keys read from the team's certs every hour; `Email(r)` is who is asking, and a request without a valid token is refused, whatever headers it carries. `FromEnv` reads `ACCESS_TEAM` and `ACCESS_AUD`. Moved from Spy when Desk needed it. | `spy` (spy-web), `desk` (desk-web) |
 
 Modules in the workspace (`go.work`) import it without a `require` line.
 

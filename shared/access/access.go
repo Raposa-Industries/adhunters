@@ -1,4 +1,9 @@
-package web
+// Package access checks the Cloudflare Access login of an app's pages:
+// Access puts a signed token in the Cf-Access-Jwt-Assertion header of every
+// request it lets through, and the email in a valid token is who is asking.
+// A request without a valid one got around Access and is refused. Moved
+// from Spy when Desk needed it.
+package access
 
 import (
 	"context"
@@ -11,17 +16,16 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
 )
 
-// Access checks the Cloudflare Access login on every request: Access puts a
-// signed token in the Cf-Access-Jwt-Assertion header, and a request without
-// a valid one (one that got around Access) is refused. The keys come from
-// the team's certs address and are read again every hour, or when a token
-// names a key not seen yet.
-type Access struct {
+// Checker checks the token on every request. The keys come from the team's
+// certs address and are read again every hour, or when a token names a key
+// not seen yet.
+type Checker struct {
 	Team     string // the team's address, https://<team>.cloudflareaccess.com
 	Audience string // the application's AUD tag
 	Client   *http.Client
@@ -32,29 +36,52 @@ type Access struct {
 	fetched time.Time
 }
 
-type ctxUser struct{}
+// FromEnv reads ACCESS_TEAM and ACCESS_AUD. Both set give a Checker;
+// neither gives nil, for an app that runs without Access (on a laptop); one
+// alone is a mistake.
+func FromEnv() (*Checker, error) {
+	team, aud := strings.TrimSpace(os.Getenv("ACCESS_TEAM")), strings.TrimSpace(os.Getenv("ACCESS_AUD"))
+	switch {
+	case team == "" && aud == "":
+		return nil, nil
+	case team == "" || aud == "":
+		return nil, errors.New("set both ACCESS_TEAM and ACCESS_AUD, or neither")
+	case !strings.HasPrefix(team, "https://"):
+		return nil, fmt.Errorf("ACCESS_TEAM is the team's address, https://<team>.cloudflareaccess.com, not %q", team)
+	}
+	return &Checker{Team: team, Audience: aud}, nil
+}
 
-// who is the email of the person asking, or "" without Access.
-func who(r *http.Request) string {
-	u, _ := r.Context().Value(ctxUser{}).(string)
-	return u
+type ctxEmail struct{}
+
+// Email is the email of the person asking, as Wrap (or WithEmail) recorded
+// it, or "" for no one.
+func Email(r *http.Request) string {
+	e, _ := r.Context().Value(ctxEmail{}).(string)
+	return e
+}
+
+// WithEmail records who is asking without a token: the one person of an app
+// run on a laptop without Access, or a test's.
+func WithEmail(ctx context.Context, email string) context.Context {
+	return context.WithValue(ctx, ctxEmail{}, strings.ToLower(strings.TrimSpace(email)))
 }
 
 // Wrap refuses requests without a valid token and records the email.
-func (a *Access) Wrap(h http.Handler) http.Handler {
+func (a *Checker) Wrap(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		email, err := a.Check(r.Context(), r.Header.Get("Cf-Access-Jwt-Assertion"))
 		if err != nil {
 			http.Error(w, "sign in through Cloudflare Access", http.StatusForbidden)
 			return
 		}
-		h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxUser{}, email)))
+		h.ServeHTTP(w, r.WithContext(WithEmail(r.Context(), email)))
 	})
 }
 
 // Check verifies a token (RS256, our audience, the team as issuer, not
 // expired) and returns its email.
-func (a *Access) Check(ctx context.Context, token string) (string, error) {
+func (a *Checker) Check(ctx context.Context, token string) (string, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
 		return "", errors.New("no token")
@@ -105,7 +132,7 @@ func (a *Access) Check(ctx context.Context, token string) (string, error) {
 	return claims.Email, nil
 }
 
-func (a *Access) now() time.Time {
+func (a *Checker) now() time.Time {
 	if a.Now != nil {
 		return a.Now()
 	}
@@ -114,7 +141,7 @@ func (a *Access) now() time.Time {
 
 // key returns the public key with this id, reading the certs when it is
 // unknown or they are an hour old (at most once a minute).
-func (a *Access) key(ctx context.Context, kid string) (*rsa.PublicKey, error) {
+func (a *Checker) key(ctx context.Context, kid string) (*rsa.PublicKey, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	k, ok := a.keys[kid]
@@ -139,7 +166,7 @@ func (a *Access) key(ctx context.Context, kid string) (*rsa.PublicKey, error) {
 	return k, nil
 }
 
-func (a *Access) fetch(ctx context.Context) (map[string]*rsa.PublicKey, error) {
+func (a *Checker) fetch(ctx context.Context) (map[string]*rsa.PublicKey, error) {
 	c := a.Client
 	if c == nil {
 		c = &http.Client{Timeout: 10 * time.Second}

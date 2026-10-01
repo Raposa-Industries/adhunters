@@ -44,7 +44,7 @@ reads as down. Units and example settings are in [deploy/](deploy/).
      `desk:step:<id>` as the origin, so a step never calls twice. Then it
      follows the app's view until one of the action's done or failed
      states. An ask ends when a person confirms it on the app's own screen
-     (Launch's Send paused); Desk never confirms anything.
+     (Launch's Pedidos, "Confirmar e enviar"); Desk never confirms anything.
    - **Choice**: shows the rows with the ones Desk would pick and why (one
      more call to Claude), puts "Escolher" on the person's to-do list, and
      waits for their pick.
@@ -58,7 +58,11 @@ For example, "faz 6 imagens de Tinnitus e me mostra as melhores" becomes a
 plan of four steps: `create.new_session` (a session in Tinnitus),
 `create.send` in that session (Create makes the pictures), a choice among
 its `create.items`, and `create.save_items` with the ids the person picked,
-which puts them in the session's library folder for Launch.
+which puts them in the session's library folder for Launch. "Pausa as
+campanhas que perderam dinheiro ontem" reads `intel.campaign_results` at
+once, then proposes one step, `launch.pause_campaigns` with those campaigns;
+after the OK the request waits in Launch's Pedidos until a person confirms it
+there, and only then does Launch pause them.
 
 A step that waits is looked at again every 30 s; a pick or a to-do marked
 done moves it at once. An app that refuses a call (its own check, a
@@ -70,8 +74,9 @@ minute later.
 
 - **The catalog is the only door.** Desk reaches an app only through what
   `contract/actions/<app>.json` lists, each one a view or function the app
-  publishes. Confirming, turning spending on and raising bids or caps are
-  never listed, so Desk can never be given them.
+  publishes. Confirming and turning spending on are never listed, so Desk
+  can never be given them; a change of bid or cap is only ever an ask,
+  which a person confirms on Launch's page.
 - **Taboola.** Every Taboola write goes through Launch, where a person
   confirms it; campaigns and ads are always made paused and only a person
   starts them, in Taboola. Headlines are always in English. Taboola's
@@ -127,20 +132,24 @@ Environment:
 |---|---|---|
 | `DATABASE_URL` | required | Both binaries; the session runs in UTC. |
 | `ANTHROPIC_API_KEY` | empty | desk-agent's Claude key. Empty, Desk is off: desk-agent takes no work. |
+| `ACCESS_TEAM`, `ACCESS_AUD` | empty | desk-web: the team's Access address (`https://<team>.cloudflareaccess.com`) and the AUD tag of the Access application in front of `/desk`. Both set, every request must carry Access's signed token. Empty, every page says to sign in. |
 | `DESK_WEB_ADDR` | `127.0.0.1:8092` | desk-web. |
 | `OPS_ADDR` | `127.0.0.1:9100` | `/healthz`, `/metrics`: 9120 for desk-agent, 9121 for desk-web on a box. |
-| `DESK_DEV_PERSON` | unset | desk-web on a laptop without Access: the email every visitor is. Never on a server. |
+| `DESK_DEV_PERSON` | unset | desk-web on a laptop without Access: the email every visitor is. Ignored when Access is set. Never on a server. |
 
-Who is asking is Cloudflare Access's `Cf-Access-Authenticated-User-Email`
-header; desk-web listens on localhost behind the tunnel. Checking Access's
-signed token as well is still to do. Forms posted from another site are
-refused.
+Who is asking is the email in Cloudflare Access's signed token
+(`Cf-Access-Jwt-Assertion`), checked on every request (`shared/access`):
+RS256, the application's AUD tag, the team as issuer, not expired. A request
+without a valid one is refused, whatever headers it carries; desk-web also
+listens only on localhost behind the tunnel. Forms posted from another site
+are refused.
 
 ## What it reads and publishes
 
 Reads and calls only what `contract/actions` lists, through each app's
 `<app>_api`: the login holds each app's `<app>_api_read` role (Raposa, Spy,
-Tracks, Create and the library today) and owns the `desk` schemas.
+Tracks, Create, the library, Launch and Intel today) and owns the `desk`
+schemas.
 
 Publishes `desk_api` (granted to `desk_api_read`), with a copy of each
 definition in [contract/sql/desk](../contract/sql/desk): `todo_v1`, the
@@ -149,21 +158,24 @@ list (Launch asking a person to start a pair in Taboola, say).
 
 ## Not done yet
 
-- **Launch's actions.** Desk asks Launch for pairs, copies, moves and
-  pauses once `contract/actions/launch.json` lists them, after Launch
-  publishes `launch_api.new_request_v1`. Until then Desk gives the person
-  the link that opens a saved set in Launch (`/launch/new?set=<id>`).
-- **Deploy.** Not deployed; that needs the owner's word.
-  `platform/servers/setup.sh` sets Desk up on the data box: the `desk`
-  login, the `desk_api_read` role, the `_api_read` role of each app in
-  `contract/actions` granted to it, the two units and their `/metrics`.
+- **New pairs from Launch.** Launch's requests pause campaigns or ads,
+  change bids, caps and names, copy and move; a new pair is not one of
+  them yet, so Desk gives the person the link that opens a saved set in
+  Launch (`/launch/new?set=<id>`).
+- **Turning it on.** Desk is set up on the data box and off; turning it on
+  needs the owner's word. `platform/servers/setup.sh` sets it up: the
+  `desk` login, the `desk_api_read` role, the `_api_read` role of each app
+  in `contract/actions` granted to it, the two units and their `/metrics`.
   Desk stays off until the Claude key goes in
-  `/etc/adhunters/desk-agent.env` and the tunnel sends `^/desk` on the apps' hostname to `http://localhost:8092`,
-  behind the same Access application (platform/OPERATIONS.md). After that,
-  Desk's `ready` becomes true in the Frame (`shared/frame/assets/core.js`).
+  `/etc/adhunters/desk-agent.env`, the Access settings in
+  `/etc/adhunters/desk-web.env`, and the tunnel sends `^/desk` on the apps'
+  hostname to `http://localhost:8092` behind Access
+  (platform/OPERATIONS.md). After that, Desk's `ready` becomes true in the
+  Frame (`shared/frame/assets/core.js`).
 - **Open decisions** (asked 2026-09-30; Desk is built on the first answer
   of each): its own app, not a panel in every app nor inside Launch; a
-  person confirms Desk's pairs on Launch's review page, not in the chat;
+  person confirms what Desk asks of Launch on Launch's own page, not in
+  the chat;
   one to-do list for people and Desk; who confirms raising spend in Launch
   (Launch's rule; Desk never confirms).
 

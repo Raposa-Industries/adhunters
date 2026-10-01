@@ -9,10 +9,11 @@
 // Its kind says what it may do:
 //
 //   - read: looks and changes nothing. Desk reads freely.
-//   - change: changes the app's own data or starts its work (a brief, an
-//     investigation). Desk runs it only as a step of a plan a person OK'd.
+//   - change: changes the app's own data or starts its work (a turn in
+//     Create, an investigation). Desk runs it only as a step of a plan a
+//     person OK'd.
 //   - ask: asks the app for something a person then confirms on the app's
-//     own screen (Launch's Send paused). Desk runs it only as a step of an
+//     own screen (Launch's Pedidos). Desk runs it only as a step of an
 //     OK'd plan, and the app does nothing until someone confirms there.
 //
 // What only a person may do (a confirm, turning spending on) is never an

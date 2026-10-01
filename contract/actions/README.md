@@ -13,12 +13,12 @@ parameters with a matching type, and each column is one it returns.
 | Kind | Does | Desk may run it |
 |---|---|---|
 | `read` | Looks; changes nothing. | Any time. |
-| `change` | Changes the app's own data or starts its work (a brief, an investigation). | Only as a step of a plan a person OK'd. |
-| `ask` | Asks the app for something a person then confirms on the app's own screen (Launch's Send paused). The app does nothing until they do. | Only as a step of a plan a person OK'd. |
+| `change` | Changes the app's own data or starts its work (a turn in Create, an investigation). | Only as a step of a plan a person OK'd. |
+| `ask` | Asks the app for something a person then confirms on the app's own screen (Launch's Pedidos). The app does nothing until they do. | Only as a step of a plan a person OK'd. |
 
 There is no kind for what only a person may do: confirming, turning spending
-on, raising a bid or a cap. Those are never listed, so Desk can never be
-given them.
+on. Those are never listed, so Desk can never be given them. A change of a
+bid or a cap is only ever an ask: a person decides it on Launch's page.
 
 ## One entry
 
@@ -78,29 +78,32 @@ given them.
 
 ## An ask, for an app that confirms on its own screen
 
-An app that takes requests from Intel and Desk through one function (as
-Launch does) lists one `ask` per kind of request, with the kind fixed:
+An app that takes requests through one function (as Launch does with
+`launch_api.new_request_v1`) lists one `ask` per kind of request, with the
+kind fixed (from `launch.json`, its schema cut short here):
 
 ```json
 {
-  "name": "launch.new_pair",
+  "name": "launch.pause_campaigns",
   "version": 1,
   "kind": "ask",
-  "says": "Prepare a desktop and mobile pair from a library set with a preset, paused, for a person to confirm in Launch.",
+  "says": "Ask Launch to pause campaigns of one account. The request waits in Launch's Pedidos until a person confirms it there; …",
   "call": "launch_api.new_request_v1",
   "args": [
-    {"name": "kind", "const": "new_pair"},
-    {"name": "input", "type": "object", "says": "the set, the account and the preset", "schema": {"type": "object", "additionalProperties": false, "properties": {"…": {"type": "string"}}}},
+    {"name": "kind", "const": "pause"},
+    {"name": "input", "type": "object", "says": "the account and its campaigns", "schema": {
+      "type": "object", "additionalProperties": false, "required": ["network", "account", "campaigns"],
+      "properties": {"network": {"type": "string", "enum": ["taboola"]}, "account": {"type": "string"},
+                     "campaigns": {"type": "array", "items": {"type": "string"}}}}},
     {"name": "requested_by", "from": "person"},
     {"name": "origin", "from": "origin"}
   ],
   "returns": "the request's id",
   "follow": {"view": "launch_api.request_v1", "id": "id", "state": "state", "done": ["sent"], "failed": ["refused", "failed"]},
   "link": "/launch/requests/{returned}",
-  "per_day": 50
+  "per_day": 40
 }
 ```
 
-(Names here are an example; Launch's own file is the truth.) When the
-function returns the existing request for an `origin` it has already seen,
-a step Desk retries after a restart never asks twice.
+The function returns the existing request for an `origin` it has already
+seen, so a step Desk retries after a restart never asks twice.

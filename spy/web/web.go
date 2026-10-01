@@ -25,16 +25,17 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Raposa-Industries/adhunters/shared/access"
 	"github.com/Raposa-Industries/adhunters/shared/frame"
 	"github.com/Raposa-Industries/adhunters/shared/verticals"
 )
 
 // Config tunes a Server. Zero values take the defaults.
 type Config struct {
-	Access     *Access       // nil: no login check (only for localhost and tests)
-	RecentTTL  time.Duration // how long a last-24-hours answer is kept (2 minutes)
-	RangeTTL   time.Duration // how long an answer over another range is kept (10 minutes)
-	RangeLimit time.Duration // how long a range may take (90 s)
+	Access     *access.Checker // nil: no login check (only for localhost and tests)
+	RecentTTL  time.Duration   // how long a last-24-hours answer is kept (2 minutes)
+	RangeTTL   time.Duration   // how long an answer over another range is kept (10 minutes)
+	RangeLimit time.Duration   // how long a range may take (90 s)
 	Now        func() time.Time
 }
 
