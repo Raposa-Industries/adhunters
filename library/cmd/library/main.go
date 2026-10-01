@@ -100,8 +100,17 @@ func openDB(ctx context.Context, app string, log *slog.Logger) (*pgxpool.Pool, e
 	return db, nil
 }
 
+// googleApp is the OAuth client from the environment. The two URL settings
+// are for tests that point the library at a fake Google; empty means Google.
 func googleApp() drive.App {
-	return drive.App{ClientID: os.Getenv("LIBRARY_GOOGLE_CLIENT_ID"), ClientSecret: os.Getenv("LIBRARY_GOOGLE_CLIENT_SECRET")}
+	return drive.App{
+		ClientID:     os.Getenv("LIBRARY_GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("LIBRARY_GOOGLE_CLIENT_SECRET"),
+		Endpoints: drive.Endpoints{
+			Token: os.Getenv("LIBRARY_GOOGLE_TOKEN_URL"),
+			API:   os.Getenv("LIBRARY_GOOGLE_API_URL"),
+		},
+	}
 }
 
 func serve(args []string) error {

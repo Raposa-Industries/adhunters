@@ -143,6 +143,7 @@ id: `ah-` + the creative's first 10 + `-` + the headline's first 10.
 | `LIBRARY_FILES` | unset | Only to move out of the old bucket once (decision 0020): `s3://adhunters-library` with `S3_*`. The library copies its thumbnails and any waiting bytes into the rows on start; then remove it. |
 | `LIBRARY_DRIVE_FOLDER` | unset | The library folder's id. Unset: Drive is off. |
 | `LIBRARY_GOOGLE_CLIENT_ID`, `LIBRARY_GOOGLE_CLIENT_SECRET` | unset | The Desktop app OAuth client. Unset: Drive is off. |
+| `LIBRARY_GOOGLE_TOKEN_URL`, `LIBRARY_GOOGLE_API_URL` | unset | For tests only: a fake Google token endpoint and Drive API. Unset: Google's own. |
 | `OPS_ADDR` | | `/healthz`, `/metrics` (`127.0.0.1:9110` on the data box). The Drive pass reports as task `drive-sync`. |
 
 ## Run it
