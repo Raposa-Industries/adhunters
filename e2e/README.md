@@ -9,7 +9,10 @@ real binaries, built from this repo the way the deploy builds them:
 2. **Create** (`create`, with a fake OpenAI): opens a session from the Spy ad
    (`/create/api/spy/{id}/session`), runs one turn (2 images, 3 headlines)
    and saves the results to the library.
-3. **Library** (`library`): keeps the set, which Launch then reads.
+3. **Library** (`library`, with a fake Google Drive): keeps the set, and its
+   Drive pass uploads the pictures under StepNutra › vertical › set. After
+   that only Drive holds the bytes (decision 0020), so Launch's copy of each
+   picture is read back from Drive.
 4. **Launch** (`launch-web`, with a fake Taboola that records every
    request): reads the set, brings in its pictures (`library/use`), and sends
    a new group with a desktop and a mobile campaign carrying the library's
@@ -48,9 +51,6 @@ second time. Set `E2E_KEEP_DB=1` to keep the database afterwards.
 
 ## What it doesn't cover (yet)
 
-- **Google Drive.** The library has no setting that points it at a fake
-  Drive yet, so it runs with Drive off: saved pictures wait in the library,
-  and Launch reads them from there. The upload itself is untested here.
 - **Spy's picture download.** Create fetches an ad's picture only from public
   addresses, so the test adds the picture the way the page offers when that
   fetch fails (an upload).

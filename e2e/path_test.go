@@ -47,10 +47,23 @@ func TestFirstCampaignPath(t *testing.T) {
 
 	taboola := newFakeTaboola(t, accounts...)
 	openai := newFakeOpenAI(t)
+	drive := newFakeDrive(t)
 	data := t.TempDir()
 
 	libAddr := freeAddr(t)
-	start(t, bin("library"), freeAddr(t), append(env, "LIBRARY_ADDR="+libAddr))
+	start(t, bin("library"), freeAddr(t), append(env,
+		"LIBRARY_ADDR="+libAddr,
+		"LIBRARY_DRIVE_FOLDER="+driveRoot,
+		"LIBRARY_GOOGLE_CLIENT_ID=fake-client",
+		"LIBRARY_GOOGLE_CLIENT_SECRET=fake-secret",
+		"LIBRARY_GOOGLE_TOKEN_URL="+drive.URL()+"/token",
+		"LIBRARY_GOOGLE_API_URL="+drive.URL(),
+	), "-drive-every=1s")
+	// What library drive-login leaves behind once the folder's owner signs in.
+	if _, err := db.Exec(ctx, `INSERT INTO library.drive_login (account, client_id, refresh_token)
+		VALUES ('adhuntertech@gmail.test', 'fake-client', 'fake-refresh')`); err != nil {
+		t.Fatal(err)
+	}
 	createAddr := freeAddr(t)
 	start(t, bin("create"), freeAddr(t), append(env,
 		"CREATE_ADDR="+createAddr,
@@ -204,18 +217,37 @@ func TestFirstCampaignPath(t *testing.T) {
 			Text string `json:"text"`
 		} `json:"headlines"`
 	}
-	mustCall(t, "GET", fmt.Sprintf("%s/launch/api/library/set?id=%d", launch, setID), nil, &set)
+	// The library's Drive pass uploads the saved pictures into the folder,
+	// under the vertical and the session's set.
+	eventually(t, "the saved pictures to reach Drive", func() (bool, string) {
+		mustCall(t, "GET", fmt.Sprintf("%s/launch/api/library/set?id=%d", launch, setID), nil, &set)
+		var states []string
+		for _, c := range set.Creatives {
+			if c.DriveState != "in_drive" {
+				states = append(states, c.DriveState)
+			}
+		}
+		return len(set.Creatives) > 0 && len(states) == 0, strings.Join(states, ", ")
+	})
+	inDrive := drive.stored()
+	for _, c := range set.Creatives {
+		path, ok := inDrive[c.SHA256]
+		if !ok {
+			t.Errorf("creative %d (sha %s) is not in Drive; Drive has %v", c.ID, c.SHA256, inDrive)
+		} else if !strings.HasPrefix(path, "StepNutra / ") || !strings.Contains(path, " / "+set.Set.Name+" / ") {
+			t.Errorf("creative %d is at %q in Drive, want under StepNutra and the set %q", c.ID, path, set.Set.Name)
+		}
+	}
+	var waiting int
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM library.creative WHERE pending IS NOT NULL`).Scan(&waiting); err != nil || waiting != 0 {
+		t.Errorf("%d creatives still hold their bytes in the library after the Drive pass (%v)", waiting, err)
+	}
 	if set.Set.VerticalID != "tinnitus" || len(set.Creatives) != 2 || len(set.Headlines) != 3 {
 		t.Fatalf("Launch read the library set as %+v", set)
 	}
 	var ads []map[string]any
 	team := teamDefaults(t, root)
 	for i, c := range set.Creatives {
-		// Drive is off here (no seam for a fake Drive yet): the bytes wait in
-		// the library until a Drive pass uploads them, and are read from there.
-		if c.DriveState != "waiting" {
-			t.Errorf("creative %d: drive state %q, want waiting", c.ID, c.DriveState)
-		}
 		if c.AILabel != "ai" {
 			t.Errorf("creative %d lost its AI label: %q", c.ID, c.AILabel)
 		}
@@ -224,6 +256,7 @@ func TestFirstCampaignPath(t *testing.T) {
 				SHA string `json:"sha256"`
 			} `json:"image"`
 		}
+		// Only Drive has the picture now: Launch's copy comes from there.
 		mustCall(t, "POST", fmt.Sprintf("%s/launch/api/library/use?id=%d", launch, c.ID), map[string]any{}, &used)
 		if used.Image.SHA != c.SHA256 {
 			t.Fatalf("library picture %d arrived as %q, not %q", c.ID, used.Image.SHA, c.SHA256)
