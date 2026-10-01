@@ -16,12 +16,22 @@ func TestParseKey(t *testing.T) {
 	if k.Network != "taboola" || k.Instance != "a" || !k.Minute.Equal(time.Date(2026, 9, 28, 14, 3, 0, 0, time.UTC)) {
 		t.Fatalf("got %+v", k)
 	}
+	// tracks-walker's instance is the host name, which has a "-".
+	k, err = ParseKey("walk/2026/10/01/03/capture-adhunters-worker-0312-1.ndjson.zst")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if k.Network != "walk" || k.Instance != "adhunters-worker" || !k.Minute.Equal(time.Date(2026, 10, 1, 3, 12, 0, 0, time.UTC)) {
+		t.Fatalf("got %+v", k)
+	}
 	for _, bad := range []string{
 		"taboola/2026/09/28/14/capture-a-1403.ndjson",     // not sealed
 		"taboola/2026/09/28/15/capture-a-1403.ndjson.zst", // folder and name disagree
 		"taboola/2026/02/30/14/capture-a-1403.ndjson.zst", // no such day
 		"taboola/2026/09/28/14/capture-a-1463.ndjson.zst", // no such minute
 		"../etc/2026/09/28/14/capture-a-1403.ndjson.zst",
+		"taboola/2026/09/28/14/capture--1403.ndjson.zst",   // no instance
+		"taboola/2026/09/28/14/capture-a--1403.ndjson.zst", // empty word
 	} {
 		if _, err := ParseKey(bad); err == nil {
 			t.Errorf("%s parsed", bad)
