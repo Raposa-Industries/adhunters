@@ -99,9 +99,13 @@ or saved in a preset:
 - **Copy.** The same, in the same group, named "(cópia)". Copying both
   halves of a pair makes a pair.
 - **No group delete.** Deleting a group in Taboola that still holds
-  campaigns leaves them there but out of the API's reach (404; seen
-  2026-09-30). Launch offers no delete; if it ever does, a group with
-  campaigns is refused.
+  campaigns leaves them there, still running or spending if they were on
+  (2026-10-01: campaign 50547320 still listed and readable, its group
+  answering 404, Realize saying "Campaign Group Was Deleted", the API's
+  `campaigns/base` saying `CAMPAIGN_GROUP_TERMINATED`). Launch offers no
+  delete; if it ever does, a group with campaigns is refused. Such a
+  campaign shows as "Grupo apagado", under a stand-in group of that name
+  with no actions, so it can still be found, paused or changed.
 - **Pause, change.** Bid, daily cap, total limit, name (one campaign at a
   time). Some ads of one campaign can be paused too (Intel's `pause-ads`).
   Turning on is never here.

@@ -135,6 +135,20 @@ export async function manage(ctx) {
       if (p.mobile_id) pairOf.set(p.mobile_id, p);
     }
   }
+  // A campaign whose group was deleted stays in Taboola's list (Realize
+  // shows "Campaign Group Was Deleted"). It gets a stand-in group, so it can
+  // be found and opened, and that state instead of its own.
+  const known = new Set(groups.map((g) => g.account + '/' + g.id));
+  const gone = new Set();
+  for (const c of campaigns) {
+    const key = c.account + '/' + c.group_id;
+    if (!c.group_id || (known.has(key) && !gone.has(key))) continue;
+    if (!gone.has(key)) groups.push({ id: c.group_id, name: 'Grupo apagado · ' + c.group_id, status: 'GROUP_DELETED', account: c.account });
+    gone.add(key);
+    known.add(key);
+    c.taboola_status = c.status;
+    c.status = 'GROUP_DELETED';
+  }
   const groupById = new Map(groups.map((g) => [g.id, g]));
   const campById = new Map(campaigns.map((c) => [c.id, c]));
   const group = at.group ? groupById.get(at.group) || { id: at.group, name: at.group === '-' ? 'Sem grupo' : 'Grupo ' + at.group, account: at.account } : null;
@@ -258,9 +272,9 @@ export async function manage(ctx) {
               h('div', { class: 'faint mono' }, (at.account === 'all' && g.account ? acctName.get(g.account) + ' · ' : '') + (g.id === '-' ? '' : g.id))),
             h('td', {}, g.status ? badge(g.status) : '—'),
             h('td', { class: 'num' }, cs.length ? `${cs.length}${running ? ` (${running} rodando)` : ''}` : '0'),
-            h('td', { class: 'muted' }, g.id === '-' ? '—' : budget(g)),
+            h('td', { class: 'muted' }, g.id === '-' || g.status === 'GROUP_DELETED' ? '—' : budget(g)),
             COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(n))),
-            h('td', { class: 'row-acts' }, g.id === '-' ? null : h('a', { class: 'button small ghost', title: 'Nova campanha neste grupo',
+            h('td', { class: 'row-acts' }, g.id === '-' || g.status === 'GROUP_DELETED' ? null : h('a', { class: 'button small ghost', title: 'Nova campanha neste grupo',
               href: '/launch/new?' + new URLSearchParams({ make: 'campaign', account: g.account || at.account, group: g.id }) }, '+ Campanha')));
         }) : h('tr', {}, h('td', { colspan: 5 + COLUMNS.length, class: 'faint' }, rows.length ? 'Nenhum grupo com esses filtros.' : 'Nenhum grupo nesta conta. Use Novo › Grupo de campanha.')))));
     };

@@ -39,6 +39,8 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 	m := n.AddCampaign("acme-sc", network.Campaign{Name: "Memory Loss US · Mobile", GroupID: mem.ID, Device: network.Mobile, Status: "RUNNING", Active: true, Settings: set}, ad)
 	n.AddCampaign("acme-sc", network.Campaign{Name: "Memory old test", GroupID: mem.ID, Device: network.Both, Status: "PAUSED", Settings: set})
 	n.AddCampaign("acme-sc", network.Campaign{Name: "BP Seniors · Desktop", GroupID: bp.ID, Device: network.Desktop, Status: "PENDING_APPROVAL", Settings: set})
+	// Its group was deleted in Taboola and it was not, as with 50547320.
+	n.AddCampaign("acme-sc", network.Campaign{Name: "Old test, group deleted", GroupID: "990001", Device: network.Both, Status: "DEPLETED", Settings: set})
 	st := store.New(db)
 	if _, err := st.AddPair(context.Background(), store.Pair{Network: "taboola", Account: "acme-sc", GroupID: mem.ID, Name: "Memory Loss US", DesktopID: d.ID, MobileID: m.ID, MadeBy: "ana@team.test"}); err != nil {
 		t.Fatal(err)
