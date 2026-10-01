@@ -52,6 +52,26 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 			t.Fatal(err)
 		}
 	}
+	// Intel's numbers, as its intel_api views would give them.
+	mAds, _ := n.Ads(context.Background(), "acme-sc", m.ID)
+	for _, q := range []string{
+		`CREATE SCHEMA intel_api`,
+		`CREATE VIEW intel_api.campaign_result_v1 AS SELECT * FROM (VALUES
+			('` + d.ID + `', '7d', 'acme-sc', 182340::bigint, 1712::bigint, 547.84::numeric, 31::bigint, 1209.0::numeric, 661.16::numeric, now() - interval '40 minutes'),
+			('` + m.ID + `', '7d', 'acme-sc', 402118::bigint, 3920::bigint, 1176.0::numeric, 38::bigint, 1482.0::numeric, 306.0::numeric, now() - interval '40 minutes'),
+			('` + d.ID + `', 'today', 'acme-sc', 20114::bigint, 190::bigint, 61.2::numeric, 2::bigint, 78.0::numeric, 16.8::numeric, now() - interval '40 minutes'),
+			('` + m.ID + `', 'today', 'acme-sc', 51002::bigint, 512::bigint, 153.6::numeric, 3::bigint, 117.0::numeric, -36.6::numeric, now() - interval '40 minutes'))
+			AS t(campaign_id, time_window, account, impressions, clicks, spent, sales, revenue, profit, refreshed_at)`,
+		`CREATE VIEW intel_api.ad_result_v1 AS SELECT * FROM (VALUES
+			('` + dAds[0].ID + `', '7d', '` + d.ID + `', 'acme-sc', 120400::bigint, 1250::bigint, 400.0::numeric, 26::bigint, 1014.0::numeric, 614.0::numeric, 'better', 'clear', now() - interval '40 minutes'),
+			('` + dAds[1].ID + `', '7d', '` + d.ID + `', 'acme-sc', 61940::bigint, 462::bigint, 147.84::numeric, 5::bigint, 195.0::numeric, 47.16::numeric, 'usual', '', now() - interval '40 minutes'),
+			('` + mAds[0].ID + `', '7d', '` + m.ID + `', 'acme-sc', 402118::bigint, 3920::bigint, 1176.0::numeric, 38::bigint, 1482.0::numeric, 306.0::numeric, 'worse', 'likely', now() - interval '40 minutes'))
+			AS t(item_id, time_window, campaign_id, account, impressions, clicks, spent, sales, revenue, profit, word, sureness, refreshed_at)`,
+	} {
+		if _, err := db.Exec(context.Background(), q); err != nil {
+			t.Fatal(err)
+		}
+	}
 	img := &images.Store{Dir: t.TempDir()}
 	l := actions.New(st, img, log, func(err error) string { _, m := classify(err); return m }, n)
 	a := api.New(context.Background(), l, img, log, classify)
@@ -94,6 +114,7 @@ func TestRoutes(t *testing.T) {
 		{"GET", "/launch/_ads/pairing.js", "", "mixedN", 200},
 		{"GET", "/launch/_ads/realize-base.xlsx", "", "", 200},
 		{"GET", "/launch/api/accounts/taboola", "", "Acme Health", 200},
+		{"GET", "/launch/api/numbers?window=7d", "", `"available":true`, 200},
 		{"GET", "/launch/api/library/set?id=1", "", "Memory morning habit", 200},
 		{"POST", "/launch/api/taboola/acme-sc/pause", "https://evil.test", "outro site", 403},
 	} {

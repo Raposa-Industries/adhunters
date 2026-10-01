@@ -268,22 +268,6 @@ export function presetBar({ level, net, account, form, list, onUse }) {
   return h('div', { class: 'preset-bar' }, pick, save, out);
 }
 
-// groupForm makes a new group, alone (from the tree).
-export function groupForm({ net, account, onMade }) {
-  const g = groupFields();
-  const out = h('div');
-  const box = h('div', { class: 'panel' }, h('h3', {}, 'Novo grupo'),
-    h('p', { class: 'muted' }, 'Nasce pausado. As campanhas de um grupo dividem o orçamento dele.'));
-  const go = h('button', { type: 'button', class: 'primary', onclick: () => {
-    const p = g.problem();
-    if (p) { out.replaceChildren(note('fail', p)); return; }
-    busy(go, out, async () => onMade(await api(`${net}/${encodeURIComponent(account)}/groups`, { method: 'POST', body: g.get() })));
-  } }, 'Criar grupo');
-  loadPresets(net, account).then((list) => box.insertBefore(presetBar({ level: 'group', net, account, form: g, list }), g.el)).catch(() => {});
-  box.append(g.el, h('div', { class: 'actions' }, go), out);
-  return box;
-}
-
 // presets is the Presets page.
 export async function presets({ main, status }) {
   main.append(h('div', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Presets'),

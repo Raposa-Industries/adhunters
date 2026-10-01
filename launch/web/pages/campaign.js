@@ -1,7 +1,6 @@
 // One campaign: its settings, its ads, its pair's other half and what
 // Launch did to it. Its actions take the pair along when asked.
-import { api, h, note, money, badge, link, crumbs, field, input, select, segmented, busy, numberOf, plural, DEVICES, stateName } from './lib.js';
-import { doneNote, budgetLine } from './tree.js';
+import { api, h, note, money, badge, link, crumbs, field, input, select, segmented, busy, numberOf, plural, DEVICES, stateName, doneNote, budgetLine } from './lib.js';
 import { historyTable } from './history.js';
 import { OBJECTIVES } from './presets.js';
 
@@ -18,7 +17,10 @@ export async function campaign({ main, route, status }) {
   const acct = accounts.find((a) => a.id === account) || { id: account, name: account };
   const s = c.settings || {};
 
-  main.append(crumbs([['Launch', '/launch/'], [acct.name || account, link(net, account)], [g ? g.name || g.id : 'Sem grupo', link(net, account, c.group_id || '-')], [c.name]]));
+  const addr = (more) => '?' + new URLSearchParams({ account, ...more });
+  main.append(crumbs([['Launch', '/launch/campaigns' + addr({})], [acct.name || account, '/launch/groups' + addr({})],
+    [g ? g.name || g.id : 'Sem grupo', '/launch/campaigns' + addr({ group: c.group_id || '-' })], [c.name]]),
+    h('p', {}, h('a', { href: '/launch/ads' + addr({ group: c.group_id || '-', campaign: c.id }) }, 'Ver os anúncios com os números do Intel')));
   const out = h('div');
   const panel = h('div');
   // Intel's and Desk's one-tap links open here with the change filled in

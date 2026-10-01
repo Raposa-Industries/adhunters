@@ -163,3 +163,21 @@ export function store(key, value) {
   }
   return null;
 }
+
+// budgetLine says how a group spends.
+export function budgetLine(g) {
+  if (!g) return '';
+  const per = { DAILY: ' por dia', MONTHLY: ' por mês', ENTIRE: ' no total' }[g.budget_model];
+  return per && g.budget ? 'orçamento ' + money(g.budget) + per : 'orçamento por campanha';
+}
+
+// doneNote says what an action did to each campaign.
+// say is what happened to one campaign, and to several: ['pausada', 'pausadas'].
+export function doneNote(done, say, byId) {
+  const ok = done.filter((d) => !d.error);
+  const bad = done.filter((d) => d.error);
+  return h('div', {},
+    ok.length ? note('ok', h('b', {}, plural(ok.length, 'campanha', 'campanhas') + ' ' + say[ok.length === 1 ? 0 : 1] + '. '),
+      ok.map((d) => (byId.get(d.campaign)?.name || d.campaign) + (d.copy ? ' → ' + d.copy.id : '')).join(' · ')) : null,
+    bad.map((d) => note('fail', h('b', {}, (byId.get(d.campaign)?.name || d.campaign) + ': '), d.error)));
+}
