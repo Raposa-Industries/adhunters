@@ -54,11 +54,14 @@ How the numbers are judged:
   rejected item, each open while it holds and sent once.
 - **Delivery status:** every change of a campaign's status (Taboola's
   "Delivery Status": running, paused, pending approval, rejected, depleted…,
-  and deleted when it leaves the list), in every account of every login,
+  and deleted once it has been missing from every list for 15 minutes, since
+  Taboola's list sometimes leaves out a campaign that is still there), in
+  every account of every login,
   goes to "AdHunters alerts", grouped into one message per round. A campaign
   that appears in an account Intel already reads is sent as new. Changes
   older than `status_alert_max_age_hours` (6) when found are recorded but
-  not sent, so a reload or a first run sends nothing old.
+  not sent, so a reload or a first run sends nothing old. Deleted is final
+  in Taboola, so a change from Deleted is recorded but not sent.
 - **Suggestions:** pause ads that would not reach their spend without a sale
   1 time in 20 at the account's usual cost per sale (and spent $10 or more);
   pause the campaign when that is every running ad; halve the daily cap of a

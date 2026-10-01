@@ -64,13 +64,16 @@ func FindStatusChanges(ctx context.Context, db *pgxpool.Pool, now time.Time) (in
 }
 
 // SendStatusChanges sends the changes not sent yet as one message per
-// round, newest last; changes older than status_alert_max_age_hours are
-// marked skipped instead (a reload or a first run finds old ones). Without
+// round, newest last; changes older than status_alert_max_age_hours (a
+// reload or a first run finds old ones) and changes from Deleted are marked
+// skipped instead. Without
 // a sender nothing is marked, so they go once Telegram is set.
 func SendStatusChanges(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, s Settings, now time.Time, send Sender, baseURL string) (int, error) {
 	maxAge := time.Duration(s.get("status_alert_max_age_hours", 6) * float64(time.Hour))
+	// Deleted is final in Taboola: a campaign that shows up again after it
+	// was taken as deleted was never gone, so that change is not news.
 	if _, err := db.Exec(ctx, `UPDATE intel.status_change SET skipped = true
-		WHERE sent_at IS NULL AND NOT skipped AND changed_at < $1`, now.Add(-maxAge)); err != nil {
+		WHERE sent_at IS NULL AND NOT skipped AND (changed_at < $1 OR old_status = 'DELETED')`, now.Add(-maxAge)); err != nil {
 		return 0, err
 	}
 	if send == nil {

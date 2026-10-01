@@ -112,20 +112,27 @@ func tbCampaigns(ctx context.Context, tx pgx.Tx, a answer, body []byte) error {
 	if ids == nil {
 		ids = []int64{}
 	}
-	// Taboola lists no deleted campaign; one we knew that this list lacks is
-	// gone as of this answer.
+	// Taboola lists no deleted campaign; one we knew that this list lacks,
+	// and that no list has shown for goneAfter, is gone as of this answer.
+	// One list missing a campaign is not enough: Taboola's list sometimes
+	// leaves out one that is still there (T12 on 2026-10-01, whose group
+	// was deleted), and it came back in the next list.
 	b.Queue(`
 		WITH gone AS (
 			UPDATE intel.tb_campaign SET gone_at = $3
-			WHERE account = $1 AND gone_at IS NULL AND fetched_at < $3 AND NOT (campaign_id = ANY($2))
+			WHERE account = $1 AND gone_at IS NULL AND fetched_at < $4 AND NOT (campaign_id = ANY($2))
 			RETURNING campaign_id
 		)
 		INSERT INTO intel.tb_campaign_status (campaign_id, valid_from, account, status)
 		SELECT campaign_id, $3, $1, 'DELETED' FROM gone
 		ON CONFLICT DO NOTHING`,
-		a.Account, ids, a.FetchedAt)
+		a.Account, ids, a.FetchedAt, a.FetchedAt.Add(-goneAfter))
 	return tx.SendBatch(ctx, b).Close()
 }
+
+// goneAfter is how long a campaign must be missing from every campaign list
+// (three status reads) before Intel takes it as deleted.
+const goneAfter = 15 * time.Minute
 
 func tbItems(ctx context.Context, tx pgx.Tx, a answer, body []byte) error {
 	rows, err := decodeRows(body, "results")

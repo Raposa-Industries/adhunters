@@ -100,8 +100,20 @@ func TestLoad(t *testing.T) {
 		}
 	}
 
-	// An older answer loaded later changes nothing; a newer list without the
-	// campaign marks it gone.
+	// A list a few minutes later without the campaign does not make it gone
+	// (Taboola's list sometimes leaves one out).
+	put(t, db, "b0", "taboola", "acme-1-sc", "taboola.campaigns", nil, at.Add(5*time.Minute), campNone)
+	if _, err := l.Pending(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var early bool
+	db.QueryRow(ctx, `SELECT gone_at IS NOT NULL FROM intel.tb_campaign`).Scan(&early)
+	if early {
+		t.Fatal("gone after one list without it")
+	}
+
+	// An older answer loaded later changes nothing; a list without the
+	// campaign once no list has shown it for 15 minutes marks it gone.
 	put(t, db, "b1", "taboola", "acme-1-sc", "taboola.campaign_day", day, at.Add(-time.Hour),
 		`{"results":[{"date":"2026-09-29 00:00:00.0","campaign":"501","clicks":1,"impressions":1,"visible_impressions":1,"spent":1,"cpa_actions_num":0}]}`)
 	put(t, db, "b2", "taboola", "acme-1-sc", "taboola.campaigns", nil, at.Add(time.Hour), campNone)
