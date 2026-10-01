@@ -26,9 +26,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/Raposa-Industries/adhunters/create/internal/briefs"
 	"github.com/Raposa-Industries/adhunters/create/internal/library"
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
+	"github.com/Raposa-Industries/adhunters/create/internal/sessions"
 	"github.com/Raposa-Industries/adhunters/create/internal/site"
 	"github.com/Raposa-Industries/adhunters/create/migrations"
 	"github.com/Raposa-Industries/adhunters/kit/keep"
@@ -131,14 +131,17 @@ func serve(args []string) error {
 	ai := openai.New(settings, srv, keep.New(*keepDir), log)
 	lib := library.New(*libraryURL)
 
-	var worker *briefs.Worker
-	st := briefs.New(db, store0, func() { worker.Kick() })
-	worker = briefs.NewWorker(st, ai, lib, log)
+	var worker *sessions.Worker
+	st := sessions.New(db, store0, func() { worker.Kick() })
+	worker = sessions.NewWorker(st, ai, lib, log)
 	worker.Workers = *workers
 	tasks := srv.Tasks()
-	worker.Done = func(kind string, start time.Time, err error) { tasks.Done("job-"+kind, start, 1, err) }
+	worker.Done = func(kind string, start time.Time, err error) { tasks.Done("work-"+kind, start, 1, err) }
 
-	web := site.New(st, lib.Browse(), openAIStatus{ai}, log, version)
+	web, err := site.New(st, lib, lib.Browse(), openAIStatus{ai}, log, version)
+	if err != nil {
+		return err
+	}
 	ln, err := net.Listen("tcp", *addr)
 	if err != nil {
 		return err

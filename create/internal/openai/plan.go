@@ -51,6 +51,9 @@ type PlanRequest struct {
 	// none of AvoidAngles.
 	NewAngle    bool     `json:"new_angle,omitempty"`
 	AvoidAngles []string `json:"avoid_angles,omitempty"`
+	// ForPictures says the Winners are the ad's own pictures the headlines
+	// go with, not performing ads to analyse.
+	ForPictures bool `json:"for_pictures,omitempty"`
 }
 
 // Plan is an analysis, headlines and image briefs from one text call.
@@ -226,7 +229,7 @@ func ParsePlan(content string, r PlanRequest) (Plan, error) {
 		shown[CleanLine(a)] = true
 	}
 	plan := Plan{Analysis: []Aspect{}, Headlines: tidy(answer.Headlines, r.Headlines, shown), Briefs: []Brief{}}
-	if len(r.Winners) > 0 && len(r.Analysis) == 0 {
+	if len(r.Winners) > 0 && len(r.Analysis) == 0 && !r.ForPictures {
 		for _, a := range answer.Analysis {
 			a = Aspect{Aspect: CleanLine(a.Aspect), Fixed: CleanLine(a.Fixed), Variable: CleanLine(a.Variable)}
 			if a.Aspect != "" {
