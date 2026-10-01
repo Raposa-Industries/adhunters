@@ -158,14 +158,16 @@ export async function newPair({ main, status }) {
   // ---- 4. review and send ----
   const review = h('div');
   const sendOut = h('div');
-  const sendBtn = h('button', { type: 'button', class: 'primary big', onclick: () => (make === 'group' ? sendGroup() : sendPair()) }, make === 'group' ? 'Criar grupo' : 'Criar pausado');
+  const sendBtn = h('button', { type: 'button', class: 'primary big', onclick: () => (make === 'group' ? sendGroup(false) : sendPair()) }, make === 'group' ? 'Criar grupo' : 'Criar pausado');
   const draftBtn = h('button', { type: 'button', class: 'ghost', onclick: () => saveDraft() }, 'Salvar rascunho');
   const draftOut = h('span', { class: 'faint' });
   const sheetIds = input({ placeholder: '123456, 123457', 'aria-label': 'Ids das campanhas para a planilha' });
   const sheetOut = h('div');
   const sheetBtn = h('button', { type: 'button', onclick: () => downloadSheet() }, 'Baixar planilha e imagens');
+  // Realize's "Create & add campaign": the group, then straight into a campaign in it.
+  const andCampaign = h('button', { type: 'button', class: 'big', onclick: () => sendGroup(true) }, 'Criar e adicionar campanha');
   const sendPanel = h('section', { class: 'panel step' }, h('h2', {}, 'Revisar e criar'), review,
-    h('div', { class: 'actions' }, connected.length ? sendBtn : null, make === 'group' ? null : draftBtn, draftOut), sendOut,
+    h('div', { class: 'actions' }, connected.length ? sendBtn : null, make === 'group' && connected.length ? andCampaign : null, make === 'group' ? null : draftBtn, draftOut), sendOut,
     make === 'group' ? null : h('details', { class: 'sheet', open: !connected.length }, h('summary', {}, 'Subir à mão pelo Bulk Upload'),
       h('p', { class: 'muted' }, 'A planilha usa as campanhas que já existem no Taboola. Os anúncios entram pausados.'),
       h('div', { class: 'fields' }, field('Ids das campanhas', sheetIds, 'cada anúncio vai em todas')),
@@ -522,7 +524,7 @@ export async function newPair({ main, status }) {
     return '';
   }
 
-  async function sendGroup() {
+  async function sendGroup(addCampaign) {
     const p = problem();
     if (p) {
       sendOut.replaceChildren(note('fail', p));
@@ -530,8 +532,13 @@ export async function newPair({ main, status }) {
     }
     await busy(sendBtn, sendOut, async () => {
       const g = await api(`${s.net}/${encodeURIComponent(s.account)}/groups`, { method: 'POST', body: gForm.get() });
-      sendBtn.hidden = true;
       const q2 = (more) => new URLSearchParams({ account: s.account, ...more });
+      sendBtn.hidden = true;
+      andCampaign.hidden = true;
+      if (addCampaign) {
+        location.assign('/launch/new?' + q2({ make: 'campaign', group: g.id }));
+        return;
+      }
       sendOut.replaceChildren(note('ok', h('b', {}, `Grupo ${g.name || g.id} criado. `), 'Ainda sem campanhas.'),
         h('div', { class: 'actions' }, h('a', { class: 'button primary', href: '/launch/new?' + q2({ make: 'campaign', group: g.id }) }, 'Criar uma campanha nele'),
           h('a', { class: 'button ghost', href: '/launch/groups?' + q2({}) }, 'Ver os grupos')));

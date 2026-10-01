@@ -8,7 +8,7 @@
 // The address holds everything: /launch/<groups|campaigns|ads>?account=<id|all>
 // &group=<id>&campaign=<id>&w=<today|yesterday|7d|30d>, so a link or a reload
 // shows the same table.
-import { api, h, note, money, badge, link, crumbs, select, input, field, plural, store, busy, numberOf, segmented, doneNote, DEVICES } from './lib.js';
+import { api, h, note, money, badge, link, select, input, field, plural, store, busy, numberOf, segmented, doneNote, DEVICES } from './lib.js';
 
 export const LEVELS = {
   groups: 'Grupos de campanha',
@@ -138,11 +138,6 @@ export async function manage(ctx) {
   const f = { state: store('launch.state') || 'all', device: 'all', text: '' };
   const go = (more) => location.assign(href(level, { ...at, ...more }, { group: at.group, campaign: at.campaign, ...more }));
   aside.append(
-    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Conta'),
-      select([['all', `Todas as contas (${accounts.length})`], ...accounts.map((a) => [a.id, a.name || a.id])], at.account,
-        { 'aria-label': 'Conta', onchange: (e) => location.assign(href(level, { ...at, account: e.target.value })) })),
-    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Período'),
-      select(WINDOWS, at.w, { 'aria-label': 'Período', onchange: (e) => go({ w: e.target.value }) })),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Busca'),
       input({ type: 'search', placeholder: 'nome ou id', 'aria-label': 'Buscar na tabela', oninput: (e) => { f.text = e.target.value.trim().toLowerCase(); draw(); } })),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Estado'),
@@ -155,15 +150,29 @@ export async function manage(ctx) {
         h('input', { type: 'radio', name: 'device', value: v, checked: f.device === v, onchange: () => { f.device = v; draw(); } }), h('span', {}, label))))));
   }
 
-  // ---- head: trail, title, Novo ▾ ----
-  const trail = [['Launch', href('campaigns', { ...at, account: 'all' })]];
-  trail.push([at.account === 'all' ? 'Todas as contas' : acctName.get(at.account) || at.account, href('groups', at)]);
-  if (group) trail.push([group.name || group.id, href('campaigns', at, { group: group.id })]);
-  if (campaign) trail.push([campaign.name, href('ads', at, { group: at.group, campaign: campaign.id })]);
-  trail[trail.length - 1] = [trail[trail.length - 1][0]];
-  main.append(crumbs(trail), h('div', { class: 'page-head' },
-    h('div', {}, h('h1', {}, LEVELS[level]), h('p', { class: 'muted numbers-line' }, numbersLine(nums))),
-    h('div', { class: 'actions' }, newMenu({ at, group, campaign, accounts }))));
+  // ---- head: Realize's breadcrumb of pickers (account, group, campaign), title, Novo ▾ ----
+  // Picking a group opens its campaigns, a campaign its ads; "Todos" takes
+  // that narrowing off and stays on the same table.
+  const groupsHere = groups.filter((g) => at.account === 'all' || g.account === at.account);
+  const campsHere = campaigns.filter((c) => !group || (c.group_id || '-') === group.id);
+  const acctLine = (id) => (at.account === 'all' && id ? acctName.get(id) + ' · ' : '');
+  main.append(h('nav', { class: 'pickers', 'aria-label': 'Onde você está' },
+    picker('Conta', at.account === 'all' ? `Todas as contas (${accounts.length})` : acctName.get(at.account) || at.account, [
+      { label: 'Todas as contas', href: href(level, { ...at, account: 'all' }), on: at.account === 'all' },
+      ...accounts.map((a) => ({ label: a.name || a.id, sub: 'ID: ' + a.id, href: href(level, { ...at, account: a.id }), on: a.id === at.account }))]),
+    picker('Grupo de campanha', group ? group.name || group.id : `Todos os grupos (${groupsHere.length})`, [
+      { label: 'Todos os grupos', href: href(level, at), on: !group },
+      ...groupsHere.map((g) => ({ label: g.name || g.id, sub: acctLine(g.account) + 'ID: ' + g.id, dot: g.status, on: group?.id === g.id,
+        href: href(level === 'groups' ? 'campaigns' : level === 'ads' ? 'ads' : 'campaigns', { ...at, account: g.account || at.account }, { group: g.id }) }))]),
+    picker('Campanha', campaign ? campaign.name : `Todas as campanhas (${campsHere.length})`, [
+      { label: 'Todas as campanhas', href: href(level === 'groups' ? 'campaigns' : level, at, { group: at.group }), on: !campaign },
+      ...campsHere.map((c) => ({ label: c.name, sub: acctLine(c.account) + 'ID: ' + c.id, dot: c.status, on: campaign?.id === c.id,
+        href: href('ads', { ...at, account: c.account }, { group: c.group_id || '-', campaign: c.id }) }))])));
+  const title = level === 'groups' ? 'Todos os grupos de campanha' : campaign ? campaign.name : group ? group.name || group.id : level === 'ads' ? 'Todos os anúncios' : 'Todas as campanhas';
+  main.append(h('div', { class: 'page-head' },
+    h('div', {}, h('h1', {}, title), h('p', { class: 'muted numbers-line' }, numbersLine(nums))),
+    h('div', { class: 'actions' }, select(WINDOWS, at.w, { 'aria-label': 'Período', class: 'period', onchange: (e) => go({ w: e.target.value }) }),
+      newMenu({ at, group, campaign, accounts }))));
   for (const p of problems) main.append(note('fail', p));
 
   // ---- chips: what the table is narrowed to ----
@@ -179,8 +188,9 @@ export async function manage(ctx) {
   const totals = h('div', { class: 'totals' });
   const table = h('div', { class: 'table-wrap' });
   const result = h('div', { class: 'result' });
+  const pages = h('div', { class: 'pages' });
   const bar = h('div', { class: 'select-bar', hidden: true });
-  main.append(result, totals, table, bar);
+  main.append(result, totals, table, pages, bar);
 
   const sort = { key: store('launch.sort.' + level) || 'spent', down: true };
   const heads = (cols) => cols.map(([key, label, cls]) => h('th', { class: (cls || '') + (key ? ' sortable' : ''), 'aria-sort': key && key === sort.key ? (sort.down ? 'descending' : 'ascending') : null },
@@ -196,6 +206,21 @@ export async function manage(ctx) {
     COLUMNS.filter(([k]) => ['spent', 'clicks', 'ctr', 'sales', 'cpa', 'revenue', 'profit', 'roi'].includes(k))
       .map(([, label, show]) => h('div', { class: 'kpi' }, h('span', { class: 'fr-label' }, label), h('b', { class: 'num' }, show(sum))))));
 
+  // foot is the totals row at the bottom, under the number columns.
+  const foot = (before, sum) => h('tfoot', {}, h('tr', {}, h('td', { colspan: before }, h('b', {}, 'Total')), COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(sum))), h('td')));
+  // page shows 50 rows at a time, like Realize.
+  const PER = 50;
+  let pageAt = 0;
+  const page = (list) => {
+    const last = Math.max(0, Math.ceil(list.length / PER) - 1);
+    if (pageAt > last) pageAt = last;
+    const from = pageAt * PER;
+    const shown = list.slice(from, from + PER);
+    const step = (to, label, off) => h('button', { type: 'button', class: 'small ghost', disabled: off, onclick: () => { pageAt = to; draw(); } }, label);
+    pages.replaceChildren(...(list.length > PER ? [step(0, '«', pageAt === 0), step(pageAt - 1, '‹', pageAt === 0),
+      h('span', { class: 'muted' }, `${from + 1} - ${from + shown.length} de ${list.length}`), step(pageAt + 1, '›', pageAt === last), step(last, '»', pageAt === last)] : []));
+    return shown;
+  };
   const text = (s) => !f.text || s.toLowerCase().includes(f.text);
   let draw = () => {};
 
@@ -215,8 +240,9 @@ export async function manage(ctx) {
       const sum = list.reduce((s, g) => add(s, gNums(g)), zero());
       drawTotals(sum, list.length);
       table.replaceChildren(h('table', { class: 'list numbers' },
-        header([['name', 'Grupo'], ['', 'Estado'], ['', 'Campanhas', 'num'], ['', 'Orçamento'], ...COLUMNS.map(([k, l]) => [k, l, 'num'])]),
-        h('tbody', {}, list.length ? list.map((g) => {
+        header([['name', 'Grupo'], ['', 'Estado'], ['', 'Campanhas', 'num'], ['', 'Orçamento'], ...COLUMNS.map(([k, l]) => [k, l, 'num']), ['', '', 'row-acts']]),
+        list.length ? foot(4, sum) : null,
+        h('tbody', {}, list.length ? page(list).map((g) => {
           const cs = inGroup.get(g.id) || [];
           const running = cs.filter((c) => RUNNING.has(c.status)).length;
           const n = gNums(g);
@@ -226,8 +252,10 @@ export async function manage(ctx) {
             h('td', {}, g.status ? badge(g.status) : '—'),
             h('td', { class: 'num' }, cs.length ? `${cs.length}${running ? ` (${running} rodando)` : ''}` : '0'),
             h('td', { class: 'muted' }, g.id === '-' ? '—' : budget(g)),
-            COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(n))));
-        }) : h('tr', {}, h('td', { colspan: 4 + COLUMNS.length, class: 'faint' }, rows.length ? 'Nenhum grupo com esses filtros.' : 'Nenhum grupo nesta conta. Use Novo › Grupo de campanha.')))));
+            COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(n))),
+            h('td', { class: 'row-acts' }, g.id === '-' ? null : h('a', { class: 'button small ghost', title: 'Nova campanha neste grupo',
+              href: '/launch/new?' + new URLSearchParams({ make: 'campaign', account: g.account || at.account, group: g.id }) }, '+ Campanha')));
+        }) : h('tr', {}, h('td', { colspan: 5 + COLUMNS.length, class: 'faint' }, rows.length ? 'Nenhum grupo com esses filtros.' : 'Nenhum grupo nesta conta. Use Novo › Grupo de campanha.')))));
     };
   }
 
@@ -253,23 +281,26 @@ export async function manage(ctx) {
       const all = h('input', { type: 'checkbox', 'aria-label': 'Escolher todas', checked: list.length > 0 && list.every((c) => pick.has(c.id)),
         onchange: (e) => { for (const c of list) e.target.checked ? pick.add(c.id) : pick.delete(c.id); draw(); } });
       table.replaceChildren(h('table', { class: 'list numbers tree' },
-        h('thead', {}, h('tr', {}, h('th', { class: 'pick' }, all), ...heads([['name', 'Campanha'], ['', 'Grupo'], ['', 'Dispositivo'], ['', 'Estado'], ['', 'Lance'], ['', 'Orçamento diário', 'num'], ...COLUMNS.map(([k, l]) => [k, l, 'num'])]))),
-        h('tbody', {}, list.length ? list.map((c) => {
+        h('thead', {}, h('tr', {}, h('th', { class: 'pick' }, all), ...heads([['name', 'Campanha'], ['', 'Grupo'], ['', 'Dispositivo'], ['', 'Estado'], ['', 'Lance'], ['', 'Orçamento diário', 'num'], ...COLUMNS.map(([k, l]) => [k, l, 'num']), ['', '', 'row-acts']]))),
+        list.length ? foot(7, sum) : null,
+        h('tbody', {}, list.length ? page(list).map((c) => {
           const g = groupById.get(c.group_id);
           const p = pairOf.get(c.id);
           return h('tr', { class: pick.has(c.id) ? 'chosen' : '' },
             h('td', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher ' + c.name, checked: pick.has(c.id), onchange: (e) => choose(c.id, e.target.checked) })),
             h('td', {}, h('a', { href: href('ads', { ...at, account: c.account }, { group: c.group_id || '-', campaign: c.id }) }, c.name),
               p ? h('span', { class: 'badge pair', title: 'Par criado pelo Launch: ' + p.name }, 'par') : null,
-              h('div', { class: 'faint mono' }, (at.account === 'all' ? acctName.get(c.account) + ' · ' : '') + c.id, ' · ',
-                h('a', { class: 'faint', href: link(NET, c.account, c.group_id || '-', c.id) }, 'detalhes'))),
+              h('div', { class: 'faint mono' }, (at.account === 'all' ? acctName.get(c.account) + ' · ' : '') + c.id)),
             h('td', {}, group ? h('span', { class: 'muted' }, g?.name || '—') : h('a', { href: href('campaigns', { ...at, account: c.account }, { group: c.group_id || '-' }) }, g?.name || (c.group_id ? c.group_id : 'Sem grupo'))),
             h('td', {}, DEVICES[c.device] || '—'),
             h('td', {}, badge(c.status)),
             h('td', { class: 'muted' }, bidName(c.settings)),
             h('td', { class: 'num' }, money(c.settings.daily_cap)),
-            COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(numsOf(c.id)))));
-        }) : h('tr', {}, h('td', { colspan: 7 + COLUMNS.length, class: 'faint' }, rows.length ? 'Nenhuma campanha com esses filtros.' : group ? 'Nenhuma campanha neste grupo. Use Novo › Campanha.' : 'Nenhuma campanha.')))));
+            COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(numsOf(c.id)))),
+            h('td', { class: 'row-acts' },
+              h('a', { class: 'button small ghost', title: 'Abrir a campanha para mudar', href: link(NET, c.account, c.group_id || '-', c.id) }, 'Editar'),
+              h('a', { class: 'button small ghost', title: 'Adicionar anúncios a esta campanha', href: `/launch/new?make=ads&account=${encodeURIComponent(c.account)}&to=${c.id}` }, '+ Anúncios')));
+        }) : h('tr', {}, h('td', { colspan: 8 + COLUMNS.length, class: 'faint' }, rows.length ? 'Nenhuma campanha com esses filtros.' : group ? 'Nenhuma campanha neste grupo. Use Novo › Campanha.' : 'Nenhuma campanha.')))));
       drawCampaignBar();
     };
     const panel = h('div', { class: 'act-panel' });
@@ -377,20 +408,23 @@ export async function manage(ctx) {
       const sum = list.reduce((s, a) => add(s, nums.ads?.[a.id]), zero());
       drawTotals(sum, list.length);
       table.replaceChildren(h('table', { class: 'list numbers tree' },
-        h('thead', {}, h('tr', {}, h('th', { class: 'pick' }, ''), ...heads([['name', 'Anúncio'], ['', 'Campanha'], ['', 'Estado'], ['', 'Revisão'], ['', 'Intel'], ...COLUMNS.map(([k, l]) => [k, l, 'num'])]))),
-        h('tbody', {}, list.length ? list.map((a) => {
+        h('thead', {}, h('tr', {}, h('th', { class: 'pick' }, ''), ...heads([['name', 'Anúncio'], ['', 'Campanha'], ['', 'Estado'], ['', 'Revisão'], ['', 'Intel'], ...COLUMNS.map(([k, l]) => [k, l, 'num']), ['', '', 'row-acts']]))),
+        list.length ? foot(6, sum) : null,
+        h('tbody', {}, list.length ? page(list).map((a) => {
           const c = campById.get(a.campaign) || { id: a.campaign, name: a.campaign };
           const key = a.campaign + '/' + a.id;
           return h('tr', { class: pick.has(key) ? 'chosen' : '' },
             h('td', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher ' + (a.title || a.id), checked: pick.has(key), onchange: (e) => { e.target.checked ? pick.add(key) : pick.delete(key); draw(); } })),
-            h('td', {}, h('div', { class: 'ad-cell' }, a.image_url ? h('img', { class: 'mini', src: a.image_url, alt: '', loading: 'lazy' }) : h('span', { class: 'mini' }),
-              h('div', {}, h('div', { class: 'wrap' }, a.title || '—'), h('div', { class: 'faint mono' }, a.id, a.ai ? ' · IA' : '')))),
+            h('td', {}, h('div', { class: 'ad-cell' }, a.image_url ? h('img', { class: 'media', src: a.image_url, alt: '', loading: 'lazy' }) : h('span', { class: 'media empty' }, 'sem imagem'),
+              h('div', { class: 'ad-text' }, h('b', { class: 'wrap' }, a.title || '—'), a.description ? h('span', { class: 'muted wrap' }, a.description) : null,
+                h('span', { class: 'faint mono' }, a.id, a.ai ? ' · IA' : ''), a.cta ? h('span', { class: 'cta-chip' }, ctaName(a.cta)) : null))),
             h('td', {}, campaign ? h('span', { class: 'muted' }, c.name) : h('a', { href: href('ads', { ...at, account: a.account }, { group: c.group_id || '-', campaign: c.id }) }, c.name)),
             h('td', {}, badge(a.status)),
             h('td', {}, a.approval ? badge(a.approval) : '—'),
             h('td', {}, word(nums.ads?.[a.id])),
-            COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(adNums(a)))));
-        }) : h('tr', {}, h('td', { colspan: 6 + COLUMNS.length, class: 'faint' }, ads.length ? 'Nenhum anúncio com esses filtros.' : campaign ? 'Nenhum anúncio nesta campanha. Use Novo › Anúncios.' : 'Nenhum anúncio.')))));
+            COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(adNums(a)))),
+            h('td', { class: 'row-acts' }, a.url ? h('a', { class: 'button small ghost', href: a.url, target: '_blank', rel: 'noopener noreferrer', title: a.url }, 'Página') : null));
+        }) : h('tr', {}, h('td', { colspan: 7 + COLUMNS.length, class: 'faint' }, ads.length ? 'Nenhum anúncio com esses filtros.' : campaign ? 'Nenhum anúncio nesta campanha. Use Novo › Anúncios.' : 'Nenhum anúncio.')))));
       drawAdBar();
     };
     const drawAdBar = () => {
@@ -441,6 +475,37 @@ function numbersLine(nums) {
   if (!nums.available) return 'Os números aparecem quando o Intel estiver ligado.';
   const at = nums.refreshed_at ? new Date(nums.refreshed_at) : null;
   return 'Números do Intel' + (at && !isNaN(at) ? ', atualizados ' + at.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '. Vendas e receita do RedTrack.';
+}
+
+// picker is one step of the breadcrumb: a small label over the value, and a
+// list with a search box, like Realize's.
+function picker(label, value, options) {
+  const find = input({ type: 'search', placeholder: 'Buscar', 'aria-label': 'Buscar ' + label.toLowerCase() });
+  const list = h('div', { class: 'pick-list', role: 'menu' });
+  const draw = () => {
+    const q = find.value.trim().toLowerCase();
+    list.replaceChildren(...options.filter((o, i) => i === 0 || !q || o.label.toLowerCase().includes(q) || (o.sub || '').toLowerCase().includes(q)).slice(0, 200)
+      .map((o) => h('a', { href: o.href, role: 'menuitem', class: o.on ? 'on' : '' },
+        o.dot !== undefined ? h('span', { class: 'dot ' + dotOf(o.dot), title: o.dot }) : null,
+        h('span', {}, h('span', { class: 'pick-name' }, o.label), o.sub ? h('small', {}, o.sub) : null))));
+  };
+  find.addEventListener('input', draw);
+  draw();
+  const box = h('details', { class: 'pick-crumb' }, h('summary', {}, h('small', {}, label), h('b', {}, value, ' ▾')),
+    h('div', { class: 'menu' }, options.length > 6 ? find : null, list));
+  box.addEventListener('toggle', () => { if (box.open) find.focus(); });
+  document.addEventListener('click', (e) => { if (!box.contains(e.target)) box.open = false; });
+  return box;
+}
+
+function dotOf(status) {
+  return RUNNING.has(status) ? 'run' : PAUSED.has(status) ? 'stop' : 'other';
+}
+
+const CTA_NAMES = { LEARN_MORE: 'Learn More', READ_MORE: 'Read More', SHOP_NOW: 'Shop Now', SIGN_UP: 'Sign Up', GET_OFFER: 'Get Offer', DOWNLOAD: 'Download', CALL_NOW: 'Call Now', NONE: '' };
+
+function ctaName(c) {
+  return CTA_NAMES[c] ?? c.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (x) => x.toUpperCase());
 }
 
 function scopeChip(kind, name, without) {
