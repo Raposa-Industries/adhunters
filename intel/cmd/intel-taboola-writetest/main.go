@@ -385,17 +385,15 @@ func (t *tester) cleanup(ctx context.Context) error {
 		if st.Deleted[id] {
 			continue
 		}
+		// DeleteCampaign fails when the campaign is still readable
+		// afterwards, so it is never counted as deleted.
 		got, err := t.c.DeleteCampaign(ctx, id)
 		if err != nil {
 			t.note("T11", "delete campaign %s failed: %v", id, err)
 			errs = append(errs, err)
 			continue
 		}
-		after := "still readable"
-		if _, err := t.c.Get(ctx, t.account+"/campaigns/"+id+"/"); err != nil {
-			after = "then: " + err.Error()
-		}
-		t.note("T11", "deleted campaign %s: status %s; %s", id, s(got["status"]), after)
+		t.note("T11", "deleted campaign %s: status %s", id, s(got["status"]))
 	}
 	errs = append(errs, t.deleteGroups(ctx))
 	return errors.Join(errs...)

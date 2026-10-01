@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -100,8 +102,20 @@ func TestLoad(t *testing.T) {
 		}
 	}
 
-	// An older answer loaded later changes nothing; a newer list without the
-	// campaign marks it gone.
+	// A list a few minutes later without the campaign does not make it gone
+	// (Taboola's list sometimes leaves one out).
+	put(t, db, "b0", "taboola", "acme-1-sc", "taboola.campaigns", nil, at.Add(5*time.Minute), campNone)
+	if _, err := l.Pending(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var early bool
+	db.QueryRow(ctx, `SELECT gone_at IS NOT NULL FROM intel.tb_campaign`).Scan(&early)
+	if early {
+		t.Fatal("gone after one list without it")
+	}
+
+	// An older answer loaded later changes nothing; a list without the
+	// campaign once no list has shown it for 15 minutes marks it gone.
 	put(t, db, "b1", "taboola", "acme-1-sc", "taboola.campaign_day", day, at.Add(-time.Hour),
 		`{"results":[{"date":"2026-09-29 00:00:00.0","campaign":"501","clicks":1,"impressions":1,"visible_impressions":1,"spent":1,"cpa_actions_num":0}]}`)
 	put(t, db, "b2", "taboola", "acme-1-sc", "taboola.campaigns", nil, at.Add(time.Hour), campNone)
@@ -142,5 +156,91 @@ func TestBadAnswerIsKept(t *testing.T) {
 	var e string
 	if err := db.QueryRow(ctx, `SELECT load_error FROM intel.answer`).Scan(&e); err != nil || e == "" {
 		t.Fatalf("no load error recorded: %v", err)
+	}
+}
+
+func TestGroupDeleted(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	l := &load.Loader{DB: db, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	t0 := time.Date(2026, 10, 1, 18, 0, 0, 0, time.UTC)
+	groups := func(ids ...string) string {
+		var rows []string
+		for _, id := range ids {
+			rows = append(rows, `{"id":"`+id+`","name":"G","status":"PAUSED"}`)
+		}
+		return `{"results":[` + strings.Join(rows, ",") + `]}`
+	}
+	camp := func(id, group, status string) string {
+		return `{"id":"` + id + `","name":"C` + id + `","campaign_group_id":` + group + `,"status":"` + status + `","is_active":false}`
+	}
+	step := func(id string, at time.Duration, kind, body string) {
+		t.Helper()
+		put(t, db, id, "taboola", "acme-1-sc", kind, nil, t0.Add(at), body)
+		if _, err := l.Pending(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	statuses := func(campaign string) string {
+		var s string
+		db.QueryRow(ctx, `SELECT string_agg(status, ',' ORDER BY valid_from) FROM intel.tb_campaign_status
+			WHERE campaign_id = $1::bigint`, campaign).Scan(&s)
+		return s
+	}
+	step("g0", 0, "taboola.groups", groups("9001"))
+	step("c0", time.Minute, "taboola.campaigns", `{"results":[`+camp("501", "9001", "DEPLETED")+`]}`)
+	// One group list without it is not enough.
+	step("g1", 5*time.Minute, "taboola.groups", groups())
+	step("c1", 6*time.Minute, "taboola.campaigns", `{"results":[`+camp("501", "9001", "DEPLETED")+`]}`)
+	if s := statuses("501"); s != "DEPLETED" {
+		t.Fatalf("after one list: %q", s)
+	}
+	// Gone for 15 minutes: the campaign, still listed as depleted, is in a
+	// deleted group, and stays so.
+	step("g2", 20*time.Minute, "taboola.groups", groups())
+	step("c2", 21*time.Minute, "taboola.campaigns", `{"results":[`+camp("501", "9001", "DEPLETED")+`,`+camp("502", "9002", "PENDING_APPROVAL")+`]}`)
+	if s := statuses("501"); s != "DEPLETED,GROUP_DELETED" {
+		t.Fatalf("group gone: %q", s)
+	}
+	// A group made after the last group list is not taken as deleted.
+	step("g3", 25*time.Minute, "taboola.groups", groups())
+	if s := statuses("502"); s != "PENDING_APPROVAL" {
+		t.Fatalf("new group: %q", s)
+	}
+	// A group never seen, still missing 15 minutes after its campaign
+	// appeared, is deleted (T12's group was deleted before Intel read groups).
+	step("g4", 40*time.Minute, "taboola.groups", groups())
+	if s := statuses("502"); s != "PENDING_APPROVAL,GROUP_DELETED" {
+		t.Fatalf("never-seen group: %q", s)
+	}
+}
+
+// A list answer without a results array is a load error, not an empty list:
+// it never moves a campaign or group towards gone.
+func TestListWithoutResultsIsNotEmpty(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	l := &load.Loader{DB: db, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	t0 := time.Date(2026, 10, 1, 18, 0, 0, 0, time.UTC)
+	step := func(id string, at time.Duration, kind, body string) {
+		t.Helper()
+		put(t, db, id, "taboola", "acme-1-sc", kind, nil, t0.Add(at), body)
+		if _, err := l.Pending(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	step("g0", 0, "taboola.groups", `{"results":[{"id":"9001","name":"G","status":"RUNNING"}]}`)
+	step("c0", time.Minute, "taboola.campaigns", `{"results":[{"id":"501","campaign_group_id":9001,"status":"RUNNING","is_active":true}]}`)
+	for i, body := range []string{`{}`, `{"results":null}`, `{"error":"busy"}`} {
+		at := time.Duration(20+i*20) * time.Minute
+		step(fmt.Sprint("g", i+1), at, "taboola.groups", body)
+		step(fmt.Sprint("c", i+1), at+time.Minute, "taboola.campaigns", body)
+	}
+	var gone, groupGone, errs int
+	db.QueryRow(ctx, `SELECT count(*) FROM intel.tb_campaign WHERE gone_at IS NOT NULL`).Scan(&gone)
+	db.QueryRow(ctx, `SELECT count(*) FROM intel.tb_group WHERE gone_at IS NOT NULL`).Scan(&groupGone)
+	db.QueryRow(ctx, `SELECT count(*) FROM intel.answer WHERE load_error IS NOT NULL`).Scan(&errs)
+	if gone != 0 || groupGone != 0 || errs != 6 {
+		t.Fatalf("gone %d, groups gone %d, load errors %d (want 0, 0, 6)", gone, groupGone, errs)
 	}
 }

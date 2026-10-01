@@ -28,7 +28,7 @@ Launch):
 | Job | Every | Reads |
 |---|---|---|
 | realtime | 5 min | The last hour of 5-minute buckets per campaign (what runaway and the gaps are judged on). |
-| status | 5 min | Each account's campaign list alone, so a change of delivery status is seen within minutes. |
+| status | 5 min | Each account's campaign groups and campaign list, so a change of delivery status is seen within minutes. |
 | settings | hour | Campaigns, then each campaign's items. |
 | reports | hour | Yesterday and today by campaign, by campaign and site, and by item (one call a day: the item report has no day split). |
 | month | day | The month so far the same way (and the month before until the 5th). |
@@ -53,12 +53,22 @@ How the numbers are judged:
 - **Alerts:** runaway, tracking gap, landing page gap, postback gap and
   rejected item, each open while it holds and sent once.
 - **Delivery status:** every change of a campaign's status (Taboola's
-  "Delivery Status": running, paused, pending approval, rejected, depleted…,
-  and deleted when it leaves the list), in every account of every login,
-  goes to "AdHunters alerts", grouped into one message per round. A campaign
-  that appears in an account Intel already reads is sent as new. Changes
-  older than `status_alert_max_age_hours` (6) when found are recorded but
-  not sent, so a reload or a first run sends nothing old.
+  "Delivery Status": running, paused, pending approval, rejected,
+  depleted…), in every account of every login, goes to "AdHunters alerts",
+  grouped into one message per round. Intel adds two statuses of its own:
+  - **deleted**, once the campaign has been missing from every campaign list
+    for 15 minutes (Taboola's list sometimes leaves out a campaign that is
+    still there). An answer without a list in it is a load error, never an
+    empty list;
+  - **campaign group deleted**, once its group has been missing from the
+    group list for 15 minutes. Realize shows "Campaign Group Was Deleted",
+    while the campaign list keeps the old status.
+
+  A campaign that appears in an account Intel already reads is sent as new.
+  Changes older than `status_alert_max_age_hours` (6) when found are recorded
+  but not sent, so a reload or a first run sends nothing old. Both of Intel's
+  statuses are final in Taboola, so a change away from either is recorded but
+  not sent.
 - **Suggestions:** pause ads that would not reach their spend without a sale
   1 time in 20 at the account's usual cost per sale (and spent $10 or more);
   pause the campaign when that is every running ad; halve the daily cap of a
@@ -142,7 +152,10 @@ items in Taboola's review queue, so cleanup deletes the items first
 group for every new campaign and keeps it afterwards, so cleanup and `purge`
 delete those groups last; `-groups a,b` names groups of campaigns made before
 the client recorded them. The client deletes only AutoGen groups named with
-our prefix that no campaign in the account still uses.
+our prefix that no campaign in the account still uses. A campaign counts as
+deleted only when the DELETE answers TERMINATED or reading it back gives 404;
+one still readable is a cleanup failure (on 2026-09-29 a DELETE left T12 in
+place and it was recorded as deleted).
 
 Images must go up with an image content type; Taboola refuses
 `application/octet-stream`.

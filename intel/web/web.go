@@ -594,4 +594,5 @@ var statusNames = map[string]string{
 	"TERMINATED":         "encerrada",
 	"FROZEN":             "congelada",
 	"DELETED":            "apagada",
+	"GROUP_DELETED":      "grupo apagado",
 }

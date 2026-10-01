@@ -285,6 +285,19 @@ func TestStatusChanges(t *testing.T) {
 	if n, _ := judge.SendStatusChanges(ctx, db, log, s, now, sent, ""); n != 0 || len(sent.msgs) != 1 {
 		t.Fatalf("sent again")
 	}
+
+	// Taken as deleted, then back in the list: the Deleted goes out, the
+	// way back does not.
+	exec(t, db, `INSERT INTO intel.tb_campaign_status VALUES (1, $1, 'acme-sc', 'DELETED')`, now.Add(10*time.Second))
+	judge.FindStatusChanges(ctx, db, now.Add(time.Minute))
+	if n, _ := judge.SendStatusChanges(ctx, db, log, s, now.Add(time.Minute), sent, ""); n != 1 || !strings.Contains(sent.msgs[1], "Running → Deleted") {
+		t.Fatalf("deleted not sent: %d %q", n, sent.msgs)
+	}
+	exec(t, db, `INSERT INTO intel.tb_campaign_status VALUES (1, $1, 'acme-sc', 'RUNNING')`, now.Add(20*time.Second))
+	judge.FindStatusChanges(ctx, db, now.Add(2*time.Minute))
+	if n, _ := judge.SendStatusChanges(ctx, db, log, s, now.Add(2*time.Minute), sent, ""); n != 0 || len(sent.msgs) != 2 {
+		t.Fatalf("sent the way back from Deleted: %q", sent.msgs)
+	}
 }
 
 func TestSendSuggestions(t *testing.T) {
