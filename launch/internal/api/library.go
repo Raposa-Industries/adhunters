@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -139,4 +140,27 @@ func (a *API) libraryUse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	send(w, http.StatusOK, map[string]any{"image": info, "creative": c})
+}
+
+// fingerprint is a creative's in our ad ids: 10 hex characters.
+var fingerprint = regexp.MustCompile(`^[0-9a-f]{10}$`)
+
+// used counts the ads Launch made with each picture, by its fingerprint
+// (?creatives=<first 10 hex of the SHA-256>,…; at most 200): {used: {fp: n}}.
+// Novos anúncios shows it under the library's pictures ("no Launch: 2
+// anúncios").
+func (a *API) used(w http.ResponseWriter, r *http.Request) {
+	var fps []string
+	for _, f := range strings.Split(r.URL.Query().Get("creatives"), ",") {
+		if f = strings.ToLower(strings.TrimSpace(f)); fingerprint.MatchString(f) && len(fps) < 200 {
+			fps = append(fps, f)
+		}
+	}
+	n, err := a.l.Store().ItemsByCreative(r.Context(), fps)
+	if err != nil {
+		a.log.Error("ads by creative", "err", err)
+		say(w, http.StatusInternalServerError, "Não consegui contar os anúncios agora.")
+		return
+	}
+	send(w, http.StatusOK, map[string]any{"used": n})
 }

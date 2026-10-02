@@ -22,6 +22,14 @@ func TestPagesAndFiles(t *testing.T) {
 		{"/launch/style.css", "text/css; charset=utf-8", 200, ".steps-preview"},
 		{"/launch/app.js", "text/javascript; charset=utf-8", 200, "mountFrame"},
 		{"/launch/style.css", "text/css; charset=utf-8", 200, ".select-bar"},
+		{"/launch/route.js", "text/javascript; charset=utf-8", 200, "'requests', 'history', 'presets', 'drafts'"},
+		{"/launch/accountrows.js", "text/javascript; charset=utf-8", 200, "export function joining"},
+		{"/launch/accounts.js", "text/javascript; charset=utf-8", 200, "Nova conta"},
+		// Pedidos, Histórico, Presets and Rascunhos are no longer screens:
+		// their addresses still get the page, which opens Campanhas.
+		{"/launch/requests/12", "text/html; charset=utf-8", 200, "<main"},
+		{"/launch/history", "text/html; charset=utf-8", 200, "<main"},
+		{"/launch/requests.js", "", 404, ""},
 		{"/launch/missing.js", "", 404, ""},
 		{"/launch/../go.mod", "", 404, ""},
 		{"/other/", "", 404, ""},
@@ -49,5 +57,28 @@ func TestPagesAndFiles(t *testing.T) {
 	h.ServeHTTP(rec, httptest.NewRequest("POST", "/launch/", nil))
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Errorf("POST: %d", rec.Code)
+	}
+}
+
+// The top bar has only Campanhas and Contas, and Contas never says where a
+// login comes from (IMPLEMENT d587e1b829).
+func TestOnlyCampanhasAndContas(t *testing.T) {
+	h := Handler()
+	get := func(p string) string {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("GET", p, nil))
+		return rec.Body.String()
+	}
+	app := get("/launch/app.js")
+	for _, gone := range []string{"label: 'Pedidos'", "label: 'Rascunhos'", "label: 'Histórico'", "label: 'Presets'", "/launch/presets", "requests.js", "history.js"} {
+		if strings.Contains(app, gone) {
+			t.Errorf("app.js still has %q", gone)
+		}
+	}
+	if strings.Contains(get("/launch/presets.js"), "/launch/presets'") {
+		t.Error("presets.js still links to the Presets screen")
+	}
+	if c := get("/launch/accounts.js"); strings.Contains(c, "do servidor") || strings.Contains(c, "Adicionar login") {
+		t.Error("Contas still names the server's login or Adicionar login")
 	}
 }

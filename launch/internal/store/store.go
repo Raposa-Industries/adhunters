@@ -338,6 +338,31 @@ func (s *Store) AddItems(ctx context.Context, network, account, campaign string,
 	return s.db.SendBatch(ctx, b).Close()
 }
 
+// ItemsByCreative counts the ads Launch made with each creative, by the
+// creative's fingerprint (the first 10 hex characters of its SHA-256, as in
+// our ad id: ah-<creative>-<headline>). Fingerprints with none are left out.
+func (s *Store) ItemsByCreative(ctx context.Context, fingerprints []string) (map[string]int, error) {
+	out := map[string]int{}
+	if len(fingerprints) == 0 {
+		return out, nil
+	}
+	rows, err := s.db.Query(ctx, `SELECT substr(ad_id, 4, 10), count(*) FROM launch.item
+		WHERE ad_id LIKE 'ah-%' AND substr(ad_id, 4, 10) = ANY ($1) GROUP BY 1`, fingerprints)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var fp string
+		var n int
+		if err := rows.Scan(&fp, &n); err != nil {
+			return nil, err
+		}
+		out[fp] = n
+	}
+	return out, rows.Err()
+}
+
 // Request is a change another service asked for (launch_api.new_request_v1).
 type Request struct {
 	ID          int64           `json:"id"`

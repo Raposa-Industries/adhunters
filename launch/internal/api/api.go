@@ -120,6 +120,7 @@ func (a *API) Handler() http.Handler {
 	// path segment would clash with {net}/{account}/….
 	m.HandleFunc("GET "+p+"library/{what}", a.libraryList)
 	m.HandleFunc("POST "+p+"library/use", a.libraryUse)
+	m.HandleFunc("GET "+p+"used", a.used)
 	a.loginRoutes(m, p)
 	m.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) { say(w, http.StatusNotFound, "endereço desconhecido") })
 	return a.forgetOnWrite(m)
@@ -310,9 +311,10 @@ func (a *API) pause(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// next is the names the next group and campaign get in the account.
+// next is the names the next group and campaign get in the account; with
+// ?group=<id>, the next campaign in that group.
 func (a *API) next(w http.ResponseWriter, r *http.Request) {
-	n, err := a.l.Next(r.Context(), r.PathValue("net"), r.PathValue("account"))
+	n, err := a.l.Next(r.Context(), r.PathValue("net"), r.PathValue("account"), strings.TrimSpace(r.URL.Query().Get("group")))
 	if err != nil {
 		a.fail(w, err)
 		return

@@ -20,6 +20,9 @@ func (a *API) loginRoutes(m *http.ServeMux, p string) {
 	m.HandleFunc("GET "+p+"logins/{id}/allowed", a.loginAllowed)
 	m.HandleFunc("PUT "+p+"logins/{id}", a.changeLogin)
 	m.HandleFunc("DELETE "+p+"logins/{id}", a.removeLogin)
+	m.HandleFunc("PUT "+p+"logins/{id}/proxy", a.loginProxy)
+	m.HandleFunc("PUT "+p+"logins/{id}/user-id", a.loginUserID)
+	m.HandleFunc("PUT "+p+"accounts/{net}/{account}/proxy", a.accountProxy)
 }
 
 func (a *API) loginsOn(w http.ResponseWriter) (*logins.Service, bool) {
@@ -60,10 +63,14 @@ func (a *API) logins(w http.ResponseWriter, r *http.Request) {
 	send(w, http.StatusOK, map[string]any{"logins": list})
 }
 
+// loginIn is a login as Nova conta sends it. The secret and the proxy (which
+// may hold a password) are never logged or sent back.
 type loginIn struct {
 	Name         string   `json:"name"`
 	ClientID     string   `json:"client_id"`
+	UserID       string   `json:"user_id"`
 	ClientSecret string   `json:"client_secret"`
+	Proxy        string   `json:"proxy"`
 	Accounts     []string `json:"accounts"`
 }
 
@@ -76,7 +83,7 @@ func (a *API) checkLogin(w http.ResponseWriter, r *http.Request) {
 	if !read(w, r, &in) {
 		return
 	}
-	list, err := s.Check(r.Context(), in.ClientID, in.ClientSecret)
+	list, err := s.Check(r.Context(), in.ClientID, in.ClientSecret, in.Proxy)
 	if err != nil {
 		a.fail(w, err)
 		return
@@ -93,7 +100,7 @@ func (a *API) addLogin(w http.ResponseWriter, r *http.Request) {
 	if !read(w, r, &in) {
 		return
 	}
-	id, err := s.Add(r.Context(), Who(r), in.Name, in.ClientID, in.ClientSecret, in.Accounts)
+	id, err := s.Add(r.Context(), Who(r), in.Name, in.ClientID, in.UserID, in.ClientSecret, in.Proxy, in.Accounts)
 	if err != nil {
 		a.fail(w, err)
 		return
@@ -152,6 +159,77 @@ func (a *API) removeLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.Remove(r.Context(), id); err != nil {
 		a.loginFail(w, err)
+		return
+	}
+	send(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// loginProxy changes the proxy an added login's accounts go through. It is
+// checked through the new proxy first (a read at Taboola).
+func (a *API) loginProxy(w http.ResponseWriter, r *http.Request) {
+	s, ok := a.loginsOn(w)
+	if !ok {
+		return
+	}
+	id, ok := loginID(w, r)
+	if !ok {
+		return
+	}
+	var in struct {
+		Proxy string `json:"proxy"`
+	}
+	if !read(w, r, &in) {
+		return
+	}
+	if err := s.SetLoginProxy(r.Context(), id, in.Proxy); err != nil {
+		a.loginFail(w, err)
+		return
+	}
+	send(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// loginUserID changes an added login's Taboola user ID.
+func (a *API) loginUserID(w http.ResponseWriter, r *http.Request) {
+	s, ok := a.loginsOn(w)
+	if !ok {
+		return
+	}
+	id, ok := loginID(w, r)
+	if !ok {
+		return
+	}
+	var in struct {
+		UserID string `json:"user_id"`
+	}
+	if !read(w, r, &in) {
+		return
+	}
+	if err := s.SetUserID(r.Context(), id, in.UserID); err != nil {
+		a.loginFail(w, err)
+		return
+	}
+	send(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// accountProxy sets or (with "") takes away the proxy of one account of the
+// server's own login.
+func (a *API) accountProxy(w http.ResponseWriter, r *http.Request) {
+	s, ok := a.loginsOn(w)
+	if !ok {
+		return
+	}
+	if r.PathValue("net") != "taboola" {
+		say(w, http.StatusNotFound, "rede desconhecida")
+		return
+	}
+	var in struct {
+		Proxy string `json:"proxy"`
+	}
+	if !read(w, r, &in) {
+		return
+	}
+	if err := s.SetAccountProxy(r.Context(), Who(r), r.PathValue("account"), in.Proxy); err != nil {
+		a.fail(w, err)
 		return
 	}
 	send(w, http.StatusOK, map[string]bool{"ok": true})

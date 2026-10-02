@@ -27,11 +27,19 @@ import (
 
 // backstage is a fake Taboola with two logins: the server's (srv-id,
 // accounts zolta-1-sc) and a second one (new-id, accounts new-1-sc and
-// new-2-sc under new-network). It records which login asked what.
+// new-2-sc under new-network). It records which login asked what, and
+// whether it came through the fake proxy (fakeProxy).
 type backstage struct {
 	srv *httptest.Server
 	mu  sync.Mutex
-	got []string // "<client id> <method> <path>"
+	got []string // "<client id> <method> <path> <via>", via "proxy" or "direct"
+}
+
+func via(r *http.Request) string {
+	if r.Header.Get("Via") == "fake-proxy" {
+		return "proxy"
+	}
+	return "direct"
 }
 
 var secrets = map[string]string{"srv-id": "srv-secret", "new-id-0123456789": "new-secret"}
@@ -42,6 +50,9 @@ func newBackstage(t *testing.T) *backstage {
 		if r.URL.Path == "/backstage/oauth/token" {
 			_ = r.ParseForm()
 			id := r.Form.Get("client_id")
+			b.mu.Lock()
+			b.got = append(b.got, id+" POST token "+via(r))
+			b.mu.Unlock()
 			if s, ok := secrets[id]; !ok || r.Form.Get("client_secret") != s {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
@@ -52,7 +63,7 @@ func newBackstage(t *testing.T) *backstage {
 		id := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer tok-")
 		path := strings.TrimPrefix(r.URL.Path, "/backstage/api/1.0/")
 		b.mu.Lock()
-		b.got = append(b.got, id+" "+r.Method+" "+path)
+		b.got = append(b.got, id+" "+r.Method+" "+path+" "+via(r))
 		b.mu.Unlock()
 		if r.Method != http.MethodGet {
 			t.Errorf("%s asked %s %s: adding a login must only read", id, r.Method, path)
@@ -80,6 +91,7 @@ func (b *backstage) asked() []string {
 }
 
 type rig struct {
+	px   *fakeProxy
 	s    *Service
 	net  *tbnet.Logins
 	st   *store.Store
@@ -109,7 +121,7 @@ func setup(t *testing.T) *rig {
 	net := tbnet.NewLogins(tbnet.Login{T: tbnet.New(server), Accounts: set.Accounts})
 	st := store.New(db)
 	s := New(st, box, net, server, set, kept, log)
-	return &rig{s: s, net: net, st: st, box: box, bs: bs, kept: dir, logs: logs}
+	return &rig{px: newFakeProxy(t, "ana", "p4ss"), s: s, net: net, st: st, box: box, bs: bs, kept: dir, logs: logs}
 }
 
 var ctx = context.Background()
@@ -124,17 +136,17 @@ func refused(t *testing.T, err error, want string) {
 
 func TestAddedLoginsAccountsGoToTheirOwnLogin(t *testing.T) {
 	r := setup(t)
-	allowed, err := r.s.Check(ctx, "new-id-0123456789", "new-secret")
+	allowed, err := r.s.Check(ctx, "new-id-0123456789", "new-secret", r.px.addr)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(allowed) != 3 || !allowed[0].Network {
 		t.Fatalf("allowed %+v", allowed)
 	}
-	if _, err := r.s.Add(ctx, "ana", " Nova  conta ", "new-id-0123456789", "new-secret", []string{"new-network"}); err == nil {
+	if _, err := r.s.Add(ctx, "ana", " Nova  conta ", "new-id-0123456789", "4242", "new-secret", r.px.addr, []string{"new-network"}); err == nil {
 		t.Fatal("a network account was accepted")
 	}
-	id, err := r.s.Add(ctx, "ana", " Nova  conta ", "new-id-0123456789", "new-secret", []string{"new-2-sc"})
+	id, err := r.s.Add(ctx, "ana", " Nova  conta ", "new-id-0123456789", "4242", "new-secret", r.px.addr, []string{"new-2-sc"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +208,7 @@ func TestAddedLoginsAccountsGoToTheirOwnLogin(t *testing.T) {
 
 func TestSecretIsSealedAndNeverKeptOrLogged(t *testing.T) {
 	r := setup(t)
-	if _, err := r.s.Add(ctx, "", "Nova", "new-id-0123456789", "new-secret", []string{"new-1-sc"}); err != nil {
+	if _, err := r.s.Add(ctx, "", "Nova", "new-id-0123456789", "4242", "new-secret", r.px.addr, []string{"new-1-sc"}); err != nil {
 		t.Fatal(err)
 	}
 	rows, err := r.st.Logins(ctx)
@@ -219,7 +231,7 @@ func TestSecretIsSealedAndNeverKeptOrLogged(t *testing.T) {
 		}
 		return nil
 	})
-	for _, bad := range []string{"new-secret", "srv-secret", "tok-"} {
+	for _, bad := range []string{"new-secret", "srv-secret", "tok-", "p4ss"} {
 		if strings.Contains(all.String(), bad) {
 			t.Errorf("%q is in the logs or the keep folder", bad)
 		}
@@ -228,22 +240,22 @@ func TestSecretIsSealedAndNeverKeptOrLogged(t *testing.T) {
 
 func TestRefusals(t *testing.T) {
 	r := setup(t)
-	_, err := r.s.Check(ctx, "new-id-0123456789", "wrong")
+	_, err := r.s.Check(ctx, "new-id-0123456789", "wrong", r.px.addr)
 	refused(t, err, "recusou esse client ID")
-	_, err = r.s.Check(ctx, "", "x")
+	_, err = r.s.Check(ctx, "", "x", r.px.addr)
 	refused(t, err, "preencha")
-	_, err = r.s.Add(ctx, "", "", "new-id-0123456789", "new-secret", []string{"new-1-sc"})
+	_, err = r.s.Add(ctx, "", "", "new-id-0123456789", "4242", "new-secret", r.px.addr, []string{"new-1-sc"})
 	refused(t, err, "nome")
-	_, err = r.s.Add(ctx, "", "x", "srv-id", "srv-secret", []string{"zolta-1-sc"})
+	_, err = r.s.Add(ctx, "", "x", "srv-id", "4242", "srv-secret", r.px.addr, []string{"zolta-1-sc"})
 	refused(t, err, "login do servidor")
-	_, err = r.s.Add(ctx, "", "x", "new-id-0123456789", "new-secret", []string{"zolta-1-sc"})
+	_, err = r.s.Add(ctx, "", "x", "new-id-0123456789", "4242", "new-secret", r.px.addr, []string{"zolta-1-sc"})
 	refused(t, err, "não está neste login")
-	_, err = r.s.Add(ctx, "", "x", "new-id-0123456789", "new-secret", nil)
+	_, err = r.s.Add(ctx, "", "x", "new-id-0123456789", "4242", "new-secret", r.px.addr, nil)
 	refused(t, err, "pelo menos uma")
-	if _, err := r.s.Add(ctx, "", "x", "new-id-0123456789", "new-secret", []string{"new-1-sc"}); err != nil {
+	if _, err := r.s.Add(ctx, "", "x", "new-id-0123456789", "4242", "new-secret", r.px.addr, []string{"new-1-sc"}); err != nil {
 		t.Fatal(err)
 	}
-	_, err = r.s.Add(ctx, "", "y", "new-id-0123456789", "new-secret", []string{"new-1-sc"})
+	_, err = r.s.Add(ctx, "", "y", "new-id-0123456789", "4242", "new-secret", r.px.addr, []string{"new-1-sc"})
 	refused(t, err, "já foi adicionado")
 }
 

@@ -95,6 +95,11 @@ type Settings struct {
 	OnlyOwn    bool
 	NamePrefix string
 	StateFile  string
+
+	// HTTP is the client every request of this login goes through, the
+	// token included; nil is a plain one. Launch gives each account with a
+	// proxy one whose transport goes only through that proxy.
+	HTTP *http.Client
 }
 
 // ErrKeep means Taboola answered but the answer could not be kept, so it is
@@ -159,7 +164,7 @@ func New(s Settings, kept *keep.Folder, log *slog.Logger) (*Client, error) {
 	c := &Client{s: s, keep: kept, log: log, wait: api.Sleep}
 	// Every call also carries the caller's deadline; the shared client's 2
 	// minute timeout only stops one stuck exchange from holding a whole batch.
-	c.api = api.New(s.Base, s.ClientID, s.ClientSecret, nil)
+	c.api = api.New(s.Base, s.ClientID, s.ClientSecret, s.HTTP)
 	c.api.MaxRetries = maxRetries
 	c.api.Wait = func(ctx context.Context, d time.Duration) error { return c.wait(ctx, d) }
 	c.api.Record = c.keepAttempt
@@ -324,6 +329,9 @@ func (c *Client) do(ctx context.Context, k call) ([]byte, error) {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
+		if line, ok := saysItself(send.Err); ok {
+			return nil, &Error{Message: line}
+		}
 		msg := "sem resposta da Taboola"
 		if k.method != http.MethodGet {
 			msg += "; confira no Taboola antes de repetir"
@@ -459,6 +467,9 @@ func (c *Client) tokenError(ctx context.Context, e *api.TokenError) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
+		if line, ok := saysItself(e.Err); ok {
+			return &Error{Message: line}
+		}
 		return &Error{Message: "sem resposta da Taboola ao pedir acesso"}
 	case http.StatusOK:
 		return &Error{Status: e.Status, Message: "a Taboola deu acesso sem token"}
@@ -468,6 +479,17 @@ func (c *Client) tokenError(ctx context.Context, e *api.TokenError) error {
 		return &Error{Status: e.Status, Message: fmt.Sprintf("a Taboola recusou TABOOLA_CLIENT_ID/TABOOLA_CLIENT_SECRET (HTTP %d)", e.Status)}
 	}
 	return &Error{Status: e.Status, Message: fmt.Sprintf("a Taboola falhou ao dar acesso (HTTP %d)", e.Status)}
+}
+
+// saysItself finds, in a failed exchange's error, one from Settings.HTTP's
+// transport that carries its own pt-BR line for the person (Launch's proxy:
+// which proxy failed, and that nothing went direct).
+func saysItself(err error) (string, bool) {
+	var s interface{ Say() string }
+	if errors.As(err, &s) {
+		return s.Say(), true
+	}
+	return "", false
 }
 
 // obj is a JSON object as Taboola sends or takes it.
