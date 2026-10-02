@@ -745,6 +745,9 @@ OPS_ADDR=127.0.0.1:9108"
 observe_bot_env='# observe-bot settings (see platform/observe/README.md).
 TELEGRAM_BOT_TOKEN=FILL_ME
 TELEGRAM_CHAT_ID=FILL_ME
+# The ops group "AdHunters operation", for Taboola policy changes. Empty: they
+# go to TELEGRAM_CHAT_ID.
+OPS_TELEGRAM_CHAT_ID=
 # The stack'"'"'s Prometheus URL followed by /api/prom, its user number, and a
 # token with metrics:read.
 GRAFANA_QUERY_URL=FILL_ME

@@ -1,6 +1,6 @@
-// Package telegram posts messages to the "AdHunters alerts" group through a
-// bot. It is for system messages and Intel's alerts and briefs (decision
-// 0004); watches go through Pushcut elsewhere. observe-bot and intel-numbers
+// Package telegram posts messages to a Telegram group through a bot: system
+// messages to "AdHunters alerts", and what the team acts on (Intel's alerts,
+// policy changes) to the ops group "AdHunters operation" (decision 0004); watches go through Pushcut elsewhere. observe-bot and intel-numbers
 // both send through it (decision 0013).
 package telegram
 

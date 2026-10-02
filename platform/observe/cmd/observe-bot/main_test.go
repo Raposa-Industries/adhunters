@@ -93,3 +93,27 @@ func TestRelaySendsEachNewIssueOnceAndKeepsItsPlace(t *testing.T) {
 		t.Fatalf("cursor file: %v %v", readCursor(f), err)
 	}
 }
+
+func TestOpsGroupTakesThePolicyChangesWhenItHasAChatID(t *testing.T) {
+	for k, v := range map[string]string{
+		"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_CHAT_ID": "-1",
+		"GRAFANA_QUERY_URL": "https://g", "GRAFANA_QUERY_USER": "u", "GRAFANA_QUERY_TOKEN": "k",
+	} {
+		t.Setenv(k, v)
+	}
+	t.Setenv("OPS_TELEGRAM_CHAT_ID", "")
+	c, err := load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.ops != c.tg {
+		t.Fatalf("no ops chat id: policy changes should stay in the alerts group, got chat %q", c.ops.ChatID)
+	}
+	t.Setenv("OPS_TELEGRAM_CHAT_ID", "-2")
+	if c, err = load(); err != nil {
+		t.Fatal(err)
+	}
+	if c.ops.ChatID != "-2" || c.ops.Token != "t" || c.tg.ChatID != "-1" {
+		t.Fatalf("ops %q/%q, alerts %q", c.ops.ChatID, c.ops.Token, c.tg.ChatID)
+	}
+}

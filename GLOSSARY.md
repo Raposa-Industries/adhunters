@@ -38,6 +38,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | books balance | The loaded facts add up: each raw file's scrapes equal its rows, and each closed hour's counts equal its sightings. |
 | watch | Something a person follows in an app (an operator, an investigation). Watches notify through Pushcut. |
 | alert | A system or developer message. Alerts go to Telegram, never Pushcut. |
+| ops group | The Telegram group "AdHunters operation": what the team acts on (Intel's alerts, delivery status changes and suggestions, policy changes). Everything about the platform itself stays in "AdHunters alerts". |
 | page | An alert that needs someone now: Telegram with sound, repeated every 5 minutes until it clears or is silenced. |
 | chat alert | An alert that can wait for the day: Telegram, silent, grouped, 08:00 to 22:00 São Paulo. |
 | digest | The one Telegram message at 08:00 São Paulo with yesterday in numbers. |
@@ -45,7 +46,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | runbook | The file in `runbooks/` an alert links: what it means, what to check, how to fix it. |
 | credit | What is left on a prepaid service we pay for: proxy traffic, AI credit. observe-bot reads it where the service has an API, or estimates it from our own spending where it has none (`credits.conf`). |
 | policy page | An article or section of Taboola's advertiser help center (realize.com/help) under Policy & Content Review. observe-bot reads them every 6 hours. |
-| policy change | A policy page that appeared, went away or whose text changed between two crawls. Each one is posted to "AdHunters alerts". |
+| policy change | A policy page that appeared, went away or whose text changed between two crawls. Each one is posted to the ops group. |
 | renewal | The day a subscription we depend on renews or must be paid, for services with no balance to read (the datacenter and ISP lines). |
 | task | Work a service does on a schedule (an hour close, a refresh, a pull). Each promises how often it succeeds; one past its promise is late. |
 | spool | A collector's local folder of what it received and has not handed on yet: Capture's raw files not yet archived, intel-collect's answers not yet in the database. The collector writes there first, so it keeps working while the database or archive is away. |
@@ -140,7 +141,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | tracking gap | The tracker counted under half the clicks the network counted in the last full hour: links lose their tracking or the tracker is down. |
 | landing page gap | The tracker's landing page views were under 30% of its clicks in the last full hour: the page does not open, or its script does not fire. |
 | postback gap | The network counted under half the tracker's sales yesterday: sales are not reaching the network, so its own optimisation works blind. |
-| delivery status | A campaign's state on the ad network, as Taboola's "Delivery Status" shows it: running, paused, pending approval, rejected, depleted (its budget is spent), expired, terminated, frozen; deleted when it leaves the network's list. Intel sends each change to "AdHunters alerts". |
+| delivery status | A campaign's state on the ad network, as Taboola's "Delivery Status" shows it: running, paused, pending approval, rejected, depleted (its budget is spent), expired, terminated, frozen; deleted when it leaves the network's list. Intel sends each change to the ops group. |
 | suggestion | A change Intel proposes (pause these ads, pause this campaign, lower the daily cap), with why. Intel never makes it: its button opens Launch with the change filled in, and a person makes it there. |
 | not now | A person setting a suggestion aside. It does not come back for a day, and comes back after that only if its reason still holds. |
 | campaign line | A campaign and every copy made of it. Moving a campaign to another group makes a copy with a new id (Taboola cannot change a campaign's group), so Intel keeps the line to follow its history across ids. |

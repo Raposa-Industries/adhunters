@@ -18,7 +18,7 @@ settings once.
 | Binary | Does | Ops port |
 |---|---|---|
 | `intel-collect run` | Reads every Taboola login and RedTrack account on a schedule and keeps each answer as received: first in its spool on disk, then in `intel.answer` ([decision 0016](../decisions/0016-intel-answers-in-postgres.md)). It parses nothing. `intel-collect once JOB` runs one job. | 9113 |
-| `intel-numbers run` | Every 2 minutes: loads new answers into tables, links moved campaigns, works out results, keeps alerts and suggestions (each sent once to "AdHunters alerts" on Telegram, suggestions with their Launch link). `reload -from D -to D` parses a range of answers again; `status` prints counts. Never talks to Taboola or RedTrack. | 9114 |
+| `intel-numbers run` | Every 2 minutes: loads new answers into tables, links moved campaigns, works out results, keeps alerts and suggestions (each sent once to the ops group "AdHunters operation" on Telegram, `OPS_TELEGRAM_CHAT_ID`, or "AdHunters alerts" while that is empty; suggestions with their Launch link). `reload -from D -to D` parses a range of answers again; `status` prints counts. Never talks to Taboola or RedTrack. | 9114 |
 | `intel-web` | The pages under `/intel/`, in the Frame (`shared/frame`), on `INTEL_WEB_ADDR` (127.0.0.1:8096) behind Cloudflare Access. Its one write is "not now" on a suggestion. | 9115 |
 
 What intel-collect reads, per Taboola login (Intel keeps to 40 standard and 8
@@ -54,7 +54,7 @@ How the numbers are judged:
   rejected item, each open while it holds and sent once.
 - **Delivery status:** every change of a campaign's status (Taboola's
   "Delivery Status": running, paused, pending approval, rejected,
-  depleted…), in every account of every login, goes to "AdHunters alerts",
+  depleted…), in every account of every login, goes to the ops group,
   grouped into one message per round. Intel adds two statuses of its own:
   - **deleted**, once the campaign has been missing from every campaign list
     for 15 minutes (Taboola's list sometimes leaves out a campaign that is
@@ -73,7 +73,7 @@ How the numbers are judged:
   1 time in 20 at the account's usual cost per sale (and spent $10 or more);
   pause the campaign when that is every running ad; halve the daily cap of a
   runaway. "Not now" hides one for a day. Each new one goes once to
-  "AdHunters alerts" with an "Open in Launch" link (`INTEL_BASE_URL` plus
+  the ops group with an "Open in Launch" link (`INTEL_BASE_URL` plus
   the Launch path), grouped into one message per round; ones older than
   `suggestion_alert_max_age_hours` (6) stay on the pages only.
 - Every threshold is a row in `intel.setting`, changed without a deploy.

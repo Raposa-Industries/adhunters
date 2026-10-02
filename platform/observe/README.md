@@ -2,7 +2,8 @@
 
 Knowing the platform works without watching it: metrics, logs and errors go
 to hosted services outside Hetzner, alerts go to the Telegram group
-"AdHunters alerts" (decision 0004), and a heartbeat proves the alerting
+"AdHunters alerts" (decision 0004), what the team acts on goes to the ops
+group "AdHunters operation", and a heartbeat proves the alerting
 itself works (decision 0009).
 
 | Piece | Where | What it does |
@@ -10,7 +11,8 @@ itself works (decision 0009).
 | Grafana Alloy | every box, `alloy/` here, installed by `platform/servers/setup.sh` | Scrapes every service's `/metrics`, the host and (data box) Postgres every 60 s; ships the journal of our units. Buffers on disk while Grafana Cloud is unreachable. |
 | Grafana Cloud | hosted (free tier) | Stores metrics and logs, runs the alert rules (`rules/`) and the Alertmanager (`alertmanager/`). |
 | Sentry | hosted (free tier), `kit/errs` | Every log line at error level and every panic becomes a Sentry event, grouped by service and message, tied to the build. |
-| Telegram | the "AdHunters alerts" group | Pages (with sound, every 5 minutes until cleared) and chat alerts (silent, 08:00 to 22:00 São Paulo). Each message links its runbook in `runbooks/`. |
+| Telegram | the "AdHunters alerts" group | Pages (with sound, every 5 minutes until cleared), chat alerts (silent, 08:00 to 22:00 São Paulo), the digest and new Sentry issues: everything about the platform itself. Each alert links its runbook in `runbooks/`. |
+| Telegram | the ops group "AdHunters operation" | What the team acts on: Intel's alerts, delivery status changes and suggestions, and Taboola policy changes. Set by `OPS_TELEGRAM_CHAT_ID` in `observe-bot.env` and `intel-numbers.env`; while it is empty they go to "AdHunters alerts". |
 | Better Stack | hosted (free tier) | Receives the always-firing `Heartbeat` every minute and calls the owner when it stops. Later: outside checks of the apps. |
 | `observe-bot` | data box, `cmd/observe-bot` here | Sends the 08:00 digest (the last 24 hours in numbers; three lines on a quiet day) and posts each new Sentry issue to Telegram, silently, as it first appears (it asks Sentry every minute, tries a slow or failing answer three times, and logs a failed poll as a warning rather than reporting it to Sentry; `adhunters_task_runs_total{task="sentry_relay",result="error"}` counts them and `TaskLate` fires after 10 minutes without getting through). Reads what is left on each prepaid service every 15 minutes and knows when subscriptions renew (see Credits below). Crawls Taboola's policy pages every 6 hours and posts what changed (see Taboola policy watch below). |
 | Dashboards | `dashboards/`, uploaded by `push.sh` | "AdHunters · Collection" (capture, shipper, loader) and "AdHunters · Boxes" (hosts, services, Postgres, backups, Raposa, task freshness). |
@@ -44,7 +46,8 @@ Nothing here creates an account or holds a secret. Every secret is a
 4. **Telegram**. Create a bot with @BotFather and note its token. Create the
    group "AdHunters alerts", add the bot, send one message in the group, then
    open `https://api.telegram.org/bot<token>/getUpdates` and note the
-   group's `chat.id` (a negative number).
+   group's `chat.id` (a negative number). Do the same for the ops group
+   "AdHunters operation", with the same bot, for `OPS_TELEGRAM_CHAT_ID`.
 5. **Hetzner Object Storage**: a bucket `adhunters-backups` and an access
    key for it, for pgBackRest.
 6. **mimirtool** and `jq` on your laptop (grafana/mimir releases), for
@@ -64,7 +67,8 @@ On each box, after `setup.sh` has run once:
   `observe-bot sentry-test` (with `observe.env` and `observe-bot.env`
   loaded) sends one test error, to see it arrive. Its message carries the
   time, so every run is a new Sentry issue and reaches the chat again.
-- Data box: `/etc/adhunters/observe-bot.env` (Telegram, the `bot` token,
+- Data box: `/etc/adhunters/observe-bot.env` (Telegram and the ops group's
+  chat id, the `bot` token,
   Sentry's organization and integration token), then
   `systemctl restart observe-bot`. `observe-bot digest` prints today's
   digest without sending it, to try the settings.
@@ -165,7 +169,8 @@ collection every 6 hours: the collection, the sections it lists and every
 article they list (never the links inside an article), plus two policy
 articles filed elsewhere: [Declare AI-generated content in your ads](https://realize.com/help/en/articles/16002528-declare-ai-generated-content-in-your-ads)
 and Campaign Branding Text. It posts each policy
-change to "AdHunters alerts", silently:
+change to the ops group "AdHunters operation" (`OPS_TELEGRAM_CHAT_ID`;
+"AdHunters alerts" while that is empty), silently:
 
 - **Taboola policy changed**: the article's link, then the lines removed (➖)
   and added (➕), each paragraph or list item one line.
