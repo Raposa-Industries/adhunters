@@ -39,11 +39,16 @@ loki.write "cloud" {
 
 // ---- the host ----------------------------------------------------------------
 
+// Every unit of ours: UnitFailed and PostgresRestarted read these. The list
+// must cover every unit platform/servers/setup.sh runs (push.sh check
+// tests it), and run-* covers one-off jobs started with systemd-run.
 prometheus.exporter.unix "host" {
   enable_collectors = ["systemd"]
 
   systemd {
-    unit_include = "(tracks-.*|raposa-.*|postgresql.*|alloy|cloudflared|tailscaled)\\.service"
+    unit_include = "(tracks-.*|raposa-.*|spy-.*|intel-.*|funnels-.*|desk-.*|launch-.*|create|create-web|library|observe-bot|pgbackrest-.*|postgresql.*|alloy|cloudflared.*|tailscaled|run-.*)\\.service"
+    // node_systemd_unit_start_time_seconds: when each unit last started.
+    start_time = true
   }
 
   filesystem {
@@ -75,16 +80,17 @@ prometheus.scrape "alloy" {
 
 // ---- logs --------------------------------------------------------------------
 
-// Our units write one JSON line per event (kit/logx). Only they, Postgres,
-// Alloy and the kernel (out-of-memory kills) are shipped. The journal
-// remembers how far Alloy read, so an outage is caught up when it ends.
+// Our units write one JSON line per event (kit/logx). Only they (one-off
+// systemd-run jobs included), Postgres, pgBackRest, Alloy, cloudflared and
+// the kernel (out-of-memory kills) are shipped. The journal remembers how far
+// Alloy read, so an outage is caught up when it ends.
 loki.relabel "journal" {
   forward_to = []
 
   rule {
     source_labels = ["__journal__systemd_unit", "__journal__transport"]
     separator     = ";"
-    regex         = "(tracks-.*|raposa-.*|postgresql.*|alloy|cloudflared)\\.service;.*|;kernel"
+    regex         = "(tracks-.*|raposa-.*|spy-.*|intel-.*|funnels-.*|desk-.*|launch-.*|create|create-web|library|observe-bot|pgbackrest-.*|postgresql.*|alloy|cloudflared.*|run-.*)\\.service;.*|;kernel"
     action        = "keep"
   }
 
@@ -110,7 +116,7 @@ loki.source.journal "units" {
 // one query: {level="ERROR"}.
 loki.process "units" {
   stage.match {
-    selector = "{unit=~\"(tracks|raposa)-.*\"}"
+    selector = "{unit=~\"(tracks-.*|raposa-.*|spy-.*|intel-.*|funnels-.*|desk-.*|launch-.*|create|create-web|library|observe-bot|run-.*)\\\\.service\"}"
 
     stage.json {
       expressions = { level = "level", service = "service" }

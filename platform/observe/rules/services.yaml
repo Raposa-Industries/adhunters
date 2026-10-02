@@ -1,5 +1,6 @@
-# Alerts that hold for every service: its /metrics answering, restarts, and
-# periodic tasks (kit/ops Tasks) keeping their promise.
+# Alerts that hold for every service: its /metrics answering, restarts,
+# periodic tasks (kit/ops Tasks) keeping their promise and not failing over
+# and over, and the same error being logged again and again (kit/logx).
 groups:
   - name: services
     interval: 1m
@@ -31,3 +32,27 @@ groups:
           summary: '{{ $labels.service }} task {{ $labels.task }} last succeeded {{ $value | humanizeDuration }} ago, later than it promises.'
           resolved: '{{ $labels.service }} task {{ $labels.task }} is succeeding on time again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/task-late.md
+
+      # A task that keeps failing while it still succeeds now and then, so
+      # it is never late: spy-numbers' [direction] failed 25 times on 1 Oct
+      # 2026 between successes and TaskLate never fired.
+      - alert: TaskFailing
+        expr: sum by (service, box, task) (increase(adhunters_task_runs_total{result="error"}[2h])) >= 3
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.service }} task {{ $labels.task }} on the {{ $labels.box }} box failed {{ $value | printf "%.0f" }} times in the last 2 hours.'
+          resolved: '{{ $labels.service }} task {{ $labels.task }} on the {{ $labels.box }} box has stopped failing.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/task-failing.md
+
+      # The same error line again and again. Sentry announces a kind of error
+      # once, when it is new; this counts every one (kit/logx), so a failure
+      # that repeats all night is not silent after its first time.
+      - alert: ErrorsLogged
+        expr: sum by (service, box, msg) (increase(adhunters_log_errors_total[1h])) >= 3
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $labels.service }} on the {{ $labels.box }} box logged "{{ $labels.msg }}" {{ $value | printf "%.0f" }} times in the last hour.'
+          resolved: '{{ $labels.service }} on the {{ $labels.box }} box has stopped logging "{{ $labels.msg }}" over and over.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/errors-logged.md

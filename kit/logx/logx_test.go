@@ -3,7 +3,11 @@ package logx
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"io"
 	"testing"
+
+	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 func TestLinesCarryServiceAndVersion(t *testing.T) {
@@ -25,5 +29,21 @@ func TestDefaultLevelIsInfo(t *testing.T) {
 	NewTo(&buf, "s", "v", "").Debug("hidden")
 	if buf.Len() != 0 {
 		t.Fatalf("debug line written at default level: %s", buf.String())
+	}
+}
+
+func TestErrorLinesAreCounted(t *testing.T) {
+	log := NewTo(io.Discard, "spy-numbers", "v1", "")
+	before := testutil.ToFloat64(Errors.WithLabelValues("numbers job failed"))
+	log.Info("numbers job done")
+	log.Warn("numbers job slow")
+	log.With("job", "direction").Error("numbers job failed", "err", errors.New("numeric field overflow"))
+	log.WithGroup("g").Error("numbers job failed")
+	if got := testutil.ToFloat64(Errors.WithLabelValues("numbers job failed")) - before; got != 2 {
+		t.Fatalf("counted %v error lines, want 2", got)
+	}
+	log.Error("sentry test at 2026-10-01T03:51:23Z")
+	if got := testutil.ToFloat64(Errors.WithLabelValues("sentry test at N-N-NTN:N:NZ")); got != 1 {
+		t.Fatalf("a message with numbers counted %v under its masked label, want 1", got)
 	}
 }

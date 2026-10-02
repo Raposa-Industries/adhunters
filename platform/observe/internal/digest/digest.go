@@ -39,7 +39,12 @@ const (
 	// Minutes each alert spent firing (rules are evaluated every minute).
 	qAlerts   = `sum by (alertname) (count_over_time(ALERTS{alertstate="firing",alertname!="Heartbeat"}[24h]))`
 	qRestarts = `sum by (service) (changes(process_start_time_seconds{job="adhunters"}[24h])) > 0`
-	qDisk     = `min by (box) (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})`
+	// Every error line by service and message (kit/logx), and failed runs of
+	// each task (kit/ops Tasks): a failure that repeats all night shows here
+	// even though Sentry only announced it the first time.
+	qErrorLines = `label_join(sum by (service, msg) (increase(adhunters_log_errors_total[24h])) >= 1, "key", ": ", "service", "msg")`
+	qTaskFails  = `label_join(sum by (service, task) (increase(adhunters_task_runs_total{result="error"}[24h])) >= 1, "key", " ", "service", "task")`
+	qDisk       = `min by (box) (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})`
 	// What is left on each prepaid service (observe-bot's own credit checks),
 	// with how="estimated" on the ones worked out from our own spending.
 	qCredits = `label_replace(adhunters_credit_remaining unless on (credit) adhunters_credit_estimated, "how", "read", "", "")` +
@@ -54,6 +59,7 @@ func Write(ctx context.Context, m Metrics, e Errors, t time.Time, loc *time.Loca
 	gaps, sightings, lag := r.one(qGaps), r.one(qSightings), r.one(qLagMax)
 	visits, kept := r.one(qVisits), r.one(qKept)
 	alerts, restarts, disk := r.many(qAlerts, "alertname"), r.many(qRestarts, "service"), r.many(qDisk, "box")
+	errLines, taskFails := r.many(qErrorLines, "key"), r.many(qTaskFails, "key")
 	credits := r.credits()
 
 	var issues []sentry.Issue
@@ -70,6 +76,7 @@ func Write(ctx context.Context, m Metrics, e Errors, t time.Time, loc *time.Loca
 	fmt.Fprintf(&b, "☀️ <b>AdHunters, the last 24 hours</b> (to %s)\n", t.In(loc).Format("Mon 2 Jan 15:04"))
 
 	quiet := !r.failed && len(alerts) == 0 && len(issues) == 0 && len(restarts) == 0 &&
+		len(errLines) == 0 && len(taskFails) == 0 &&
 		gaps.ok && gaps.v == 0 && scrapes.ok && scrapes.v > 0
 	if quiet {
 		fmt.Fprintf(&b, "All green: %s scrapes, %s sightings, no alerts, no new errors.\n", count(scrapes), count(sightings))
@@ -116,6 +123,24 @@ func Write(ctx context.Context, m Metrics, e Errors, t time.Time, loc *time.Loca
 			}
 			fmt.Fprintf(&b, "<a href=\"%s\">%s</a> %s (%d times)\n", html.EscapeString(is.Permalink),
 				html.EscapeString(is.ShortID), html.EscapeString(is.Title), is.Count)
+		}
+	}
+
+	if len(errLines) > 0 || len(taskFails) > 0 {
+		b.WriteString("\n<b>Errors logged</b>\n")
+		for i, l := range errLines {
+			if i == 5 {
+				fmt.Fprintf(&b, "and %d more\n", len(errLines)-5)
+				break
+			}
+			fmt.Fprintf(&b, "%s, %s times\n", html.EscapeString(l.key), count(val{l.v, true}))
+		}
+		if len(taskFails) > 0 {
+			var parts []string
+			for _, f := range taskFails {
+				parts = append(parts, fmt.Sprintf("%s %s", html.EscapeString(f.key), count(val{f.v, true})))
+			}
+			fmt.Fprintf(&b, "Failed task runs: %s\n", strings.Join(parts, ", "))
 		}
 	}
 

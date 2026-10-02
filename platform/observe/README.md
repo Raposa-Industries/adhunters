@@ -10,11 +10,11 @@ itself works (decision 0009).
 |---|---|---|
 | Grafana Alloy | every box, `alloy/` here, installed by `platform/servers/setup.sh` | Scrapes every service's `/metrics`, the host and (data box) Postgres every 60 s; ships the journal of our units. Buffers on disk while Grafana Cloud is unreachable. |
 | Grafana Cloud | hosted (free tier) | Stores metrics and logs, runs the alert rules (`rules/`) and the Alertmanager (`alertmanager/`). |
-| Sentry | hosted (free tier), `kit/errs` | Every log line at error level and every panic becomes a Sentry event, grouped by service and message, tied to the build. |
-| Telegram | the "AdHunters alerts" group | Pages (with sound, every 5 minutes until cleared), chat alerts (silent, 08:00 to 22:00 São Paulo), the digest and new Sentry issues: everything about the platform itself. Each alert links its runbook in `runbooks/`. |
+| Sentry | hosted (free tier), `kit/errs` | Every log line at error level and every panic becomes a Sentry event, grouped by service, message and the error's shape (its text with numbers, quoted text, URLs and ids masked), tied to the build. A process sends at most one event an hour per issue, 30 an hour in all, so a stuck error cannot use up the free plan's events; the real count is `adhunters_log_errors_total`. |
+| Telegram | the "AdHunters alerts" group | Pages (with sound, every 5 minutes until cleared), chat alerts (silent, at any hour), the digest and new Sentry issues: everything about the platform itself. Each alert links its runbook in `runbooks/`. |
 | Telegram | the ops group "AdHunters operation" | What the team acts on: Intel's alerts, delivery status changes and suggestions, and Taboola policy changes. Set by `OPS_TELEGRAM_CHAT_ID` in `observe-bot.env` and `intel-numbers.env`; while it is empty they go to "AdHunters alerts". |
 | Better Stack | hosted (free tier) | Receives the always-firing `Heartbeat` every minute and calls the owner when it stops. Later: outside checks of the apps. |
-| `observe-bot` | data box, `cmd/observe-bot` here | Sends the 08:00 digest (the last 24 hours in numbers; three lines on a quiet day) and posts each new Sentry issue to Telegram, silently, as it first appears (it asks Sentry every minute, tries a slow or failing answer three times, and logs a failed poll as a warning rather than reporting it to Sentry; `adhunters_task_runs_total{task="sentry_relay",result="error"}` counts them and `TaskLate` fires after 10 minutes without getting through). Reads what is left on each prepaid service every 15 minutes and knows when subscriptions renew (see Credits below). Crawls Taboola's policy pages every 6 hours and posts what changed (see Taboola policy watch below). |
+| `observe-bot` | data box, `cmd/observe-bot` here | Sends the 08:00 digest (the last 24 hours in numbers, with the alerts that fired, the errors logged and the failed task runs; three lines on a quiet day) and posts each new Sentry issue to Telegram, silently, as it first appears (it asks Sentry every minute, tries a slow or failing answer three times, and logs a failed poll as a warning rather than reporting it to Sentry; `adhunters_task_runs_total{task="sentry_relay",result="error"}` counts them and `TaskLate` fires after 10 minutes without getting through). Reads what is left on each prepaid service every 15 minutes and knows when subscriptions renew (see Credits below). Crawls Taboola's policy pages every 6 hours and posts what changed (see Taboola policy watch below). |
 | Dashboards | `dashboards/`, uploaded by `push.sh` | "AdHunters · Collection" (capture, shipper, loader) and "AdHunters · Boxes" (hosts, services, Postgres, backups, Raposa, task freshness). |
 | Backups | data box, pgBackRest (`platform/servers/setup.sh`) | WAL archived every 60 s, a full backup on Sundays and a differential on other days, all to object storage; alerts when archiving fails or a backup is late. |
 
@@ -216,7 +216,45 @@ runbooks and validates the Alertmanager config; CI runs it on every PR.
 
 A periodic task in any Go service gets freshness alerting for free by
 reporting through `kit/ops` `Tasks` (`Promise` once, `Done` after each run):
-`TaskLate` fires when its last success is older than its promise.
+`TaskLate` fires when its last success is older than its promise, and
+`TaskFailing` when it fails 3 times in 2 hours, even with successes in
+between.
+
+Every error line any service logs is counted by message (`kit/logx`,
+`adhunters_log_errors_total{msg}`), and `ErrorsLogged` fires when one service
+logs the same message 3 times in an hour. Sentry announces each kind of error
+once, when it first appears; this is what keeps a repeating failure from
+going quiet after that. An error that is really "nothing to do" belongs at
+info or warn level, or it will fire.
+
+Alloy watches every unit of ours (`UnitFailed`, `PostgresRestarted`) and ships
+its journal. `push.sh check` fails when `platform/servers/setup.sh` runs a
+unit that `alloy/common.alloy` does not cover.
+
+Chat alerts are delivered at any hour, silently. Until 2 Oct 2026 they were
+held from 22:00 to 08:00, and one that cleared before morning was never sent
+(decision 0009).
+
+## Daily check
+
+Claude reads what fired and failed once a day, at 07:54 São Paulo, in the
+project's "Alerts that fire" thread: Sentry through its connector, and Grafana
+Cloud through `daily-check.sh`, which prints the alerts that fired, the
+error lines and failed task runs by service, restarts, failed units and the
+collection numbers of the last 24 hours. Claude reports what needs the owner
+there, fixes what is its own to fix by PR, and passes the rest to the thread
+that owns it.
+
+A cloud session cannot reach the boxes, and reaches Grafana Cloud only with:
+
+- the stack's Prometheus host (`prometheus-prod-…grafana.net`) in the
+  environment's allowed domains (Project settings, Network access);
+- three environment variables in Project settings: `GRAFANA_QUERY_URL` and
+  `GRAFANA_QUERY_USER` (the same values as in observe-bot.env on the data
+  box) and `GRAFANA_QUERY_TOKEN`, a new access policy token with
+  `metrics:read` only.
+
+`./daily-check.sh` with the same three variables works from a laptop too.
 
 ## Not built yet
 

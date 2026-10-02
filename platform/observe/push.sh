@@ -52,6 +52,22 @@ runbooks() {
     return $fail
 }
 
+# units_watched: every unit setup.sh runs a service in is one Alloy watches
+# for UnitFailed and ships the journal of. A unit missing from these lists
+# fails, crashes and logs errors where no alert or search sees it.
+units_watched() {
+    local include keep unit fail=0
+    include=$(sed -n 's/^ *unit_include *= *"\(.*\)"$/\1/p' "$here/alloy/common.alloy" | sed 's/\\\\/\\/g')
+    keep=$(sed -n 's/^ *regex *= *"\(.*\)"$/\1/p' "$here/alloy/common.alloy" | sed 's/\\\\/\\/g')
+    [ -n "$include" ] && [ -n "$keep" ] || { echo "no unit_include or journal regex in common.alloy" >&2; return 1; }
+    for unit in $(sed -n "/^ops_ports='/,/'\$/p" "$repo/platform/servers/setup.sh" | sed "s/^ops_ports='//" | awk '{print $1}') run-u1234; do
+        printf '%s.service' "$unit" | grep -Eqx "$include" || { echo "Alloy's unit_include misses $unit" >&2; fail=1; }
+        printf '%s.service;journal' "$unit" | grep -Eqx "$keep" || { echo "Alloy ships no journal for $unit" >&2; fail=1; }
+    done
+    [ "$fail" = 0 ] && echo "units ok: Alloy watches every unit setup.sh runs, and ships its journal"
+    return $fail
+}
+
 # dashboards_ok: each dashboard is JSON with a fixed uid and a title.
 dashboards_ok() {
     local f
@@ -66,6 +82,7 @@ case "$cmd" in
 check)
     dashboards_ok
     runbooks
+    units_watched
     promtool check rules "$here"/rules/*.yaml
     promtool test rules "$here"/tests/rules_test.yaml
     tmp=$(mktemp -d)

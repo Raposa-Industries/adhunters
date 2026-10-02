@@ -1,6 +1,6 @@
 # RenewalDue
 
-Chat: Telegram, silent, 08:00 to 22:00 São Paulo. Rule: `platform/observe/rules/credits.yaml`.
+Chat: Telegram "AdHunters alerts", silent, at any hour. Rule: `platform/observe/rules/credits.yaml`.
 
 ## What it means
 

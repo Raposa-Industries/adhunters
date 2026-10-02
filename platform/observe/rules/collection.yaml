@@ -65,6 +65,46 @@ groups:
           resolved: '{{ $labels.network }} {{ $labels.publisher }} ({{ $labels.device }}) is answering with ads at its usual rate again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/publisher-quiet.md
 
+      # tracks-walker: landing pages of the ads capture sees. Its walks have
+      # a series only after the first one, hence the vector(0).
+      - alert: WalkerStopped
+        expr: (sum(rate(tracks_walker_walks_total[15m])) or vector(0)) == 0
+        for: 15m
+        labels:
+          tier: chat
+        annotations:
+          summary: tracks-walker has walked no landing page for 30 minutes.
+          resolved: tracks-walker is walking landing pages again.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/walker-stopped.md
+
+      # Usually 5 to 10% of walks fail (landing pages refusing us); 36% did
+      # for an hour on 1 Oct 2026.
+      - alert: WalkerFailing
+        expr: |
+          sum by (box) (rate(tracks_walker_walks_total{outcome!="ok"}[1h]))
+            / sum by (box) (rate(tracks_walker_walks_total[1h])) > 0.2
+        for: 30m
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $value | humanizePercentage }} of walks on the {{ $labels.box }} box failed in the last hour (pages refusing, proxy lines blocked, or timeouts).'
+          resolved: 'Walks on the {{ $labels.box }} box fail at their usual rate again.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/walker-failing.md
+
+      # An ad waiting a whole extra re-walk (6 h) past its turn: the walker
+      # cannot keep up. 1,532 ads were overdue, the oldest by 27 hours, on 2
+      # Oct 2026. tracks_walker_oldest_overdue_seconds comes from
+      # tracks-walker; until it reports it, this stays silent.
+      - alert: WalkerBehind
+        expr: max by (box) (tracks_walker_oldest_overdue_seconds) > 6 * 3600
+        for: 30m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'An ad has waited {{ $value | humanizeDuration }} past its re-walk on the {{ $labels.box }} box. tracks-walker is not keeping up.'
+          resolved: 'tracks-walker on the {{ $labels.box }} box is keeping up with its re-walks again.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/walker-behind.md
+
       - alert: ShipperBehind
         expr: max by (box) (tracks_shipper_oldest_unshipped_seconds) > 900
         for: 5m

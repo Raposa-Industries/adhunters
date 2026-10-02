@@ -5,9 +5,15 @@
 // run.Main reports a panic and flushes before the process exits. With
 // SENTRY_DSN empty (tests, a laptop) it does nothing.
 //
-// Events are grouped by service and log message, not by the error text, so
-// "load raw file" failing for a thousand different files is one issue with a
-// thousand events, and a new message is a new issue (a chat alert).
+// Events are grouped by service, log message and the error's shape: its text
+// with what changes between occurrences (numbers, quoted text, URLs, ids)
+// masked. So "load raw file" failing the same way for a thousand different
+// files is one issue, while the same step failing a new way (a timeout after
+// a checksum mismatch) is a new issue, and every new issue reaches the chat.
+//
+// A failure that repeats sends at most one event an hour per issue (see
+// limiter), so one stuck error cannot spend the plan's monthly events. The
+// full count is adhunters_log_errors_total (kit/logx) and the journal.
 package errs
 
 import (
@@ -16,6 +22,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -94,7 +103,9 @@ func (h *handler) Enabled(ctx context.Context, l slog.Level) bool {
 
 func (h *handler) Handle(ctx context.Context, r slog.Record) error {
 	if r.Level >= slog.LevelError && on.Load() {
-		capture(h.event(r))
+		if ev := h.event(r); sends.allow(strings.Join(ev.Fingerprint, "\x00"), now()) {
+			capture(ev)
+		}
 	}
 	return h.next.Handle(ctx, r)
 }
@@ -113,8 +124,11 @@ func (h *handler) WithGroup(name string) slog.Handler {
 	return &c
 }
 
-// capture is replaced in tests.
-var capture = func(ev *sentry.Event) { sentry.CaptureEvent(ev) }
+// capture and now are replaced in tests.
+var (
+	capture = func(ev *sentry.Event) { sentry.CaptureEvent(ev) }
+	now     = time.Now
+)
 
 func (h *handler) event(r slog.Record) *sentry.Event {
 	ev := sentry.NewEvent()
@@ -161,9 +175,82 @@ func (h *handler) event(r slog.Record) *sentry.Event {
 			Value: errAttr.Error(),
 		}}
 	}
-	// One issue per log message, however the error text varies.
+	// One issue per log message and shape of error: the same failure for
+	// other files or ids stays one issue, a new kind of failure is a new one.
 	ev.Fingerprint = []string{service, r.Message}
+	if errAttr != nil {
+		ev.Fingerprint = append(ev.Fingerprint, shape(errAttr.Error()))
+	}
 	return ev
+}
+
+var (
+	shapeURL    = regexp.MustCompile(`[a-zA-Z][a-zA-Z0-9+.-]*://[^\s"'<>` + "`" + `]+`)
+	shapeQuoted = regexp.MustCompile("\"[^\"\n]*\"|`[^`\n]*`")
+	shapeUUID   = regexp.MustCompile(`\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b`)
+	shapeHex    = regexp.MustCompile(`\b[0-9a-fA-F]{8,}\b`)
+	shapeNumber = regexp.MustCompile(`[0-9]+`)
+	shapeSpace  = regexp.MustCompile(`\s+`)
+)
+
+// shape is an error's text with what varies between occurrences of one
+// failure masked: URLs, quoted text, ids and numbers. "load file 17: i/o
+// timeout" and "load file 18: i/o timeout" have the same shape.
+func shape(s string) string {
+	s = shapeURL.ReplaceAllString(s, "URL")
+	s = shapeQuoted.ReplaceAllString(s, "Q")
+	s = shapeUUID.ReplaceAllString(s, "ID")
+	s = shapeHex.ReplaceAllString(s, "ID")
+	s = shapeNumber.ReplaceAllString(s, "N")
+	s = strings.TrimSpace(shapeSpace.ReplaceAllString(s, " "))
+	if len(s) > 200 {
+		s = strings.ToValidUTF8(s[:200], "")
+	}
+	return s
+}
+
+// limiter decides which error events go to Sentry. Sentry's free plan takes
+// 5,000 events a month; one error repeating every few seconds would spend
+// them in days, and then Sentry drops everything, new issues included. So a
+// process sends the first event of an issue at once and then at most one an
+// hour for it, and at most perHour events an hour in all.
+type limiter struct {
+	mu     sync.Mutex
+	last   map[string]time.Time
+	window time.Time // when the current hour of the overall cap began
+	sent   int
+}
+
+const (
+	perIssue = time.Hour
+	perHour  = 30
+)
+
+var sends = &limiter{}
+
+func (l *limiter) allow(key string, t time.Time) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.last == nil {
+		l.last = map[string]time.Time{}
+	}
+	if t.Sub(l.window) >= time.Hour {
+		l.window, l.sent = t, 0
+		for k, at := range l.last {
+			if t.Sub(at) >= perIssue {
+				delete(l.last, k)
+			}
+		}
+	}
+	if at, ok := l.last[key]; ok && t.Sub(at) < perIssue {
+		return false
+	}
+	if l.sent >= perHour {
+		return false
+	}
+	l.last[key] = t
+	l.sent++
+	return true
 }
 
 // typeName names the innermost wrapped error's type, which is what tells two
