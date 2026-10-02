@@ -390,7 +390,7 @@ the full list in `cmd/create-web/main.go`):
 | `OPENAI_BASE_URL` | the real API | A local fake, to try the page without spending. |
 | `TABOOLA_CLIENT_ID`, `TABOOLA_CLIENT_SECRET` | unset | One Taboola login's Backstage API keys. Unset: Taboola is off and the bulk sheet is the way out. |
 | `TABOOLA_ACCOUNTS` | unset | That login's advertiser accounts the page may use, comma separated. A `-network` account is refused at boot. |
-| `TABOOLA_MAX_CPC`, `TABOOLA_MAX_DAILY_CAP`, `TABOOLA_MAX_SPEND_LIMIT` | `1.00`, `20`, `20` | Ceilings for a new campaign, in USD. Every campaign made or copied gets a total limit of at most `TABOOLA_MAX_SPEND_LIMIT` (the owner's rule, 2026-10-01: never above $20). |
+| `TABOOLA_MAX_CPC`, `TABOOLA_MAX_DAILY_CAP`, `TABOOLA_MAX_SPEND_LIMIT` | `1.00`, `20`, `20` | Ceilings for a new campaign, in USD. Above 0, every campaign made or copied gets a total limit of at most `TABOOLA_MAX_SPEND_LIMIT`; `0` is no spending limit (the box runs `500` a day and `0` since the owner's word, 2026-10-02). |
 | `TABOOLA_ONLY_OWN` | off | A lent account: only groups and campaigns this server made (recorded in the state file) are listed or touched. |
 | `TABOOLA_NAME_PREFIX` | unset | Optional, with only-own: every group and campaign name must start with it. |
 | `TABOOLA_STATE_FILE` | `<keep dir>/taboola-state.json` | What this server made, for only-own. |

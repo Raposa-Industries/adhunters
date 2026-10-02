@@ -991,7 +991,12 @@ func TestSettingsFromEnv(t *testing.T) {
 	if err != nil || fmt.Sprint(s.Accounts) != "[a-sc b-sc]" || !s.OnlyOwn || s.MaxCPC != 0.5 || s.MaxDailyCap != 20 || s.MaxSpendLimit != 20 || s.StateFile != "/x/state.json" || s.Base != DefaultBase {
 		t.Fatalf("%+v %v", s, err)
 	}
-	for k, v := range map[string]string{"TABOOLA_ACCOUNTS": "z-network", "TABOOLA_ONLY_OWN": "yes", "TABOOLA_MAX_DAILY_CAP": "-1"} {
+	// 0 is no spending limit; the other ceilings must stay above 0.
+	env = map[string]string{"TABOOLA_MAX_SPEND_LIMIT": "0", "TABOOLA_MAX_DAILY_CAP": "500"}
+	if s, err = SettingsFromEnv(func(k string) string { return env[k] }, ""); err != nil || s.MaxSpendLimit != 0 || s.MaxDailyCap != 500 {
+		t.Fatalf("no spending limit: %+v %v", s, err)
+	}
+	for k, v := range map[string]string{"TABOOLA_ACCOUNTS": "z-network", "TABOOLA_ONLY_OWN": "yes", "TABOOLA_MAX_DAILY_CAP": "0", "TABOOLA_MAX_CPC": "0", "TABOOLA_MAX_SPEND_LIMIT": "-1"} {
 		if _, err := SettingsFromEnv(func(key string) string {
 			if key == k {
 				return v

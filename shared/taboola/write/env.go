@@ -17,8 +17,10 @@ import (
 //	TABOOLA_MAX_CPC        1.00  highest bid in USD
 //	TABOOLA_MAX_DAILY_CAP  20    highest daily cap in USD
 //	TABOOLA_MAX_SPEND_LIMIT 20   highest total (lifetime) spend of one campaign
-//	                       in USD; every campaign made or copied gets one
-//	                       (the owner's rule, 2026-10-01: never above $20)
+//	                       in USD; every campaign made or copied gets one.
+//	                       0 is no spending limit (the owner, 2026-10-02): a
+//	                       campaign gets none unless one is asked, and an
+//	                       asked total is at most 30 daily caps
 //	TABOOLA_ONLY_OWN       1 on a lent login: only what this server made
 //	TABOOLA_NAME_PREFIX    optional, with only-own
 //	TABOOLA_STATE_FILE     stateFile: what this server made, for only-own
@@ -54,18 +56,22 @@ func SettingsFromEnv(getenv func(string) string, stateFile string) (Settings, er
 		s.Accounts = append(s.Accounts, a)
 	}
 	for _, l := range []struct {
-		key string
-		def float64
-		to  *float64
+		key    string
+		def    float64
+		to     *float64
+		zeroOK bool // 0 means no ceiling
 	}{
-		{"TABOOLA_MAX_CPC", 1, &s.MaxCPC},
-		{"TABOOLA_MAX_DAILY_CAP", 20, &s.MaxDailyCap},
-		{"TABOOLA_MAX_SPEND_LIMIT", 20, &s.MaxSpendLimit},
+		{"TABOOLA_MAX_CPC", 1, &s.MaxCPC, false},
+		{"TABOOLA_MAX_DAILY_CAP", 20, &s.MaxDailyCap, false},
+		{"TABOOLA_MAX_SPEND_LIMIT", 20, &s.MaxSpendLimit, true},
 	} {
 		*l.to = l.def
 		if v := getenv(l.key); v != "" {
 			f, err := strconv.ParseFloat(v, 64)
-			if err != nil || !(f > 0) {
+			if err != nil || !(f > 0 || l.zeroOK && f == 0) {
+				if l.zeroOK {
+					return s, fmt.Errorf("%s must be an amount in USD, 0 for none, not %q", l.key, v)
+				}
 				return s, fmt.Errorf("%s must be an amount in USD above 0, not %q", l.key, v)
 			}
 			*l.to = f
