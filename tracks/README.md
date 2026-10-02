@@ -288,7 +288,11 @@ written whole (all hops, headers kept, bodies) to its own spool,
 `/var/lib/tracks/walk-spool/walk/<yyyy>/<mm>/<dd>/<hh>/…ndjson.zst`, before
 anything reaches the database; nothing is saved that is not in a raw file.
 Every 30 seconds it uploads sealed files to the archive under `walk/` and
-lists them in `tracks.walk_file`. `replay` parses a range of those files again
+lists them in `tracks.walk_file`. A walker restarted inside a minute writes a
+second file with the name of the one it archived on the way out; the archive
+never replaces a key, so that file goes under the next free name of its
+minute (`…-2155-2.ndjson.zst`, `-3`, …) with a warning in the log, and both
+are kept. `replay` parses a range of those files again
 and replaces what they wrote, so a parser change reaches old walks.
 
 What parsing keeps: `walk` (one per walk, by the record's ULID), `walk_step`
