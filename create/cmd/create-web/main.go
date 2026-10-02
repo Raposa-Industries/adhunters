@@ -73,7 +73,14 @@ func serve(args []string) error {
 		return err
 	}
 	httpSrv := &http.Server{
-		Handler:           gate.Wrap(web.Site(web.Apps, log)),
+		// Every request is counted and timed by the app it goes to, on
+		// /metrics (adhunters_http_*), the sign-in's own pages as "signin".
+		Handler: srv.HTTP(gate.Wrap(web.Site(web.Apps, log)), func(r *http.Request) string {
+			if strings.HasPrefix(r.URL.Path, signin.Path) {
+				return "signin"
+			}
+			return web.Route(web.Apps, r)
+		}),
 		ReadHeaderTimeout: 10 * time.Second,
 		// No write timeout: the apps' own answers can stream for minutes
 		// (a Create turn); each app sets its own limits.

@@ -1,4 +1,5 @@
-# Host alerts (Alloy's node metrics, job="node") and Postgres (job="postgres").
+# Host alerts (Alloy's node metrics, job="node"), Postgres (job="postgres")
+# and how many series the boxes send to Grafana Cloud.
 groups:
   - name: boxes
     interval: 1m
@@ -146,3 +147,20 @@ groups:
           summary: pgBackRest cannot read the backup repository, or reports the stanza unhealthy.
           resolved: pgBackRest can read the backup repository again.
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/backup-late.md
+
+  - name: grafana
+    interval: 5m
+    rules:
+      # Grafana Cloud's free plan holds 10,000 series and drops what goes
+      # over, new metrics and the alerts that need them included
+      # (platform/observe/README.md, Series). Each box's Alloy counts what it
+      # sends.
+      - alert: SeriesNearLimit
+        expr: sum(prometheus_remote_write_wal_storage_active_series) > 9000
+        for: 30m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'Our boxes send {{ $value | printf "%.0f" }} series to Grafana Cloud. The free plan drops what goes over 10,000.'
+          resolved: 'The boxes send under 9,000 series to Grafana Cloud again.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/series-near-limit.md

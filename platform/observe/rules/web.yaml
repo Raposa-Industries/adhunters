@@ -1,0 +1,36 @@
+# Alerts for the way in: the Cloudflare tunnel every app is reached through
+# (cloudflared on the data box, job="cloudflared") and the apps' answers
+# through create-web (kit/ops HTTP).
+groups:
+  - name: web
+    interval: 1m
+    rules:
+      # cloudflared runs but holds no connection to Cloudflare, or does not
+      # answer at all: nobody reaches any app.
+      - alert: TunnelDown
+        expr: |
+          sum by (box) (cloudflared_tunnel_ha_connections) < 1
+            or max by (box) (up{job="cloudflared"}) == 0
+        for: 5m
+        labels:
+          tier: chat
+        annotations:
+          summary: 'The Cloudflare tunnel on the {{ $labels.box }} box has had no connection to Cloudflare for 5 minutes. Nobody can reach the apps at hunt-teste.fyi.'
+          resolved: 'The Cloudflare tunnel on the {{ $labels.box }} box is connected again. The apps can be reached.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/tunnel-down.md
+
+      # One app answering with server errors: a bug, or the app not answering
+      # create-web (502, where ServiceDown fires too). At least 5, so one
+      # failed request at night is not an alert.
+      - alert: AppErrors
+        expr: |
+          sum by (route, box) (rate(adhunters_http_requests_total{service="create-web",code=~"5.."}[15m]))
+            / sum by (route, box) (rate(adhunters_http_requests_total{service="create-web"}[15m])) > 0.2
+          and sum by (route, box) (increase(adhunters_http_requests_total{service="create-web",code=~"5.."}[15m])) >= 5
+        for: 5m
+        labels:
+          tier: chat
+        annotations:
+          summary: '{{ $value | humanizePercentage }} of the requests to {{ $labels.route }} got a server error in the last 15 minutes.'
+          resolved: 'Requests to {{ $labels.route }} are answered without server errors again.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/app-errors.md

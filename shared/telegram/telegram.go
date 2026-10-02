@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 
 // Client posts to one chat.
@@ -26,9 +28,11 @@ type Client struct {
 	HTTP *http.Client
 }
 
-// New returns a client for the bot token and chat id.
+// New returns a client for the bot token and chat id. Every call is counted
+// on /metrics as provider "telegram" (kit/ops Transport).
 func New(token, chatID string) *Client {
-	return &Client{Token: token, ChatID: chatID, API: "https://api.telegram.org", HTTP: &http.Client{Timeout: 20 * time.Second}}
+	return &Client{Token: token, ChatID: chatID, API: "https://api.telegram.org",
+		HTTP: &http.Client{Timeout: 20 * time.Second, Transport: ops.Transport("telegram", nil)}}
 }
 
 // Send posts an HTML message. A silent message arrives without a sound.

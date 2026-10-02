@@ -30,6 +30,18 @@ var Apps = []App{
 	{"/raposa", "10.20.1.10:8090"},
 }
 
+// Route names the app a request goes to, as Site sends it: an app's prefix
+// without its slash ("spy"), or "home" for every other path. create-web's
+// request metrics are counted by it.
+func Route(apps []App, r *http.Request) string {
+	for _, a := range apps {
+		if strings.HasPrefix(r.URL.Path, a.Prefix) {
+			return strings.TrimPrefix(a.Prefix, "/")
+		}
+	}
+	return "home"
+}
+
 // Site sends each request to the app whose prefix it starts with, and every
 // other path to Home (Root). Answers from the apps pass through as they are,
 // streams included.

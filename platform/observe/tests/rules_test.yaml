@@ -7,6 +7,7 @@ rule_files:
   - ../rules/credits.yaml
   - ../rules/funnels.yaml
   - ../rules/raposa.yaml
+  - ../rules/web.yaml
 
 evaluation_interval: 1m
 
@@ -480,3 +481,96 @@ tests:
               summary: Raposa's automatic quick queue has queued nothing for over 6 hours. New ads whose landing page the walker could not get are not being investigated.
               resolved: Raposa's automatic quick queue is queuing investigations again.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raposa-queue-empty.md
+
+  # cloudflared stops answering: the tunnel is down.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="cloudflared",service="cloudflared",instance="127.0.0.1:20241",box="data"}'
+        values: '1x10 0x20'
+      - series: 'cloudflared_tunnel_ha_connections{job="cloudflared",service="cloudflared",instance="127.0.0.1:20241",box="data"}'
+        values: '4x10'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: TunnelDown
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: TunnelDown
+        exp_alerts:
+          - exp_labels:
+              box: data
+              tier: chat
+            exp_annotations:
+              summary: The Cloudflare tunnel on the data box has had no connection to Cloudflare for 5 minutes. Nobody can reach the apps at hunt-teste.fyi.
+              resolved: The Cloudflare tunnel on the data box is connected again. The apps can be reached.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/tunnel-down.md
+
+  # cloudflared runs but has lost every connection to Cloudflare.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="cloudflared",service="cloudflared",instance="127.0.0.1:20241",box="data"}'
+        values: '1x30'
+      - series: 'cloudflared_tunnel_ha_connections{job="cloudflared",service="cloudflared",instance="127.0.0.1:20241",box="data"}'
+        values: '4x10 0x20'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: TunnelDown
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: TunnelDown
+        exp_alerts:
+          - exp_labels:
+              box: data
+              tier: chat
+            exp_annotations:
+              summary: The Cloudflare tunnel on the data box has had no connection to Cloudflare for 5 minutes. Nobody can reach the apps at hunt-teste.fyi.
+              resolved: The Cloudflare tunnel on the data box is connected again. The apps can be reached.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/tunnel-down.md
+
+  # Spy answers 30 requests a minute; from minute 10 a quarter of them fail
+  # with a 500. Raposa fails too, but only 2 requests: under 5, no alert.
+  - interval: 1m
+    input_series:
+      - series: 'adhunters_http_requests_total{job="adhunters",service="create-web",instance="adhunters-data",box="data",route="spy",code="200"}'
+        values: '0+30x10 300+30x30'
+      - series: 'adhunters_http_requests_total{job="adhunters",service="create-web",instance="adhunters-data",box="data",route="spy",code="500"}'
+        values: '0x10 10+10x30'
+      - series: 'adhunters_http_requests_total{job="adhunters",service="create-web",instance="adhunters-data",box="data",route="raposa",code="200"}'
+        values: '0+1x40'
+      - series: 'adhunters_http_requests_total{job="adhunters",service="create-web",instance="adhunters-data",box="data",route="raposa",code="502"}'
+        values: '0x10 1x5 2x25'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: AppErrors
+        exp_alerts: []
+      - eval_time: 35m
+        alertname: AppErrors
+        exp_alerts:
+          - exp_labels:
+              route: spy
+              box: data
+              tier: chat
+            exp_annotations:
+              summary: 25% of the requests to spy got a server error in the last 15 minutes.
+              resolved: Requests to spy are answered without server errors again.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/app-errors.md
+
+  # The boxes send 9,500 series for over 30 minutes.
+  - interval: 5m
+    input_series:
+      - series: 'prometheus_remote_write_wal_storage_active_series{job="integrations/self",component_id="prometheus.remote_write.cloud",box="data"}'
+        values: '3000x4 5000x12'
+      - series: 'prometheus_remote_write_wal_storage_active_series{job="integrations/self",component_id="prometheus.remote_write.cloud",box="worker"}'
+        values: '4500x16'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: SeriesNearLimit
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: SeriesNearLimit
+        exp_alerts:
+          - exp_labels:
+              tier: chat
+            exp_annotations:
+              summary: Our boxes send 9500 series to Grafana Cloud. The free plan drops what goes over 10,000.
+              resolved: The boxes send under 9,000 series to Grafana Cloud again.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/series-near-limit.md

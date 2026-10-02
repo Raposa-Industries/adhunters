@@ -4,6 +4,7 @@
 // Each binary has its own login and passes its own name, so pg_stat_activity
 // and slow-query logs say which binary ran what. Web binaries use a 5 s
 // statement timeout and jobs 10 min; the total of all MaxConns stays under 60.
+// Each pool shows on the binary's /metrics under that name (metrics.go).
 package pg
 
 import (
@@ -58,5 +59,6 @@ func Open(ctx context.Context, c Config) (*pgxpool.Pool, error) {
 		pool.Close()
 		return nil, fmt.Errorf("pg: ping: %w", err)
 	}
+	pools.add(c.AppName, pool)
 	return pool, nil
 }

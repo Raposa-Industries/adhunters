@@ -29,6 +29,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 
 // DefaultBase is Backstage's production host.
@@ -72,7 +74,8 @@ type Client struct {
 
 // New returns a client for base (DefaultBase in production). hc may carry a
 // transport that refuses requests (Intel's read-only client does); nil means
-// a plain client with a 2 minute timeout.
+// a plain client with a 2 minute timeout. Every call is counted on /metrics
+// as provider "taboola" (kit/ops Transport).
 func New(base, clientID, clientSecret string, hc *http.Client) *Client {
 	if base == "" {
 		base = DefaultBase
@@ -80,6 +83,9 @@ func New(base, clientID, clientSecret string, hc *http.Client) *Client {
 	if hc == nil {
 		hc = &http.Client{Timeout: 2 * time.Minute}
 	}
+	counted := *hc
+	counted.Transport = ops.Transport("taboola", hc.Transport)
+	hc = &counted
 	return &Client{
 		base: strings.TrimRight(base, "/"), id: clientID, secret: clientSecret, http: hc,
 		MaxRetries: 3,

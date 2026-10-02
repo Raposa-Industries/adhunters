@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/Raposa-Industries/adhunters/kit/keep"
+	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 
 const defaultBaseURL = "https://api.openai.com"
@@ -81,7 +82,8 @@ func New(s Settings, meter Meter, kept *keep.Folder, log *slog.Logger) *Client {
 	s.BaseURL = strings.TrimRight(s.BaseURL, "/")
 	// No client timeout: every call carries a context deadline instead, set by
 	// the caller, so a retry ladder and a slow picture share one budget.
-	return &Client{s: s, http: &http.Client{}, meter: meter, keep: kept, log: log, retryBase: retryBase,
+	// Every call is counted on /metrics under the provider (kit/ops Transport).
+	return &Client{s: s, http: &http.Client{Transport: ops.Transport(Provider, nil)}, meter: meter, keep: kept, log: log, retryBase: retryBase,
 		provider: Provider, name: "OpenAI", chatPath: "/v1/chat/completions"}
 }
 

@@ -42,14 +42,18 @@ type Server struct {
 	outOfCredit *prometheus.CounterVec
 	spendOnce   sync.Once
 	spend       *prometheus.CounterVec
+
+	httpOnce sync.Once
+	http     *httpMetrics
 }
 
 // New returns a Server whose registry already carries Go runtime and process
-// metrics, the count of error lines logged (logx.Errors) and a build_info
-// gauge for the service.
+// metrics, the count of error lines logged (logx.Errors), a build_info gauge
+// for the service, and what shared code registers (Register): the calls to
+// outside services (Transport) and kit/pg's pools.
 func New(service, version string) *Server {
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}), logx.Errors)
+	reg.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}), logx.Errors, shared)
 	info := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "adhunters_build_info",
 		Help:        "Always 1; labels carry the service and version that is running.",
