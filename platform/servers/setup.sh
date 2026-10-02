@@ -135,9 +135,12 @@ OPS_ADDR=127.0.0.1:9103'
 capture() { # capture INSTANCE WORKERS PORT
     env_file "tracks-capture@$1" "WORKERS=$2
 OPS_ADDR=127.0.0.1:$3"
+    # Without its lines an instance cannot run, so it stays disabled: Alloy
+    # watches only enabled units, and one that cannot run would read as down.
+    # The standby's stays so until it has lines of its own (SWITCH-OVER.md).
     if [ ! -s /etc/adhunters/tracks-capture/targets.yaml ] || [ ! -s /etc/adhunters/tracks-capture/proxies.env ]; then
-        systemctl enable "tracks-capture@$1" >/dev/null
-        todo+=("copy targets.yaml and proxies.env into /etc/adhunters/tracks-capture/, then: systemctl restart tracks-capture@$1")
+        systemctl disable --quiet "tracks-capture@$1"
+        todo+=("copy targets.yaml and proxies.env into /etc/adhunters/tracks-capture/, then run this setup again: it starts tracks-capture@$1")
         return
     fi
     start "tracks-capture@$1" "tracks-capture@$1"
