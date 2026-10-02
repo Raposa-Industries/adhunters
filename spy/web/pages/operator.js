@@ -22,7 +22,7 @@ function why(reason, agency) {
   return 'mesmo ' + reason + ' nas páginas';
 }
 
-const NOTICE = { sent: 'enviado', skipped: 'só aqui (sem Pushcut)', failed: 'falhou', pending: 'enviando' };
+const NOTICE = { sent: 'enviado', skipped: 'só aqui (sem Telegram)', failed: 'falhou', pending: 'enviando' };
 
 // drawMarks is the watch, hide and nickname controls, and the notices.
 function drawMarks(mark, notices) {

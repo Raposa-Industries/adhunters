@@ -10,7 +10,7 @@
 // marks along), runs the classifier, rebuilds the read model, which reads
 // its verticals, then Direction, which reads the read model's junk flags,
 // then the watches: a notice for each watched operator that turned rising or
-// scaled, sent through Pushcut. Every hour it sums today's and yesterday's
+// scaled, sent to the ops group on Telegram. Every hour it sums today's and yesterday's
 // auction prices again. A job that fails is logged and counted; the next
 // tick tries again.
 package numbers
@@ -27,7 +27,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/Raposa-Industries/adhunters/kit/ops"
-	"github.com/Raposa-Industries/adhunters/shared/pushcut"
 )
 
 // Jobs, in the order a 5-minute tick runs them.
@@ -42,6 +41,11 @@ const (
 	JobPrices    = "prices"
 )
 
+// Sender posts an HTML message to a chat (shared/telegram's Client).
+type Sender interface {
+	Send(ctx context.Context, html string, silent bool) error
+}
+
 // Config says how often each part runs. Zero values take the defaults.
 type Config struct {
 	Tick      time.Duration    // how often the last 24 hours are checked (1 minute)
@@ -52,10 +56,11 @@ type Config struct {
 	// Classify runs the classifier; nil leaves it out (tests of the numbers
 	// alone). It returns how many creatives it read or answered.
 	Classify func(context.Context) (int64, error)
-	// Pushcut sends watch notices through Notification; nil (no key) records
-	// them as skipped, so they show only in Spy's pages.
-	Pushcut      *pushcut.Client
-	Notification string
+	// Telegram sends watch notices to the ops group; nil records them as
+	// skipped, so they show only in Spy's pages. BaseURL (hunt-teste.fyi)
+	// makes each one link its operator page.
+	Telegram Sender
+	BaseURL  string
 }
 
 // Promises is how often each job must succeed before the TaskLate alert:

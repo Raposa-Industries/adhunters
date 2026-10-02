@@ -36,9 +36,9 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | bring back | Load an archived day's hour files into the database again because a page asked for it. They go again once nobody has asked for 3 days. |
 | live link | A click link seen in the last 15 minutes, with the values the ad network put in it. Raposa takes each one once. |
 | books balance | The loaded facts add up: each raw file's scrapes equal its rows, and each closed hour's counts equal its sightings. |
-| watch | Something a person follows in an app (an operator, an investigation). Watches notify through Pushcut. |
+| watch | Something a person follows in an app (an operator, an investigation). Raposa's watches notify through Pushcut; Spy's watched operators notify the ops group. |
 | alert | A system or developer message. Alerts go to Telegram, never Pushcut. |
-| ops group | The Telegram group "AdHunters operation": what the team acts on (Intel's alerts, delivery status changes and suggestions, policy changes). Everything about the platform itself stays in "AdHunters alerts". |
+| ops group | The Telegram group "AdHunters operation": what the team acts on (Intel's alerts, delivery status changes and suggestions, policy changes, watch notices). Everything about the platform itself stays in "AdHunters alerts". |
 | page | An alert that needs someone now: Telegram with sound, repeated every 5 minutes until it clears or is silenced. |
 | chat alert | An alert that can wait for the day: Telegram, silent, grouped, 08:00 to 22:00 São Paulo. |
 | digest | The one Telegram message at 08:00 São Paulo with yesterday in numbers. |
@@ -180,7 +180,7 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | grouping | Spy's own answer to which sites and accounts make one operator (`spy.regroup_operators`). Proposed until the `operators_from` setting says `grouping`. |
 | hand fix | A person's correction: to the grouping (join a site or account to an operator, or keep it out of every group) or to a creative's vertical. It always wins. |
 | nickname | A name a person gives an operator in Spy. It replaces the inferred name everywhere until taken away. |
-| watch notice | A watched operator's move (it turned rising, or Size started calling it scaled), sent through Pushcut and listed on its Spy page. |
+| watch notice | A watched operator's move (it turned rising, or Size started calling it scaled), sent to the ops group and listed on its Spy page. |
 | agency | An account name root whose accounts buy for 3 or more operators' sites. Its accounts are not grouped by the root. |
 | kind | An operator's business: arbitrage (an account buys for 3 or more site groups), affiliate (sells through an affiliate network) or direct. |
 | stage | Retired: the collector's blend of counts into test, scaling and winner. Use momentum, lifespan and new. |

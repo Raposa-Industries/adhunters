@@ -1,16 +1,13 @@
 package numbers
 
 import (
-	"encoding/json"
+	"context"
 	"io"
 	"log/slog"
-	"net/http"
-	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/Raposa-Industries/adhunters/shared/pushcut"
 )
 
 func TestAccountRoot(t *testing.T) {
@@ -76,24 +73,15 @@ func TestMarksAndWatches(t *testing.T) {
 			sightings_7d, share_7d_pct, rank_7d, share_7d_before_pct, scaled, refreshed_at)
 		VALUES ('operator', '7', 'vertical', 'weight-loss', 50, 10, 2, 400, 12.5, 3, 20, true, now())`)
 
-	var mu sync.Mutex
-	var got []pushcut.Message
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var m pushcut.Message
-		_ = json.NewDecoder(r.Body).Decode(&m)
-		mu.Lock()
-		got = append(got, m)
-		mu.Unlock()
-	}))
-	defer srv.Close()
-	pc := pushcut.New("k")
-	pc.API = srv.URL + "/"
-	r := New(b.db, slog.New(slog.NewTextHandler(io.Discard, nil)), Config{Now: func() time.Time { return now }, Pushcut: pc, Notification: "Spy"}, nil)
+	tg := &sentMessages{}
+	r := New(b.db, slog.New(slog.NewTextHandler(io.Discard, nil)), Config{Now: func() time.Time { return now }, Telegram: tg, BaseURL: "https://hunt.example/"}, nil)
 	if n, err := r.Watches(b.ctx); err != nil || n != 2 {
 		t.Fatalf("watches: %d %v", n, err)
 	}
-	if len(got) != 2 || got[0].Title != "Memo está subindo" || got[1].Title != "Memo escalou" || got[0].Input != "7" {
-		t.Errorf("sent: %+v", got)
+	got := tg.texts
+	if len(got) != 2 || !strings.HasPrefix(got[0], "👁 <b>Memo está subindo</b>\n") || !strings.HasPrefix(got[1], "👁 <b>Memo escalou</b>\n") ||
+		!strings.HasSuffix(got[0], `<a href="https://hunt.example/spy/operators/7">Abrir no Spy</a>`) {
+		t.Errorf("sent: %q", got)
 	}
 	if s := b.text(`SELECT string_agg(status, ' ' ORDER BY id) FROM spy.watch_notice`); s != "sent sent" {
 		t.Errorf("statuses: %s", s)
@@ -102,14 +90,14 @@ func TestMarksAndWatches(t *testing.T) {
 	if n, err := r.Watches(b.ctx); err != nil || n != 0 || len(got) != 2 {
 		t.Errorf("again: %d %v, %d sent", n, err, len(got))
 	}
-	// Without Pushcut a notice shows only in the pages.
+	// Without Telegram a notice shows only in the pages.
 	b.exec(`INSERT INTO spy.direction_event (at, kind, key, from_direction, to_direction, reason, reason_text)
 		VALUES ($1, 'operator', '7', 'fading', 'rising', '{}', 'De novo.')`, now.Add(-10*time.Minute))
 	if _, err := b.r.Watches(b.ctx); err != nil {
 		t.Fatal(err)
 	}
-	if s := b.text(`SELECT status || ': ' || error FROM spy.watch_notice ORDER BY id DESC LIMIT 1`); s != "skipped: no Pushcut key or notification name in spy-numbers.env" {
-		t.Errorf("without Pushcut: %s", s)
+	if s := b.text(`SELECT status || ': ' || error FROM spy.watch_notice ORDER BY id DESC LIMIT 1`); s != "skipped: no Telegram bot token or ops group chat id in spy-numbers.env" {
+		t.Errorf("without Telegram: %s", s)
 	}
 
 	// The grouping merges OP8 into OP7: its mark goes along.
@@ -132,5 +120,28 @@ func TestMarksAndWatches(t *testing.T) {
 	}
 	if got := b.text(`SELECT name || '|' || name_is_manual FROM spy.operator WHERE id = 7`); got != "ClickBank memo · OP7|false" {
 		t.Errorf("name after the nickname went: %s", got)
+	}
+}
+
+// sentMessages stands in for the Telegram client and keeps what it was sent.
+type sentMessages struct {
+	mu    sync.Mutex
+	texts []string
+}
+
+func (s *sentMessages) Send(_ context.Context, html string, _ bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.texts = append(s.texts, html)
+	return nil
+}
+
+func TestNoticeTextEscapesAndLinks(t *testing.T) {
+	x := notice{operator: 9, title: "A&B <x> está subindo", body: "2 > 1"}
+	if got, want := noticeText(x, ""), "👁 <b>A&amp;B &lt;x&gt; está subindo</b>\n2 &gt; 1"; got != want {
+		t.Errorf("no base: %q, want %q", got, want)
+	}
+	if got := noticeText(x, "https://h"); !strings.HasSuffix(got, "\n<a href=\"https://h/spy/operators/9\">Abrir no Spy</a>") {
+		t.Errorf("with base: %q", got)
 	}
 }

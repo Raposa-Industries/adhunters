@@ -160,7 +160,7 @@ the `spy_web` login alone):
 |---|---|---|
 | Hidden | `operator_mark.hidden` | The operator and its creatives leave the Operadores and Anúncios lists unless asked for. Nothing is deleted. |
 | Nickname | `operator_mark.nickname` | Becomes the operator's name everywhere (`display_name`, `name_is_manual`), kept through regrouping; taken away, the grouping names it again. |
-| Watched | `operator_mark.watched` | After Direction, every 5 minutes, `spy.watch_operators` adds a `watch_notice` when the operator turns rising (a `direction_event` since it was watched) or Size starts calling it scaled. spy-numbers sends each through Pushcut (decision 0004), 3 tries; without `PUSHCUT_API_KEY` and `PUSHCUT_NOTIFICATION` in `spy-numbers.env` a notice is recorded as skipped and shows only on the operator page. |
+| Watched | `operator_mark.watched` | After Direction, every 5 minutes, `spy.watch_operators` adds a `watch_notice` when the operator turns rising (a `direction_event` since it was watched) or Size starts calling it scaled. spy-numbers sends each to the ops group "AdHunters operation" on Telegram, with a link to the operator page under `SPY_BASE_URL`, 3 tries; without `TELEGRAM_BOT_TOKEN` and `OPS_TELEGRAM_CHAT_ID` in `spy-numbers.env` a notice is recorded as skipped and shows only on the operator page. |
 | Vertical | `vertical_fix`, and `creative_class` with source `hand` | Replaces the classifier's vertical for that creative at once; the rules and the model leave it alone, and the model learns from it. Given back, the rules' answer returns. |
 
 When the grouping merges an operator away, `spy.carry_operator_marks` (run
@@ -295,8 +295,9 @@ the spy schemas; `tracks_api_read`, `raposa_api_read`) and the `spy_web`
 login (`spy_api_read`, `tracks_api_read`, `raposa_api_read`, which carries
 EXECUTE on `raposa_api.request_investigation_v1`), writes
 `/etc/adhunters/spy-numbers.env` and `spy-web.env`, and starts both units.
-For watch notices on phones, `spy-numbers.env` needs `PUSHCUT_API_KEY` and
-`PUSHCUT_NOTIFICATION` (a notification made in the Pushcut app), then
+For watch notices in the ops group, `spy-numbers.env` needs
+`TELEGRAM_BOT_TOKEN` and `OPS_TELEGRAM_CHAT_ID` (the same as
+`observe-bot.env`) and `SPY_BASE_URL` (https://hunt-teste.fyi), then
 `systemctl restart spy-numbers`. Migration 0015 grants the two writing
 functions to `spy_web` when that login exists.
 Without the Raposa grants the ad page
