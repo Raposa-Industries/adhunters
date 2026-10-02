@@ -240,26 +240,44 @@ SELECT to_char(max(minute), 'MM-DD HH24:MI') AS last_file_minute, to_char(max(ar
 FROM tracks.walk_file;
 
 \echo
+-- raposa-import-old copied the collector's Raposa jobs with their own times
+-- (raposa.imported_investigation), so its last day shows here as 'old raposa'.
 \echo '== Raposa: investigations asked for in the last 24 h'
-SELECT mode, origin, status, count(*) FROM raposa.investigation
-WHERE requested_at >= now() - interval '24 hours' GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;
+SELECT CASE WHEN ii.investigation_id IS NULL THEN 'raposa-engine' ELSE 'old raposa' END AS who, i.mode, i.origin, i.status,
+       count(*), to_char(min(i.requested_at), 'MM-DD HH24:MI') AS first, to_char(max(i.requested_at), 'MM-DD HH24:MI') AS last
+FROM raposa.investigation i LEFT JOIN raposa.imported_investigation ii ON ii.investigation_id = i.id
+WHERE i.requested_at >= now() - interval '24 hours' GROUP BY 1, 2, 3, 4 ORDER BY 1, 2, 3, 4;
 \echo '== Raposa: waiting and running now'
 SELECT mode, count(*) FILTER (WHERE status = 'waiting') AS waiting, count(*) FILTER (WHERE status = 'running') AS running,
        to_char(min(requested_at) FILTER (WHERE status = 'waiting'), 'MM-DD HH24:MI') AS oldest_waiting,
        count(*) FILTER (WHERE status = 'running' AND claimed_until < now() - interval '10 minutes') AS running_unclaimed
 FROM raposa.investigation WHERE status IN ('waiting', 'running') GROUP BY 1 ORDER BY 1;
 \echo '== Raposa: finished in the last 24 h'
-SELECT mode, count(*) AS finished, count(*) FILTER (WHERE status = 'completed') AS completed,
-       count(*) FILTER (WHERE status = 'failed') AS failed, count(*) FILTER (WHERE is_cloaked) AS cloaked,
-       round((percentile_disc(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM completed_at - started_at)) / 60)::numeric, 1) AS median_min
-FROM raposa.investigation WHERE completed_at >= now() - interval '24 hours' GROUP BY 1 ORDER BY 1;
+SELECT CASE WHEN ii.investigation_id IS NULL THEN 'raposa-engine' ELSE 'old raposa' END AS who, i.mode, count(*) AS finished,
+       count(*) FILTER (WHERE i.status = 'completed') AS completed, count(*) FILTER (WHERE i.status = 'failed') AS failed,
+       count(*) FILTER (WHERE i.is_cloaked) AS cloaked,
+       round((percentile_disc(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM i.completed_at - i.started_at)) / 60)::numeric, 1) AS median_min
+FROM raposa.investigation i LEFT JOIN raposa.imported_investigation ii ON ii.investigation_id = i.id
+WHERE i.completed_at >= now() - interval '24 hours' GROUP BY 1, 2 ORDER BY 1, 2;
+\echo '== Raposa: why raposa-engine investigations failed or stopped, last 24 h'
+SELECT i.mode, i.status, i.stage, left(regexp_replace(i.stage_note, '[0-9]+', 'N', 'g'), 110) AS note, count(*)
+FROM raposa.investigation i LEFT JOIN raposa.imported_investigation ii ON ii.investigation_id = i.id
+WHERE ii.investigation_id IS NULL AND i.completed_at >= now() - interval '24 hours' AND i.status IN ('failed', 'stopped')
+GROUP BY 1, 2, 3, 4 ORDER BY 5 DESC LIMIT 12;
 \echo '== Raposa: visits per line, last 24 h (quick runs never use res-1)'
-SELECT i.mode, coalesce(nullif(v.line_key, ''), '-') AS line, count(*) AS visits,
+SELECT CASE WHEN ii.investigation_id IS NULL THEN 'raposa-engine' ELSE 'old raposa' END AS who, i.mode,
+       coalesce(nullif(v.line_key, ''), '-') AS line, count(*) AS visits,
        count(*) FILTER (WHERE v.outcome = 'error') AS errors, round(sum(v.bytes_used) / 1e6, 1) AS mb
 FROM raposa.visit v JOIN raposa.investigation i ON i.id = v.investigation_id
-WHERE v.started_at >= now() - interval '24 hours' GROUP BY 1, 2 ORDER BY 1, 2;
-SELECT left(regexp_replace(regexp_replace(coalesce(error, ''), '//[^/@ ]+@', '//***@', 'g'), '[0-9]+', 'N', 'g'), 100) AS visit_error, count(*)
-FROM raposa.visit WHERE started_at >= now() - interval '24 hours' AND outcome = 'error' GROUP BY 1 ORDER BY 2 DESC LIMIT 6;
+LEFT JOIN raposa.imported_investigation ii ON ii.investigation_id = i.id
+WHERE v.started_at >= now() - interval '24 hours' GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;
+\echo '== Raposa: visit errors, last 24 h'
+SELECT CASE WHEN ii.investigation_id IS NULL THEN 'raposa-engine' ELSE 'old raposa' END AS who, i.mode,
+       left(regexp_replace(regexp_replace(coalesce(v.error, ''), '//[^/@ ]+@', '//***@', 'g'), '[0-9]+', 'N', 'g'), 110) AS visit_error,
+       count(*)
+FROM raposa.visit v JOIN raposa.investigation i ON i.id = v.investigation_id
+LEFT JOIN raposa.imported_investigation ii ON ii.investigation_id = i.id
+WHERE v.started_at >= now() - interval '24 hours' AND v.outcome = 'error' GROUP BY 1, 2, 3 ORDER BY 1, 4 DESC LIMIT 20;
 SELECT key, value FROM raposa.setting WHERE key LIKE 'quick%' ORDER BY key;
 
 \echo
