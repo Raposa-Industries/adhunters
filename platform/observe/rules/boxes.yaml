@@ -61,6 +61,9 @@ groups:
           resolved: 'No more out-of-memory kills on the {{ $labels.box }} box.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/out-of-memory-kill.md
 
+      # Every unit of ours, one-off systemd-run jobs (run-u*) included: six
+      # failed spy-numbers runs sat unnoticed on the data box on 2 Oct 2026
+      # because Alloy watched only the tracks, raposa and postgres units.
       - alert: UnitFailed
         expr: node_systemd_unit_state{state="failed"} == 1
         for: 5m
@@ -83,6 +86,19 @@ groups:
           summary: Postgres on the data box is not answering.
           resolved: Postgres on the data box is answering again.
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/postgres-down.md
+
+      # A restart too short for PostgresDown (4 s on 2 Oct 2026, when
+      # unattended-upgrades updated libssl and needrestart restarted
+      # everything using it). Every service loses its connections, so error
+      # lines around it are expected; this says why they happened.
+      - alert: PostgresRestarted
+        expr: changes(node_systemd_unit_start_time_seconds{name=~"postgresql@.+\\.service"}[70m]) > 0
+        labels:
+          tier: chat
+        annotations:
+          summary: 'Postgres ({{ $labels.name }}) on the {{ $labels.box }} box restarted in the last hour. Services lost their connections for a few seconds and logged errors.'
+          resolved: 'No Postgres restart on the {{ $labels.box }} box in the last hour.'
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/postgres-restarted.md
 
       - alert: PostgresConnections
         # max_connections is 80 (platform/servers/setup.sh).

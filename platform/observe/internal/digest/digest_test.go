@@ -31,7 +31,7 @@ func quietDay() fakeMetrics {
 	return fakeMetrics{
 		qScrapes: one(336000), qScrapesOK: one(330000), qGaps: one(0),
 		qSightings: one(7680000), qLagMax: one(95), qVisits: nil, qKept: nil,
-		qAlerts: nil, qRestarts: nil, qCredits: nil,
+		qAlerts: nil, qRestarts: nil, qCredits: nil, qErrorLines: nil, qTaskFails: nil,
 		qDisk: {{Labels: map[string]string{"box": "worker"}, Value: 0.81}, {Labels: map[string]string{"box": "data"}, Value: 0.62}},
 	}
 }
@@ -74,6 +74,30 @@ func TestBusyDay(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in:\n%s", want, got)
 		}
+	}
+}
+
+// 2 Oct 2026: the walker and spy-numbers failed all night, but Sentry had
+// announced each only once, days before. The digest counts them.
+func TestRepeatedErrorsShow(t *testing.T) {
+	m := quietDay()
+	m[qErrorLines] = []prom.Sample{
+		{Labels: map[string]string{"key": "spy-numbers: numbers job failed"}, Value: 70},
+		{Labels: map[string]string{"key": "tracks-walker: archiving raw walk files"}, Value: 731.4},
+	}
+	m[qTaskFails] = []prom.Sample{
+		{Labels: map[string]string{"key": "spy-numbers recent"}, Value: 39},
+		{Labels: map[string]string{"key": "spy-numbers direction"}, Value: 31},
+	}
+	got := Write(context.Background(), m, fakeErrors(nil), time.Date(2026, 10, 2, 11, 0, 0, 0, time.UTC), sp)
+	if !strings.Contains(got, "<b>Errors logged</b>\n"+
+		"tracks-walker: archiving raw walk files, 731 times\n"+
+		"spy-numbers: numbers job failed, 70 times\n"+
+		"Failed task runs: spy-numbers recent 39, spy-numbers direction 31\n") {
+		t.Fatalf("got:\n%s", got)
+	}
+	if strings.Contains(got, "All green") {
+		t.Fatal("a day with errors logged is not all green")
 	}
 }
 

@@ -1,6 +1,6 @@
 # CreditLow, CreditRunningOut
 
-CreditLow is a chat alert (Telegram, silent, 08:00 to 22:00 São Paulo). CreditRunningOut pages. Rule: `platform/observe/rules/credits.yaml`.
+CreditLow is a chat alert (Telegram "AdHunters alerts", silent, at any hour). CreditRunningOut pages. Rule: `platform/observe/rules/credits.yaml`.
 
 ## What it means
 

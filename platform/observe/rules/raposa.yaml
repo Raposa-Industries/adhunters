@@ -20,3 +20,20 @@ groups:
           summary: '{{ $value | humanize }} watch event(s) could not be posted to the ops group on Telegram in the last 30 minutes.'
           resolved: 'Watch events reach the ops group again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/watch-delivery-failing.md
+
+      # raposa-engine took no investigation step for hours. Automatic quick
+      # runs alone used to come several an hour; after the switch-over on 2
+      # Oct 2026 the engine queued and ran nothing for hours, and nothing
+      # said so. The series exists only after the first step, hence the
+      # vector(0); it needs the engine up, so a stopped engine is ServiceDown.
+      - alert: RaposaIdle
+        expr: |
+          (sum(increase(raposa_steps_total[3h])) or vector(0)) == 0
+            and on() sum(up{job="adhunters", service="raposa-engine"}) > 0
+        for: 3h
+        labels:
+          tier: chat
+        annotations:
+          summary: raposa-engine has taken no investigation step for over 3 hours. Nothing is queued, or nothing that is queued runs.
+          resolved: raposa-engine is running investigations again.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raposa-idle.md

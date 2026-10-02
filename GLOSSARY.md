@@ -40,10 +40,11 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | alert | A system or developer message. Alerts go to Telegram, never Pushcut. |
 | ops group | The Telegram group "AdHunters operation": what the team acts on (Intel's alerts, delivery status changes and suggestions, policy changes, watch notices). Everything about the platform itself stays in "AdHunters alerts". |
 | page | An alert that needs someone now: Telegram with sound, repeated every 5 minutes until it clears or is silenced. |
-| chat alert | An alert that can wait for the day: Telegram, silent, grouped, 08:00 to 22:00 São Paulo. |
+| chat alert | An alert that needs no one now: Telegram "AdHunters alerts", silent, grouped, at any hour. |
 | digest | The one Telegram message at 08:00 São Paulo with yesterday in numbers. |
 | heartbeat | The alert that always fires. Better Stack calls when it stops arriving, because then no other alert can be trusted. |
 | runbook | The file in `runbooks/` an alert links: what it means, what to check, how to fix it. |
+| daily check | Claude's once-a-day read of what fired and what failed (Grafana Cloud and Sentry), reported in the project's "Alerts that fire" thread, with fixes for what is Claude's to fix. |
 | credit | What is left on a prepaid service we pay for: proxy traffic, AI credit. observe-bot reads it where the service has an API, or estimates it from our own spending where it has none (`credits.conf`). |
 | policy page | An article or section of Taboola's advertiser help center (realize.com/help) under Policy & Content Review. observe-bot reads them every 6 hours. |
 | policy change | A policy page that appeared, went away or whose text changed between two crawls. Each one is posted to the ops group. |

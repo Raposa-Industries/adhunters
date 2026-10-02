@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Raposa-Industries/adhunters/kit/logx"
 )
 
 func get(t *testing.T, h http.Handler, path string) (int, string) {
@@ -35,6 +37,15 @@ func TestMetricsCarryBuildInfo(t *testing.T) {
 	_, body := get(t, New("scout-web", "v2").Handler(), "/metrics")
 	if !strings.Contains(body, `adhunters_build_info{service="scout-web",version="v2"} 1`) {
 		t.Fatalf("build info missing:\n%s", body)
+	}
+}
+
+func TestMetricsCountErrorLines(t *testing.T) {
+	s := New("tracks-walker", "v1")
+	logx.NewTo(io.Discard, "tracks-walker", "v1", "").Error("archiving raw walk files")
+	_, body := get(t, s.Handler(), "/metrics")
+	if !strings.Contains(body, `adhunters_log_errors_total{msg="archiving raw walk files"}`) {
+		t.Fatalf("error lines not counted on /metrics:\n%s", body)
 	}
 }
 

@@ -1,6 +1,6 @@
 # FunnelsBeaconsUnparsed
 
-Chat: Telegram, silent, 08:00 to 22:00 São Paulo. Rule: `platform/observe/rules/funnels.yaml`.
+Chat: Telegram "AdHunters alerts", silent, at any hour. Rule: `platform/observe/rules/funnels.yaml`.
 
 ## What it means
 

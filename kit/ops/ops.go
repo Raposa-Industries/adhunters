@@ -20,6 +20,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/Raposa-Industries/adhunters/kit/logx"
 )
 
 // Check reports whether one dependency or loop is healthy. It must return
@@ -43,10 +45,11 @@ type Server struct {
 }
 
 // New returns a Server whose registry already carries Go runtime and process
-// metrics plus a build_info gauge for the service.
+// metrics, the count of error lines logged (logx.Errors) and a build_info
+// gauge for the service.
 func New(service, version string) *Server {
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	reg.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}), logx.Errors)
 	info := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "adhunters_build_info",
 		Help:        "Always 1; labels carry the service and version that is running.",

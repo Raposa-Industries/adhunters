@@ -1,6 +1,6 @@
 # BridgeBehind, BridgeFileQuarantined
 
-Chat: Telegram, silent, 08:00 to 22:00 São Paulo. Rules: `platform/observe/rules/`.
+Chat: Telegram "AdHunters alerts", silent, at any hour. Rules: `platform/observe/rules/`.
 
 Only while `tracks-bridge` runs, between the switch-over and the new Spy
 ([platform/SWITCH-OVER.md](../platform/SWITCH-OVER.md)).
