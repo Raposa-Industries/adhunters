@@ -6,13 +6,17 @@
 //	tracks-loader replay -from 2026-09-20T00:00Z -to 2026-09-21T00:00Z [-network taboola]
 //	tracks-loader status [-books]
 //	tracks-loader import-old -before 2026-10-01T00:00:00Z [-from 2026-06-01T00:00:00Z]
+//	tracks-loader hourly status|check|drop [-month 2026-09] [-keep 35]
 //
 // The database URL comes from DATABASE_URL and the archive's keys from
 // S3_ENDPOINT, S3_ACCESS_KEY and S3_SECRET_KEY (see archive.Open). run stops
 // cleanly on SIGTERM; a load or close cut off by the stop rolls back and is
 // done again at the next start. replay only marks files pending, so a running
 // loader does the work. import-old copies the collector's counts from before
-// the switch-over, reading OLD_DATABASE_URL and never writing it.
+// the switch-over, reading OLD_DATABASE_URL and never writing it. hourly
+// shows where each month's hourly counts are, checks a month against its
+// hour files in the archive, and drops its partitions when every hour
+// matches (decision 0023); the archive comes from -archive or ARCHIVE.
 package main
 
 import (
@@ -22,6 +26,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -55,6 +61,8 @@ func main() {
 		err = statusCmd(os.Args[2:])
 	case "import-old":
 		err = importOldCmd(os.Args[2:])
+	case "hourly":
+		err = hourlyCmd(os.Args[2:])
 	case "version":
 		fmt.Println(version)
 	default:
@@ -67,7 +75,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: tracks-loader run|migrate|replay|status|import-old|version [flags]")
+	fmt.Fprintln(os.Stderr, "usage: tracks-loader run|migrate|replay|status|import-old|hourly|version [flags]")
 	os.Exit(2)
 }
 
@@ -238,4 +246,149 @@ func importOldCmd(args []string) error {
 	enc.SetIndent("", "  ")
 	_ = enc.Encode(res)
 	return err
+}
+
+func hourlyCmd(args []string) error {
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
+		return errors.New("usage: tracks-loader hourly status|check|drop [-month 2026-09] [-keep 35] [-archive s3://…]")
+	}
+	what := args[0]
+	fs := flag.NewFlagSet("hourly "+what, flag.ExitOnError)
+	monthFlag := fs.String("month", "", "the month, e.g. 2026-09 (check and drop)")
+	keep := fs.Int("keep", 35, "days hourly counts stay in the database after their month ends")
+	archiveURI := fs.String("archive", os.Getenv("ARCHIVE"), "where hour files are kept: s3://bucket/prefix or file:///path")
+	_ = fs.Parse(args[1:])
+
+	ctx := context.Background()
+	db, err := open(ctx, pg.JobStatementTimeout, 2)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	if what == "status" {
+		months, err := load.HourlyStatus(ctx, db, *keep)
+		if err != nil {
+			return err
+		}
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.AlignRight)
+		fmt.Fprintln(w, "month\tdays\twritten to hour files\tin the database\tsize\tbrought back\tcan go from\t")
+		for _, m := range months {
+			where := "yes"
+			switch {
+			case m.Archived && m.InDatabase:
+				where = "archived, some days back"
+			case m.Archived:
+				where = "archived"
+			}
+			fmt.Fprintf(w, "%s\t%d\t%d\t%s\t%s\t%d\t%s\t\n", m.Month.Format("2006-01"), m.Days, m.Written, where,
+				gb(m.Bytes), m.BroughtBack, m.DropFrom.Format("2006-01-02"))
+		}
+		return w.Flush()
+	}
+	if what != "check" && what != "drop" {
+		return fmt.Errorf("hourly %s: want status, check or drop", what)
+	}
+	month, err := time.Parse("2006-01", *monthFlag)
+	if err != nil {
+		return fmt.Errorf("-month: %w", err)
+	}
+	if *archiveURI == "" {
+		return errors.New("-archive is required (or ARCHIVE, as in tracks-loader.env)")
+	}
+	store, err := archive.Open(*archiveURI)
+	if err != nil {
+		return err
+	}
+	l := load.New(db, store, logx.New("tracks-loader", version), load.Config{}, nil)
+	var c load.MonthCheck
+	var dropErr error
+	if what == "check" {
+		c, err = l.CheckMonth(ctx, month, *keep)
+		if err != nil {
+			return err
+		}
+	} else {
+		var daysBefore int64
+		if err := db.QueryRow(ctx, `SELECT COALESCE(sum(sightings), 0) FROM tracks.ad_daily WHERE day >= $1 AND day < $2`,
+			month, month.AddDate(0, 1, 0)).Scan(&daysBefore); err != nil {
+			return err
+		}
+		c, dropErr = l.DropMonth(ctx, month, *keep)
+		defer func() {
+			if dropErr != nil {
+				return
+			}
+			var daysAfter int64
+			_ = db.QueryRow(ctx, `SELECT COALESCE(sum(sightings), 0) FROM tracks.ad_daily WHERE day >= $1 AND day < $2`,
+				month, month.AddDate(0, 1, 0)).Scan(&daysAfter)
+			fmt.Printf("\nAfter: %s's hourly partitions are gone (%s freed). Its daily counts: %s sightings before, %s after.\n",
+				month.Format("2006-01"), gb(c.Bytes), num(daysBefore), num(daysAfter))
+			fmt.Println("A page brings an archived day back with tracks_api.hourly_days_v1; tracks-loader hourly status shows each month.")
+		}()
+	}
+	printCheck(c)
+	if what == "drop" {
+		return dropErr
+	}
+	if !c.OK() {
+		return errors.New("the month does not match its hour files yet")
+	}
+	return nil
+}
+
+// printCheck prints a month's check the way platform/retire/reconcile.sh
+// prints its comparisons: one line per day and table, then the verdict.
+func printCheck(c load.MonthCheck) {
+	fmt.Printf("Hourly counts of %s: the database against its hour files, every hour and every value\n\n", c.Month.Format("2006-01"))
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.AlignRight)
+	fmt.Fprintln(w, "day\ttable\tdb rows\tfile rows\tdb sightings\tfile sightings\thours\thours differ\t")
+	var dbRows, fileRows, dbS, fileS int64
+	var differ int
+	for _, d := range c.Days {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t\n", d.Day.Format("2006-01-02"), d.Table, num(d.DBRows), num(d.FileRows),
+			num(d.DBSightings), num(d.FileSightings), d.Hours, d.HoursDiffer)
+		dbRows += d.DBRows
+		fileRows += d.FileRows
+		dbS += d.DBSightings
+		fileS += d.FileSightings
+		differ += d.HoursDiffer
+	}
+	fmt.Fprintf(w, "total\t\t%s\t%s\t%s\t%s\t\t%d\t\n", num(dbRows), num(fileRows), num(dbS), num(fileS), differ)
+	_ = w.Flush()
+
+	fmt.Printf("\nDaily counts (they stay in the database) against the hourly sightings\n\n")
+	w = tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.AlignRight)
+	fmt.Fprintln(w, "day\thourly sightings\tdaily sightings\tdifference\t")
+	for _, d := range c.Daily {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t\n", d.Day.Format("2006-01-02"), num(d.HourlySightings), num(d.DailySightings),
+			num(d.DailySightings-d.HourlySightings))
+	}
+	_ = w.Flush()
+
+	fmt.Printf("\nIn the database: %s in the month's hourly partitions.\n", gb(c.Bytes))
+	if c.OK() {
+		fmt.Printf("MATCH: every hour of every day matches its hour file. %s can go from %s.\n",
+			c.Month.Format("2006-01"), c.DropFrom.Format("2006-01-02"))
+		return
+	}
+	fmt.Println("DIFFERENT, nothing may go yet:")
+	for _, p := range c.Problems {
+		fmt.Println("  - " + p)
+	}
+}
+
+func gb(b int64) string { return fmt.Sprintf("%.2f GB", float64(b)/(1<<30)) }
+
+// num writes n with thousands separators.
+func num(n int64) string {
+	s := fmt.Sprint(n)
+	neg := strings.HasPrefix(s, "-")
+	s = strings.TrimPrefix(s, "-")
+	for i := len(s) - 3; i > 0; i -= 3 {
+		s = s[:i] + "," + s[i:]
+	}
+	if neg {
+		return "-" + s
+	}
+	return s
 }

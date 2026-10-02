@@ -31,6 +31,9 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | dirty hour | An hour whose facts changed since its counts were last computed (a file loaded or loaded again). It closes again. |
 | quarantined | A raw file set aside after 3 failed loads, or at once when loading again cannot help. It waits for a fix and a replay. |
 | keep time | How long a table keeps rows in the database before its oldest days are dropped. The archive keeps everything, so a replay can bring them back. |
+| hour file | One UTC day of one hourly count table, written to the archive as a Parquet file and checked hour by hour against the database. A month's hourly counts leave the database only once every day matches its hour files. |
+| archived month | A month whose hourly counts left the database after matching their hour files. Its daily counts stay. |
+| bring back | Load an archived day's hour files into the database again because a page asked for it. They go again once nobody has asked for 3 days. |
 | live link | A click link seen in the last 15 minutes, with the values the ad network put in it. Raposa takes each one once. |
 | books balance | The loaded facts add up: each raw file's scrapes equal its rows, and each closed hour's counts equal its sightings. |
 | watch | Something a person follows in an app (an operator, an investigation). Watches notify through Pushcut. |
