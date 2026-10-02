@@ -407,6 +407,7 @@ type cards struct {
 
 var funcs = template.FuncMap{
 	"cards":        func(l []Suggestion, back string) cards { return cards{l, back} },
+	"byAccount":    byAccount,
 	"deref":        func(p *int64) int64 { return *p },
 	"derefT":       func(p *time.Time) time.Time { return *p },
 	"accountPath":  accountPath,

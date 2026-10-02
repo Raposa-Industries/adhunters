@@ -66,3 +66,21 @@ export function standIns(groups, campaigns) {
   }
   return out;
 }
+
+// byAccount puts the table's top level above nest: each account ({id,
+// name}) in the order given, with its rows under the same filters f. An
+// account found by its own name or id keeps every group that passes the
+// state and device. With no filter at all every account shows, even one
+// with no group yet; otherwise an account shows when one of its groups
+// does, or it is found by name.
+export function byAccount(accounts, groups, campaigns, f) {
+  const text = (s) => !!f.text && String(s || '').toLowerCase().includes(f.text);
+  const none = !f.text && f.state === 'all' && f.device === 'all' && !f.groups?.size && !f.camps?.size;
+  const out = [];
+  for (const a of accounts) {
+    const named = text(a.name) || text(a.id);
+    const rows = nest(groups.filter((g) => g.account === a.id), campaigns.filter((c) => c.account === a.id), named ? { ...f, text: '' } : f);
+    if (rows.length || named || none) out.push({ a, key: a.id, rows });
+  }
+  return out;
+}

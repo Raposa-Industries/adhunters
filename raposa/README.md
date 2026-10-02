@@ -15,7 +15,7 @@ and `browser/`), with the work held differently
 | Binary | Does | Listens |
 |---|---|---|
 | `raposa-engine run` | Claims due investigations one visit at a time (10 workers), keeps pages whole, posts watched events to the ops group on Telegram, and every 5 minutes refreshes burned lines, queues automatic quick investigations and queues the follow-up runs that are due. | ops on `OPS_ADDR` (9105) |
-| `raposa-web` | Plain pages: ask for an investigation, follow it day by day, read its visits, splits per step, whole funnels, video links and evidence, compare its days, list the cloaked ads, open stored pages, set watches, see burned lines. | `127.0.0.1:8090`, ops on 9106 |
+| `raposa-web` | The pages (below): ask for an investigation, follow it day by day, read its visits, splits per step, whole funnels, video links and evidence, compare its days, list the cloaked ads, open stored pages, set watches, see burned lines. | `127.0.0.1:8090`, ops on 9106 |
 | `browser/runner.js` | Headless Chromium for the browser rungs and the keeper. See [browser/README.md](browser/README.md). | `127.0.0.1:8086` |
 
 `raposa-engine migrate` applies the migrations (the unit runs it before each
@@ -192,6 +192,26 @@ definition in [contract/sql/raposa](../contract/sql/raposa):
 `request_investigation_v1` and `stop_investigation_v1`. Evidence is how Spy
 and Intel will learn who runs an ad; Raposa writes nothing into them.
 
+## The pages
+
+raposa-web's pages sit in the Frame ([shared/frame](../shared/frame)) with
+the Ember look, in Portuguese, as Figma's "Raposa · …" screens draw them: the
+app selector reads "Raposa · Investigar cloaks", the tabs are Investigações,
+Anúncios com cloak and Linhas queimadas, and ⌘K finds what the page lists (a
+number opens that investigation). The left column holds what the page needs:
+
+| Path | Screen | Left column | What it shows |
+|---|---|---|---|
+| `/` | Investigações | Nova investigação: creative, ad, Profunda or Rápida, your name, Investigar | Counts (investigations, cloaked, no dark page, running, Raposa's own checks in 24 h) and the investigations people asked for; "Mostrar também" adds Raposa's own (`?all=1`). |
+| `/i/{id}` | Investigação | The page's sections, and a summary | Verdict, splits per step with share bars, video players, the follow (Dia a dia), whole funnels and evidence when there are any, watches (Alertas) with the form for a new one, visits and the log. "Investigar de novo" asks for the same creative again (it opens the one running, if any); "Parar" shows while it runs. |
+| `/i/{id}/days` | Dia a dia | The follow: every how many hours, done, next, who asked; Encerrar acompanhamento | The days side by side: each day's run, past-the-white-page share, what changed (rises in red, falls in green), and each day's splits with their change. |
+| `/p/{id}` | Página guardada | The page: seen dark or not, kind, words, times seen, kept whole | The stored HTML opened in a sandboxed frame (no scripts, nothing from outside), "Abrir o HTML guardado", the kept copy and its files. `?i=` names the investigation it was opened from, for the way back. |
+| `/burns` | Linhas queimadas | Filters: site, rung, burned for one site or in general (in the browser, over the rows shown) | Counts and every burned line. |
+| `/cloaked?days=N` | Anúncios com cloak | Período (1, 7 or 30 days); Imprimir ou salvar PDF | Counts and every investigation past the white page in those days; it prints as a report. |
+
+The name typed in a form is remembered in that browser and filled in the
+next one. Times are UTC, written 02/10 04:17:14.
+
 ## Pages and files
 
 A visit stores each page's HTML and text as a version (a changed page is a
@@ -241,7 +261,6 @@ database.
 
 ## Not in this yet
 
-- **No design.** The pages are plain until the app's design is ready.
 - **Not on hunt-teste.fyi.** raposa-web listens on the worker only; the team
   sees Raposa through Spy's ad page, which does not show splits per step,
   follows or the cloaked ads yet.

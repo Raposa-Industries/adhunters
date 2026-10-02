@@ -1,6 +1,8 @@
-// Package web is raposa-web: plain pages to ask for investigations, follow
-// them, read what they found and set watches. No design yet, on purpose; the
-// app's look comes later.
+// Package web is raposa-web: the pages to ask for investigations, follow
+// them, read what they found and set watches. They sit in the Frame
+// (shared/frame) with the Ember look, in Portuguese, as the Figma screens
+// draw them (Raposa · Investigações, Investigação, Dia a dia, Página
+// guardada, Linhas queimadas, Anúncios com cloak).
 //
 // Stored pages are other people's HTML. They are served with a sandbox and a
 // policy that loads nothing from outside, so opening one runs none of its
@@ -25,10 +27,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Raposa-Industries/adhunters/shared/files"
+	"github.com/Raposa-Industries/adhunters/shared/frame"
 )
 
 //go:embed templates/*.html
 var templateFiles embed.FS
+
+// assetFiles are Raposa's own style and script, beside the Frame's.
+//
+//go:embed assets
+var assetFiles embed.FS
 
 // storedPolicy is the header every stored page and file goes out with: a
 // sandbox (no scripts, a unique origin) and nothing loaded from anywhere.
@@ -48,7 +56,7 @@ type Server struct {
 // New builds the pages over the raposa schema.
 func New(db *pgxpool.Pool, fs files.Store, log *slog.Logger) (*Server, error) {
 	s := &Server{db: db, files: fs, log: log}
-	t, err := template.New("").Funcs(template.FuncMap{
+	funcs := template.FuncMap{
 		"when":    when,
 		"day":     day,
 		"bytes":   humanBytes,
@@ -56,7 +64,11 @@ func New(db *pgxpool.Pool, fs files.Store, log *slog.Logger) (*Server, error) {
 		"base":    func() string { return s.Base },
 		"signed":  signed,
 		"grouped": Grouped,
-	}).ParseFS(templateFiles, "templates/*.html")
+	}
+	for k, f := range words {
+		funcs[k] = f
+	}
+	t, err := template.New("").Funcs(funcs).ParseFS(templateFiles, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +94,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /follow/{id}/end", s.endFollow)
 	mux.HandleFunc("GET /i/{id}/days", s.days)
 	mux.HandleFunc("GET /cloaked", s.cloaked)
+	mux.Handle("GET /_frame/", http.StripPrefix("/_frame", frame.Handler()))
+	mux.Handle("GET /_raposa/", http.StripPrefix("/_raposa", assets()))
 	var h http.Handler = mux
 	if s.Base != "" {
 		h = http.StripPrefix(s.Base, mux)
@@ -105,10 +119,21 @@ func sameOrigin(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) render(w http.ResponseWriter, name string, data any) {
+// View is what every page's template gets: the page's own data, and who is
+// looking (Cloudflare Access names them; empty until it is in front), for
+// the account button.
+type View struct {
+	User string
+	Data any
+}
+
+func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// Stored pages open in a sandboxed frame on the page's own page (they go
+	// out with their own policy), so frames from here are allowed.
 	w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'")
-	if err := s.tmpl.ExecuteTemplate(w, name, data); err != nil {
+	v := View{User: r.Header.Get("Cf-Access-Authenticated-User-Email"), Data: data}
+	if err := s.tmpl.ExecuteTemplate(w, name, v); err != nil {
 		s.log.Error("render", "page", name, "err", err)
 	}
 }
@@ -173,7 +198,7 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 	var auto int
 	_ = s.db.QueryRow(r.Context(), `SELECT count(*) FROM raposa.investigation WHERE requested_by = 'raposa'
 		AND requested_at > now() - interval '1 day'`).Scan(&auto)
-	s.render(w, "list.html", map[string]any{"Rows": list, "Asked": r.URL.Query().Get("asked"), "All": all, "Auto": auto})
+	s.render(w, r, "list.html", ListPage{Rows: list, All: all, Auto: auto, Counts: countRows(list)})
 }
 
 func (s *Server) request(w http.ResponseWriter, r *http.Request) {
@@ -325,7 +350,7 @@ func (s *Server) investigation(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	s.render(w, "investigation.html", d)
+	s.render(w, r, "investigation.html", d)
 }
 
 func (s *Server) details(ctx context.Context, d *Detail) error {
@@ -470,9 +495,13 @@ type PageInfo struct {
 	Seen               int32
 	First, Last        time.Time
 	HTMLBytes          int32
+	HasHTML            bool
 	HasKept            bool
 	KeptBytes          int64
 	Files              []File
+	// From is the investigation the page was opened from (?i=), for the
+	// way back; 0 when it was opened on its own.
+	From int64
 }
 
 // File is one file of a kept page.
@@ -493,9 +522,9 @@ func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 	var p PageInfo
 	err := s.db.QueryRow(ctx, `SELECT id, url, host, path, title, page_kind, word_count, is_dark, checkout_platform,
 			checkout_merchant_id, capture_state, capture_note, times_seen, first_seen_at, last_seen_at, html_bytes,
-			rendered_html IS NOT NULL, capture_bytes
+			html IS NOT NULL, rendered_html IS NOT NULL, capture_bytes
 		FROM raposa.page WHERE id = $1`, id).Scan(&p.ID, &p.URL, &p.Host, &p.Path, &p.Title, &p.Kind, &p.Words, &p.Dark,
-		&p.Checkout, &p.Merchant, &p.State, &p.Note, &p.Seen, &p.First, &p.Last, &p.HTMLBytes, &p.HasKept, &p.KeptBytes)
+		&p.Checkout, &p.Merchant, &p.State, &p.Note, &p.Seen, &p.First, &p.Last, &p.HTMLBytes, &p.HasHTML, &p.HasKept, &p.KeptBytes)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -511,7 +540,10 @@ func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	s.render(w, "page.html", p)
+	if i, err := strconv.ParseInt(r.URL.Query().Get("i"), 10, 64); err == nil && i > 0 {
+		p.From = i
+	}
+	s.render(w, r, "page.html", p)
 }
 
 // pageHTML serves the HTML a visit stored (/html) or the keeper's copy after
@@ -602,7 +634,7 @@ func (s *Server) burns(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	s.render(w, "burns.html", list)
+	s.render(w, r, "burns.html", burnsPage(list))
 }
 
 // ---- helpers ------------------------------------------------------------
@@ -625,15 +657,19 @@ func who(r *http.Request) string {
 	return strings.TrimSpace(r.FormValue("by"))
 }
 
-func when(t any) string {
+// when is a moment as the pages write it, in UTC: 02/10 04:17:14.
+func when(t any) string { return stamp(t, "02/01 15:04:05") }
+
+// stamp formats a time or a time pointer; a nil one is "".
+func stamp(t any, layout string) string {
 	switch v := t.(type) {
 	case time.Time:
-		return v.UTC().Format("Jan 2 15:04:05")
+		return v.UTC().Format(layout)
 	case *time.Time:
 		if v == nil {
 			return ""
 		}
-		return v.UTC().Format("Jan 2 15:04:05")
+		return v.UTC().Format(layout)
 	}
 	return ""
 }

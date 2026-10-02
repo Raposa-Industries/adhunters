@@ -1,34 +1,67 @@
-{{template "head" "Investigations"}}
-<h1>Investigations</h1>
-<form method="post" action="{{base}}/request">
-<fieldset><legend>Investigate an ad</legend>
-<label>Creative <input name="creative" inputmode="numeric" required size="8"></label>
-<label>Ad (optional) <input name="ad" inputmode="numeric" size="8"></label>
-<label><input type="radio" name="mode" value="deep" checked> deep</label>
-<label><input type="radio" name="mode" value="quick"> quick</label>
-<label>Your name <input name="by" size="10"></label>
-<button>Start</button>
-<p class="note">Deep climbs the whole ladder of disguises, then samples the funnel: about 100 visits, with splits per step. Quick tries only the disguises that cost nothing and reads the landing page: it says whether the ad hides a dark page, without splits. Asking again while one runs opens that one.</p>
-</fieldset>
+{{template "head" (head "Investigações" "investigations" "Buscar criativo ou investigação" .User)}}
+{{with .Data}}
+<aside data-frame="rail">
+<form class="rail-form" method="post" action="{{base}}/request">
+  <h3>Nova investigação</h3>
+  <label class="rail-field"><span class="fr-label">Criativo</span>
+    <input name="creative" inputmode="numeric" required placeholder="id do criativo" autocomplete="off"></label>
+  <label class="rail-field"><span class="fr-label">Anúncio (opcional)</span>
+    <input name="ad" inputmode="numeric" placeholder="id do anúncio" autocomplete="off"></label>
+  <div class="rail-field"><span class="fr-label" id="mode-label">Modo</span>
+    <div class="segmented wide" role="radiogroup" aria-labelledby="mode-label">
+      <label><input type="radio" name="mode" value="deep" checked><span>Profunda</span></label>
+      <label><input type="radio" name="mode" value="quick"><span>Rápida</span></label>
+    </div>
+    <p class="rail-note">Profunda sobe toda a escada de disfarces e depois amostra o funil: cerca de 100 visitas, com divisões por etapa.</p>
+    <p class="rail-note">Rápida tenta só os disfarces que não custam nada e lê a landing page: diz se o anúncio esconde uma página escura, sem divisões.</p>
+  </div>
+  <label class="rail-field"><span class="fr-label">Seu nome</span>
+    <input name="by" data-name placeholder="seu nome" autocomplete="name"></label>
+  <button class="primary rail-button">Investigar</button>
+  <p class="rail-note">Pedir de novo enquanto uma roda abre a que está rodando.</p>
 </form>
-{{if .All}}<p class="note">Showing every investigation, the ones Raposa queues on its own included (quick checks of new ads whose landing page could not be fetched). <a href="{{base}}/">Only the ones people asked for</a>.</p>
-{{else}}<p class="note">The investigations people asked for.{{if .Auto}} Raposa also ran {{.Auto}} quick check(s) of its own in the last day, on new ads whose landing page could not be fetched: <a href="{{base}}/?all=1">show them too</a>.{{end}}</p>{{end}}
-<div class="scroll"><table>
-<tr><th>#</th><th>Creative</th><th>Mode</th><th>Status</th><th>Stage</th><th>Visits</th><th>Verdict</th><th>Asked</th><th>Ended</th></tr>
-{{range .Rows}}
-<tr>
-<td><a href="{{base}}/i/{{.ID}}">{{.ID}}</a></td>
-<td>{{.CreativeID}}{{with .AdID}} (ad {{.}}){{end}}</td>
-<td>{{.Mode}}{{if ne .Origin "user"}} ({{.Origin}}){{end}}</td>
-<td>{{.Status}}</td>
-<td>{{.Stage}}{{with .StageNote}} <span class="note">{{.}}</span>{{end}}</td>
-<td>{{.VisitsDone}}{{if .VisitsTarget}}/{{.VisitsTarget}}{{end}}</td>
-<td>{{if .Cloaked}}<span class="dark">cloaked {{printf "%.0f" .Confidence}}%</span>, rung {{deref .BreachRung}}, {{.Variants}} variant(s){{else if eq .Status "completed"}}no dark page{{end}}</td>
-<td>{{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}</td>
-<td>{{when .CompletedAt}}</td>
-</tr>
-{{else}}
-<tr><td colspan="9">No investigations yet.</td></tr>
+</aside>
+<main>
+<div class="page-title">
+  <h1>Investigações</h1>
+  <p class="lead">{{if .All}}Todas as investigações, com as que a Raposa enfileira sozinha.{{else}}As investigações que as pessoas pediram.{{end}}</p>
+</div>
+<div class="strip">
+  <div><span class="fr-label">Investigações</span><b class="num">{{.Counts.Total}}</b></div>
+  <div><span class="fr-label">Com cloak</span><b class="num dark-ink">{{.Counts.Cloaked}}</b></div>
+  <div><span class="fr-label">Sem página escura</span><b class="num clean-ink">{{.Counts.Clean}}</b></div>
+  <div><span class="fr-label">Rodando</span><b class="num">{{.Counts.Running}}</b></div>
+  <div><span class="fr-label">Checagens da Raposa · 24 h</span><b class="num">{{.Auto}}</b></div>
+</div>
+<section class="card">
+  <header class="card-head">
+    <h2 class="card-title">{{if .All}}Todas{{else}}Pedidas{{end}}</h2>
+    <span class="count">{{len .Rows}} {{plural (len .Rows) "investigação" "investigações"}}</span>
+    <p class="card-aside">{{if .All}}Com as checagens rápidas que a Raposa faz sozinha em anúncios novos cuja landing page não abriu. <a href="{{base}}/">Só as que as pessoas pediram</a>{{else if .Auto}}A Raposa também fez {{.Auto}} {{plural .Auto "checagem rápida própria" "checagens rápidas próprias"}} no último dia, em anúncios novos cuja landing page não abriu. <a href="{{base}}/?all=1">Mostrar também</a>{{end}}</p>
+  </header>
+  <div class="scroll">
+  <table class="list">
+  <thead><tr><th>#</th><th>Criativo</th><th>Modo</th><th>Estado</th><th>Etapa</th><th class="num">Visitas</th><th>Veredito</th><th>Pedida</th><th>Terminou</th></tr></thead>
+  <tbody>
+  {{range .Rows}}
+  <tr data-search="{{.ID}} criativo {{.CreativeID}}" data-href="{{base}}/i/{{.ID}}" data-title="Investigação {{.ID}} · criativo {{.CreativeID}}">
+    <td><a class="id" href="{{base}}/i/{{.ID}}">{{.ID}}</a></td>
+    <td class="mono">{{.CreativeID}}{{with .AdID}} <span class="faint">· anúncio {{.}}</span>{{end}}</td>
+    <td>{{title (modeWord .Mode)}}{{with originWord .Origin}} <span class="faint">({{.}})</span>{{end}}</td>
+    <td><span class="badge">{{title (statusWord .Status)}}</span></td>
+    <td>{{stageWord .Stage}}{{with .StageNote}} <span class="faint">{{.}}</span>{{end}}</td>
+    <td class="num mono">{{.VisitsDone}}{{if .VisitsTarget}}/{{.VisitsTarget}}{{end}}</td>
+    <td>{{if .Cloaked}}<span class="badge dark">Com cloak {{printf "%.0f" .Confidence}}%</span> <span class="faint">degrau {{deref .BreachRung}} · {{.Variants}} {{plural .Variants "variante" "variantes"}}</span>{{else if eq .Status "completed"}}<span class="badge clean">Sem página escura</span>{{end}}</td>
+    <td class="mono">{{when .RequestedAt}}{{with .RequestedBy}} · {{.}}{{end}}</td>
+    <td class="mono">{{when .CompletedAt}}</td>
+  </tr>
+  {{else}}
+  <tr><td colspan="9" class="empty-row">Nenhuma investigação ainda.</td></tr>
+  {{end}}
+  </tbody>
+  </table>
+  </div>
+</section>
+</main>
 {{end}}
-</table></div>
 {{template "foot"}}

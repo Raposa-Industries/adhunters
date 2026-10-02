@@ -26,7 +26,7 @@ button.big { min-height: 42px; padding: 8px 20px; font-size: 14px; }
 .card-head { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: space-between; gap: 8px 16px; height: 44px; padding: 0 16px 0 0; border-bottom: 1px solid var(--line-subtle); }
 .card-tabs { display: flex; }
 .card-tab { display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; font-weight: 600; color: var(--ink-strong); border-bottom: 2px solid var(--accent); }
-.count-chip { font: 400 10px/18px var(--mono); letter-spacing: .03em; color: var(--accent); background: var(--ember-chip); border: 1px solid var(--ember-chip-line); border-radius: 999px; padding: 0 8px; white-space: nowrap; }
+.count-chip { font: 400 10px/18px var(--mono); letter-spacing: .1em; color: var(--accent); background: var(--ember-chip); border: 1px solid var(--ember-chip-line); border-radius: 999px; padding: 0 8px; white-space: nowrap; }
 .card-tools { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .card-tools .link-button { padding: 2px 0; }
 .link-button { min-height: 0; padding: 2px 2px; background: none; border: 0; color: var(--ink-3); font: inherit; cursor: pointer; }
@@ -63,7 +63,6 @@ td.indent-2 { padding-left: 80px; }
 table.list a.row-name { font-weight: 500; }
 .row-group .row-name { font-weight: 500; }
 .name-cell .mono { font-size: 12px; white-space: nowrap; }
-.name-cell .acct { font-size: 12px; white-space: nowrap; }
 .name-cell .badge.pair { margin-left: 2px; }
 .ad-thumb { flex: none; width: 36px; height: 22px; object-fit: cover; border-radius: 3px; border: 1px solid var(--line); background: var(--surface-3); }
 .ad-thumb.empty { display: inline-grid; place-items: center; width: 24px; height: 24px; color: var(--faint); background: none; border-style: dashed; font-size: 11px; }
@@ -77,6 +76,9 @@ table.nested tfoot td { border-top: 1px solid var(--line-subtle); padding-top: 1
 .tri { display: inline-block; width: 0; height: 0; border-style: solid; border-width: 3.5px 0 3.5px 4px; border-color: transparent transparent transparent currentColor; }
 table.camp-table th { padding: 13px 12px 12px; }
 table.camp-table td { height: 46px; padding: 2px 12px 0; font-size: 14px; }
+/* On a wide screen the name column takes what the others leave and a
+   long name ends in "…"; on a narrow one it grows and the table scrolls. */
+@media (min-width: 1400px) { table.camp-table td.name { max-width: 0; } }
 table.camp-table th.pick, table.camp-table td.pick { width: 40px; padding: 0 0 0 12px; }
 table.camp-table th.state { width: 143px; }
 table.camp-table th.budget { width: 165px; }
@@ -95,20 +97,28 @@ table.camp-table input[type=checkbox]:checked, table.camp-table input[type=check
 table.camp-table input[type=checkbox]:checked::after, .check-row input[type=checkbox]:checked::after { content: ""; width: 4px; height: 8px; margin-top: -2px; border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg); }
 table.camp-table input[type=checkbox]:indeterminate::after { content: ""; width: 8px; height: 2px; background: var(--on-accent); }
 table.camp-table input[type=checkbox]:disabled { opacity: .45; cursor: not-allowed; }
-.camp-table .name-cell { gap: 7px; }
-.camp-table .name-cell.indent-1 { padding-left: 30px; }
+.camp-table .name-cell { gap: 7px; margin-left: 1px; }
+/* Accounts on top, then groups, campaigns and ads, each a step in. */
+.camp-table .name-cell.indent-1 { padding-left: 24px; }
 .camp-table .name-cell.indent-2 { padding-left: 54px; }
-.camp-table td.indent-2 { padding-left: 66px; }
+.camp-table .name-cell.indent-3 { padding-left: 77px; }
+.camp-table td.indent-3 { padding-left: 89px; }
 .camp-table .caret { width: 10px; height: 20px; border-radius: 3px; color: var(--muted); }
 .camp-table .caret.open span { transform: rotate(90deg); }
 .camp-table .caret:hover { background: none; color: var(--ink-strong); }
-.camp-table .tag { font: 400 9.5px/14px var(--mono); letter-spacing: .04em; padding: 1px 5.5px; border-radius: 4px; color: var(--muted); }
-.camp-table .row-name { font-size: 14px; font-weight: 500; }
+.camp-table .tag { font: 400 9.5px/14px var(--mono); letter-spacing: .07em; padding: 1px 5.5px; border-radius: 4px; color: var(--muted); }
+.camp-table .row-name { font-size: 13.5px; font-weight: 500; }
 .camp-table .badge { font-size: 11px; line-height: 17px; padding: 1px 8px; }
 .camp-table .badge.pair { padding: 1px 8px; font-size: 12px; margin-left: 0; }
 .camp-table .ad-thumb { width: 26px; height: 26px; border-radius: 4px; }
-.camp-table .ad-thumb.empty { border-style: dashed; }
+.camp-table .ad-thumb.empty { border-style: dashed; padding: 0; border-radius: 4px; }
 .camp-table .row-ad .row-name { font-weight: 600; }
+table.camp-table tr.row-account td { background: color-mix(in srgb, var(--surface-2) 85%, var(--surface-3)); }
+.camp-table .row-account .row-name { font-size: 14px; font-weight: 600; }
+table.camp-table td.groups-count { font-size: 12px; color: var(--muted); }
+.camp-table .row-account .name-cell .mono { font-size: 11.5px; }
+.camp-table .row-group .name-cell .mono, .camp-table .row-camp .name-cell .mono { font-size: 11px; }
+.camp-table .tag.tag-account { font: 600 9px/14px var(--sans); letter-spacing: -.04em; padding: 1px 5px; color: var(--accent); background: var(--ember-chip); border-color: var(--ember-chip-line); }
 table.camp-table tfoot td { height: 47px; padding: 0 12px; background: var(--surface-2); font-size: 14px; }
 table.camp-table tfoot td.num { font-weight: 600; color: var(--ink-strong); }
 .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }

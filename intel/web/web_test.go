@@ -66,6 +66,8 @@ func TestPages(t *testing.T) {
 	}
 	get("/intel/", "BP mobile", "$1,234.50", "46%", "Gasto sem venda", "Pausar anúncios",
 		`href="/launch/taboola/acme-sc/g/10/c/1?do=pause-ads&amp;ads=11&amp;from=intel:1"`, "Só no RedTrack", "sandbox")
+	// The overview's campaigns sit under their account, whose row sums them.
+	get("/intel/", `data-account="acme-sc"`, "3 campanhas", "id 1", "$565.50")
 	get("/intel/taboola/acme-sc?w=7d", "BP mobile")
 	get("/intel/taboola/acme-sc/g/10", "BP mobile")
 	get("/intel/taboola/acme-sc/g/10/c/1", "Sip This at Breakfast", "pior", "com certeza", "0.80%",

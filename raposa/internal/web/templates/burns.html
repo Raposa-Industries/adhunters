@@ -1,11 +1,60 @@
-{{template "head" "Burned lines"}}
-<h1>Burned lines</h1>
-<p class="note">A line is burned for a site when that site shows it the white page while other lines on the same rung see the dark page. Investigations of the site skip it. A line burned for many sites is burned in general and is skipped everywhere.</p>
-<div class="scroll"><table>
-<tr><th>Site</th><th>Line</th><th>Rung</th><th>Its visits</th><th>Others</th><th>Since</th><th>Checked</th><th>Sites</th></tr>
-{{range .}}<tr><td>{{.Scope}}</td><td>{{.Line}}</td><td>{{.Rung}}</td><td>{{.Dark}} dark of {{.Visits}}</td>
-<td>{{.OtherD}} dark of {{.OtherV}}</td><td>{{when .Detected}}</td><td>{{when .Checked}}</td>
-<td>{{.Sites}}{{if .General}} <span class="dark">burned in general</span>{{end}}</td></tr>
-{{else}}<tr><td colspan="8">No line is burned.</td></tr>{{end}}
-</table></div>
+{{template "head" (head "Linhas queimadas" "burns" "Buscar site ou linha" .User)}}
+{{with .Data}}
+<aside data-frame="rail">
+<form class="rail-form" id="burn-filters" role="search" aria-label="Filtros">
+  <h3>Filtros</h3>
+  <label class="rail-field"><span class="fr-label">Site</span>
+    <input name="site" placeholder="todos os sites" autocomplete="off"></label>
+  <div class="rail-field"><span class="fr-label">Degrau</span>
+    <div class="chips">
+      <label class="chip"><input type="radio" name="rung" value="" checked><span>Todos</span></label>
+      {{range .Rungs}}<label class="chip"><input type="radio" name="rung" value="{{.}}"><span>{{.}}</span></label>{{end}}
+    </div>
+  </div>
+  <div class="rail-field"><span class="fr-label">Alcance</span>
+    <div class="chips">
+      <label class="chip"><input type="radio" name="reach" value="" checked><span>Todas</span></label>
+      <label class="chip"><input type="radio" name="reach" value="site"><span>Só um site</span></label>
+      <label class="chip"><input type="radio" name="reach" value="general"><span>Em geral</span></label>
+    </div>
+  </div>
+</form>
+</aside>
+<main>
+<div class="page-title">
+  <h1>Linhas queimadas</h1>
+  <p class="lead wide">Uma linha queima para um site quando esse site mostra a ela a página branca enquanto outras linhas no mesmo degrau veem a escura. Investigações do site pulam essa linha. Uma linha queimada para muitos sites fica queimada em geral e é pulada em todo lugar.</p>
+</div>
+<div class="strip">
+  <div><span class="fr-label">Linhas queimadas</span><b class="num">{{len .Burns}}</b></div>
+  <div><span class="fr-label">Sites</span><b class="num">{{.Sites}}</b></div>
+  <div><span class="fr-label">Queimadas em geral</span><b class="num">{{.General}}</b></div>
+  <div><span class="fr-label">Última checagem</span><b class="num">{{with .Checked}}{{when .}}{{else}}–{{end}}</b></div>
+</div>
+<section class="card">
+  <header class="card-head">
+    <h2 class="card-title" data-reach-title>Todas</h2>
+    <span class="count" data-count data-one="linha" data-many="linhas">{{len .Burns}} {{plural (len .Burns) "linha" "linhas"}}</span>
+  </header>
+  <div class="scroll">
+  <table class="list" id="burns">
+  <thead><tr><th>Site</th><th>Linha</th><th class="num">Degrau</th><th>Visitas dela</th><th>Outras linhas</th><th>Desde</th><th>Checada</th><th class="num">Sites</th></tr></thead>
+  <tbody>
+  {{range .Burns}}<tr data-site="{{site .Scope}}" data-rung="{{.Rung}}" data-general="{{.General}}" data-search="{{site .Scope}} {{.Line}}" data-title="{{site .Scope}} · {{upper .Line}}">
+    <td>{{site .Scope}}</td>
+    <td><span class="badge line">{{upper .Line}}</span></td>
+    <td class="num mono">{{.Rung}}</td>
+    <td class="mono">{{.Dark}} {{plural .Dark "escura" "escuras"}} de {{.Visits}}</td>
+    <td class="mono">{{.OtherD}} {{plural .OtherD "escura" "escuras"}} de {{.OtherV}}</td>
+    <td class="mono">{{when .Detected}}</td>
+    <td class="mono">{{when .Checked}}</td>
+    <td class="num mono">{{.Sites}}{{if .General}} <span class="badge dark">queimada em geral</span>{{end}}</td>
+  </tr>{{else}}<tr><td colspan="8" class="empty-row">Nenhuma linha está queimada.</td></tr>{{end}}
+  <tr class="none" hidden><td colspan="8" class="empty-row">Nenhuma linha com esses filtros.</td></tr>
+  </tbody>
+  </table>
+  </div>
+</section>
+</main>
+{{end}}
 {{template "foot"}}

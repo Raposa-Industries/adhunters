@@ -1,17 +1,68 @@
-{{template "head" (printf "Page %d" .ID)}}
-<h1>Page {{.ID}}{{with .Title}}: {{.}}{{end}}</h1>
-<p class="url">{{.URL}}</p>
-<p>{{if .Dark}}<span class="dark">dark</span>{{else}}not dark{{end}}, {{deref .Kind}}, {{.Words}} words.
-{{with .Checkout}}Checkout {{.}}{{end}} {{deref .Merchant}}</p>
-<p>Seen {{.Seen}} time(s), first {{when .First}}, last {{when .Last}}.</p>
-<p><a href="{{base}}/p/{{.ID}}/html">The HTML a visit stored</a> ({{bytes .HTMLBytes}}){{if .HasKept}} · <a href="{{base}}/p/{{.ID}}/kept">the kept copy, after its scripts ran</a>{{end}}.
-<span class="note">Both open without scripts and without loading anything from the operator's servers, so pictures and styles from elsewhere are missing.</span></p>
-<p>Kept whole: {{.State}}{{with .Note}} ({{.}}){{end}}{{if .KeptBytes}}, {{bytes .KeptBytes}} of line traffic{{end}}.</p>
+{{template "head" (head (printf "Página %d" .Data.ID) "investigations" "Buscar criativo ou investigação" .User)}}
+{{with .Data}}
+<aside data-frame="rail">
+{{if .From}}<a class="rail-back" href="{{base}}/i/{{.From}}"><span aria-hidden="true">←</span> Investigação {{.From}}</a>
+{{else}}<a class="rail-back" href="{{base}}/"><span aria-hidden="true">←</span> Investigações</a>{{end}}
+<section class="rail-section">
+  <h3>Página</h3>
+  <dl class="rail-summary">
+    <div><dt>Visto</dt><dd>{{if .Dark}}escura{{else}}não escura{{end}}</dd></div>
+    {{with .Kind}}<div><dt>Tipo</dt><dd>{{.}}</dd></div>{{end}}
+    <div><dt>Palavras</dt><dd>{{.Words}}</dd></div>
+    {{with .Checkout}}<div><dt>Checkout</dt><dd>{{.}}{{with $.Data.Merchant}} {{.}}{{end}}</dd></div>{{end}}
+    <div><dt>Vezes vista</dt><dd>{{.Seen}}</dd></div>
+    <div><dt>Primeira</dt><dd>{{short .First}}</dd></div>
+    <div><dt>Última</dt><dd>{{short .Last}}</dd></div>
+    <div><dt>Guardado inteiro</dt><dd>{{.State}}</dd></div>
+  </dl>
+</section>
+</aside>
+<main>
+<nav class="crumbs" aria-label="Onde você está"><a href="{{base}}/">Investigações</a><span class="sep">/</span>{{if .From}}<a href="{{base}}/i/{{.From}}">{{.From}}</a><span class="sep">/</span>{{end}}<span aria-current="page">Página {{.ID}}</span></nav>
+<div class="page-head">
+  <div>
+    <h1>Página {{.ID}}{{with .Title}} · {{.}}{{end}}</h1>
+    <p class="page-meta"><span class="mono url">{{.URL}}</span>
+      {{if .Dark}}<span class="badge dark">escura</span>{{else}}<span class="badge">não escura</span>{{end}}
+      {{with .Kind}}<span class="badge">{{.}}</span>{{end}}
+      <span class="badge">{{.Words}} {{plural .Words "palavra" "palavras"}}</span>
+      {{with .Checkout}}<span class="badge">checkout {{.}}{{with $.Data.Merchant}} {{.}}{{end}}</span>{{end}}</p>
+  </div>
+  <div class="actions">
+    {{if .HasKept}}<a class="button" href="{{base}}/p/{{.ID}}/kept" target="_blank" rel="noopener">Abrir a cópia guardada inteira</a>{{end}}
+    <a class="button primary" href="{{base}}/p/{{.ID}}/html" target="_blank" rel="noopener">Abrir o HTML guardado</a>
+  </div>
+</div>
+<div class="strip">
+  <div><span class="fr-label">Vezes vista</span><b class="num">{{.Seen}}</b></div>
+  <div><span class="fr-label">Primeira</span><b class="num">{{when .First}}</b></div>
+  <div><span class="fr-label">Última</span><b class="num">{{when .Last}}</b></div>
+  <div><span class="fr-label">HTML guardado</span><b class="num">{{bytes .HTMLBytes}}</b></div>
+</div>
+<section class="card">
+  <header class="card-head">
+    <h2 class="card-title">O HTML que uma visita guardou</h2>
+    <span class="count">{{bytes .HTMLBytes}}</span>
+    <p class="card-aside">Guardado inteiro: {{.State}}{{with .Note}} ({{.}}){{end}}{{if .KeptBytes}}, {{bytes .KeptBytes}} de tráfego da linha{{end}}</p>
+  </header>
+  <div class="card-body">
+    <p class="muted">Abre sem scripts e sem carregar nada dos servidores do operador, então imagens e estilos de fora não aparecem.</p>
+    {{if .HasHTML}}<iframe class="stored" src="{{base}}/p/{{.ID}}/html" sandbox="" title="O HTML guardado da página {{.ID}}" loading="lazy"></iframe>
+    {{else}}<div class="empty stored"><b>Nada para mostrar</b><span>O HTML guardado desta página tem {{bytes .HTMLBytes}}.</span></div>{{end}}
+  </div>
+</section>
 {{if .Files}}
-<h2>Files</h2>
-<div class="scroll"><table><tr><th>Role</th><th>Address</th><th>Type</th><th>Size</th></tr>
-{{range .Files}}<tr><td>{{.Role}}</td><td class="url">{{if .Stored}}<a href="{{base}}/f/{{.Hash}}">{{.URL}}</a>{{else}}{{.URL}}{{end}}</td>
-<td>{{.MediaType}}</td><td>{{if .Stored}}{{bytes .Size}}{{else}}<span class="note">{{deref .Skipped}}</span>{{end}}</td></tr>{{end}}
-</table></div>
+<section class="block">
+  <h2>Arquivos</h2>
+  <div class="card scroll">
+  <table class="list">
+  <thead><tr><th>Papel</th><th>Endereço</th><th>Tipo</th><th class="num">Tamanho</th></tr></thead>
+  <tbody>{{range .Files}}<tr><td>{{.Role}}</td><td class="addr">{{if .Stored}}<a href="{{base}}/f/{{.Hash}}">{{.URL}}</a>{{else}}{{.URL}}{{end}}</td>
+  <td class="mono">{{.MediaType}}</td><td class="num mono">{{if .Stored}}{{bytes .Size}}{{else}}<span class="faint">{{deref .Skipped}}</span>{{end}}</td></tr>{{end}}</tbody>
+  </table>
+  </div>
+</section>
+{{end}}
+</main>
 {{end}}
 {{template "foot"}}

@@ -1,0 +1,35 @@
+{{/* The overview's campaign table: each account on top (its campaigns
+   counted and their numbers summed), its campaigns under it. The caret
+   opens and closes an account's campaigns (intel.js). */}}
+{{define "accountRows"}}
+<div class="table-wrap">
+<table class="list nested-accounts">
+<thead><tr>
+  <th>Campanha</th><th>Estado</th><th class="num">Gasto</th><th class="num">Cliques</th><th class="num">Vendas</th>
+  <th class="num">Receita</th><th class="num">Lucro</th><th class="num">ROI</th><th class="num">Custo por venda</th>
+</tr></thead>
+{{range .}}<tbody class="account" data-account="{{.Account}}">
+<tr class="row-account">
+  <td><div class="name-cell"><button type="button" class="caret open" aria-expanded="true" aria-label="Fechar a conta {{.Account}}"><span class="tri" aria-hidden="true"></span></button>
+    <span class="tag tag-account">Conta</span><a class="acct-name" href="{{accountPath .Account}}">{{.Account}}</a></div></td>
+  <td class="muted count">{{len .Campaigns}} {{if eq (len .Campaigns) 1}}campanha{{else}}campanhas{{end}}</td>
+  {{with .R}}{{template "resultCells" .}}{{else}}<td class="num faint" colspan="7">sem números no período</td>{{end}}
+</tr>
+{{range .Campaigns}}<tr class="row-campaign">
+  <td class="in"><a href="{{campaignPath .Account .GroupID .ID}}">{{if .Name}}{{.Name}}{{else}}{{.ID}}{{end}}</a><div class="faint small-text">id {{.ID}}</div></td>
+  <td>{{if .Gone}}<span class="badge">apagada</span>{{else}}<span class="badge {{statusClass .Status}}">{{.Status}}</span>{{end}}</td>
+  {{with .R}}{{template "resultCells" .}}{{else}}<td class="num faint" colspan="7">sem números no período</td>{{end}}
+</tr>{{end}}
+</tbody>{{else}}<tbody><tr><td colspan="9" class="faint">Nenhuma campanha.</td></tr></tbody>{{end}}
+</table>
+</div>
+{{end}}
+
+{{define "resultCells"}}
+  <td class="num">{{money .Spent}}</td><td class="num">{{int .Clicks}}</td>
+  <td class="num">{{int .Sales}}{{if eq .SalesSource "network"}}<span class="faint" title="Sem dados do RedTrack: contagem da Taboola"> T</span>{{end}}</td>
+  <td class="num">{{if eq .SalesSource "network"}}–{{else}}{{money .Revenue}}{{end}}</td>
+  <td class="num {{if lt .Profit 0.0}}down{{else if gt .Profit 0.0}}up{{end}}">{{if eq .SalesSource "network"}}–{{else}}{{signed .Profit}}{{end}}</td>
+  <td class="num">{{roi .ROI}}</td>
+  <td class="num">{{moneyp .CPS}}{{with moneyRange .CPSLow .CPSHigh}}<div class="faint small-text">{{.}}</div>{{end}}</td>
+{{end}}

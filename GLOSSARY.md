@@ -225,6 +225,7 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | automatic quick investigation | A quick investigation Raposa queues on its own (origin `auto`) for a new ad that runs now and whose landing page tracks-walker could not get. Left out of raposa-web's list unless asked for. |
 | usable page | A page read whole: 40 words or more, and not a bot check or an error page (`raposa.usable_page`). |
 | imported investigation | An investigation copied from the collector's database by `raposa-engine import-old`, with its visits, pages and files. |
+| cloak | Showing an ad network's reviewer a white page while buyers get the dark page. A cloaker is the service that does it; an ad "with cloak" (com cloak) is one whose investigation got past the white page. |
 | white page | What an operator shows an ad network reviewer: the page the saved link opens from a reviewer's line. |
 | dark page | A page a visit reached that is not the white page: another page on the same site, or another site. |
 | dark funnel | The dark page and the pages its calls to action lead to, up to checkout. |

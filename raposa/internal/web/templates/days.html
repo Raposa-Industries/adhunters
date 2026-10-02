@@ -1,37 +1,88 @@
-{{template "head" (printf "Days of investigation %d" .Root)}}
-<h1>Day by day: investigation <a href="{{base}}/i/{{.Root}}">{{.Root}}</a></h1>
-{{with .Follow}}<p>Runs again every {{.EveryHours}} hours: {{.Done}} of {{.Days}} done{{if .Ended}}, ended {{when .Ended}}{{else}}, next {{when .NextAt}}{{end}}.</p>
-{{else}}<p class="note">Not followed. Follow it from <a href="{{base}}/i/{{.Root}}">its page</a>.</p>{{end}}
+{{template "head" (head (printf "Dia a dia da investigação %d" .Data.Root) "investigations" "Buscar criativo ou investigação" .User)}}
+{{with .Data}}
+<aside data-frame="rail">
+<a class="rail-back" href="{{base}}/i/{{.Root}}"><span aria-hidden="true">←</span> Investigação {{.Root}}</a>
+<section class="rail-section">
+  <h3>Dia a dia</h3>
+  {{with .Follow}}
+  <dl class="rail-summary roomy">
+    <div><dt>Repete</dt><dd>a cada {{.EveryHours}} h</dd></div>
+    <div><dt>Feitas</dt><dd>{{.Done}} de {{.Days}}</dd></div>
+    {{if .Ended}}<div><dt>Encerrado</dt><dd>{{short .Ended}}</dd></div>{{else}}<div><dt>Próxima</dt><dd>{{short .NextAt}}</dd></div>{{end}}
+    {{with .By}}<div><dt>Pedida por</dt><dd>{{.}}</dd></div>{{end}}
+  </dl>
+  {{if not .Ended}}<form method="post" action="{{base}}/follow/{{.ID}}/end"><button class="rail-button">Encerrar acompanhamento</button></form>{{end}}
+  {{else}}<p class="rail-note">Não acompanhada. Acompanhe pela <a href="{{base}}/i/{{.Root}}#dia-a-dia">página dela</a>.</p>{{end}}
+</section>
+</aside>
+<main>
+<nav class="crumbs" aria-label="Onde você está"><a href="{{base}}/">Investigações</a><span class="sep">/</span><a href="{{base}}/i/{{.Root}}">{{.Root}}</a><span class="sep">/</span><span aria-current="page">Dia a dia</span></nav>
+<div class="page-title">
+  <h1>Dia a dia · investigação <a class="accent" href="{{base}}/i/{{.Root}}">{{.Root}}</a></h1>
+  {{with .Follow}}<p class="lead">Roda de novo a cada {{.EveryHours}} horas: {{.Done}} de {{.Days}} feitas{{if .Ended}}, encerrado em {{when .Ended}}{{else}}, próxima {{when .NextAt}}{{end}}.</p>
+  {{else}}<p class="lead">Não acompanhada. Acompanhe pela <a href="{{base}}/i/{{.Root}}#dia-a-dia">página dela</a>.</p>{{end}}
+</div>
 
-<div class="scroll"><table>
-<tr><th>Day</th><th>Run</th><th>Date</th><th>Status</th><th>Ad seen</th><th>Sample visits</th><th>Past the white page</th><th>What changed</th></tr>
-{{range .Days}}<tr>
-<td>{{if .Day}}{{.Day}}{{else}}first{{end}}</td>
-<td><a href="{{base}}/i/{{.Row.ID}}">{{.Row.ID}}</a></td>
-<td>{{day .Started}}</td>
-<td>{{.Row.Status}}{{if eq .Row.Status "failed"}} <span class="note">{{.Row.StageNote}}</span>{{end}}</td>
-<td>{{with .Sightings}}{{.}} times{{end}}</td>
-<td>{{.Row.VisitsDone}}{{if .Row.VisitsTarget}}/{{.Row.VisitsTarget}}{{end}}</td>
-<td>{{if or .DarkVisits .WhiteVisits}}{{printf "%.0f" .DarkPct}}% ({{.DarkVisits}} dark, {{.WhiteVisits}} white){{end}}</td>
-<td>{{range .Changes}}{{.}}<br>{{end}}</td>
+<div class="card scroll">
+<table class="list days">
+<thead><tr><th>Dia</th><th>Execução</th><th>Data</th><th>Estado</th>{{if .Sightings}}<th class="num">Anúncio visto</th>{{end}}<th class="num">Visitas de amostra</th><th>Passaram da página branca</th><th>O que mudou</th></tr></thead>
+<tbody>
+{{range .Days}}<tr data-search="{{.Row.ID}} dia {{.Day}}" data-href="{{base}}/i/{{.Row.ID}}" data-title="Investigação {{.Row.ID}} · {{if .Day}}dia {{.Day}}{{else}}primeira{{end}}">
+  <td>{{if .Day}}<span class="mono">{{.Day}}</span>{{else}}primeira{{end}}</td>
+  <td><a class="id" href="{{base}}/i/{{.Row.ID}}">{{.Row.ID}}</a></td>
+  <td class="mono">{{day .Started}}</td>
+  <td><span class="badge">{{title (statusWord .Row.Status)}}</span>{{if eq .Row.Status "failed"}} <span class="faint">{{.Row.StageNote}}</span>{{end}}</td>
+  {{if $.Data.Sightings}}<td class="num mono">{{with .Sightings}}{{.}}{{else}}–{{end}}</td>{{end}}
+  <td class="num mono">{{.Row.VisitsDone}}{{if .Row.VisitsTarget}}/{{.Row.VisitsTarget}}{{end}}</td>
+  <td class="mono">{{if or .DarkVisits .WhiteVisits}}{{printf "%.0f" .DarkPct}}% <span class="faint">({{.DarkVisits}} {{plural .DarkVisits "escura" "escuras"}}, {{.WhiteVisits}} {{plural .WhiteVisits "branca" "brancas"}})</span>{{else}}–{{end}}</td>
+  <td class="changes">{{range .Changes}}<div>{{.What}}{{if .To}}: {{.From}} → <span class="{{if .Up}}dark-ink{{else}}clean-ink{{end}}">{{.To}}</span>{{end}}</div>{{else}}<span class="faint">–</span>{{end}}</td>
 </tr>{{end}}
-</table></div>
-
-{{range .Days}}{{if .Steps}}
-<h2>{{if .Day}}Day {{.Day}}{{else}}First run{{end}}, {{day .Started}}: splits per step</h2>
-{{range grouped .Steps}}
-<h3>Step {{.Step}}: {{.Kind}}</h3>
-<table><tr><th>Page</th><th>Address</th><th>Visits</th><th>Share</th><th>Since the day before</th></tr>
-{{range .Pages}}<tr><td><a href="{{base}}/p/{{.PageID}}">{{with .Title}}{{.}}{{else}}(no title){{end}}</a></td><td class="url">{{.Address}}</td>
-<td>{{.Visits}} of {{.StepVisits}}</td><td><span class="bar" style="width:{{printf "%.0f" .Share}}px"></span> {{printf "%.0f" .Share}}%</td>
-<td>{{.Change}}</td></tr>{{end}}
+</tbody>
 </table>
-{{end}}
-{{end}}{{end}}
+</div>
 
-{{if .Videos}}
-<h2>Videos</h2>
-<table>{{range .Videos}}<tr><td class="url"><a href="{{.URL}}" target="_blank" rel="noreferrer noopener">{{.URL}}</a></td>
-<td>{{if .Dark}}<span class="dark">dark</span> {{end}}on <a href="{{base}}/p/{{.PageID}}">{{.Title}}</a></td></tr>{{end}}</table>
+<div class="grid2 days-cols">
+{{range $c, $col := .Columns}}
+<div class="days-col">
+  {{range $col}}
+  <section class="block">
+    <h2>{{if .Day}}Dia {{.Day}}{{else}}Primeira execução{{end}} · {{day .Started}}</h2>
+    <p class="lead">Divisões por etapa</p>
+    {{range grouped .Steps}}
+    <div class="card">
+      <header class="card-head"><h4 class="card-title">Etapa {{.Step}} · {{.Kind}}</h4></header>
+      <table class="list">
+      <thead><tr><th>Página</th><th>Endereço</th><th>Visitas</th><th>Parcela</th><th class="num">Variação</th></tr></thead>
+      <tbody>{{range .Pages}}<tr>
+        <td><a class="page-link" href="{{base}}/p/{{.PageID}}?i={{$.Data.Root}}">{{with .Title}}{{.}}{{else}}(sem título){{end}}</a></td>
+        <td class="mono addr">{{.Address}}</td>
+        <td class="mono">{{.Visits}} de {{.StepVisits}}</td>
+        <td class="share"><span class="bar"><i style="{{pct .Share}}"></i></span><span class="mono">{{printf "%.0f" .Share}}%</span></td>
+        <td class="num mono">{{with .Change}}{{.}}{{else}}–{{end}}</td>
+      </tr>{{end}}</tbody>
+      </table>
+    </div>
+    {{end}}
+  </section>
+  {{end}}
+  {{if and (eq $c 1) $.Data.Videos}}
+  <section class="block">
+    <h2>Vídeos</h2>
+    <div class="card">
+      <table class="list">
+      <thead><tr><th>Player</th><th>Visto</th><th>Em</th></tr></thead>
+      <tbody>{{range $.Data.Videos}}<tr>
+        <td><a class="mono player" href="{{.URL}}" title="{{.URL}}" target="_blank" rel="noreferrer noopener">{{shortLink .URL}}</a></td>
+        <td>{{if .Dark}}<span class="badge dark">escura</span>{{end}}</td>
+        <td><a class="page-link" href="{{base}}/p/{{.PageID}}?i={{$.Data.Root}}">{{.Title}}</a></td>
+      </tr>{{end}}</tbody>
+      </table>
+    </div>
+  </section>
+  {{end}}
+</div>
+{{end}}
+</div>
+</main>
 {{end}}
 {{template "foot"}}
