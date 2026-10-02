@@ -22,12 +22,15 @@ func TestTeamNames(t *testing.T) {
 		t.Fatalf("%d %+v", code, next)
 	}
 
-	send := func(key, devices string, settings map[string]any) actions.PairResult {
+	send := func(key, devices string, settings map[string]any, more ...string) actions.PairResult {
 		var j job
 		body := map[string]any{"key": key, "network": "taboola", "account": acct, "devices": devices,
 			"new_group": map[string]any{"budget_model": ""},
 			"settings":  settings,
 			"ads":       []map[string]any{{"title": "Doctors Surprised By This Habit", "url": "https://lp.test", "image": img.SHA, "ad_id": "ah-1"}}}
+		for i := 0; i+1 < len(more); i += 2 {
+			body[more[i]] = more[i+1]
+		}
 		if code := r.call("POST", "pairs", body, &j); code != http.StatusAccepted {
 			t.Fatalf("send %d", code)
 		}
@@ -47,6 +50,11 @@ func TestTeamNames(t *testing.T) {
 	}
 	res = send("b1", "both", maxConv)
 	if res.Desktop.Campaign.Name != "CMP14-1-Desktop-pp-bl" || res.Mobile.Campaign.Name != "CMP14-1-Mobile-pp-bl" || res.Group.Name != "09" || res.PairID == 0 {
+		t.Fatalf("%+v", res)
+	}
+	// A name typed for one device names that campaign; the other keeps the team's.
+	res = send("b2", "both", maxConv, "mobile_name", " Memory Phones ")
+	if res.Desktop.Campaign.Name != "CMP15-1-Desktop-pp-bl" || res.Mobile.Campaign.Name != "Memory Phones" {
 		t.Fatalf("%+v", res)
 	}
 }

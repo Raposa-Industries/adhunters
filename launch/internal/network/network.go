@@ -59,6 +59,9 @@ type Group struct {
 	Budget float64 `json:"budget"`
 	// BudgetModel is MONTHLY, ENTIRE or "" (none of its own).
 	BudgetModel string `json:"budget_model"`
+	// Objective is the network's objective for the group; its campaigns
+	// must have the same.
+	Objective string `json:"objective,omitempty"`
 }
 
 // Device is where a campaign shows: Launch makes every new campaign as a

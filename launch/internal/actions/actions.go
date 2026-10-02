@@ -147,6 +147,10 @@ type PairRequest struct {
 	// Name is the pair's; Launch adds " · Desktop" and " · Mobile". Empty:
 	// the team's names (CampaignName), numbered at send time.
 	Name string `json:"name"`
+	// DesktopName and MobileName, when set, name that campaign only; the
+	// other keeps Name's or the team's.
+	DesktopName string `json:"desktop_name,omitempty"`
+	MobileName  string `json:"mobile_name,omitempty"`
 	// Devices is desktop, mobile or both (the default): one campaign each.
 	Devices string `json:"devices"`
 	// GroupID is where both go; NewGroup makes a group for them first.
@@ -266,6 +270,12 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	if teamNames {
 		dName, mName = next.Desktop, next.Mobile
 		r.Name = fmt.Sprintf("CMP%02d-%s", next.Campaign, next.AccountNumber)
+	}
+	if n := strings.TrimSpace(r.DesktopName); n != "" {
+		dName = n
+	}
+	if n := strings.TrimSpace(r.MobileName); n != "" {
+		mName = n
 	}
 	steps := []Step{{Label: "Grupo"}}
 	for _, d := range devices {
