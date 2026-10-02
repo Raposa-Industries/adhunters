@@ -82,6 +82,13 @@ func TestAPI(t *testing.T) {
 	if code != http.StatusOK || len(hs["headlines"].([]any)) != 1 {
 		t.Fatalf("headlines: %d %v", code, hs)
 	}
+	hid := itoa(int(hs["headlines"].([]any)[0].(map[string]any)["id"].(float64)))
+	if code, one := do(t, h, http.MethodGet, "/api/headlines/"+hid, "", nil); code != http.StatusOK || one["text"] != "Ringing After 60? Read This" {
+		t.Fatalf("one headline: %d %v", code, one)
+	}
+	if code, _ := do(t, h, http.MethodGet, "/api/headlines/999", "", nil); code != http.StatusNotFound {
+		t.Errorf("missing headline: %d", code)
+	}
 
 	code, got := do(t, h, http.MethodGet, "/api/sets/"+itoa(setID), "", nil)
 	if code != http.StatusOK || len(got["creatives"].([]any)) != 1 || len(got["headlines"].([]any)) != 1 {

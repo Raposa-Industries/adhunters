@@ -64,6 +64,7 @@ func (a *API) Handler() http.Handler {
 	mux.HandleFunc("PATCH /api/creatives/{id}", a.changeCreative)
 	mux.HandleFunc("GET /api/headlines", a.headlines)
 	mux.HandleFunc("POST /api/headlines", a.addHeadlines)
+	mux.HandleFunc("GET /api/headlines/{id}", a.headline)
 	mux.HandleFunc("PATCH /api/headlines/{id}", a.changeHeadline)
 	mux.HandleFunc("GET /files/{id}", func(w http.ResponseWriter, r *http.Request) { a.file(w, r, false) })
 	mux.HandleFunc("GET /thumbs/{id}", func(w http.ResponseWriter, r *http.Request) { a.file(w, r, true) })
@@ -329,6 +330,20 @@ func (a *API) creative(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, c)
+}
+
+// headline serves one headline, hidden or not.
+func (a *API) headline(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	x, err := a.st.Headline(r.Context(), id)
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, x)
 }
 
 // addCreative takes multipart: "file" (the picture) and "meta" (JSON, a

@@ -155,6 +155,7 @@ continues after the last id of a page.
   vertical).
   201 new, 200 when those bytes were kept already (then only added to the
   set).
+- `GET /api/headlines/{id}`: one headline, hidden or not.
 - `PATCH /api/creatives/{id}` and `PATCH /api/headlines/{id}`: `angle`,
   `ai_label`, `hidden`, `add_to_set`, `refile_to` (a set of its vertical),
   `add_tags`, `remove_tags`, and `by` (who, for the record).
