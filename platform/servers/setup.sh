@@ -901,7 +901,8 @@ GRAFANA_LOGS_URL=FILL_ME
 GRAFANA_LOGS_USER=FILL_ME
 GRAFANA_CLOUD_TOKEN=FILL_ME'
 
-# services_alloy: the scrape block for the units enabled on this box.
+# services_alloy: the scrape block for the units enabled on this box. What
+# goes on to Grafana Cloud is common.alloy's keep-list for services.
 services_alloy() {
     local unit port svc inst targets=""
     while read -r unit port svc inst; do
@@ -917,7 +918,7 @@ prometheus.scrape "services" {
   scrape_interval = "60s"
   targets         = [
 ${targets}  ]
-  forward_to = [prometheus.remote_write.cloud.receiver]
+  forward_to = [prometheus.relabel.services.receiver]
 }
 ALLOY
 }

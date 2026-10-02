@@ -306,14 +306,12 @@ tests:
               resolved: tracks-walker on the worker box has stopped logging "archiving raw walk files" over and over.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/errors-logged.md
 
-  # Postgres restarts at minute 31 (its unit's start time moves); the alert
-  # holds for the hour after.
+  # Postgres restarts at minute 31 (its start time moves; the scrape during
+  # the restart finds no Postgres); the alert holds for the hour after.
   - interval: 1m
     input_series:
-      - series: 'node_systemd_unit_start_time_seconds{name="postgresql@17-main.service",instance="adhunters-data",box="data",job="node"}'
-        values: '1000x30 5000x120'
-      - series: 'node_systemd_unit_start_time_seconds{name="alloy.service",instance="adhunters-data",box="data",job="node"}'
-        values: '900x30 4000x120'
+      - series: 'pg_postmaster_start_time_seconds{instance="postgresql://localhost:5432/adhunters",box="data",job="integrations/postgres"}'
+        values: '1000x30 _ 5000x120'
     alert_rule_test:
       - eval_time: 30m
         alertname: PostgresRestarted
@@ -323,12 +321,11 @@ tests:
         exp_alerts:
           - exp_labels:
               tier: chat
-              name: postgresql@17-main.service
-              instance: adhunters-data
+              instance: postgresql://localhost:5432/adhunters
               box: data
-              job: node
+              job: integrations/postgres
             exp_annotations:
-              summary: Postgres (postgresql@17-main.service) on the data box restarted in the last hour. Services lost their connections for a few seconds and logged errors.
+              summary: Postgres on the data box restarted in the last hour. Services lost their connections for a few seconds and logged errors.
               resolved: No Postgres restart on the data box in the last hour.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/postgres-restarted.md
       - eval_time: 2h
@@ -554,27 +551,17 @@ tests:
               resolved: Requests to spy are answered without server errors again.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/app-errors.md
 
-  # The boxes send 7,500 series, then 9,500 for over 30 minutes: as many
-  # samples a minute, since every scrape runs every 60 s.
+  # SeriesNearLimit counts every series Grafana holds, the alerts' own
+  # included. A test cannot hold 9,000 series; three raise nothing.
   - interval: 1m
     input_series:
-      - series: 'prometheus_remote_storage_samples_total{job="integrations/self",component_id="prometheus.remote_write.cloud",remote_name="cloud",url="https://prometheus.example/api/prom/push",box="data"}'
-        values: '0+3000x30 95000+5000x60'
-      - series: 'prometheus_remote_storage_samples_total{job="integrations/self",component_id="prometheus.remote_write.cloud",remote_name="cloud",url="https://prometheus.example/api/prom/push",box="worker"}'
-        values: '0+4500x90'
+      - series: 'node_boot_time_seconds{job="integrations/unix",box="data"}'
+        values: '1x60'
+      - series: 'up{job="adhunters",service="create-web",box="data"}'
+        values: '1x60'
+      - series: 'pg_schema_size_bytes{job="integrations/postgres",schema="tracks",box="data"}'
+        values: '1e9x60'
     alert_rule_test:
-      - eval_time: 30m
+      - eval_time: 40m
         alertname: SeriesNearLimit
         exp_alerts: []
-      - eval_time: 65m
-        alertname: SeriesNearLimit
-        exp_alerts: []
-      - eval_time: 80m
-        alertname: SeriesNearLimit
-        exp_alerts:
-          - exp_labels:
-              tier: chat
-            exp_annotations:
-              summary: Our boxes send 9500 series to Grafana Cloud. The free plan drops what goes over 10,000.
-              resolved: The boxes send under 9,000 series to Grafana Cloud again.
-              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/series-near-limit.md

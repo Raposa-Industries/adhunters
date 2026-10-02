@@ -493,7 +493,7 @@
     {
       "id": 12,
       "type": "timeseries",
-      "title": "Rows",
+      "title": "Cache hits",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -502,67 +502,6 @@
       "gridPos": {
         "x": 12,
         "y": 14,
-        "w": 12,
-        "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops"
-        },
-        "overrides": []
-      },
-      "options": {},
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(pg_stat_database_tup_inserted{datname=\"adhunters\"}[5m]))",
-          "legendFormat": "inserted"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(pg_stat_database_tup_updated{datname=\"adhunters\"}[5m]))",
-          "legendFormat": "updated"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(pg_stat_database_tup_deleted{datname=\"adhunters\"}[5m]))",
-          "legendFormat": "deleted"
-        },
-        {
-          "refId": "D",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(pg_stat_database_tup_fetched{datname=\"adhunters\"}[5m]))",
-          "legendFormat": "fetched"
-        }
-      ]
-    },
-    {
-      "id": 13,
-      "type": "timeseries",
-      "title": "Cache hits",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 22,
         "w": 12,
         "h": 8
       },
@@ -586,7 +525,7 @@
       ]
     },
     {
-      "id": 14,
+      "id": 13,
       "type": "timeseries",
       "title": "Temporary files written",
       "description": "Sorts and joins too big for work_mem spill to disk.",
@@ -595,7 +534,7 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 12,
+        "x": 0,
         "y": 22,
         "w": 12,
         "h": 8
@@ -620,7 +559,7 @@
       ]
     },
     {
-      "id": 15,
+      "id": 14,
       "type": "timeseries",
       "title": "Locks by mode",
       "description": "",
@@ -629,8 +568,8 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 0,
-        "y": 30,
+        "x": 12,
+        "y": 22,
         "w": 12,
         "h": 8
       },
@@ -654,7 +593,7 @@
       ]
     },
     {
-      "id": 16,
+      "id": 15,
       "type": "timeseries",
       "title": "Checkpoints, per hour",
       "description": "",
@@ -663,9 +602,9 @@
         "uid": "${datasource}"
       },
       "gridPos": {
-        "x": 12,
+        "x": 0,
         "y": 30,
-        "w": 12,
+        "w": 24,
         "h": 8
       },
       "fieldConfig": {
@@ -697,7 +636,7 @@
       ]
     },
     {
-      "id": 17,
+      "id": 16,
       "type": "row",
       "title": "Queries",
       "collapsed": false,
@@ -710,10 +649,10 @@
       "panels": []
     },
     {
-      "id": 18,
+      "id": 17,
       "type": "table",
       "title": "Queries that took the most time, last hour",
-      "description": "The 20 queries with the most time since Postgres last reset its statistics (pg_stat_statements), as their first 120 characters; values show as $1.",
+      "description": "The 20 queries with the most time since Postgres last reset its statistics (pg_stat_statements), as their first 120 characters; values show as $1. Read every 4 minutes.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -809,10 +748,10 @@
       ]
     },
     {
-      "id": 19,
+      "id": 18,
       "type": "timeseries",
       "title": "Time spent by query",
-      "description": "Share of one core each query keeps busy.",
+      "description": "Share of one core each query keeps busy, over 15 minutes (read every 4).",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -837,13 +776,13 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(10, sum by (queryid) (rate(pg_stat_statements_seconds_total[5m])) * on (queryid) group_left(query) topk by (queryid) (1, pg_stat_statements_query_id))",
+          "expr": "topk(10, sum by (queryid) (rate(pg_stat_statements_seconds_total[15m])) * on (queryid) group_left(query) topk by (queryid) (1, pg_stat_statements_query_id))",
           "legendFormat": "{{query}}"
         }
       ]
     },
     {
-      "id": 20,
+      "id": 19,
       "type": "row",
       "title": "Space",
       "collapsed": false,
@@ -856,10 +795,10 @@
       "panels": []
     },
     {
-      "id": 21,
+      "id": 20,
       "type": "timeseries",
       "title": "Size by schema",
-      "description": "Tables, indexes and TOAST, partitions included. One schema per service, and its _api views.",
+      "description": "Tables, indexes and TOAST, partitions included. One schema per service, and its _api views. Read every 4 minutes.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -890,7 +829,7 @@
       ]
     },
     {
-      "id": 22,
+      "id": 21,
       "type": "timeseries",
       "title": "Database and WAL size",
       "description": "",
@@ -933,10 +872,10 @@
       ]
     },
     {
-      "id": 23,
+      "id": 22,
       "type": "table",
       "title": "Biggest tables",
-      "description": "The 20 biggest, a partitioned table with its partitions. Sizes in bytes.",
+      "description": "The 10 biggest, a partitioned table with its partitions. Sizes in bytes. Read every 4 minutes.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -1017,7 +956,7 @@
       ]
     },
     {
-      "id": 24,
+      "id": 23,
       "type": "timeseries",
       "title": "Dead rows, biggest tables",
       "description": "Share of rows waiting for vacuum. Staying high means autovacuum is not keeping up.",
@@ -1028,7 +967,7 @@
       "gridPos": {
         "x": 0,
         "y": 77,
-        "w": 12,
+        "w": 24,
         "h": 8
       },
       "fieldConfig": {
@@ -1051,41 +990,7 @@
       ]
     },
     {
-      "id": 25,
-      "type": "timeseries",
-      "title": "Rows by schema",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 77,
-        "w": 12,
-        "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "options": {},
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max by (schema) (pg_schema_live_rows)",
-          "legendFormat": "{{schema}}"
-        }
-      ]
-    },
-    {
-      "id": 26,
+      "id": 24,
       "type": "row",
       "title": "Pools, by app",
       "collapsed": false,
@@ -1098,7 +1003,7 @@
       "panels": []
     },
     {
-      "id": 27,
+      "id": 25,
       "type": "timeseries",
       "title": "Connections in use",
       "description": "Connections each app holds for a query or a transaction (kit/pg).",
@@ -1132,7 +1037,7 @@
       ]
     },
     {
-      "id": 28,
+      "id": 26,
       "type": "timeseries",
       "title": "Pool use",
       "description": "Of the most connections the app may hold. At 100% queries wait.",
@@ -1166,7 +1071,7 @@
       ]
     },
     {
-      "id": 29,
+      "id": 27,
       "type": "timeseries",
       "title": "Waits for a connection, per minute",
       "description": "",
@@ -1200,7 +1105,7 @@
       ]
     },
     {
-      "id": 30,
+      "id": 28,
       "type": "timeseries",
       "title": "Average wait for a connection",
       "description": "",
