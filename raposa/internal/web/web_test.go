@@ -72,7 +72,7 @@ func TestAskFollowWatchAndStop(t *testing.T) {
 		t.Fatalf("a cross-site form answered %d", cross.StatusCode)
 	}
 
-	if _, body := get(t, ts, "/"); !strings.Contains(body, `<a href="/i/1">1</a>`) || !strings.Contains(body, "by ana") {
+	if _, body := get(t, ts, "/"); !strings.Contains(body, `href="/i/1">1</a>`) || !strings.Contains(body, "· ana") {
 		t.Fatalf("the list does not show it:\n%s", body)
 	}
 
@@ -91,8 +91,8 @@ func TestAskFollowWatchAndStop(t *testing.T) {
 	}
 
 	resp, body := get(t, ts, "/i/1")
-	if resp.StatusCode != 200 || !strings.Contains(body, "Investigation 1: creative 42") ||
-		!strings.Contains(body, "the creative") || !strings.Contains(body, "Stop it") ||
+	if resp.StatusCode != 200 || !strings.Contains(body, "Investigação 1 · criativo 42") ||
+		!strings.Contains(body, "toda investigação do criativo") || !strings.Contains(body, ">Parar</button>") ||
 		!strings.Contains(body, "AdHunters operation") || strings.Contains(body, "Pushcut") {
 		t.Fatalf("detail page (%d):\n%s", resp.StatusCode, body)
 	}
@@ -111,7 +111,7 @@ func TestAskFollowWatchAndStop(t *testing.T) {
 	if resp, _ := get(t, ts, "/i/99"); resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("a missing investigation answered %d", resp.StatusCode)
 	}
-	if resp, body := get(t, ts, "/burns"); resp.StatusCode != 200 || !strings.Contains(body, "No line is burned") {
+	if resp, body := get(t, ts, "/burns"); resp.StatusCode != 200 || !strings.Contains(body, "Nenhuma linha está queimada") {
 		t.Fatalf("burns (%d):\n%s", resp.StatusCode, body)
 	}
 }
@@ -134,7 +134,7 @@ func TestStoredPagesAreSandboxed(t *testing.T) {
 	if resp, _ := get(t, ts, "/p/1/kept"); resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("a page never kept answered %d", resp.StatusCode)
 	}
-	if resp, body := get(t, ts, "/p/1"); resp.StatusCode != 200 || !strings.Contains(body, "Page 1: Offer") {
+	if resp, body := get(t, ts, "/p/1"); resp.StatusCode != 200 || !strings.Contains(body, "Página 1 · Offer") {
 		t.Fatalf("page (%d):\n%s", resp.StatusCode, body)
 	}
 	if resp, _ := get(t, ts, "/f/not-a-hash"); resp.StatusCode != http.StatusNotFound {
@@ -169,10 +169,10 @@ func TestPagesWithEverythingFilled(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, want := range map[string][]string{
-		"/":      {"cloaked 88%", "rung 3"},
-		"/i/1":   {"Cloaked: 88%", `<a href="/p/1">1</a> → <a href="/p/1">1</a>`, "1.2.3.4", "timed out", "broke through on rung 3", "Raposa", "0 sent"},
-		"/p/1":   {"the kept copy", `<a href="/f/00000000-0000-0000-0000-000000000001">https://x.com/a.png</a>`, "2 KB"},
-		"/burns": {"site:x.com", "18 dark of 20"},
+		"/":      {"Com cloak 88%", "degrau 3"},
+		"/i/1":   {"88% das visitas no degrau 3", `<a href="/p/1?i=1">1</a> → <a href="/p/1?i=1">1</a>`, "1.2.3.4", "timed out", "broke through on rung 3", "Funis inteiros", "Evidências", "esta investigação"},
+		"/p/1":   {"Abrir a cópia guardada inteira", `<a href="/f/00000000-0000-0000-0000-000000000001">https://x.com/a.png</a>`, "2 KB", `src="/p/1/html" sandbox=""`},
+		"/burns": {"x.com", "18 escuras de 20", "RES-4"},
 	} {
 		resp, body := get(t, ts, path)
 		if resp.StatusCode != 200 {
@@ -227,8 +227,9 @@ func TestSplitsFollowDaysAndCloaked(t *testing.T) {
 	}
 
 	_, body := get(t, ts, "/i/1")
-	for _, want := range []string{"Splits per step", "Step 1: advertorials", "Doctor reveals", "67%", "Nurse reveals", "33%",
-		"Step 2: VSLs", "100%", "https://scripts.converteai.net/a1/players/p9/v4/player.js", "Run this ad again every 24 hours"} {
+	for _, want := range []string{"Divisões por etapa", "Etapa 1 · advertoriais", "Doctor reveals", "67%", "Nurse reveals", "33%",
+		"Etapa 2 · VSLs", "100%", `href="https://scripts.converteai.net/a1/players/p9/v4/player.js"`, "scripts.converteai.net/…/player.js",
+		"Roda este anúncio de novo a cada 24 horas"} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("the investigation page lacks %q:\n%s", want, body)
 		}
@@ -245,7 +246,7 @@ func TestSplitsFollowDaysAndCloaked(t *testing.T) {
 	if err := s.db.QueryRow(ctx, `SELECT max(days), count(*) FROM raposa.follow WHERE ended_at IS NULL`).Scan(&days, &open); err != nil || days != 3 || open != 1 {
 		t.Fatalf("follows: %d open, %d days (%v)", open, days, err)
 	}
-	if _, body := get(t, ts, "/i/1"); !strings.Contains(body, "0 of 3 done") || !strings.Contains(body, "End the follow") {
+	if _, body := get(t, ts, "/i/1"); !strings.Contains(body, "0 de 3 feitas") || !strings.Contains(body, `action="/follow/1/end"`) {
 		t.Fatalf("the follow is not shown:\n%s", body)
 	}
 
@@ -261,8 +262,9 @@ func TestSplitsFollowDaysAndCloaked(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("days answered %d:\n%s", resp.StatusCode, body)
 	}
-	for _, want := range []string{"Day by day: investigation", "visits past the white page went from 75% to 100%",
-		`step 1: &#34;Nurse reveals&#34; went from 33% to 67%`, `step 2: &#34;Watch now&#34; (100% the day before) was not met`, "&#43;33"} {
+	for _, want := range []string{"Dia a dia · investigação", `Passaram da página branca: 75% → <span class="dark-ink">100%</span>`,
+		`Etapa 1 «Nurse reveals»: 33% → <span class="dark-ink">67%</span>`, `Etapa 1 «Doctor reveals»: 67% → <span class="clean-ink">33%</span>`,
+		"Etapa 2 «Watch now» (100% na véspera) não apareceu", "&#43;33"} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("the days page lacks %q:\n%s", want, body)
 		}
@@ -274,7 +276,7 @@ func TestSplitsFollowDaysAndCloaked(t *testing.T) {
 	}
 
 	_, body = get(t, ts, "/")
-	if strings.Contains(body, `href="/i/2"`) || !strings.Contains(body, "1 quick check(s) of its own") {
+	if strings.Contains(body, `href="/i/2"`) || !strings.Contains(body, "1 checagem rápida própria") {
 		t.Fatalf("the list shows Raposa's own runs:\n%s", body)
 	}
 	if _, body := get(t, ts, "/?all=1"); !strings.Contains(body, `href="/i/2"`) {
@@ -289,8 +291,26 @@ func TestBasePath(t *testing.T) {
 	ts := httptest.NewServer(s.Handler())
 	t.Cleanup(ts.Close)
 	resp, body := get(t, ts, "/raposa/")
-	if resp.StatusCode != 200 || !strings.Contains(body, `href="/raposa/cloaked"`) || !strings.Contains(body, `action="/raposa/request"`) {
+	if resp.StatusCode != 200 || !strings.Contains(body, `href="/raposa/_frame/frame.css"`) || !strings.Contains(body, `data-base="/raposa"`) ||
+		!strings.Contains(body, `action="/raposa/request"`) {
 		t.Fatalf("under /raposa (%d):\n%s", resp.StatusCode, body)
+	}
+	// The Frame and Raposa's own style and script answer under the path too,
+	// with the types a browser runs them under.
+	for path, want := range map[string]string{
+		"/raposa/_frame/frame.js":    "text/javascript; charset=utf-8",
+		"/raposa/_frame/core.js":     "text/javascript; charset=utf-8",
+		"/raposa/_frame/frame.css":   "text/css; charset=utf-8",
+		"/raposa/_raposa/raposa.js":  "text/javascript; charset=utf-8",
+		"/raposa/_raposa/raposa.css": "text/css; charset=utf-8",
+	} {
+		resp, _ := get(t, ts, path)
+		if resp.StatusCode != 200 || resp.Header.Get("Content-Type") != want {
+			t.Fatalf("%s answered %d %q", path, resp.StatusCode, resp.Header.Get("Content-Type"))
+		}
+	}
+	if resp, _ := get(t, ts, "/raposa/_raposa/../web.go"); resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("a file outside the assets answered %d", resp.StatusCode)
 	}
 	if r := post(t, ts, "/raposa/request", url.Values{"creative": {"5"}}, ""); r.Header.Get("Location") != "/raposa/i/1" {
 		t.Fatalf("request went to %q", r.Header.Get("Location"))

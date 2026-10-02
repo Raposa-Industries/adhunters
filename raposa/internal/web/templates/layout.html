@@ -1,29 +1,14 @@
-{{define "head"}}<!DOCTYPE html>
-<html lang="en">
+{{define "head"}}<!doctype html>
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{.}} · Raposa</title>
-<style>
-body { font: 14px/1.4 system-ui, sans-serif; margin: 16px; color: #111; background: #fff; }
-nav a { margin-right: 12px; }
-table { border-collapse: collapse; margin: 8px 0 20px; }
-th, td { border-bottom: 1px solid #ddd; padding: 3px 8px; text-align: left; vertical-align: top; }
-td.url { max-width: 480px; overflow-wrap: anywhere; }
-.dark { color: #a00; font-weight: 600; }
-.error { color: #777; }
-.note { color: #555; }
-form.inline { display: inline; }
-fieldset { border: 1px solid #ccc; margin: 8px 0 20px; }
-.scroll { overflow-x: auto; }
-.bar { display: inline-block; height: 8px; background: #a00; vertical-align: middle; }
-.whiteonly { background: #f3f3f3; padding: 6px 8px; border-left: 3px solid #999; }
-@media print { nav, form { display: none; } }
-@media (prefers-color-scheme: dark) { body { color: #eee; background: #111; } th, td { border-color: #333; } a { color: #8ab4f8; } .dark { color: #f77; } .whiteonly { background: #222; } .bar { background: #f77; } }
-</style>
+<title>{{.Title}} · Raposa</title>
+<link rel="stylesheet" href="{{base}}/_frame/frame.css">
+<link rel="stylesheet" href="{{base}}/_raposa/raposa.css">
+<script type="module" src="{{base}}/_raposa/raposa.js"></script>
 </head>
-<body>
-<nav><a href="{{base}}/">Investigations</a><a href="{{base}}/cloaked">Cloaked ads</a><a href="{{base}}/burns">Burned lines</a></nav>
+<body class="raposa" data-tab="{{.Tab}}" data-user="{{.User}}" data-base="{{base}}" data-search-label="{{.Search}}">
 {{end}}
 {{define "foot"}}</body>
 </html>

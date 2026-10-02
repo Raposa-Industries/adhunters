@@ -1,21 +1,56 @@
-{{template "head" "Cloaked ads"}}
-<h1>Cloaked ads</h1>
-<p>Every investigation that got past the white page in the last
-{{if eq .Days 1}}day{{else}}{{.Days}} days{{end}}:
-<a href="{{base}}/cloaked?days=1">1 day</a> · <a href="{{base}}/cloaked?days=7">7 days</a> · <a href="{{base}}/cloaked?days=30">30 days</a>.
-<span class="note">Print the page (or save it as PDF) to send it.</span></p>
-<div class="scroll"><table>
-<tr><th>Run</th><th>Creative</th><th>Reviewer sees</th><th>Readers get</th><th>Kind</th><th>Checkout</th><th>Past the white page</th><th>Funnels</th><th>Video</th><th>Ended</th></tr>
-{{range .Rows}}<tr>
-<td><a href="{{base}}/i/{{.ID}}">{{.ID}}</a></td>
-<td>{{.CreativeID}}{{with .AdID}} (ad {{.}}){{end}}</td>
-<td>{{.WhiteDomain}}</td>
-<td class="url"><span class="dark">{{.Domain}}</span>{{with .Title}}<br>{{.}}{{end}}</td>
-<td>{{.Kind}}</td><td>{{.Checkout}}</td>
-<td>{{printf "%.0f" .Confidence}}% on rung {{deref .BreachRung}}</td>
-<td>{{.Variants}}</td>
-<td class="url">{{range .Videos}}<a href="{{.URL}}" target="_blank" rel="noreferrer noopener">{{.URL}}</a><br>{{end}}</td>
-<td>{{when .CompletedAt}}</td>
-</tr>{{else}}<tr><td colspan="10">No investigation got past the white page in this time.</td></tr>{{end}}
-</table></div>
+{{template "head" (head "Anúncios com cloak" "cloaked" "Buscar criativo ou site" .User)}}
+{{with .Data}}
+<aside data-frame="rail">
+<section class="rail-section">
+  <h3>Período</h3>
+  <nav class="chips" aria-label="Período">
+    <a class="chip-link" href="{{base}}/cloaked?days=1"{{if eq .Days 1}} aria-current="true"{{end}}>1 dia</a>
+    <a class="chip-link" href="{{base}}/cloaked?days=7"{{if eq .Days 7}} aria-current="true"{{end}}>7 dias</a>
+    <a class="chip-link" href="{{base}}/cloaked?days=30"{{if eq .Days 30}} aria-current="true"{{end}}>30 dias</a>
+  </nav>
+</section>
+<section class="rail-section">
+  <h3>Enviar</h3>
+  <p class="rail-note">Imprima a página (ou salve como PDF) para mandar a lista a alguém.</p>
+  <button type="button" class="rail-button" data-print>Imprimir ou salvar PDF</button>
+</section>
+</aside>
+<main>
+<div class="page-title">
+  <h1>Anúncios com cloak</h1>
+  <p class="lead">Toda investigação que passou da página branca {{if eq .Days 1}}no último dia{{else}}nos últimos {{.Days}} dias{{end}}.</p>
+</div>
+<div class="strip">
+  <div><span class="fr-label">Anúncios com cloak</span><b class="num dark-ink">{{len .Rows}}</b></div>
+  <div><span class="fr-label">Criativos</span><b class="num">{{.Creatives}}</b></div>
+  <div><span class="fr-label">Funis inteiros</span><b class="num">{{.Funnels}}</b></div>
+  <div><span class="fr-label">Com vídeo</span><b class="num">{{.WithVideo}}</b></div>
+</div>
+<section class="card">
+  <header class="card-head">
+    <h2 class="card-title">{{if eq .Days 1}}Último dia{{else}}Últimos {{.Days}} dias{{end}}</h2>
+    <span class="count">{{len .Rows}} {{plural (len .Rows) "anúncio" "anúncios"}}</span>
+  </header>
+  <div class="scroll">
+  <table class="list">
+  <thead><tr><th>#</th><th>Criativo</th><th>Revisor vê</th><th>Leitores recebem</th><th>Tipo</th><th>Checkout</th><th>Passou da branca</th><th class="num">Funis</th><th>Vídeo</th><th>Terminou</th></tr></thead>
+  <tbody>
+  {{range .Rows}}<tr data-search="{{.ID}} criativo {{.CreativeID}} {{.WhiteDomain}} {{.Domain}} {{.Title}}" data-href="{{base}}/i/{{.ID}}" data-title="Investigação {{.ID}} · criativo {{.CreativeID}}">
+    <td><a class="id" href="{{base}}/i/{{.ID}}">{{.ID}}</a></td>
+    <td class="mono">{{.CreativeID}}{{with .AdID}} <span class="faint">· anúncio {{.}}</span>{{end}}</td>
+    <td>{{with .WhiteDomain}}{{.}}{{else}}–{{end}}</td>
+    <td>{{.Title}}{{with .Domain}} <span class="mono faint">{{.}}</span>{{end}}</td>
+    <td>{{with .Kind}}<span class="badge">{{.}}</span>{{else}}–{{end}}</td>
+    <td>{{with .Checkout}}{{.}}{{else}}–{{end}}</td>
+    <td><span class="badge dark">{{printf "%.0f" .Confidence}}% no degrau {{deref .BreachRung}}</span></td>
+    <td class="num mono">{{.Variants}}</td>
+    <td>{{range .Videos}}<a class="mono player" href="{{.URL}}" title="{{.URL}}" target="_blank" rel="noreferrer noopener">{{shortSite .URL}}</a>{{else}}–{{end}}</td>
+    <td class="mono">{{short .CompletedAt}}</td>
+  </tr>{{else}}<tr><td colspan="10" class="empty-row">Nenhuma investigação passou da página branca nesse período.</td></tr>{{end}}
+  </tbody>
+  </table>
+  </div>
+</section>
+</main>
+{{end}}
 {{template "foot"}}

@@ -18,6 +18,10 @@
 //     searchLabel: 'Buscar campanhas, anúncios, apps',
 //   });
 //
+// A page whose left column holds more than filters (a form, the sections of
+// the page, a summary) uses <aside data-frame="rail"> instead: the same
+// column, without the Filtros heading and its fold button on top.
+//
 // Nothing here loads from another site; the fonts come from ./fonts.
 
 import { apps as appList, app as findApp, Chord, typing, rank, marks, switchTo, initials } from './core.js';
@@ -88,7 +92,8 @@ export function mountFrame(opts) {
   const list = appList(opts.ready);
   const body = document.body;
   const main = body.querySelector('main');
-  const filters = body.querySelector('aside[data-frame="filters"]');
+  const filters = body.querySelector('aside[data-frame="filters"], aside[data-frame="rail"]');
+  const rail = filters?.dataset.frame === 'rail';
   if (!main) throw new Error('mountFrame: the page needs a <main>');
 
   body.classList.add('fr');
@@ -105,7 +110,7 @@ export function mountFrame(opts) {
   const searchBtn = h('button', { type: 'button', class: 'fr-search', 'aria-label': 'Buscar (' + kbd + ')', onclick: () => palette.open() },
     icon('search', 13), h('span', { class: 'fr-search-label' }, opts.searchLabel || 'Buscar'), h('kbd', {}, kbd));
   const filterBtn = filters
-    ? h('button', { type: 'button', class: 'fr-filter-toggle', 'aria-label': 'Filtros', 'aria-expanded': 'false', onclick: () => toggleFilters() }, icon('filter', 15))
+    ? h('button', { type: 'button', class: 'fr-filter-toggle', 'aria-label': rail ? 'Coluna da esquerda' : 'Filtros', 'aria-expanded': 'false', onclick: () => toggleFilters() }, icon('filter', 15))
     : null;
   // The signed-in person's initials; until a service passes the name, a
   // neutral placeholder keeps the avatar where the design draws it.
@@ -123,7 +128,7 @@ export function mountFrame(opts) {
     const head = h('div', { class: 'fr-filters-head' },
       h('span', { class: 'fr-label' }, 'Filtros'),
       h('button', { type: 'button', class: 'fr-fold', 'aria-label': 'Esconder filtros ([)', title: 'Esconder filtros ([)', onclick: () => toggleFilters() }, '['));
-    filters.prepend(head);
+    if (!rail) filters.prepend(head);
     wrap.append(filters);
     filterBtn.setAttribute('aria-controls', filters.id);
   }

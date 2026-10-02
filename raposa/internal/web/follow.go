@@ -56,8 +56,8 @@ type FollowInfo struct {
 // stepKinds names the kinds of page in the order a funnel goes through
 // them, for the headings of the step splits.
 var stepKinds = map[string]string{
-	"advertorial": "advertorials", "vsl": "VSLs", "checkout": "checkouts", "quiz": "quizzes",
-	"article": "articles", "error": "pages that did not open", "unknown": "pages",
+	"advertorial": "advertoriais", "vsl": "VSLs", "checkout": "checkouts", "quiz": "quizzes",
+	"article": "artigos", "error": "páginas que não abriram", "unknown": "páginas",
 }
 
 func (s *Server) stepSplits(ctx context.Context, id int64) ([]StepSplit, error) {
@@ -80,7 +80,7 @@ func Grouped(splits []StepSplit) []StepGroup {
 		if len(out) == 0 || out[len(out)-1].Step != x.Step {
 			kind := stepKinds[x.Kind]
 			if kind == "" {
-				kind = "pages"
+				kind = "páginas"
 			}
 			out = append(out, StepGroup{Step: x.Step, Kind: kind})
 		}
@@ -199,9 +199,39 @@ type Day struct {
 	Sightings   *int64
 	DarkPct     float64
 	Steps       []StepSplit
-	Changes     []string
+	Changes     []Change
 	WhiteVisits int
 	DarkVisits  int
+}
+
+// Change is one thing that moved from one day to the next, as the days page
+// writes it: "Etapa 1 «Nurse reveals»: 33% → 67%". From and To are empty
+// when the change is a page that came or went; Up says the share rose.
+type Change struct {
+	What     string
+	From, To string
+	Up       bool
+}
+
+func (c Change) String() string {
+	if c.To == "" {
+		return c.What
+	}
+	return c.What + ": " + c.From + " → " + c.To
+}
+
+// DaysPage is the days page: the follow, each day, and the days with
+// splits laid out in two columns as the screen draws them (the first run
+// and every second day on the left, the others and the videos on the right).
+type DaysPage struct {
+	Root    int64
+	Follow  *FollowInfo
+	Days    []Day
+	Columns [2][]Day
+	Videos  []VideoLink
+	// Sightings says whether Tracks could be read for any day: the column
+	// "Anúncio visto" is left out when it could not.
+	Sightings bool
 }
 
 // days compares the runs of a followed funnel, day by day: how often the ad
@@ -281,7 +311,18 @@ func (s *Server) days(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	s.render(w, "days.html", map[string]any{"Root": root, "Follow": follow, "Days": list, "Videos": videos})
+	page := DaysPage{Root: root, Follow: follow, Days: list, Videos: videos}
+	n := 0
+	for _, d := range list {
+		if d.Sightings != nil {
+			page.Sightings = true
+		}
+		if len(d.Steps) > 0 {
+			page.Columns[n%2] = append(page.Columns[n%2], d)
+			n++
+		}
+	}
+	s.render(w, r, "days.html", page)
 }
 
 // qualified is rowColumns read from the alias a.
@@ -313,11 +354,12 @@ func (s *Server) sightings(ctx context.Context, creative int32, at *time.Time) *
 // compareDays says what moved from one run to the next: the share of visits
 // past the white page, and each step's pages that came, went or moved by 5
 // points or more. It also fills each page's share the day before.
-func compareDays(prev, cur *Day) []string {
-	var out []string
+func compareDays(prev, cur *Day) []Change {
+	var out []Change
+	pct := func(v float64) string { return fmt.Sprintf("%.0f%%", v) }
 	if prev.WhiteVisits+prev.DarkVisits > 0 && cur.WhiteVisits+cur.DarkVisits > 0 {
 		if d := cur.DarkPct - prev.DarkPct; d >= 5 || d <= -5 {
-			out = append(out, fmt.Sprintf("visits past the white page went from %.0f%% to %.0f%%", prev.DarkPct, cur.DarkPct))
+			out = append(out, Change{What: "Passaram da página branca", From: pct(prev.DarkPct), To: pct(cur.DarkPct), Up: d > 0})
 		}
 	}
 	type key struct {
@@ -337,23 +379,23 @@ func compareDays(prev, cur *Day) []string {
 		was, ok := before[k]
 		switch {
 		case !ok && len(prev.Steps) > 0:
-			x.Change = "new"
-			out = append(out, fmt.Sprintf("step %d: new page %q at %.0f%%", x.Step, label(x), x.Share))
+			x.Change = "nova"
+			out = append(out, Change{What: fmt.Sprintf("Etapa %d «%s» apareceu com %.0f%%", x.Step, label(x), x.Share)})
 		case ok:
 			x.Change = signed(was, x.Share)
 			if d := x.Share - was; d >= 5 || d <= -5 {
-				out = append(out, fmt.Sprintf("step %d: %q went from %.0f%% to %.0f%%", x.Step, label(x), was, x.Share))
+				out = append(out, Change{What: fmt.Sprintf("Etapa %d «%s»", x.Step, label(x)), From: pct(was), To: pct(x.Share), Up: d > 0})
 			}
 		}
 	}
 	for _, x := range prev.Steps {
 		k := key{x.Step, x.Title, x.Address}
 		if !seen[k] && len(cur.Steps) > 0 {
-			out = append(out, fmt.Sprintf("step %d: %q (%.0f%% the day before) was not met", x.Step, label(&x), x.Share))
+			out = append(out, Change{What: fmt.Sprintf("Etapa %d «%s» (%.0f%% na véspera) não apareceu", x.Step, label(&x), x.Share)})
 		}
 	}
 	if len(prev.Steps) > 0 && len(cur.Steps) == 0 && cur.Row.Status == "completed" {
-		out = append(out, "no visit got past the white page this day")
+		out = append(out, Change{What: "Nenhuma visita passou da página branca neste dia"})
 	}
 	return out
 }
@@ -409,21 +451,28 @@ func (s *Server) cloaked(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	s.render(w, "cloaked.html", map[string]any{"Rows": list, "Days": days})
+	s.render(w, r, "cloaked.html", cloakedPage(list, days))
 }
 
-// day is a date, for the days page.
+// weekdays are the days' short names in Portuguese, Sunday first.
+var weekdays = [7]string{"dom", "seg", "ter", "qua", "qui", "sex", "sáb"}
+
+// day is a date, for the days page: sex 02/10.
 func day(t any) string {
-	switch v := t.(type) {
+	var v time.Time
+	switch x := t.(type) {
 	case time.Time:
-		return v.UTC().Format("Mon Jan 2")
+		v = x
 	case *time.Time:
-		if v == nil {
+		if x == nil {
 			return ""
 		}
-		return v.UTC().Format("Mon Jan 2")
+		v = *x
+	default:
+		return ""
 	}
-	return ""
+	v = v.UTC()
+	return weekdays[v.Weekday()] + " " + v.Format("02/01")
 }
 
 // signed is a change in points, with its sign.

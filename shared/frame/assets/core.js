@@ -13,7 +13,7 @@ export const APPS = [
   { id: 'launch', name: 'Launch', key: 'L', about: 'Criar e mudar campanhas', ready: true },
   { id: 'intel', name: 'Intel', key: 'I', about: 'O que está performando', ready: true },
   { id: 'funnels', name: 'Funnels', key: 'F', about: 'Landing pages e funis', ready: true },
-  { id: 'raposa', name: 'Raposa', key: 'R', about: 'Investigar operadores', ready: false },
+  { id: 'raposa', name: 'Raposa', key: 'R', about: 'Investigar cloaks', ready: false },
   { id: 'desk', name: 'Desk', key: 'D', about: 'Pedir trabalho conversando', ready: false },
 ];
 

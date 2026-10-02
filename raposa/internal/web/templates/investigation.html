@@ -1,115 +1,237 @@
-{{template "head" (printf "Investigation %d" .ID)}}
-<h1>Investigation {{.ID}}: creative {{.CreativeID}}{{with .AdID}}, ad {{.}}{{end}}</h1>
-<p>{{.Mode}}, {{.Status}}{{if .StopRequested}} (stop asked){{end}}, {{.Stage}}{{with .StageNote}}: {{.}}{{end}}.
-Attempt {{.Attempt}}{{with .RetryOf}}, retry of <a href="{{base}}/i/{{.}}">{{.}}</a>{{end}}.
-Asked {{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}.{{if .CompletedAt}} Ended {{when .CompletedAt}}.{{end}}</p>
-{{if eq .Mode "quick"}}<p class="note">Quick: tries only the disguises that cost nothing and reads the landing page. It does not sample the funnel, so it has no splits.</p>{{end}}
-{{with .FollowOf}}<p>Day {{deref $.FollowDay}} of the follow-up of investigation <a href="{{base}}/i/{{.}}">{{.}}</a>. <a href="{{base}}/i/{{$.ID}}/days">Compare the days</a>.</p>{{end}}
-{{if .Running}}
-<p>Next visit {{when .NextVisitAt}}{{with .ClaimedBy}}, held by {{.}}{{end}}.
-<form class="inline" method="post" action="{{base}}/i/{{.ID}}/stop"><button>Stop it</button></form></p>
-{{end}}
+{{template "head" (head (printf "Investigação %d" .Data.ID) "investigations" "Buscar criativo ou investigação" .User)}}
+{{with .Data}}
+<aside data-frame="rail">
+<a class="rail-back" href="{{base}}/"><span aria-hidden="true">←</span> Investigações</a>
+<nav class="rail-section" aria-labelledby="sections-label">
+  <h3 id="sections-label">Nesta investigação</h3>
+  <ul class="rail-nav">
+    <li><a href="#veredito" aria-current="true">Veredito</a></li>
+    {{if .Steps}}<li><a href="#divisoes">Divisões por etapa</a></li>{{end}}
+    {{if .Videos}}<li><a href="#videos">Vídeos</a></li>{{end}}
+    <li><a href="#dia-a-dia">Dia a dia</a></li>
+    {{if .Variants}}<li><a href="#funis">Funis inteiros</a></li>{{end}}
+    {{if .Evidence}}<li><a href="#evidencias">Evidências</a></li>{{end}}
+    <li><a href="#alertas">Alertas</a></li>
+    <li><a href="#visitas">Visitas</a></li>
+    <li><a href="#registro">Registro</a></li>
+  </ul>
+</nav>
+<section class="rail-section">
+  <h3>Resumo</h3>
+  <dl class="rail-summary">
+    <div><dt>Criativo</dt><dd>{{.CreativeID}}</dd></div>
+    {{with .AdID}}<div><dt>Anúncio</dt><dd>{{.}}</dd></div>{{end}}
+    <div><dt>Modo</dt><dd>{{modeWord .Mode}}</dd></div>
+    <div><dt>Estado</dt><dd>{{statusWord .Status}}</dd></div>
+    <div><dt>Etapa</dt><dd>{{stageWord .Stage}}</dd></div>
+    <div><dt>Tentativa</dt><dd>{{.Attempt}}</dd></div>
+    {{with .RetryOf}}<div><dt>Repete</dt><dd><a href="{{base}}/i/{{.}}">{{.}}</a></dd></div>{{end}}
+    <div><dt>Pedida</dt><dd>{{short .RequestedAt}}</dd></div>
+    {{with .RequestedBy}}<div><dt>Por</dt><dd>{{.}}</dd></div>{{end}}
+    {{if .CompletedAt}}<div><dt>Terminou</dt><dd>{{short .CompletedAt}}</dd></div>{{end}}
+  </dl>
+</section>
+</aside>
+<main>
+<nav class="crumbs" aria-label="Onde você está"><a href="{{base}}/">Investigações</a><span class="sep">/</span><span aria-current="page">{{.ID}}</span></nav>
+<div class="page-head">
+  <div>
+    <h1>Investigação {{.ID}} · criativo {{.CreativeID}}{{with .AdID}} · anúncio {{.}}{{end}}</h1>
+    <p class="lead">{{title (modeWord .Mode)}}, {{statusWord .Status}}{{if .StopRequested}} (parada pedida){{end}}, {{stageWord .Stage}}{{with .StageNote}}: {{.}}{{end}}.
+    Tentativa {{.Attempt}}{{with .RetryOf}}, repetição da <a href="{{base}}/i/{{.}}">{{.}}</a>{{end}}.
+    Pedida em {{when .RequestedAt}}{{with .RequestedBy}} por {{.}}{{end}}.{{if .CompletedAt}} Terminou {{when .CompletedAt}}.{{end}}</p>
+  </div>
+  <div class="actions">
+    {{if .Running}}<form method="post" action="{{base}}/i/{{.ID}}/stop"><button>Parar</button></form>{{end}}
+    <form method="post" action="{{base}}/request">
+      <input type="hidden" name="creative" value="{{.CreativeID}}">
+      {{with .AdID}}<input type="hidden" name="ad" value="{{.}}">{{end}}
+      <input type="hidden" name="mode" value="{{.Mode}}">
+      <input type="hidden" name="by" data-name>
+      <button>Investigar de novo</button>
+    </form>
+  </div>
+</div>
+{{if eq .Mode "quick"}}<p class="note">Rápida: tenta só os disfarces que não custam nada e lê a landing page. Não amostra o funil, então não tem divisões.</p>{{end}}
+{{with .FollowOf}}<p class="note">Dia {{deref $.Data.FollowDay}} do acompanhamento da investigação <a href="{{base}}/i/{{.}}">{{.}}</a>. <a href="{{base}}/i/{{$.Data.ID}}/days">Comparar os dias</a>.</p>{{end}}
+{{if .Running}}<p class="note">Próxima visita {{when .NextVisitAt}}{{with .ClaimedBy}}, com {{.}}{{end}}.</p>{{end}}
 
-<h2>Verdict</h2>
-{{if .Cloaked}}
-<p class="dark">Cloaked: {{printf "%.0f" .Confidence}}% of the visits on rung {{deref .BreachRung}} saw a dark page. {{len .Variants}} whole funnel(s).</p>
-{{else if .WhiteOnly}}<p class="whiteonly">Only the white page: all {{.WhiteVisits}} visit(s) past the reviewer got the page the reviewer sees.{{if eq .Mode "quick"}} Quick tried only the disguises that cost nothing.{{end}}</p>
-{{else if eq .Status "completed"}}<p>No dark page found.</p>
-{{else if eq .Status "failed"}}<p class="whiteonly">No answer: {{.StageNote}}</p>
-{{else}}<p class="note">Not yet.</p>{{end}}
-<p>Highest rung tried {{.RungReached}}. Device {{.Device}}. Site {{with .Scope}}{{.}}{{else}}not known yet{{end}}.
-{{with .WhitePageID}}White page <a href="{{base}}/p/{{.}}">{{.}}</a>.{{end}} Line traffic {{bytes .BytesUsed}}.</p>
-{{with .TargetURL}}<p>Saved link: <span class="url">{{.}}</span></p>{{end}}
-{{with .Referer}}<p>Publisher: <span class="url">{{.}}</span></p>{{end}}
+<section id="veredito" class="verdict{{if .Cloaked}} dark{{else if or .WhiteOnly (eq .Status "completed")}} clean{{end}}">
+  <h3>Veredito</h3>
+  {{if .Cloaked}}<p class="verdict-word">Com cloak</p>
+  <p>{{printf "%.0f" .Confidence}}% das visitas no degrau {{deref .BreachRung}} viram uma página escura. {{len .Variants}} {{plural (len .Variants) "funil inteiro" "funis inteiros"}}.</p>
+  {{else if .WhiteOnly}}<p class="verdict-word">Só a página branca</p>
+  <p>Todas as {{.WhiteVisits}} visitas depois do revisor viram a página que o revisor vê.{{if eq .Mode "quick"}} A rápida tentou só os disfarces que não custam nada.{{end}}</p>
+  {{else if eq .Status "completed"}}<p class="verdict-word">Sem página escura</p>
+  <p>Nenhuma página escura encontrada.</p>
+  {{else if eq .Status "failed"}}<p class="verdict-word">Sem resposta</p>
+  <p>{{.StageNote}}</p>
+  {{else}}<p class="verdict-word">Ainda não</p>
+  <p>A investigação ainda não terminou.</p>{{end}}
+  <dl class="verdict-facts">
+    <div><dt>Degrau mais alto</dt><dd>{{.RungReached}}</dd></div>
+    <div><dt>Dispositivo</dt><dd>{{.Device}}</dd></div>
+    <div><dt>Site</dt><dd>{{with .Scope}}{{site .}}{{else}}ainda não conhecido{{end}}</dd></div>
+    <div><dt>Tráfego da linha</dt><dd>{{bytes .BytesUsed}}</dd></div>
+    {{with .WhitePageID}}<div><dt>Página branca</dt><dd><a href="{{base}}/p/{{.}}?i={{$.Data.ID}}">{{.}}</a></dd></div>{{end}}
+    {{with .TargetURL}}<div class="wide"><dt>Link salvo</dt><dd>{{.}}</dd></div>{{end}}
+    {{with .Referer}}<div class="wide"><dt>Publisher</dt><dd>{{.}}</dd></div>{{end}}
+  </dl>
+</section>
 
 {{if .Steps}}
-<h2>Splits per step</h2>
-<p class="note">Each step of the dark funnel, and the share of the sample visits that reached it which met each page there. Pages with the same words are one page.</p>
-{{range grouped .Steps}}
-<h3>Step {{.Step}}: {{.Kind}}</h3>
-<table><tr><th>Page</th><th>Address</th><th>Visits</th><th>Share</th></tr>
-{{range .Pages}}<tr><td><a href="{{base}}/p/{{.PageID}}">{{with .Title}}{{.}}{{else}}(no title){{end}}</a></td><td class="url">{{.Address}}</td>
-<td>{{.Visits}} of {{.StepVisits}}</td><td><span class="bar" style="width:{{printf "%.0f" .Share}}px"></span> {{printf "%.0f" .Share}}%</td></tr>{{end}}
-</table>
-{{end}}
+<section id="divisoes" class="block">
+  <h2>Divisões por etapa</h2>
+  <p class="lead">Cada etapa do funil escuro e a parcela das visitas de amostra que chegaram nela e viram cada página. Páginas com as mesmas palavras são uma página só.</p>
+  <div class="grid2 stretch">
+  {{range grouped .Steps}}
+  <div class="card">
+    <header class="card-head"><h4 class="card-title">Etapa {{.Step}} · {{.Kind}}</h4></header>
+    <table class="list">
+    <thead><tr><th>Página</th><th>Endereço</th><th>Visitas</th><th>Parcela</th></tr></thead>
+    <tbody>{{range .Pages}}<tr>
+      <td><a class="page-link" href="{{base}}/p/{{.PageID}}?i={{$.Data.ID}}">{{with .Title}}{{.}}{{else}}(sem título){{end}}</a></td>
+      <td class="mono addr">{{.Address}}</td>
+      <td class="mono">{{.Visits}} de {{.StepVisits}}</td>
+      <td class="share"><span class="bar"><i style="{{pct .Share}}"></i></span><span class="mono">{{printf "%.0f" .Share}}%</span></td>
+    </tr>{{end}}</tbody>
+    </table>
+  </div>
+  {{end}}
+  </div>
+</section>
 {{end}}
 
+<div class="{{if .Videos}}grid2{{end}}">
 {{if .Videos}}
-<h2>Videos</h2>
-<p class="note">The video players these pages load. The VTurb ones (converteai.net) open the VSL even when its page does not open for you.</p>
-<table>{{range .Videos}}<tr><td class="url"><a href="{{.URL}}" target="_blank" rel="noreferrer noopener">{{.URL}}</a></td>
-<td>{{if .Dark}}<span class="dark">dark</span> {{end}}on <a href="{{base}}/p/{{.PageID}}">{{.Title}}</a></td></tr>{{end}}</table>
+<section id="videos" class="block">
+  <h2>Vídeos</h2>
+  <p class="lead">Os players de vídeo que essas páginas carregam. Os da VTurb (converteai.net) abrem a VSL mesmo quando a página não abre para você.</p>
+  <div class="card">
+    <table class="list">
+    <thead><tr><th>Player</th><th>Visto</th><th>Em</th></tr></thead>
+    <tbody>{{range .Videos}}<tr>
+      <td><a class="mono player" href="{{.URL}}" title="{{.URL}}" target="_blank" rel="noreferrer noopener">{{shortLink .URL}}</a></td>
+      <td>{{if .Dark}}<span class="badge dark">escura</span>{{end}}</td>
+      <td><a class="page-link" href="{{base}}/p/{{.PageID}}?i={{$.Data.ID}}">{{.Title}}</a></td>
+    </tr>{{end}}</tbody>
+    </table>
+  </div>
+</section>
 {{end}}
 
-<h2>Follow day by day</h2>
-{{with .Follow}}
-<p>Runs again every {{.EveryHours}} hours: {{.Done}} of {{.Days}} done{{if .Ended}}, ended {{when .Ended}}{{else}}, next {{when .NextAt}}{{end}}{{with .By}}, asked by {{.}}{{end}}.
-<a href="{{base}}/i/{{$.ID}}/days">Compare the days</a>.
-{{if not .Ended}}<form class="inline" method="post" action="{{base}}/follow/{{.ID}}/end"><button>End the follow</button></form>{{end}}</p>
-{{else}}{{if not .FollowOf}}
-<form method="post" action="{{base}}/i/{{.ID}}/follow">
-<label>Run this ad again every 24 hours for
-<select name="days"><option>3</option><option>4</option><option>5</option></select> days</label>
-<label>Your name <input name="by" size="10"></label>
-<button>Follow</button>
-<p class="note">Each day is a deep investigation that starts at the rung that broke through, so it costs about one sample of visits a day. The days page then shows how the splits moved.</p>
-</form>
-{{end}}{{end}}
+<section id="dia-a-dia" class="block">
+  <h2>Dia a dia</h2>
+  {{with .Follow}}
+  <p class="lead">Roda de novo a cada {{.EveryHours}} horas: {{.Done}} de {{.Days}} feitas{{if .Ended}}, encerrado em {{when .Ended}}{{else}}, próxima {{when .NextAt}}{{end}}{{with .By}}, pedida por {{.}}{{end}}.</p>
+  <div class="card follow">
+    {{if .Ended}}<span class="badge">Encerrado</span>{{else}}<span class="badge ember">Acompanhando</span>{{end}}
+    <span class="muted">{{.Done}} de {{.Days}} feitas</span>
+    <span class="grow"></span>
+    <a class="button" href="{{base}}/i/{{$.Data.ID}}/days">Comparar os dias</a>
+    {{if not .Ended}}<form method="post" action="{{base}}/follow/{{.ID}}/end"><button>Encerrar</button></form>{{end}}
+  </div>
+  {{else}}{{if not .FollowOf}}
+  <p class="lead">Roda este anúncio de novo a cada 24 horas por alguns dias. Cada dia é uma investigação profunda que começa no degrau que passou, então custa mais ou menos uma amostra de visitas por dia; a página dos dias mostra como as divisões mudaram.</p>
+  <form class="card follow" method="post" action="{{base}}/i/{{.ID}}/follow">
+    <label class="inline-field">Por <select name="days"><option>3</option><option>4</option><option>5</option></select> dias</label>
+    <input name="by" data-name placeholder="seu nome" aria-label="Seu nome" class="name">
+    <span class="grow"></span>
+    <button class="primary">Acompanhar</button>
+  </form>
+  {{end}}{{end}}
+</section>
+</div>
 
 {{if .Variants}}
-<h2>Whole funnels</h2>
-<p class="note">Each distinct chain of pages from landing to the last step, and its share of the sample visits.</p>
-<table><tr><th>Label</th><th>Visits</th><th>Share</th><th>Pages</th></tr>
-{{range .Variants}}<tr><td>{{.Label}}</td><td>{{.Visits}}</td><td>{{printf "%.0f" .Share}}%</td>
-<td>{{range $i, $p := .PageIDs}}{{if $i}} → {{end}}<a href="{{base}}/p/{{$p}}">{{$p}}</a>{{end}}</td></tr>{{end}}
-</table>
+<section id="funis" class="block">
+  <h2>Funis inteiros</h2>
+  <p class="lead">Cada sequência diferente de páginas, da landing page à última etapa, e sua parcela das visitas de amostra.</p>
+  <div class="card">
+    <table class="list">
+    <thead><tr><th>Rótulo</th><th class="num">Visitas</th><th class="num">Parcela</th><th>Páginas</th></tr></thead>
+    <tbody>{{range .Variants}}<tr><td>{{.Label}}</td><td class="num mono">{{.Visits}}</td><td class="num mono">{{printf "%.0f" .Share}}%</td>
+      <td class="mono">{{range $i, $p := .PageIDs}}{{if $i}} → {{end}}<a href="{{base}}/p/{{$p}}?i={{$.Data.ID}}">{{$p}}</a>{{end}}</td></tr>{{end}}</tbody>
+    </table>
+  </div>
+</section>
 {{end}}
 
 {{if .Evidence}}
-<h2>Evidence</h2>
-<div class="scroll"><table><tr><th>Seen</th><th>Landing page</th><th>Kind</th><th>Checkout</th><th>Seller</th><th>Account</th><th>Device</th></tr>
-{{range .Evidence}}<tr>
-<td class="{{if eq .Outcome "dark"}}dark{{end}}">{{.Outcome}}</td>
-<td class="url"><a href="{{base}}/p/{{.PageID}}">{{.Title}}</a><br>{{.FinalURL}}</td>
-<td>{{.Kind}}</td><td>{{.Checkout}} {{.Merchant}}</td><td>{{.Seller}} {{.SellerAcct}}</td>
-<td>{{deref .Account}} {{.Campaign}}</td><td>{{.Device}}</td>
-</tr>{{end}}
-</table></div>
+<section id="evidencias" class="block">
+  <h2>Evidências</h2>
+  <div class="card scroll">
+    <table class="list">
+    <thead><tr><th>Visto</th><th>Landing page</th><th>Tipo</th><th>Checkout</th><th>Vendedor</th><th>Conta</th><th>Dispositivo</th></tr></thead>
+    <tbody>{{range .Evidence}}<tr>
+      <td><span class="badge{{if eq .Outcome "dark"}} dark{{end}}">{{outcomeWord .Outcome}}</span></td>
+      <td class="addr"><a class="page-link" href="{{base}}/p/{{.PageID}}?i={{$.Data.ID}}">{{.Title}}</a><div class="mono faint">{{.FinalURL}}</div></td>
+      <td>{{.Kind}}</td><td>{{.Checkout}} {{.Merchant}}</td><td>{{.Seller}} {{.SellerAcct}}</td>
+      <td class="mono">{{deref .Account}} {{.Campaign}}</td><td>{{.Device}}</td>
+    </tr>{{end}}</tbody>
+    </table>
+  </div>
+</section>
 {{end}}
 
-<h2>Watches</h2>
-{{if .Watches}}
-<table><tr><th>Events</th><th>Covers</th><th>Sent</th><th></th></tr>
-{{range .Watches}}<tr><td>{{range $i, $k := .Kinds}}{{if $i}}, {{end}}{{$k}}{{end}}</td>
-<td>{{if .Creative}}the creative{{else}}this investigation{{end}}{{with .By}}, by {{.}}{{end}}</td>
-<td>{{.Sent}} sent{{if .Failed}}, {{.Failed}} failed{{end}}{{if .Skipped}}, {{.Skipped}} skipped{{end}}</td>
-<td><form class="inline" method="post" action="{{base}}/watch/{{.ID}}/end"><input type="hidden" name="back" value="/i/{{$.ID}}"><button>End</button></form></td></tr>{{end}}
-</table>
+<section id="alertas" class="block">
+  <h2>Alertas</h2>
+  <p class="lead">Avisos no grupo do Telegram "AdHunters operation" quando algo acontece nesta investigação, com o nome de quem pediu.</p>
+  <div class="card">
+    {{if .Watches}}
+    <table class="list watches">
+    <thead><tr><th>Por</th><th>Eventos</th><th>Cobre</th><th class="num">Enviados</th><th></th></tr></thead>
+    <tbody>{{range .Watches}}<tr>
+      <td>{{with .By}}{{.}}{{else}}<span class="faint">–</span>{{end}}</td>
+      <td>{{range $i, $k := .Kinds}}{{if $i}}, {{end}}{{eventWord $k}}{{end}}</td>
+      <td>{{if .Creative}}toda investigação do criativo{{else}}esta investigação{{end}}</td>
+      <td class="num mono">{{.Sent}}{{if .Failed}} <span class="faint">· {{.Failed}} {{plural .Failed "falhou" "falharam"}}</span>{{end}}{{if .Skipped}} <span class="faint">· {{.Skipped}} {{plural .Skipped "pulado" "pulados"}}</span>{{end}}</td>
+      <td class="end"><form method="post" action="{{base}}/watch/{{.ID}}/end"><input type="hidden" name="back" value="/i/{{$.Data.ID}}"><button>Encerrar</button></form></td>
+    </tr>{{end}}</tbody>
+    </table>
+    {{end}}
+    <form class="watch-form" method="post" action="{{base}}/i/{{.ID}}/watch">
+      <b>Novo alerta</b>
+      <label class="check"><input type="checkbox" name="kind" value="started" checked> início</label>
+      <label class="check"><input type="checkbox" name="kind" value="dark_found" checked> página escura encontrada</label>
+      <label class="check"><input type="checkbox" name="kind" value="finished" checked> fim</label>
+      <label class="check"><input type="radio" name="scope" value="investigation" checked> esta investigação</label>
+      <label class="check"><input type="radio" name="scope" value="creative"> toda investigação do criativo</label>
+      <span class="grow"></span>
+      <input name="by" data-name placeholder="seu nome" aria-label="Seu nome" class="name">
+      <button class="primary">Criar alerta</button>
+    </form>
+  </div>
+</section>
+
+<section id="visitas" class="block">
+  <h2>Visitas</h2>
+  <div class="card scroll">
+  <table class="list">
+  <thead><tr><th>Quando</th><th>Para</th><th class="num">Degrau</th><th>Dispositivo</th><th>Motor</th><th>Link</th><th>Linha</th><th>Saída</th><th>Viu</th><th class="num">Página</th><th class="num">Etapas</th><th class="num">Tráfego</th><th class="num">Levou</th></tr></thead>
+  <tbody>
+  {{range .Visits}}<tr class="{{if eq .Outcome "error"}}error{{end}}">
+    <td class="mono">{{when .At}}</td><td>{{purposeWord .Purpose}}</td><td class="num mono">{{.Rung}}</td>
+    <td>{{with .Device}}{{.}}{{else}}–{{end}}</td><td>{{.Engine}}</td><td>{{linkWord .Link}}</td>
+    <td>{{with .Line}}{{.}}{{else}}–{{end}}{{with .Place}} <span class="faint">{{.}}</span>{{end}}</td>
+    <td class="mono">{{with .ExitIP}}{{.}}{{else}}–{{end}}</td>
+    <td><span class="badge{{if eq .Outcome "dark"}} dark{{end}}">{{outcomeWord .Outcome}}</span>{{with .Error}} <span class="faint">{{.}}</span>{{end}}</td>
+    <td class="num">{{with .PageID}}<a class="id" href="{{base}}/p/{{.}}?i={{$.Data.ID}}">{{.}}</a>{{end}}</td>
+    <td class="num mono">{{.Steps}}</td><td class="num mono">{{bytes .Bytes}}</td><td class="num mono">{{.Ms}} ms</td>
+  </tr>{{else}}<tr><td colspan="13" class="empty-row">Nenhuma visita ainda.</td></tr>{{end}}
+  </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="registro" class="block">
+  <h2>Registro</h2>
+  <div class="card">
+  <table class="list log">
+  <tbody>{{range .Log}}<tr><td class="mono">{{when .At}}</td><td>{{.Line}}</td></tr>{{else}}<tr><td class="empty-row">Nada registrado ainda.</td></tr>{{end}}</tbody>
+  </table>
+  </div>
+</section>
+</main>
 {{end}}
-<form method="post" action="{{base}}/i/{{.ID}}/watch">
-<fieldset><legend>Watch</legend>
-<p class="note">Each event you pick is posted to the Telegram group "AdHunters operation", with your name.</p>
-<label><input type="checkbox" name="kind" value="started" checked> started</label>
-<label><input type="checkbox" name="kind" value="dark_found" checked> dark page found</label>
-<label><input type="checkbox" name="kind" value="finished" checked> finished</label>
-<label><input type="radio" name="scope" value="investigation" checked> this investigation</label>
-<label><input type="radio" name="scope" value="creative"> every investigation of the creative</label>
-<label>Your name <input name="by" size="10"></label>
-<button>Watch</button>
-</fieldset>
-</form>
-
-<h2>Visits</h2>
-<div class="scroll"><table>
-<tr><th>When</th><th>For</th><th>Rung</th><th>Device</th><th>Engine</th><th>Link</th><th>Line</th><th>Exit</th><th>Seen</th><th>Page</th><th>Steps</th><th>Traffic</th><th>Took</th></tr>
-{{range .Visits}}<tr class="{{if eq .Outcome "error"}}error{{end}}">
-<td>{{when .At}}</td><td>{{.Purpose}}</td><td>{{.Rung}}</td><td>{{.Device}}</td><td>{{.Engine}}</td><td>{{.Link}}</td>
-<td>{{.Line}}{{with .Place}} {{.}}{{end}}</td><td>{{deref .ExitIP}}</td>
-<td class="{{if eq .Outcome "dark"}}dark{{end}}">{{.Outcome}}{{with .Error}} <span class="note">{{.}}</span>{{end}}</td>
-<td>{{with .PageID}}<a href="{{base}}/p/{{.}}">{{.}}</a>{{end}}</td><td>{{.Steps}}</td><td>{{bytes .Bytes}}</td><td>{{.Ms}} ms</td>
-</tr>{{else}}<tr><td colspan="13">No visits yet.</td></tr>{{end}}
-</table></div>
-
-<h2>Log</h2>
-<table>{{range .Log}}<tr><td>{{when .At}}</td><td>{{.Line}}</td></tr>{{end}}</table>
 {{template "foot"}}
