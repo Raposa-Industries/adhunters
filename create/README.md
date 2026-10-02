@@ -21,17 +21,21 @@ conversa**, then each one's name, vertical and day: hoje, ontem or dd/mm),
 the chat in the middle, and the library on the right.
 
 1. **Início** (`/create/`): "O que vamos criar?", a few starting ideas and
-   the composer. Pick the vertical (our fixed list, `shared/verticals`; set
-   for you by the first library reference) and the platform (Taboola, the
-   default, or NewsBreak; remembered) beside Enviar. Sending makes a new
+   the composer. There is no vertical or platform to pick: a new
+   conversation takes the vertical of its first reference, else of the
+   folder open in the right column, else the last one used, and the platform
+   of that folder (else the last one used, else Taboola). With none of
+   these, Enviar asks to open a library folder. Sending makes a new
    conversation named from the first words of the prompt (a name used
    before in that vertical gets " (2)"), then sends the turn. Biblioteca's
    **Referenciar no Criar** lands here with its pictures and headlines
    already referenced (`/create/?ref=c12,h5`).
 2. **Reference.** Click a picture or headline in the right column (search,
-   a folder, Todas / Originais / Geradas) to reference it; click again to
-   take it out. In the chat, **+ Referenciar** on any picture or headline
-   does the same. References show as chips over the prompt, each with an x;
+   a folder, Todas / Originais / Geradas, which filters both) to reference
+   it; click again to take it out. The column shows three rows of pictures
+   and three headlines, the rest a scroll away (up to 500 of each). In the
+   chat, **+ Referenciar** on any picture or headline adds it (the chip's x
+   takes it out). References show as chips over the prompt, each with an x;
    the order is the order referenced (a prompt can say "the first"). **Do
    computador** adds a picture from the computer, and Ctrl+V of a picture (a
    screenshot) anywhere on the page does too. Under the hood a reference is
@@ -40,8 +44,8 @@ the chat in the middle, and the library on the right.
 3. **Send.** Write what you want about the references, set how many
    pictures (up to 8) and headlines (up to 20), the picture size (16:9
    horizontal 1600x896, 9:16 vertical 896x1600, or NewsBreak 1504x786;
-   remembered per conversation) and, when other headline models are on,
-   which one writes the headlines; press Enviar (Ctrl+Enter). Referenced
+   remembered per conversation); press Enviar (Ctrl+Enter). OpenAI makes
+   the pictures and writes the headlines. Referenced
    pictures go to the picture model and are changed as the prompt says, or
    varied when the prompt is empty; referenced headlines are varied
    minimally (same structure, a few words changed), and referenced pictures
@@ -49,28 +53,25 @@ the chat in the middle, and the library on the right.
    headlines and, for several pictures from words alone, one brief per
    picture so they differ; then each picture is its own call, three at a
    time. A picture that fails fails alone, and its tile has **Tentar de
-   novo**. **Parar** interrupts a turn: pictures not started are not made; a
-   picture already being made was paid for, so it is kept and still shows
-   up if it arrives. A size the picture model cannot make (NewsBreak's) is
-   made at its closest shape and cut to the exact size on the server;
-   downloads are the file as made. With pictures referenced, **quick edits**
-   above the prompt add a short English instruction each (camera 15° to the
-   right, mirror, the table's colour, other people, the clothes' colour,
-   rearrange the table, feet and arms, distance between people).
+   novo**. A size the picture model cannot make (NewsBreak's) is made at
+   its closest shape and cut to the exact size on the server; downloads are
+   the file as made. Without an OpenAI key a line under the composer says
+   making is off.
 4. **The answer** starts with "Create · N imagens e M headlines": pictures
    two to a row, each with + Referenciar, Salvar and a button to see it big
-   (and download it); headlines one to a row with their length, ✎ to edit
-   one not yet saved, + Referenciar and Salvar. Every new item remembers
-   what it came from. A saved picture shows "✓ Salva em <pasta>", a saved
-   headline "✓ Salva".
+   (and download it); headlines one to a row with their length,
+   + Referenciar and Salvar. Every new item remembers what it came from. A
+   saved picture shows "✓ Salva em <pasta>", a saved headline only its
+   length and "✓ Salva".
 5. **Save into a folder.** Salvar opens **Salvar na biblioteca**: a folder
-   tree to search (vertical › platform › folder), the conversation's own
-   folder first, **+ Nova pasta em <platform>**, tags (+ tag, suggested from
-   the vertical's), the AI label for a made picture (on by default, with a
-   warning when switched off), and **Salvar em <pasta>**. Nothing reaches
-   the library before that. A folder of another vertical cannot be chosen.
-   Saved creatives are named by the chosen folder's vertical and platform
-   (`MMT…`, `MMN…`).
+   tree to search (vertical › platform › folder, four rows at a time), the
+   conversation's vertical first, **+ Nova pasta em <platform>**, tags as
+   pills (+ tag, then the vertical's three most used; click one to put it
+   on or take it off), and **Salvar em <pasta>**. Made pictures are saved
+   with the AI label, uploaded ones without. Nothing reaches
+   the library before that. Other verticals' folders follow and can be
+   chosen too; saved creatives are named by the chosen folder's vertical
+   and platform (`MMT…`, `MMN…`).
 6. **Warnings.** Every headline shows Taboola's warnings (hidden characters,
    length, capitals, cure claims, disease names, amounts, the team's blocked
    words with a swap button); they never block.
@@ -100,7 +101,8 @@ files stay where they are), **Apagar** (hides them from the library, Criar
 and Launch; nothing is deleted, and Desfazer brings them back). Ctrl+K
 searches the library (names, headlines and tags).
 
-**Regras** lists the rules and the team's blocked words.
+**Regras** lists the rules and the team's blocked words, each with its
+swaps ("neuropathy→ tingling, …").
 
 ### How it works
 
@@ -134,7 +136,9 @@ Picked headlines weigh the most: each new one is a minimal variation of one
 of them. (It was a random 40 of the team's examples.)
 
 **Other headline models** (decision 0024). Grok, DeepSeek and Kimi, each
-off until its key is set (Settings). They write only headlines, through the
+off until its key is set (Settings). Create's pages no longer offer them
+(the design has no place for the choice); a send through the API can still
+name one (`model`). They write only headlines, through the
 same OpenAI-compatible chat-completions request, rules, blocked words and
 memory, always in English; they are not shown pictures, and they get the
 answer's shape in words instead of a JSON schema. Their replies are kept

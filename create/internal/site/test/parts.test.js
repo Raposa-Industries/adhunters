@@ -124,3 +124,12 @@ test('sameVertical and launchLabel', () => {
   assert.equal(P.launchLabel(1), 'no Launch: 1 anúncio');
   assert.equal(P.launchLabel(3), 'no Launch: 3 anúncios');
 });
+
+test('shortText cuts a headline at a word, with ...', () => {
+  assert.equal(P.shortText('This Simple Kitchen Habit Sharpens Focus'), 'This Simple Kitchen Habit...');
+  assert.equal(P.shortText('Short one'), 'Short one');
+  assert.equal(P.shortText('  Spaces around  '), 'Spaces around');
+  assert.equal(P.shortText('Averyveryverylongwordwithnospacesatall', 10), 'Averyveryv...');
+  assert.equal(P.shortText('Ends with a comma, then more words', 18), 'Ends with a comma...');
+  assert.equal(P.shortText(null), '');
+});
