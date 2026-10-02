@@ -1,0 +1,29 @@
+// Data box only: the Cloudflare tunnel (cloudflared), which every app is
+// reached through: its connections to Cloudflare, the requests it passes to
+// create-web and the answers by status code, and the requests it could not
+// pass at all. cloudflared serves these on 127.0.0.1:20241, the first port
+// it tries.
+
+prometheus.scrape "tunnel" {
+  job_name        = "cloudflared"
+  targets         = [{"__address__" = "127.0.0.1:20241", "service" = "cloudflared"}]
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.tunnel.receiver]
+}
+
+// It exports Go, QUIC and per-connection internals too; only these go out.
+prometheus.relabel "tunnel" {
+  forward_to = [prometheus.remote_write.cloud.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    action        = "keep"
+    regex         = string.join([
+      "up", "scrape_.*", "build_info",
+      "cloudflared_tunnel_.*",
+      "cloudflared_tcp_active_sessions",
+      "cloudflared_proxy_connect_streams_errors",
+      "process_(resident_memory_bytes|cpu_seconds_total|start_time_seconds)",
+    ], "|")
+  }
+}

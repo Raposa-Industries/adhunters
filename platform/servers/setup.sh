@@ -949,6 +949,8 @@ alloy_agent() {
     put "$dir/services.alloy" "$(services_alloy)" && changed=1
     if [ "$role" = data ]; then
         put "$dir/postgres.alloy" "$(cat "$here/../observe/alloy/postgres.alloy")" && changed=1
+        put "$dir/postgres-queries.yaml" "$(cat "$here/../observe/alloy/postgres-queries.yaml")" && changed=1
+        put "$dir/tunnel.alloy" "$(cat "$here/../observe/alloy/tunnel.alloy")" && changed=1
     fi
     # The package's own settings file: read the whole folder, keep the UI on
     # localhost, no usage reports.

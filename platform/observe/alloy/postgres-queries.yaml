@@ -1,0 +1,68 @@
+# Postgres metrics of our own, read by prometheus.exporter.postgres in
+# postgres.alloy (data box). platform/servers/setup.sh installs this file
+# next to it, in /etc/alloy/adhunters/. Statistics for every table were
+# 5,500 series, over half of what Grafana Cloud's free plan holds; these
+# keep what is worth watching in about 100.
+
+# Each schema (one per service, and its _api views): disk used by its tables
+# with their indexes and TOAST, partitions included, and its rows.
+pg_schema:
+  query: |
+    SELECT n.nspname AS schema,
+           sum(pg_total_relation_size(c.oid))::float8 AS size_bytes,
+           coalesce(sum(s.n_live_tup), 0)::float8 AS live_rows,
+           coalesce(sum(s.n_dead_tup), 0)::float8 AS dead_rows
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
+    WHERE c.relkind IN ('r', 'm')
+      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+      AND n.nspname !~ '^pg_toast'
+    GROUP BY n.nspname
+  metrics:
+    - schema:
+        usage: LABEL
+        description: Schema
+    - size_bytes:
+        usage: GAUGE
+        description: Disk used by the schema's tables, their indexes and TOAST
+    - live_rows:
+        usage: GAUGE
+        description: Rows, as Postgres estimates them
+    - dead_rows:
+        usage: GAUGE
+        description: Deleted or updated rows waiting for vacuum, as Postgres estimates them
+
+# The 20 biggest tables, each partitioned table with its partitions.
+pg_table:
+  query: |
+    SELECT n.nspname AS schema, r.relname AS "table",
+           sum(pg_total_relation_size(c.oid))::float8 AS size_bytes,
+           coalesce(sum(s.n_live_tup), 0)::float8 AS live_rows,
+           coalesce(sum(s.n_dead_tup), 0)::float8 AS dead_rows
+    FROM pg_class c
+    JOIN pg_class r ON r.oid = coalesce(pg_partition_root(c.oid), c.oid)
+    JOIN pg_namespace n ON n.oid = r.relnamespace
+    LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
+    WHERE c.relkind IN ('r', 'm')
+      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+      AND n.nspname !~ '^pg_toast'
+    GROUP BY n.nspname, r.relname
+    ORDER BY size_bytes DESC
+    LIMIT 20
+  metrics:
+    - schema:
+        usage: LABEL
+        description: Schema
+    - table:
+        usage: LABEL
+        description: Table; for a partitioned table, the table its partitions belong to
+    - size_bytes:
+        usage: GAUGE
+        description: Disk used by the table, its indexes and TOAST, partitions included
+    - live_rows:
+        usage: GAUGE
+        description: Rows, as Postgres estimates them
+    - dead_rows:
+        usage: GAUGE
+        description: Deleted or updated rows waiting for vacuum, as Postgres estimates them

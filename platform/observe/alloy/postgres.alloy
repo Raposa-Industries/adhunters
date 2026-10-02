@@ -1,9 +1,30 @@
-// Data box only: Postgres metrics (connections, locks, cache hits, dead rows,
-// database size, replication and WAL archiving) through the read-only
-// "observe" login (pg_monitor), created by platform/servers/setup.sh.
+// Data box only: Postgres metrics through the read-only "observe" login
+// (pg_monitor), created by platform/servers/setup.sh: connections by state,
+// locks, transactions, cache hits, deadlocks and temporary files per
+// database, checkpoints, WAL, replication and archiving, the 20 queries that
+// took the most time (pg_stat_statements), and how big each schema and the
+// 20 biggest tables are (postgres-queries.yaml).
+//
+// Not the exporter's statistics for every table nor its copy of every
+// setting: with 221 tables they were most of its 6,936 series on 2 Oct 2026,
+// over half of what Grafana Cloud's free plan holds, and nothing read them.
 
 prometheus.exporter.postgres "db" {
-  data_source_names = [sys.env("POSTGRES_MONITOR_URL")]
+  data_source_names          = [sys.env("POSTGRES_MONITOR_URL")]
+  enabled_collectors         = ["database", "locks", "replication", "replication_slot", "stat_bgwriter", "stat_database", "stat_statements", "wal"]
+  disable_settings_metrics   = true
+  custom_queries_config_path = "/etc/alloy/adhunters/postgres-queries.yaml"
+
+  // pg_stat_statements_query_id carries each query's first 120 characters,
+  // so a panel can say which query it is. Queries keep no values ($1, $2...),
+  // but other statements keep their text whole, and setup.sh and
+  // share-secrets.sh set login passwords as postgres: its statements stay out.
+  stat_statements {
+    include_query = true
+    query_length  = 120
+    limit         = 20
+    exclude_users = ["postgres"]
+  }
 }
 
 prometheus.scrape "postgres" {

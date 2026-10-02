@@ -8,7 +8,7 @@ itself works (decision 0009).
 
 | Piece | Where | What it does |
 |---|---|---|
-| Grafana Alloy | every box, `alloy/` here, installed by `platform/servers/setup.sh` | Scrapes every service's `/metrics`, the host and (data box) Postgres every 60 s; ships the journal of our units. Buffers on disk while Grafana Cloud is unreachable. |
+| Grafana Alloy | every box, `alloy/` here, installed by `platform/servers/setup.sh` | Reads every service's `/metrics`, the host and, on the data box, Postgres and the Cloudflare tunnel every 60 s; ships the journal of our units. Buffers on disk while Grafana Cloud is unreachable. Sends only what is worth watching (see Series). |
 | Grafana Cloud | hosted (free tier) | Stores metrics and logs, runs the alert rules (`rules/`) and the Alertmanager (`alertmanager/`). |
 | Sentry | hosted (free tier), `kit/errs` | Every log line at error level and every panic becomes a Sentry event, grouped by service, message and the error's shape (its text with numbers, quoted text, URLs and ids masked), tied to the build. A process sends at most one event an hour per issue, 30 an hour in all, so a stuck error cannot use up the free plan's events; the real count is `adhunters_log_errors_total`. |
 | Telegram | the "AdHunters alerts" group | Pages (with sound, every 5 minutes until cleared), chat alerts (silent, at any hour), the digest and new Sentry issues: everything about the platform itself. Each alert links its runbook in `runbooks/`. |
@@ -235,17 +235,46 @@ Chat alerts are delivered at any hour, silently. Until 2 Oct 2026 they were
 held from 22:00 to 08:00, and one that cleared before morning was never sent
 (decision 0009).
 
+## Series
+
+Grafana Cloud's free plan holds 10,000 series (a series is one metric with
+one set of label values) and drops what goes over; it bills nothing. On
+2 Oct 2026 we sent 12,859: Postgres 6,936 (statistics for each of its 221
+tables and a copy of every setting, which nothing read), the hosts 2,126,
+Alloy's own 1,869 and our services 1,820. Since then each exporter sends
+what a rule, a dashboard or a person reads, about 4,500 in all:
+
+- Postgres (`alloy/postgres.alloy`): connections, locks, transactions,
+  cache hits, deadlocks and temporary files per database, checkpoints,
+  WAL, replication and archiving; the 20 queries that took the most time
+  (`pg_stat_statements_*`, with their text in `pg_stat_statements_query_id`);
+  and the size and rows of each schema and of the 20 biggest tables, a
+  partitioned table with its partitions (`pg_schema_*`, `pg_table_*`, from
+  `alloy/postgres-queries.yaml`). No statistics for every table.
+- The hosts (`alloy/common.alloy`): only the collectors listed there, which
+  add network errors and retransmits, sockets, the connection-tracking
+  table, file handles, processes and threads, the clock, and each unit's
+  restarts and threads to what the alerts read.
+- Alloy and cloudflared: a short list each of the metrics worth keeping.
+
+Before adding a metric, count its series: each label multiplies them, so a
+label never holds an id, a URL or free text, only a short fixed set of
+values. Where we stand, in Grafana's Explore: `count({__name__=~".+"})`, and
+`count by (job) ({__name__=~".+"})` for who sends them. Each box's Alloy
+reports what it sends as `prometheus_remote_write_wal_storage_active_series`.
+
 ## Daily check
 
 Claude reads what fired and failed once a day, at 07:54 São Paulo, in the
-project's "Alerts that fire" thread: Sentry through its connector, and Grafana
-Cloud through `daily-check.sh`, which prints the alerts that fired, the
-error lines and failed task runs by service, restarts, failed units and the
-collection numbers of the last 24 hours. Claude reports what needs the owner
-there, fixes what is its own to fix by PR, and passes the rest to the thread
-that owns it.
+project's "Alerts that fire" thread: Sentry through its connector. Claude
+reports what needs the owner there, fixes what is its own to fix by PR, and
+passes the rest to the thread that owns it. Grafana is the owner's to watch
+(2 Oct 2026); alerts reach both through Telegram.
 
-A cloud session cannot reach the boxes, and reaches Grafana Cloud only with:
+`daily-check.sh` prints, from Grafana Cloud, the alerts that fired, the error
+lines and failed task runs by service, restarts, failed units and the
+collection numbers of the last 24 hours. Claude runs it in the daily check
+only when the session can reach Grafana Cloud, which takes:
 
 - the stack's Prometheus host (`prometheus-prod-…grafana.net`) in the
   environment's allowed domains (Project settings, Network access);
