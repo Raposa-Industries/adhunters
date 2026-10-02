@@ -12,9 +12,10 @@
 //   - change: changes the app's own data or starts its work (a turn in
 //     Create, an investigation). Desk runs it only as a step of a plan a
 //     person OK'd.
-//   - ask: asks the app for something a person then confirms on the app's
-//     own screen (Launch's Pedidos). Desk runs it only as a step of an
-//     OK'd plan, and the app does nothing until someone confirms there.
+//   - ask: asks the app to do something on a network for the person
+//     (Launch's requests). Desk runs it only as a step of a plan that
+//     person OK'd in its conversation, and the app carries it out as
+//     them on arrival, within its own limits (owner, 2 Oct 2026).
 //
 // What only a person may do (a confirm, turning spending on) is never an
 // action: the list has no kind for it, so Desk cannot be given it by
@@ -407,7 +408,7 @@ func (a Action) checkCall() error {
 		return fmt.Errorf("per_day caps how often Desk may call it")
 	}
 	if a.Kind == Ask && (a.Follow == nil || a.Link == "") {
-		return fmt.Errorf("an ask has a follow view and a link to where a person confirms")
+		return fmt.Errorf("an ask has a follow view and a link to the app's page for it")
 	}
 	if a.Follow != nil {
 		f := a.Follow

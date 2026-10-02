@@ -14,7 +14,7 @@ parameters with a matching type, and each column is one it returns.
 |---|---|---|
 | `read` | Looks; changes nothing. | Any time. |
 | `change` | Changes the app's own data or starts its work (a turn in Create, an investigation). | Only as a step of a plan a person OK'd. |
-| `ask` | Asks the app for something a person then confirms on the app's own screen (Launch's Pedidos). The app does nothing until they do. | Only as a step of a plan a person OK'd. |
+| `ask` | Asks the app to do something on a network for the person (Launch's requests). The person's yes is given in Desk's conversation, and the app carries it out as them on arrival, within its own limits (owner, 2 Oct 2026). | Only as a step of a plan a person OK'd. |
 
 There is no kind for what only a person may do: confirming, turning spending
 on. Those are never listed, so Desk can never be given them. A change of a
@@ -72,7 +72,7 @@ and are not read; a read may still show what runs.
   items of a list) and `says`.
 - `follow` is the view where what the call started can be watched until
   one of its `done` or `failed` states. An `ask` must have one, and a
-  `link` to the page where a person confirms.
+  `link` to the app's page for it.
 - `per_day` caps Desk's calls a day; `undo` names the action that undoes
   this one; `costs` says in words what a call costs.
 - A read names a `view` (or a `call` of a function returning a table, with
@@ -87,7 +87,7 @@ and are not read; a read may still show what runs.
   `headline_has` for `has`, and `limit` lowers the row limit. No two
   filters or args of one read may end up with the same name.
 
-## An ask, for an app that confirms on its own screen
+## An ask, for an app that takes requests
 
 An app that takes requests through one function (as Launch does with
 `launch_api.new_request_v1`) lists one `ask` per kind of request, with the
@@ -98,7 +98,7 @@ kind fixed (from `launch.json`, its schema cut short here):
   "name": "launch.pause_campaigns",
   "version": 1,
   "kind": "ask",
-  "says": "Ask Launch to pause campaigns of one account. The request waits in Launch's Pedidos until a person confirms it there; …",
+  "says": "Ask Launch to pause campaigns of one account. Send it only after the person said yes in this conversation: Launch then pauses them on the network at once, as that person.",
   "call": "launch_api.new_request_v1",
   "args": [
     {"name": "kind", "const": "pause"},
