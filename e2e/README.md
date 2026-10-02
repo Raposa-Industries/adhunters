@@ -24,18 +24,18 @@ real binaries, built from this repo the way the deploy builds them:
    fills them. Launch's `/launch/api/numbers` must then show the spend, sales
    and revenue per campaign and per ad.
 
-Every request sent to the fake Taboola is checked against the owner's rules
-(2026-10-01):
+Launch runs as the box does since the owner's word of 2026-10-02
+(`TABOOLA_MAX_DAILY_CAP=500`, `TABOOLA_MAX_SPEND_LIMIT=0`,
+`TABOOLA_CREATE_ACTIVE=1`). Every request sent to the fake Taboola is checked:
 
-- nothing is ever switched on (`is_active` is never anything but false);
-- every campaign has a daily cap and a total (ENTIRE) spending limit, each
-  above 0 and at most $20, with the ceilings left to the code's defaults;
-- every group and ad is created paused;
-- the campaign carries the page's tracking code.
+- only a new group, campaign or ad is switched on (`is_active` true); no
+  other request sends anything but false;
+- every campaign has a daily cap above 0 and at most $500, the team's total
+  limit (none), and the page's tracking code.
 
-Asking Launch for more than $20 (as a daily cap, as a total limit, or as a
-cap change on a campaign that already exists) must be refused before
-anything reaches Taboola.
+Asking Launch for more than the ceilings (a daily cap over $500, a total
+over 30 daily caps, or a cap change over $500 on a campaign that already
+exists) must be refused before anything reaches Taboola.
 
 Each service must also stop cleanly on SIGTERM within 30 s.
 

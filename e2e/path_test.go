@@ -74,8 +74,12 @@ func TestFirstCampaignPath(t *testing.T) {
 		"OPENAI_BASE_URL="+openai.URL(),
 	))
 	launchAddr := freeAddr(t)
-	// The ceilings are left to the code's defaults: they must be $20.
+	// The box's settings since the owner's word of 2026-10-02: $500 a day,
+	// no spending limit, new campaigns go up running.
 	start(t, bin("launch-web"), freeAddr(t), append(env,
+		fmt.Sprintf("TABOOLA_MAX_DAILY_CAP=%v", ceiling),
+		"TABOOLA_MAX_SPEND_LIMIT=0",
+		"TABOOLA_CREATE_ACTIVE=1",
 		"LAUNCH_WEB_ADDR="+launchAddr,
 		"LAUNCH_DATA_DIR="+filepath.Join(data, "launch"),
 		"LAUNCH_LIBRARY_URL=http://"+libAddr,
@@ -341,9 +345,10 @@ func TestFirstCampaignPath(t *testing.T) {
 		t.Errorf("devices: %v, want one desktop (DESK) and one mobile (PHON and TBLT) campaign", platforms)
 	}
 
-	// Asking for more than $20 is refused before anything reaches Taboola.
+	// Asking for more than the ceilings is refused before anything reaches
+	// Taboola: a daily cap over $500, or a typed total over 30 daily caps.
 	before := len(taboola.requests())
-	for _, over := range []map[string]any{{"daily_cap": 25.0}, {"spending_limit": 100.0}, {"spending_limit": 0.0, "daily_cap": 20.5}} {
+	for _, over := range []map[string]any{{"daily_cap": ceiling + 1}, {"spending_limit": 30*ceiling + 1}, {"spending_limit": 0.0, "daily_cap": ceiling + 0.5}} {
 		s := map[string]any{}
 		for k, v := range settings {
 			s[k] = v
@@ -365,9 +370,9 @@ func TestFirstCampaignPath(t *testing.T) {
 		} `json:"done"`
 	}
 	if code := call(t, "POST", launch+"/launch/api/taboola/"+accounts[0]+"/change",
-		map[string]any{"campaigns": []string{result.Desktop.Campaign.ID}, "change": map[string]any{"daily_cap": 50}}, &changed); code == http.StatusOK &&
+		map[string]any{"campaigns": []string{result.Desktop.Campaign.ID}, "change": map[string]any{"daily_cap": ceiling + 100}}, &changed); code == http.StatusOK &&
 		(len(changed.Done) == 0 || changed.Done[0].Error == "") {
-		t.Errorf("a $50 daily cap was accepted: %+v", changed)
+		t.Errorf("a daily cap over $%v was accepted: %+v", ceiling, changed)
 	}
 	for _, r := range taboola.requests()[before:] {
 		if r.Method != "GET" {
