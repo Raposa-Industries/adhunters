@@ -49,10 +49,20 @@ type HeadlineModel struct {
 }
 
 // Library is what the site needs of the library beyond its reads: a
-// creative's bytes, to add it to a session.
+// creative's bytes, to add it to a session, and the changes the library
+// pages make (a new folder, originals uploaded, Mover, Apagar, tags).
 type Library interface {
 	File(ctx context.Context, id string) ([]byte, error)
 	RenameSet(ctx context.Context, id int64, name string) error
+	AddSet(ctx context.Context, s library.NewSet) (library.Set, error)
+	AddCreative(ctx context.Context, meta library.CreativeMeta, filename string, data []byte) (library.Creative, error)
+	Change(ctx context.Context, kind string, id int64, c library.Change) (json.RawMessage, error)
+}
+
+// LaunchUse counts Launch's ads by creative (launchuse.Reader); ok false
+// means the counts are unknown.
+type LaunchUse interface {
+	Ads(ctx context.Context, prefixes []string) (counts map[string]int, ok bool, err error)
 }
 
 // Spy reads a Spy ad and downloads its picture (spyad.Reader).
@@ -71,7 +81,12 @@ type Site struct {
 	log     *slog.Logger
 	version string
 	vert    []verticalGroup
+	launch  LaunchUse
 }
+
+// UseLaunch sets where the library pages read Launch's ads from; without
+// it they leave the counts out.
+func (s *Site) UseLaunch(l LaunchUse) { s.launch = l }
 
 // verticalGroup is one category of the verticals list, as the page shows it.
 type verticalGroup struct {
@@ -162,6 +177,10 @@ func (s *Site) Handler() http.Handler {
 	mux.HandleFunc("POST /create/api/turns/{id}/interrupt", s.interrupt)
 	mux.HandleFunc("GET /create/api/saves/{id}", s.getSave)
 	mux.HandleFunc("GET /create/files/items/{id}", s.itemFile)
+	mux.HandleFunc("POST /create/api/library/sets", s.libraryNewSet)
+	mux.HandleFunc("POST /create/api/library/creatives", s.libraryUpload)
+	mux.HandleFunc("PATCH /create/api/library/{kind}/{id}", s.libraryChange)
+	mux.HandleFunc("GET /create/api/launch-use", s.launchUse)
 	return sameSite(mux)
 }
 
@@ -227,6 +246,9 @@ func (s *Site) newSession(w http.ResponseWriter, r *http.Request) {
 		VerticalID string `json:"vertical_id"`
 		// Platform is taboola (the default) or newsbreak.
 		Platform string `json:"platform"`
+		// Fresh makes a new session even when the name is taken in the
+		// vertical (it gets " (2)"), as the chat's new conversation does.
+		Fresh bool `json:"fresh"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -235,6 +257,13 @@ func (s *Site) newSession(w http.ResponseWriter, r *http.Request) {
 	if name == "" {
 		writeError(w, http.StatusBadRequest, "escolha uma vertical da lista")
 		return
+	}
+	if in.Fresh {
+		free, err := s.st.FreeName(r.Context(), in.VerticalID, in.Name)
+		if s.fail(w, err) {
+			return
+		}
+		in.Name = free
 	}
 	v, err := s.st.NewSession(r.Context(), in.Name, in.VerticalID, name, in.Platform, who(r))
 	if s.fail(w, err) {
@@ -546,11 +575,16 @@ func (s *Site) save(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		ItemIDs []int64 `json:"item_ids"`
 		AILabel string  `json:"ai_label"`
+		// SetID is the library set (folder) the person chose; 0 is the
+		// session's own. SetName is its name as they saw it.
+		SetID   int64    `json:"set_id"`
+		SetName string   `json:"set_name"`
+		Tags    []string `json:"tags"`
 	}
 	if !readJSON(w, r, &in) {
 		return
 	}
-	v, err := s.st.Save(r.Context(), id, in.ItemIDs, in.AILabel, who(r))
+	v, err := s.st.SaveInto(r.Context(), id, in.ItemIDs, in.AILabel, who(r), sessions.Into{SetID: in.SetID, SetName: in.SetName, Tags: in.Tags})
 	if s.fail(w, err) {
 		return
 	}
@@ -583,6 +617,152 @@ func (s *Site) itemFile(w http.ResponseWriter, r *http.Request) {
 	// An id's bytes never change.
 	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
 	_, _ = io.Copy(w, rc)
+}
+
+// ---- the library's changes ----------------------------------------------------
+
+// libraryFail answers a library error: its own words for what it refused,
+// a short line for the rest.
+func (s *Site) libraryFail(w http.ResponseWriter, err error) {
+	var le *library.Error
+	switch {
+	case errors.Is(err, library.ErrNotFound):
+		writeError(w, http.StatusNotFound, "isso não está na biblioteca")
+	case errors.As(err, &le) && le.Status == http.StatusBadRequest:
+		writeError(w, http.StatusBadRequest, "a biblioteca recusou: "+le.Message)
+	case errors.As(err, &le) && le.Status == http.StatusRequestEntityTooLarge:
+		writeError(w, http.StatusRequestEntityTooLarge, "arquivo grande demais para a biblioteca")
+	default:
+		s.log.Error("create library change", "err", err)
+		writeError(w, http.StatusBadGateway, "a biblioteca não respondeu; tente de novo")
+	}
+}
+
+// libraryNewSet makes a folder (a library set) in a vertical, and in a
+// platform's folder when one is given: {"name", "vertical_id", "platform"}.
+func (s *Site) libraryNewSet(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Name       string `json:"name"`
+		VerticalID string `json:"vertical_id"`
+		Platform   string `json:"platform"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	vname := s.verticalName(in.VerticalID)
+	switch {
+	case vname == "":
+		writeError(w, http.StatusBadRequest, "escolha uma vertical da lista")
+		return
+	case in.Platform != "" && in.Platform != "taboola" && in.Platform != "newsbreak":
+		writeError(w, http.StatusBadRequest, "a plataforma é Taboola ou NewsBreak")
+		return
+	}
+	name := openai.CleanLine(in.Name)
+	if name == "" || len([]rune(name)) > 120 || strings.ContainsAny(name, `/\`) {
+		writeError(w, http.StatusBadRequest, "dê à pasta um nome de até 120 caracteres, sem / nem \\")
+		return
+	}
+	set, err := s.lib.AddSet(r.Context(), library.NewSet{Name: name, VerticalID: in.VerticalID, VerticalName: vname,
+		Origin: "create", OriginRef: "create:folder", MadeBy: who(r), Platform: in.Platform})
+	if err != nil {
+		s.libraryFail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, set)
+}
+
+// libraryUpload adds an original to the library (Subir originais):
+// multipart, file (the picture), set_id or vertical_id, and tags (comma
+// separated). The library names it and copies it to Drive.
+func (s *Site) libraryUpload(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, library.MaxFile+1<<20)
+	if err := r.ParseMultipartForm(8 << 20); err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			writeError(w, http.StatusRequestEntityTooLarge, "arquivo grande demais")
+			return
+		}
+		writeError(w, http.StatusBadRequest, "envie a imagem no campo file")
+		return
+	}
+	defer func() { _ = r.MultipartForm.RemoveAll() }()
+	f, hdr, err := r.FormFile("file")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "envie a imagem no campo file")
+		return
+	}
+	b, err := io.ReadAll(io.LimitReader(f, library.MaxFile+1))
+	_ = f.Close()
+	if err != nil || len(b) > library.MaxFile {
+		writeError(w, http.StatusBadRequest, "a imagem não chegou inteira")
+		return
+	}
+	setID, _ := strconv.ParseInt(r.FormValue("set_id"), 10, 64)
+	vert := r.FormValue("vertical_id")
+	vname := s.verticalName(vert)
+	if vname == "" && setID <= 0 {
+		writeError(w, http.StatusBadRequest, "escolha a pasta ou a vertical")
+		return
+	}
+	var tags []string
+	for _, t := range strings.Split(r.FormValue("tags"), ",") {
+		if t = strings.TrimSpace(t); t != "" {
+			tags = append(tags, t)
+		}
+	}
+	c, err := s.lib.AddCreative(r.Context(), library.CreativeMeta{VerticalID: vert, VerticalName: vname, SetID: max(setID, 0),
+		Origin: "upload", OriginRef: "create:upload:" + hdr.Filename, AILabel: "unset", MadeBy: who(r), Tags: tags}, hdr.Filename, b)
+	if err != nil {
+		s.libraryFail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, c)
+}
+
+// libraryChange hides (Apagar), refiles (Mover) or tags one library
+// creative or headline: {"hidden", "refile_to", "add_tags", "remove_tags"}.
+// Nothing is deleted: a hidden item stays in the library.
+func (s *Site) libraryChange(w http.ResponseWriter, r *http.Request) {
+	kind := r.PathValue("kind")
+	if kind != "creatives" && kind != "headlines" {
+		writeError(w, http.StatusNotFound, "não encontrado")
+		return
+	}
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	var in library.Change
+	if !readJSON(w, r, &in) {
+		return
+	}
+	in.By = who(r)
+	out, err := s.lib.Change(r.Context(), kind, id, in)
+	if err != nil {
+		s.libraryFail(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write(out)
+}
+
+// launchUse counts Launch's ads for each creative: ?sha=<sha256 or its
+// first 10>,… answers {"available", "ads": {"<first 10>": n}}. Not
+// available: Create cannot read launch_api, and the pages leave it out.
+func (s *Site) launchUse(w http.ResponseWriter, r *http.Request) {
+	if s.launch == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"available": false, "ads": map[string]int{}})
+		return
+	}
+	counts, ok, err := s.launch.Ads(r.Context(), strings.Split(r.URL.Query().Get("sha"), ","))
+	if err != nil {
+		s.log.Error("create launch use", "err", err)
+		writeError(w, http.StatusInternalServerError, "erro no servidor; tente de novo")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"available": ok, "ads": counts})
 }
 
 // ---- helpers ---------------------------------------------------------------

@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { CHIPS, moreCTAs, letter, cell, matrixAds, toggle, forget, groupPrefix, campaignName, adName, namesLine, sheetName } from '../pages/matrix.js';
+import { CHIPS, moreCTAs, letter, cell, matrixAds, toggle, forget, groupPrefix, campaignName, adName, namesLine, sheetName, shortName, ORIGINS, originLabel, folderList } from '../pages/matrix.js';
 
 const rows = [{ id: 'h1' }, { id: 'h2' }, { id: 'h3' }];
 const cols = [{ sha256: 'a' }, { sha256: 'b' }, { sha256: 'c' }, { sha256: 'd' }];
@@ -61,4 +61,33 @@ test('namesLine says the names the ads get', () => {
   assert.equal(sheetName(['GRP01-CMP01-Desk-pp-bl', 'GRP01-CMP01-Mobile-pp-bl'], 3), 'GRP01-CMP01-AD03');
   assert.equal(sheetName(['GRP01-CMP01-Desk-pp-bl', 'GRP02-CMP01-Desk-pp-bl'], 3), 'AD03');
   assert.equal(sheetName([], 3), 'AD03');
+});
+
+test('shortName: a campaign chip from CMP on, without -pp-bl', () => {
+  assert.equal(shortName('GRP01-CMP01-Desk-pp-bl'), 'CMP01-Desk');
+  assert.equal(shortName('Memory Loss US-CMP02-Mobile-pp-bl'), 'CMP02-Mobile');
+  assert.equal(shortName('Old campaign'), 'Old campaign');
+  assert.equal(shortName(''), '');
+});
+
+test('ORIGINS and originLabel: Originais are uploads and Drive finds, Geradas made in Create', () => {
+  assert.deepEqual(ORIGINS.map(([v]) => v), ['', 'upload,drive', 'create']);
+  assert.equal(originLabel({ origin: 'create' }), 'Gerada');
+  assert.equal(originLabel({ origin: 'upload' }), 'Original');
+  assert.equal(originLabel({ origin: 'drive' }), 'Original');
+});
+
+test("folderList: each vertical's platform folders, each with its sets", () => {
+  const list = folderList({ verticals: [
+    { id: 'memory-loss', name: 'Memory Loss', platforms: [{ id: 'taboola', name: 'Taboola' }, { id: 'newsbreak', name: 'NewsBreak' }],
+      sets: [{ id: 1, name: 'Colher de sopa', platform: 'taboola' }, { id: 2, name: 'Sem pasta', platform: '' }] },
+    { id: 'diabetes', name: 'Diabetes', platforms: [], sets: [] },
+  ] });
+  assert.deepEqual(list.map((f) => [f.key, f.path.join(' › '), f.q]), [
+    ['p:memory-loss:taboola', 'Memory Loss › Taboola', { vertical: 'memory-loss', platform: 'taboola' }],
+    ['s:1', 'Memory Loss › Taboola › Colher de sopa', { set: '1' }],
+    ['p:memory-loss:newsbreak', 'Memory Loss › NewsBreak', { vertical: 'memory-loss', platform: 'newsbreak' }],
+    ['s:2', 'Memory Loss › Sem pasta', { set: '2' }],
+  ]);
+  assert.deepEqual(folderList(undefined), []);
 });

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/Raposa-Industries/adhunters/kit/keep"
 	"github.com/Raposa-Industries/adhunters/launch/internal/network"
@@ -181,6 +182,14 @@ func TestAddedLoginsAccountsGoToTheirOwnLogin(t *testing.T) {
 	}
 	if len(list) != 2 || !list[0].Server || list[1].ID != id || list[1].Name != "Nova conta" || list[1].ClientID != "new-…6789" || list[1].AddedBy != "ana" || len(list[1].Accounts) != 1 {
 		t.Fatalf("list %+v", list)
+	}
+	// The server's own accounts carry when Launch first used them, and keep it.
+	first := list[0].Accounts[0].AddedAt
+	if first == nil || time.Since(*first) > time.Hour {
+		t.Fatalf("server account added_at %v", first)
+	}
+	if again, _ := r.s.List(ctx); again[0].Accounts[0].AddedAt == nil || !again[0].Accounts[0].AddedAt.Equal(*first) {
+		t.Fatalf("added_at changed: %v then %v", first, again[0].Accounts[0].AddedAt)
 	}
 
 	// Choosing again, and a restart that loads the logins from the database.

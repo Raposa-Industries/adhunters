@@ -26,6 +26,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Raposa-Industries/adhunters/create/internal/launchuse"
 	"github.com/Raposa-Industries/adhunters/create/internal/library"
 	"github.com/Raposa-Industries/adhunters/create/internal/openai"
 	"github.com/Raposa-Industries/adhunters/create/internal/sessions"
@@ -159,6 +160,9 @@ func serve(args []string) error {
 	if err != nil {
 		return err
 	}
+	// "no Launch: N anúncios" reads launch_api.item_v1 (the create_app login
+	// needs launch_api_read; without it the pages leave the counts out).
+	web.UseLaunch(launchuse.New(db))
 	ln, err := net.Listen("tcp", *addr)
 	if err != nil {
 		return err

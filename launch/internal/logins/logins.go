@@ -102,6 +102,9 @@ type Account struct {
 	Proxy string `json:"proxy"`
 	// Problem is why the account cannot be used now, in pt-BR, or "".
 	Problem string `json:"problem,omitempty"`
+	// AddedAt is when an account of the server's own login was first used
+	// by Launch (an added login's accounts have their login's AddedAt).
+	AddedAt *time.Time `json:"added_at,omitempty"`
 }
 
 // Load reads the added logins and the server's accounts' proxies, and hands
@@ -246,6 +249,20 @@ func (s *Service) List(ctx context.Context) ([]View, error) {
 		s.mu.Unlock()
 		for _, p := range parts {
 			v.Accounts = append(v.Accounts, accountsOf(ctx, p.c, p.accounts, p.proxy)...)
+		}
+		ids := make([]string, len(v.Accounts))
+		for i, a := range v.Accounts {
+			ids[i] = a.ID
+		}
+		// "Adicionada" on Contas; without it the column says "—".
+		if seen, err := s.st.AccountsSeen(ctx, "taboola", ids); err != nil {
+			s.log.Warn("accounts seen", "err", err)
+		} else {
+			for i, a := range v.Accounts {
+				if at, ok := seen[a.ID]; ok {
+					v.Accounts[i].AddedAt = &at
+				}
+			}
 		}
 		out = append(out, v)
 	}

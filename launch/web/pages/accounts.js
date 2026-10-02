@@ -1,21 +1,33 @@
 // Contas: the Taboola accounts Launch uses, one row each (Draw Designer
-// IMPLEMENT d587e1b829). They come from Taboola logins: the server's own
-// (TABOOLA_* in its settings) and those people add with + Novo, pasting a
-// client ID, user ID, client secret and a proxy. Every advertiser account
-// the login sees joins; nobody ticks. Adding a login only reads from Taboola
-// (a token and the account list, through the proxy), and the secret and
-// proxy are sealed on the server and never shown again: the page sees only
-// the proxy's host and port.
+// IMPLEMENT d587e1b829; Figma "Launch · Contas" and "Contas · nova conta").
+// They come from Taboola logins: the server's own (TABOOLA_* in its
+// settings) and those people add with + Novo, pasting a client ID, user ID,
+// client secret and a proxy. Every advertiser account the login sees joins;
+// nobody ticks. Adding a login only reads from Taboola (a token and the
+// account list, through the proxy), and the secret and proxy are sealed on
+// the server and never shown again.
 //
 // Every request for an added login's accounts goes through its proxy, and
 // is refused without one. An account of the server's own login goes direct
-// ("direto") unless a person sets it a proxy here. Each row's ··· menu holds
+// unless a person sets it a proxy here. Pages say whether an account has a
+// proxy, never which. Each row's ··· menu holds
 // what can be done to the account and its login.
 import { api, h, note, field, input, busy, plural } from './lib.js';
-import { rowsFrom, inLaunch, dayMonth, joining, loginName, goesVia } from './accountrows.js';
+import { rowsFrom, inLaunch, dayMonth, joining, loginName, hasProxy } from './accountrows.js';
 
 const PROXY_EXAMPLE = 'http://usuario:senha@host:porta';
-const PROXY_HINT = 'http, https ou socks5. Todo pedido à Taboola dessas contas passa por ele, e nunca direto; fica guardado criptografado.';
+const PROXY_HINT = 'http, https ou socks5; todo pedido à Taboola dessas contas passa por ele';
+
+// plus is the + of "+ Novo" (Ember's plus icon, 16 px).
+function plus() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  for (const [k, v] of Object.entries({ viewBox: '0 0 16 16', width: '16', height: '16', 'aria-hidden': 'true', class: 'btn-icon' })) svg.setAttribute(k, v);
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', 'M8 3v10M3 8h10');
+  svg.append(path);
+  return svg;
+}
 
 export async function accounts({ main }) {
   const told = h('div', { class: 'result' });
@@ -23,8 +35,8 @@ export async function accounts({ main }) {
   main.append(
     h('div', { class: 'page-head accounts-head' },
       h('div', {}, h('h1', {}, 'Contas'),
-        h('p', { class: 'lead muted' }, 'As contas da Taboola que o Launch usa. Elas aparecem no seletor Conta e na criação de grupos.')),
-      h('div', { class: 'actions' }, h('button', { type: 'button', class: 'primary', onclick: () => newLogin(rows, added) }, '+ Novo'))),
+        h('p', { class: 'lead' }, 'As contas da Taboola que o Launch usa. Elas aparecem no seletor Conta e na criação de grupos.')),
+      h('button', { type: 'button', class: 'primary new-btn', onclick: () => newLogin(rows, added) }, plus(), 'Novo')),
     told, body);
 
   let rows = [];
@@ -41,17 +53,15 @@ export async function accounts({ main }) {
     const counts = new Map();
     body.replaceChildren(...problems,
       h('div', { class: 'table-card accounts-card' }, h('table', { class: 'list accounts' },
-        h('thead', {}, h('tr', {}, h('th', {}, 'Conta'), h('th', { class: 'acct-id' }, 'ID'), h('th', {}, 'No Launch'), h('th', { class: 'acct-when' }, 'Adicionada'), h('th', { class: 'acct-more', 'aria-label': 'Ações' }))),
+        h('thead', {}, h('tr', {}, h('th', { class: 'acct-name' }, 'Conta'), h('th', { class: 'acct-id' }, 'ID'), h('th', { class: 'acct-count' }, 'No Launch'), h('th', { class: 'acct-when' }, 'Adicionada'), h('th', { class: 'acct-more', 'aria-label': 'Ações' }))),
         h('tbody', {}, rows.map((r) => {
-          const count = h('td', { class: 'muted' }, '…');
+          const count = h('td', { class: 'acct-count' }, '…');
           counts.set(r, count);
-          const via = goesVia(r);
           return h('tr', {},
-            h('td', { class: 'acct-name' }, h('b', {}, r.name), r.problem ? h('div', { class: 'warn-line' }, r.problem) : null),
-            h('td', { class: 'acct-id' }, h('div', { class: 'mono muted' }, r.id),
-              via ? h('div', { class: 'acct-via mono faint', title: via === 'direto' ? 'Sem proxy: vai direto à Taboola' : 'Proxy desta conta' }, via === 'direto' ? 'direto' : 'proxy ' + via) : null),
+            h('td', { class: 'acct-name' }, h('span', { class: 'acct-title' }, r.name), r.problem ? h('div', { class: 'warn-line' }, r.problem) : null),
+            h('td', { class: 'acct-id' }, r.id),
             count,
-            h('td', { class: 'mono faint acct-when' }, dayMonth(r.added_at)),
+            h('td', { class: 'acct-when' }, dayMonth(r.added_at)),
             h('td', { class: 'acct-more' }, rowMenu(r)));
         })))),
       h('p', { class: 'faint acct-total' }, plural(rows.length, 'conta', 'contas')));
@@ -61,7 +71,7 @@ export async function accounts({ main }) {
       const cell = counts.get(r);
       try {
         cell.textContent = inLaunch(await api(`${r.net}/${encodeURIComponent(r.id)}/tree`));
-        cell.className = '';
+        cell.className = 'acct-count';
       } catch (e) {
         cell.textContent = '—';
         cell.title = e.message;
@@ -87,12 +97,11 @@ export async function accounts({ main }) {
     const menu = h('details', { class: 'row-menu' });
     const shut = () => { menu.open = false; };
     const item = (label, run) => h('button', { type: 'button', role: 'menuitem', onclick: () => { shut(); run(); } }, label);
-    const proxyLabel = 'Proxy · ' + (goesVia(r) || 'nenhum');
     const items = l.server
       // The server's own login: only its proxy changes here.
-      ? [item(proxyLabel, () => accountProxy(r))]
+      ? [item('Proxy', () => accountProxy(r))]
       : [
-        item(proxyLabel, () => loginProxy(r)),
+        item('Proxy', () => loginProxy(r)),
         item('Detalhes do acesso', () => details(r)),
         item('Escolher as contas deste acesso', () => chooseAccounts(l)),
         item('Tirar esta conta do Launch', () => dropAccount(r)),
@@ -145,14 +154,14 @@ export async function accounts({ main }) {
   }
 
   // proxyForm is a dialog with one proxy field; save gets what was typed.
-  function proxyForm(title, lead, required, current, save, clear) {
+  function proxyForm(title, lead, required, has, save, clear) {
     const box = input({ placeholder: PROXY_EXAMPLE, autocomplete: 'off', spellcheck: 'false', class: 'mono', 'aria-label': 'Proxy', required });
     const msg = h('div');
     const ok = h('button', { type: 'submit', class: 'primary' }, 'Salvar');
     const cancel = h('button', { type: 'button' }, 'Cancelar');
     const off = clear ? h('button', { type: 'button', class: 'ghost' }, 'Tirar o proxy') : null;
     const form = h('form', { class: 'fields-col', novalidate: true },
-      h('p', { class: 'muted' }, current ? 'Agora: ' : 'Agora: sem proxy', current ? h('span', { class: 'mono' }, current) : null),
+      h('p', { class: 'muted' }, has ? 'Agora: com proxy. O novo substitui o atual.' : required ? 'Agora: sem proxy; as contas não funcionam até ter um.' : 'Agora: sem proxy (vai direto à Taboola).'),
       field('Novo proxy', box, PROXY_HINT), msg, h('div', { class: 'actions' }, off, cancel, ok));
     const dlg = dialog(title, h('p', { class: 'lead muted' }, lead), form);
     dlg.addEventListener('close', () => { box.value = ''; });
@@ -176,7 +185,7 @@ export async function accounts({ main }) {
     const l = r.login;
     const names = (l.accounts || []).map((a) => a.name || a.id).join(', ');
     proxyForm('Proxy do acesso', `Vale para todas as contas deste acesso (${names}). O Launch testa o novo proxy na Taboola (só lendo a lista de contas) antes de salvar.`,
-      true, l.proxy, async (proxy) => {
+      true, !!l.proxy, async (proxy) => {
         await api(`logins/${l.id}/proxy`, { method: 'PUT', body: { proxy } });
         told.replaceChildren(note('ok', `Proxy do acesso “${l.name}” trocado.`));
       }, null);
@@ -186,10 +195,10 @@ export async function accounts({ main }) {
   // server's own login; without one it goes direct.
   function accountProxy(r) {
     proxyForm('Proxy da conta', `Os pedidos da conta ${r.name} à Taboola passam por ele, e nunca direto enquanto ele existir; sem proxy, vão direto. O Launch testa o proxy na Taboola (só lendo a lista de contas) antes de salvar.`,
-      false, r.proxy, async (proxy) => {
+      false, hasProxy(r), async (proxy) => {
         await api(`accounts/${r.net}/${encodeURIComponent(r.id)}/proxy`, { method: 'PUT', body: { proxy } });
         told.replaceChildren(note('ok', `A conta ${r.name} agora passa pelo proxy.`));
-      }, r.proxy ? async () => {
+      }, hasProxy(r) ? async () => {
         if (!confirm(`Tirar o proxy da conta ${r.name}? Os pedidos dela voltam a ir direto à Taboola.`)) return false;
         await api(`accounts/${r.net}/${encodeURIComponent(r.id)}/proxy`, { method: 'PUT', body: { proxy: '' } });
         told.replaceChildren(note('ok', `A conta ${r.name} vai direto à Taboola de novo.`));
@@ -207,7 +216,7 @@ export async function accounts({ main }) {
     const form = h('form', { class: 'fields-col', novalidate: true },
       h('dl', { class: 'acct-facts' },
         h('dt', {}, 'Client ID'), h('dd', { class: 'mono' }, l.client_id),
-        h('dt', {}, 'Proxy'), h('dd', { class: 'mono' }, l.proxy || 'nenhum: as contas não funcionam até ter um'),
+        h('dt', {}, 'Proxy'), h('dd', {}, l.proxy ? 'definido (troque em ··· › Proxy)' : 'nenhum: as contas não funcionam até ter um'),
         h('dt', {}, 'Contas'), h('dd', {}, (l.accounts || []).map((a) => a.name || a.id).join(', ') || '—'),
         h('dt', {}, 'Adicionado'), h('dd', {}, dayMonth(l.added_at) + (l.added_by ? ' por ' + l.added_by.split('@')[0] : ''))),
       field('User ID', user, l.user_id ? 'O ID do usuário da Taboola deste acesso.' : 'Este acesso ainda não tem user ID; preencha.'),
@@ -264,10 +273,13 @@ function dialog(title, ...parts) {
   return box;
 }
 
-// newLogin is + Novo: paste the client ID, user ID, client secret and proxy,
-// Conectar (Taboola is only read, through the proxy), see the accounts that
-// join, then add them all. rows is the list on the page, so accounts
-// already in Launch are not counted again.
+// newLogin is + Novo: paste the client ID, user ID, client secret and
+// proxy (the owner's: every login's requests go through its own proxy).
+// Once all four are in, Launch asks Taboola through that proxy for the
+// login's accounts (reads only) and the green box says which join; the one
+// button adds them all. Pressed before that, it asks and adds in one go.
+// rows is the list on the page, so accounts already in Launch are not
+// counted again.
 function newLogin(rows, added) {
   const id = input({ autocomplete: 'off', spellcheck: 'false', class: 'mono', 'aria-label': 'Client ID' });
   const user = input({ autocomplete: 'off', spellcheck: 'false', class: 'mono', 'aria-label': 'User ID' });
@@ -275,10 +287,11 @@ function newLogin(rows, added) {
   const proxy = input({ autocomplete: 'off', spellcheck: 'false', class: 'mono', placeholder: PROXY_EXAMPLE, 'aria-label': 'Proxy' });
   const found = h('div');
   const msg = h('div');
-  const go = h('button', { type: 'submit', class: 'primary' }, 'Conectar');
+  const go = h('button', { type: 'submit', class: 'primary' }, 'Adicionar contas');
   const cancel = h('button', { type: 'button' }, 'Cancelar');
   const have = new Set(rows.map((r) => r.id));
-  let checked = null; // {allowed, all, fresh} after Conectar
+  let checked = null; // {key, allowed, all, fresh} once Taboola answered for these fields
+  let asking = null; // the check under way: {key, promise}
   const form = h('form', { class: 'fields-col', novalidate: true },
     field('Client ID', id),
     field('User ID', user),
@@ -286,20 +299,50 @@ function newLogin(rows, added) {
     field('Proxy', proxy, PROXY_HINT),
     found, msg, h('div', { class: 'actions' }, cancel, go));
   const box = dialog('Nova conta',
-    h('p', { class: 'lead muted' }, 'Cole o client ID e o client secret da Taboola (Backstage › Account Settings › API). Todas as contas desse acesso entram no Launch.'),
+    h('p', { class: 'lead' }, 'Cole o client ID e o client secret da Taboola (Backstage › Account Settings › API). Todas as contas desse acesso entram no Launch.'),
     form);
   // The secret and the proxy never stay in the page once the dialog is gone.
-  box.addEventListener('close', () => { secret.value = ''; proxy.value = ''; });
+  box.addEventListener('close', () => { secret.value = ''; proxy.value = ''; clearTimeout(wait); });
   cancel.onclick = () => box.close();
-  // Changing the login or its proxy after Conectar asks to connect again.
-  const reset = () => {
-    checked = null;
-    found.replaceChildren();
-    go.textContent = 'Conectar';
-    go.disabled = false;
-  };
-  for (const el of [id, secret, proxy]) el.addEventListener('input', reset);
+  const key = () => JSON.stringify([id.value.trim(), secret.value, proxy.value.trim()]);
   const missing = () => [[id, 'o client ID'], [user, 'o user ID'], [secret, 'o client secret'], [proxy, 'o proxy']].filter(([el]) => !el.value.trim()).map(([, what]) => what);
+  const label = () => {
+    const n = checked?.fresh.length;
+    go.textContent = checked ? (n ? 'Adicionar ' + plural(n, 'conta', 'contas') : 'Nada novo para adicionar') : 'Adicionar contas';
+    go.disabled = !!checked && !n;
+  };
+  // check asks Taboola, through the proxy, what this login sees.
+  function check() {
+    const k = key();
+    if (checked?.key === k) return Promise.resolve(checked);
+    if (asking?.key === k) return asking.promise;
+    found.replaceChildren(h('p', { class: 'faint', role: 'status' }, 'Perguntando à Taboola pelo proxy…'));
+    const promise = api('logins/check', { method: 'POST', body: { client_id: id.value, client_secret: secret.value, proxy: proxy.value } }).then((data) => {
+      if (key() !== k) return null;
+      checked = { key: k, allowed: data.accounts, ...joining(data.accounts, have) };
+      const n = checked.fresh.length;
+      found.replaceChildren(h('div', { class: 'joined', role: 'status' },
+        h('b', {}, n ? `Conectou: ${plural(n, 'conta vai', 'contas vão')} entrar` : 'Conectou, mas todas as contas desse acesso já estão no Launch'),
+        h('div', { class: 'names' }, checked.all.map((a) => h('span', { class: 'acct-chip' + (have.has(a.id) ? ' have' : ''), title: a.id + (have.has(a.id) ? ' · já está no Launch' : '') }, a.name || a.id)))));
+      label();
+      return checked;
+    }, (e) => {
+      if (key() === k) found.replaceChildren(note('fail', e.message));
+      throw e;
+    }).finally(() => { if (asking?.key === k) asking = null; });
+    asking = { key: k, promise };
+    return promise;
+  }
+  // Changing the login or its proxy asks again once all four are in.
+  let wait = 0;
+  for (const el of [id, user, secret, proxy]) {
+    el.addEventListener('input', () => {
+      msg.replaceChildren();
+      if (checked && checked.key !== key()) { checked = null; found.replaceChildren(); label(); }
+      clearTimeout(wait);
+      if (!missing().length) wait = setTimeout(() => check().catch(() => {}), 700);
+    });
+  }
   form.onsubmit = (e) => {
     e.preventDefault();
     if (go.disabled) return;
@@ -308,27 +351,19 @@ function newLogin(rows, added) {
       msg.replaceChildren(note('fail', 'Preencha ' + lacking.join(', ') + '.'));
       return;
     }
-    if (!checked) {
-      busy(go, msg, async () => {
-        const data = await api('logins/check', { method: 'POST', body: { client_id: id.value, client_secret: secret.value, proxy: proxy.value } });
-        checked = { allowed: data.accounts, ...joining(data.accounts, have) };
-      }).then(() => {
-        if (!checked) return;
-        const n = checked.fresh.length;
-        found.replaceChildren(h('div', { class: 'joined', role: 'status' },
-          h('b', {}, n ? `Conectou: ${plural(n, 'conta vai', 'contas vão')} entrar` : 'Conectou, mas todas as contas desse acesso já estão no Launch'),
-          h('div', { class: 'names' }, checked.all.map((a) => h('span', { class: 'acct-chip' + (have.has(a.id) ? ' have' : ''), title: a.id + (have.has(a.id) ? ' · já está no Launch' : '') }, a.name || a.id)))));
-        go.textContent = n ? 'Adicionar ' + plural(n, 'conta', 'contas') : 'Nada novo para adicionar';
-        go.disabled = !n;
-      });
-      return;
-    }
-    const n = checked.fresh.length;
+    clearTimeout(wait);
     busy(go, msg, async () => {
-      await api('logins', { method: 'POST', body: { name: loginName(checked.allowed), client_id: id.value, user_id: user.value, client_secret: secret.value, proxy: proxy.value, accounts: checked.all.map((a) => a.id) } });
+      let c;
+      try {
+        c = await check();
+      } catch {
+        return; // the box says why
+      }
+      if (!c?.fresh.length) return;
+      await api('logins', { method: 'POST', body: { name: loginName(c.allowed), client_id: id.value, user_id: user.value, client_secret: secret.value, proxy: proxy.value, accounts: c.all.map((a) => a.id) } });
       box.close();
-      await added(n);
-    });
+      await added(c.fresh.length);
+    }).then(() => { if (box.open) label(); });
   };
   id.focus();
 }

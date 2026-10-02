@@ -82,6 +82,8 @@ jobs:
         run: node --test launch/web/test/*.test.js
       - name: funnels page script tests
         run: node --test funnels/web/test/*.test.js
+      - name: create page script tests (references, folders, saves)
+        run: node --test create/internal/site/test/*.test.js
 
   terraform:
     runs-on: blacksmith-2vcpu-ubuntu-2404

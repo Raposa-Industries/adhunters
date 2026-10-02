@@ -149,3 +149,32 @@ func (s *Store) SetAccountProxy(ctx context.Context, network, account string, pr
 		network, account, proxy, who)
 	return err
 }
+
+// AccountsSeen records the server's own accounts Launch uses (once each) and
+// returns when each was first seen, by account id.
+func (s *Store) AccountsSeen(ctx context.Context, network string, accounts []string) (map[string]time.Time, error) {
+	out := map[string]time.Time{}
+	if len(accounts) == 0 {
+		return out, nil
+	}
+	if _, err := s.db.Exec(ctx, `
+		INSERT INTO launch.account_seen (network, account)
+		SELECT $1, a FROM unnest($2::text[]) AS a WHERE a <> ''
+		ON CONFLICT (network, account) DO NOTHING`, network, accounts); err != nil {
+		return nil, err
+	}
+	rows, err := s.db.Query(ctx, `SELECT account, seen_at FROM launch.account_seen WHERE network = $1 AND account = ANY($2)`, network, accounts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var a string
+		var at time.Time
+		if err := rows.Scan(&a, &at); err != nil {
+			return nil, err
+		}
+		out[a] = at
+	}
+	return out, rows.Err()
+}

@@ -71,3 +71,59 @@ func TestRequestsFromDesk(t *testing.T) {
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+// Desk sends a request after the person said yes in its conversation, so
+// Launch carries it out on arrival, as that person, asked by the origin.
+func TestRequestsRunOnArrival(t *testing.T) {
+	r := setup(t)
+	ctx := context.Background()
+	g := r.net.AddGroup(acct, network.Group{Name: "G"})
+	c1 := r.net.AddCampaign(acct, network.Campaign{Name: "C1", GroupID: g.ID, Status: "RUNNING", Active: true})
+	c2 := r.net.AddCampaign(acct, network.Campaign{Name: "C2", GroupID: g.ID, Status: "RUNNING", Active: true})
+	ask := func(kind, input, origin string) int64 {
+		var id int64
+		if err := r.db.QueryRow(ctx, `SELECT launch_api.new_request_v1($1, $2, 'ana@team.test', $3)`, kind, input, origin).Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	pause := ask("pause", `{"network":"taboola","account":"`+acct+`","campaigns":["`+c1.ID+`"]}`, "desk:step:1")
+	odd := ask("pause", `{"network":"taboola","account":"`+acct+`","campaigns":[7]}`, "desk:step:2")
+	old := ask("pause", `{"network":"taboola","account":"`+acct+`","campaigns":["`+c2.ID+`"]}`, "desk:step:3")
+	if _, err := r.db.Exec(ctx, `UPDATE launch.request SET made_at = now() - interval '2 hours' WHERE id = $1`, old); err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := r.l.RunWaiting(ctx)
+	if err != nil || n != 2 {
+		t.Fatalf("ran %d: %v", n, err)
+	}
+	var got struct{ Request store.Request }
+	r.call("GET", "requests/"+itoa(pause), nil, &got)
+	if got.Request.State != "sent" || got.Request.ConfirmedBy != "ana@team.test" {
+		t.Errorf("pause: %+v", got.Request)
+	}
+	if c, _ := r.net.Campaign(ctx, acct, c1.ID); c.Active {
+		t.Error("the request did not pause the campaign")
+	}
+	var hist struct{ History []store.Change }
+	r.call("GET", "history?campaign="+c1.ID, nil, &hist)
+	if len(hist.History) == 0 || hist.History[0].AskedBy != "desk:step:1" || hist.History[0].Who != "ana@team.test" {
+		t.Errorf("%+v", hist.History)
+	}
+	r.call("GET", "requests/"+itoa(odd), nil, &got)
+	if got.Request.State != "failed" {
+		t.Errorf("unreadable: %+v", got.Request)
+	}
+	r.call("GET", "requests/"+itoa(old), nil, &got)
+	if got.Request.State != "refused" || got.Request.ConfirmedBy != "launch" {
+		t.Errorf("old: %+v", got.Request)
+	}
+	if c, _ := r.net.Campaign(ctx, acct, c2.ID); !c.Active {
+		t.Error("an expired request paused its campaign")
+	}
+
+	if n, err := r.l.RunWaiting(ctx); err != nil || n != 0 {
+		t.Errorf("second run: %d %v", n, err)
+	}
+}

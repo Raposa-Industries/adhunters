@@ -12,7 +12,7 @@ export function rowsFrom(logins) {
     for (const a of l.accounts || []) {
       if (!a?.id || seen.has(a.id)) continue;
       seen.add(a.id);
-      out.push({ id: a.id, name: a.name || a.id, net: l.network || 'taboola', added_at: l.added_at || '', proxy: a.proxy || '', problem: a.problem || l.problem || '', login: l });
+      out.push({ id: a.id, name: a.name || a.id, net: l.network || 'taboola', added_at: a.added_at || l.added_at || '', proxy: a.proxy || '', problem: a.problem || l.problem || '', login: l });
     }
   }
   return out;
@@ -20,11 +20,17 @@ export function rowsFrom(logins) {
 
 // goesVia says how an account's requests reach Taboola: its proxy's host and
 // port, or "direto" for an account of the server's own login without one.
-// An added login's account without a proxy shows nothing here: its requests
-// are refused, and its problem says why.
+// An added login's account without a proxy gives '': its requests are
+// refused, and its problem says why. Pages say only whether there is a
+// proxy (hasProxy), never which.
 export function goesVia(row) {
   if (row.proxy) return row.proxy;
   return row.login?.server ? 'direto' : '';
+}
+
+// hasProxy says whether an account's requests go through a proxy.
+export function hasProxy(row) {
+  return !!row.proxy;
 }
 
 // inLaunch says what an account holds, from its tree: "2 grupos · 5

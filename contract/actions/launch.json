@@ -5,7 +5,7 @@
       "name": "launch.pause_campaigns",
       "version": 1,
       "kind": "ask",
-      "says": "Ask Launch to pause campaigns of one account. The request waits in Launch's Pedidos until a person confirms it there; only then does Launch pause them on the network.",
+      "says": "Ask Launch to pause campaigns of one account. Send it only after the person said yes in this conversation: Launch then pauses them on the network at once, as that person.",
       "call": "launch_api.new_request_v1",
       "args": [
         {"name": "kind", "const": "pause"},
@@ -30,7 +30,7 @@
       "name": "launch.pause_ads",
       "version": 1,
       "kind": "ask",
-      "says": "Ask Launch to pause some ads of one campaign while the rest keep running. The request waits in Launch's Pedidos until a person confirms it there.",
+      "says": "Ask Launch to pause some ads of one campaign while the rest keep running. Send it only after the person said yes in this conversation: Launch then does it at once, as that person.",
       "call": "launch_api.new_request_v1",
       "args": [
         {"name": "kind", "const": "pause_ads"},
@@ -56,7 +56,7 @@
       "name": "launch.change_campaigns",
       "version": 1,
       "kind": "ask",
-      "says": "Ask Launch to change campaigns' bid, daily cap, total spending limit or name. What is left out stays as it is. The request waits in Launch's Pedidos, showing each campaign as it is now, until a person confirms it there; a raise is only ever asked, never made by Desk.",
+      "says": "Ask Launch to change campaigns' bid, daily cap, total spending limit or name. What is left out stays as it is. Send it only after the person said yes in this conversation, showing them each campaign as it is now: Launch then makes the change at once, as that person, within its ceilings.",
       "call": "launch_api.new_request_v1",
       "args": [
         {"name": "kind", "const": "change"},
@@ -82,13 +82,13 @@
       "follow": {"view": "launch_api.request_v1", "id": "id", "state": "state", "done": ["sent"], "failed": ["refused", "failed"]},
       "link": "/launch/requests/{returned}",
       "per_day": 20,
-      "costs": "A higher bid or cap lets the campaign spend more once a person confirms it."
+      "costs": "A higher bid or cap lets the campaign spend more as soon as Launch makes the change."
     },
     {
       "name": "launch.copy_campaigns",
       "version": 1,
       "kind": "ask",
-      "says": "Ask Launch to copy campaigns in their own group: each copy is a new, paused campaign with the same settings and ads (new ids, back through review), named \"<name> (cópia)\". Copying both campaigns of a pair makes a pair. The request waits in Launch's Pedidos until a person confirms it there.",
+      "says": "Ask Launch to copy campaigns in their own group: each copy is a new, paused campaign with the same settings and ads (new ids, back through review), named \"<name> (cópia)\". Copying both campaigns of a pair makes a pair. Send it only after the person said yes in this conversation: Launch then does it at once, as that person.",
       "call": "launch_api.new_request_v1",
       "args": [
         {"name": "kind", "const": "duplicate"},
@@ -114,7 +114,7 @@
       "name": "launch.move_campaigns",
       "version": 1,
       "kind": "ask",
-      "says": "Ask Launch to move campaigns to another group of the same account. Taboola cannot change a campaign's group, so each move is a paused copy in that group with a new id; the original is paused when a person starts the copy (when_started), at once (now), or never (leave). The request waits in Launch's Pedidos until a person confirms it there.",
+      "says": "Ask Launch to move campaigns to another group of the same account. Taboola cannot change a campaign's group, so each move is a paused copy in that group with a new id; the original is paused when a person starts the copy (when_started), at once (now), or never (leave). Send it only after the person said yes in this conversation: Launch then does it at once, as that person.",
       "call": "launch_api.new_request_v1",
       "args": [
         {"name": "kind", "const": "move"},
@@ -142,7 +142,7 @@
       "name": "launch.requests",
       "version": 1,
       "kind": "read",
-      "says": "Requests asked of Launch and where each stands: waiting (for a person in Launch's Pedidos), confirmed, sent, refused or failed, with what was asked, who confirmed it and the result.",
+      "says": "Requests asked of Launch and where each stands: waiting (Launch carries it out within seconds), confirmed, sent, refused (it waited over an hour) or failed, with what was asked, who confirmed it and the result.",
       "view": "launch_api.request_v1",
       "columns": ["id", "kind", "input", "requested_by", "origin", "state", "confirmed_by", "result", "made_at", "decided_at"],
       "outside": ["result"],

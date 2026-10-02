@@ -52,6 +52,8 @@ func (a *API) Handler() http.Handler {
 	mux.HandleFunc("POST /api/drive/sync", a.kick)
 	mux.HandleFunc("GET /api/verticals", a.verticals)
 	mux.HandleFunc("PATCH /api/verticals/{id}", a.changeVertical)
+	mux.HandleFunc("GET /api/folders", a.folders)
+	mux.HandleFunc("GET /api/tags", a.tags)
 	mux.HandleFunc("GET /api/sets", a.sets)
 	mux.HandleFunc("POST /api/sets", a.addSet)
 	mux.HandleFunc("GET /api/sets/{id}", a.set)
@@ -62,6 +64,7 @@ func (a *API) Handler() http.Handler {
 	mux.HandleFunc("PATCH /api/creatives/{id}", a.changeCreative)
 	mux.HandleFunc("GET /api/headlines", a.headlines)
 	mux.HandleFunc("POST /api/headlines", a.addHeadlines)
+	mux.HandleFunc("GET /api/headlines/{id}", a.headline)
 	mux.HandleFunc("PATCH /api/headlines/{id}", a.changeHeadline)
 	mux.HandleFunc("GET /files/{id}", func(w http.ResponseWriter, r *http.Request) { a.file(w, r, false) })
 	mux.HandleFunc("GET /thumbs/{id}", func(w http.ResponseWriter, r *http.Request) { a.file(w, r, true) })
@@ -204,6 +207,27 @@ func (a *API) changeVertical(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, v)
 }
 
+// folders is the library as the pages show it: verticals, their platforms'
+// folders and their sets, with counts.
+func (a *API) folders(w http.ResponseWriter, r *http.Request) {
+	f, err := a.st.Folders(r.Context())
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, f)
+}
+
+// tags lists the tags in use (?vertical=), the most used first.
+func (a *API) tags(w http.ResponseWriter, r *http.Request) {
+	ts, err := a.st.Tags(r.Context(), r.URL.Query().Get("vertical"))
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tags": ts})
+}
+
 func (a *API) sets(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	ss, err := a.st.Sets(r.Context(), r.URL.Query().Get("vertical"), limit)
@@ -282,6 +306,7 @@ func filter(r *http.Request) store.Filter {
 		VerticalID: q.Get("vertical"), SetID: num("set"), Angle: q.Get("angle"), Origin: q.Get("origin"),
 		AILabel: q.Get("ai_label"), Search: q.Get("q"), Hidden: q.Get("hidden") == "1",
 		Before: num("before"), Limit: int(num("limit")),
+		Tag: q.Get("tag"), Platform: q.Get("platform"), Sort: q.Get("sort"),
 	}
 }
 
@@ -305,6 +330,20 @@ func (a *API) creative(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, c)
+}
+
+// headline serves one headline, hidden or not.
+func (a *API) headline(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	x, err := a.st.Headline(r.Context(), id)
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, x)
 }
 
 // addCreative takes multipart: "file" (the picture) and "meta" (JSON, a

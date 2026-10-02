@@ -87,6 +87,14 @@ func (f *fakeLib) AddCreative(_ context.Context, m library.CreativeMeta, _ strin
 
 func (f *fakeLib) Headlines(context.Context, string, int) ([]string, error) { return f.saved, nil }
 
+// Set 77 is Memory Loss's on NewsBreak, a folder a person picks.
+func (f *fakeLib) Set(_ context.Context, id int64) (library.Set, error) {
+	if id != 77 {
+		return library.Set{}, library.ErrNotFound
+	}
+	return library.Set{ID: 77, Name: "Cozinha", VerticalID: "memory-loss", Platform: "newsbreak"}, nil
+}
+
 func (f *fakeLib) AddHeadlines(_ context.Context, hs []library.NewHeadline) error {
 	f.headlines = append(f.headlines, hs...)
 	return nil
@@ -380,5 +388,70 @@ func TestCreateAPI(t *testing.T) {
 	if err := st.db.QueryRow(ctx, `SELECT state, library_set_id FROM create_api.session_save_v1 WHERE id = $1`, saveID).Scan(&state, &setID); err != nil ||
 		state != "done" || setID == nil || len(lib.sets) != 1 || lib.sets[0].MadeBy != "leo@example.com" {
 		t.Fatalf("the save is done in the session's set: %v %s %v %+v", err, state, setID, lib.sets)
+	}
+}
+
+// Salvar into a folder the person picked: the pictures take its vertical
+// and platform, every item gets the tags, the session makes no set of its
+// own, and an uploaded picture goes as an original.
+func TestSaveIntoFolder(t *testing.T) {
+	st, w, _, lib := setup(t)
+	ctx := context.Background()
+	s, err := st.NewSession(ctx, "Colher", "tinnitus", "Tinnitus", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	up, err := st.AddPicture(ctx, s.ID, "upload", "", pic(50, 30))
+	if err != nil {
+		t.Fatal(err)
+	}
+	hl, err := st.AddHeadline(ctx, s.ID, "typed", "", "A Calm Morning Habit")
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := st.SaveInto(ctx, s.ID, []int64{up.ID, hl.ID}, "ai", "mari", Into{SetID: 77, SetName: "Cozinha", Tags: []string{"#Cozinha", "cozinha", "Mesa"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.IntoSetID == nil || *v.IntoSetID != 77 || v.SetName != "Cozinha" || len(v.Tags) != 2 || v.Tags[0] != "cozinha" {
+		t.Fatalf("save = %+v", v)
+	}
+	drain(t, w)
+	if len(lib.sets) != 0 {
+		t.Fatalf("a save into a picked folder made a set: %+v", lib.sets)
+	}
+	c := lib.creatives[0]
+	if c.SetID != 77 || c.VerticalID != "memory-loss" || c.Platform != "newsbreak" || c.Origin != "upload" || len(c.Tags) != 2 || c.AILabel != "unset" {
+		t.Fatalf("creative meta = %+v", c)
+	}
+	if h := lib.headlines[0]; h.SetID != 77 || h.VerticalID != "memory-loss" || len(h.Tags) != 2 {
+		t.Fatalf("headline = %+v", h)
+	}
+	got, err := st.SaveByID(ctx, v.ID)
+	if err != nil || got.State != "done" || got.LibrarySetID == nil || *got.LibrarySetID != 77 {
+		t.Fatalf("done save = %+v %v", got, err)
+	}
+	if sess, _ := st.Session(ctx, s.ID); sess.LibrarySetID != nil {
+		t.Fatalf("the session took the picked folder as its own: %+v", sess)
+	}
+	// A save without a folder still goes to the session's own.
+	if _, err := st.Save(ctx, s.ID, []int64{hl.ID}, "ai", ""); err != nil {
+		t.Fatal(err)
+	}
+	drain(t, w)
+	if len(lib.sets) != 1 || lib.sets[0].Name != "Colher" {
+		t.Fatalf("the session's own set: %+v", lib.sets)
+	}
+	var bad BadInput
+	if _, err := st.SaveInto(ctx, s.ID, []int64{hl.ID}, "ai", "", Into{Tags: make([]string, MaxTags+1)}); !errors.As(err, &bad) {
+		t.Fatalf("too many tags: %v", err)
+	}
+
+	// A new conversation never reopens an old one by its name.
+	if n, err := st.FreeName(ctx, "tinnitus", "Colher"); err != nil || n != "Colher (2)" {
+		t.Fatalf("free name = %q %v", n, err)
+	}
+	if n, _ := st.FreeName(ctx, "tinnitus", "a/b"); n != "a b" {
+		t.Fatalf("free name of a/b = %q", n)
 	}
 }

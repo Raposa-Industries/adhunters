@@ -82,6 +82,13 @@ func TestAPI(t *testing.T) {
 	if code != http.StatusOK || len(hs["headlines"].([]any)) != 1 {
 		t.Fatalf("headlines: %d %v", code, hs)
 	}
+	hid := itoa(int(hs["headlines"].([]any)[0].(map[string]any)["id"].(float64)))
+	if code, one := do(t, h, http.MethodGet, "/api/headlines/"+hid, "", nil); code != http.StatusOK || one["text"] != "Ringing After 60? Read This" {
+		t.Fatalf("one headline: %d %v", code, one)
+	}
+	if code, _ := do(t, h, http.MethodGet, "/api/headlines/999", "", nil); code != http.StatusNotFound {
+		t.Errorf("missing headline: %d", code)
+	}
 
 	code, got := do(t, h, http.MethodGet, "/api/sets/"+itoa(setID), "", nil)
 	if code != http.StatusOK || len(got["creatives"].([]any)) != 1 || len(got["headlines"].([]any)) != 1 {
@@ -127,4 +134,47 @@ func TestAPI(t *testing.T) {
 func itoa(n int) string {
 	b, _ := json.Marshal(n)
 	return string(b)
+}
+
+// The folder tree, tags, the originals filter and refiling, as Create's
+// library pages use them.
+func TestFoldersTagsAndRefile(t *testing.T) {
+	h := web.New(store.New(testdb.New(t)), &offDrive{}, slog.New(slog.NewTextHandler(io.Discard, nil))).Handler()
+	mk := func(name string) string {
+		code, set := do(t, h, http.MethodPost, "/api/sets", "application/json",
+			strings.NewReader(`{"name":"`+name+`","vertical_id":"memory-loss","origin":"create","platform":"taboola"}`))
+		if code != http.StatusCreated {
+			t.Fatalf("set: %d %v", code, set)
+		}
+		return itoa(int(set["id"].(float64)))
+	}
+	a, b := mk("Colher"), mk("Sofa")
+	var pic bytes.Buffer
+	_ = png.Encode(&pic, image.NewRGBA(image.Rect(0, 0, 40, 30)))
+	code, c := upload(t, h, `{"vertical_id":"memory-loss","set_id":`+a+`,"origin":"upload","tags":["Cozinha"]}`, pic.Bytes())
+	if code != http.StatusCreated || c["tags"].([]any)[0] != "cozinha" {
+		t.Fatalf("upload: %d %v", code, c)
+	}
+	id := itoa(int(c["id"].(float64)))
+
+	if code, l := do(t, h, http.MethodGet, "/api/creatives?origin=upload,drive&tag=cozinha&platform=taboola", "", nil); code != http.StatusOK ||
+		len(l["creatives"].([]any)) != 1 {
+		t.Fatalf("originals: %d %v", code, l)
+	}
+	if code, l := do(t, h, http.MethodGet, "/api/creatives?origin=create", "", nil); code != http.StatusOK || len(l["creatives"].([]any)) != 0 {
+		t.Fatalf("generated: %d %v", code, l)
+	}
+	code, ch := do(t, h, http.MethodPatch, "/api/creatives/"+id, "application/json",
+		strings.NewReader(`{"refile_to":`+b+`,"add_tags":["mesa"],"by":"mari"}`))
+	if code != http.StatusOK || len(ch["set_ids"].([]any)) != 1 || itoa(int(ch["set_ids"].([]any)[0].(float64))) != b || len(ch["tags"].([]any)) != 2 {
+		t.Fatalf("refile: %d %v", code, ch)
+	}
+	code, f := do(t, h, http.MethodGet, "/api/folders", "", nil)
+	if code != http.StatusOK || f["totals"].(map[string]any)["original"] != float64(1) {
+		t.Fatalf("folders: %d %v", code, f)
+	}
+	code, tg := do(t, h, http.MethodGet, "/api/tags?vertical=memory-loss", "", nil)
+	if code != http.StatusOK || len(tg["tags"].([]any)) != 2 {
+		t.Fatalf("tags: %d %v", code, tg)
+	}
 }

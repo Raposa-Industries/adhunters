@@ -35,6 +35,8 @@ type Library interface {
 	AddSet(ctx context.Context, s library.NewSet) (library.Set, error)
 	AddCreative(ctx context.Context, meta library.CreativeMeta, filename string, data []byte) (library.Creative, error)
 	AddHeadlines(ctx context.Context, hs []library.NewHeadline) error
+	// Set reads one set: where a save the person pointed at goes.
+	Set(ctx context.Context, id int64) (library.Set, error)
 	// Headlines are the library's headline texts of a vertical, newest first.
 	Headlines(ctx context.Context, vertical string, limit int) ([]string, error)
 }
@@ -579,8 +581,21 @@ func (w *Worker) save(ctx context.Context, j work) error {
 	if madeBy == "" {
 		madeBy = sess.MadeBy
 	}
+	// Into the set the person chose (its vertical and platform name the
+	// pictures), else the session's own, made by its first save.
 	var setID int64
-	if sess.LibrarySetID != nil {
+	vertID, vertName, platform := sess.VerticalID, sess.VerticalName, sess.Platform
+	if v.IntoSetID != nil {
+		set, err := w.lib.Set(ctx, *v.IntoSetID)
+		if err != nil {
+			return err
+		}
+		setID = set.ID
+		if set.VerticalID != "" && set.VerticalID != vertID {
+			vertID, vertName = set.VerticalID, ""
+		}
+		platform = set.Platform
+	} else if sess.LibrarySetID != nil {
 		setID = *sess.LibrarySetID
 	} else {
 		set, err := w.lib.AddSet(ctx, library.NewSet{Name: sess.Name, VerticalID: sess.VerticalID, VerticalName: sess.VerticalName,
@@ -602,8 +617,8 @@ func (w *Worker) save(ctx context.Context, j work) error {
 	for _, it := range items {
 		ref := fmt.Sprintf("create:session:%d:item:%d", sess.ID, it.ID)
 		if it.Kind == "headline" {
-			headlines = append(headlines, library.NewHeadline{Text: it.Text, VerticalID: sess.VerticalID, SetID: setID,
-				Angle: it.Angle, Origin: "create", OriginRef: ref, AILabel: aiLabel(it, v.AILabel), MadeBy: madeBy})
+			headlines = append(headlines, library.NewHeadline{Text: it.Text, VerticalID: vertID, SetID: setID,
+				Angle: it.Angle, Origin: "create", OriginRef: ref, AILabel: aiLabel(it, v.AILabel), MadeBy: madeBy, Tags: v.Tags})
 			continue
 		}
 		data, err := w.st.itemBytes(ctx, it)
@@ -614,9 +629,10 @@ func (w *Worker) save(ctx context.Context, j work) error {
 		if it.MediaType == "image/png" {
 			ext = ".png"
 		}
-		c, err := w.lib.AddCreative(ctx, library.CreativeMeta{VerticalID: sess.VerticalID, VerticalName: sess.VerticalName,
-			Name: fmt.Sprintf("create-%d", it.ID), SetID: setID, Angle: it.Angle, Idea: it.Brief, Origin: "create",
-			OriginRef: ref, AILabel: aiLabel(it, v.AILabel), MadeBy: madeBy, Platform: sess.Platform}, fmt.Sprintf("item-%d%s", it.ID, ext), data)
+		c, err := w.lib.AddCreative(ctx, library.CreativeMeta{VerticalID: vertID, VerticalName: vertName,
+			Name: fmt.Sprintf("create-%d", it.ID), SetID: setID, Angle: it.Angle, Idea: it.Brief, Origin: pictureOrigin(it),
+			OriginRef: ref, AILabel: aiLabel(it, v.AILabel), MadeBy: madeBy, Platform: platform, Tags: v.Tags},
+			fmt.Sprintf("item-%d%s", it.ID, ext), data)
 		if err != nil {
 			return err
 		}
@@ -631,6 +647,16 @@ func (w *Worker) save(ctx context.Context, j work) error {
 	}
 	_, err = w.st.db.Exec(ctx, `UPDATE create_app.session_save SET state = 'done', error = '', finished_at = now() WHERE id = $1`, v.ID)
 	return err
+}
+
+// pictureOrigin is the library's origin for a picture saved from a
+// session: create (generated) for one made here, upload (an original) for
+// one brought from a computer, the library or a Spy ad.
+func pictureOrigin(it Item) string {
+	if it.Origin == "made" {
+		return "create"
+	}
+	return "upload"
 }
 
 // aiLabel is the person's answer for made items; what came from a computer,

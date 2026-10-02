@@ -110,8 +110,10 @@ type NewSet struct {
 
 // Set is the library's set, as far as Create reads it.
 type Set struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	VerticalID string `json:"vertical_id"`
+	Platform   string `json:"platform"`
 }
 
 // AddSet adds a set; a name used already in the vertical gets " (2)".
@@ -135,6 +137,8 @@ type CreativeMeta struct {
 	MadeBy       string `json:"made_by"`
 	// Platform picks the minted name's network letter (else the set's).
 	Platform string `json:"platform,omitempty"`
+	// Tags go on the creative.
+	Tags []string `json:"tags,omitempty"`
 }
 
 // Creative is the library's creative, as far as Create reads it.
@@ -176,14 +180,15 @@ func (c *Client) AddCreative(ctx context.Context, meta CreativeMeta, filename st
 
 // NewHeadline is a headline to save.
 type NewHeadline struct {
-	Text       string `json:"text"`
-	VerticalID string `json:"vertical_id,omitempty"`
-	SetID      int64  `json:"set_id,omitempty"`
-	Angle      string `json:"angle,omitempty"`
-	Origin     string `json:"origin"`
-	OriginRef  string `json:"origin_ref"`
-	AILabel    string `json:"ai_label"`
-	MadeBy     string `json:"made_by"`
+	Text       string   `json:"text"`
+	VerticalID string   `json:"vertical_id,omitempty"`
+	SetID      int64    `json:"set_id,omitempty"`
+	Angle      string   `json:"angle,omitempty"`
+	Origin     string   `json:"origin"`
+	OriginRef  string   `json:"origin_ref"`
+	AILabel    string   `json:"ai_label"`
+	MadeBy     string   `json:"made_by"`
+	Tags       []string `json:"tags,omitempty"`
 }
 
 // AddHeadlines saves headlines; a text kept already comes back as it was.
@@ -220,6 +225,41 @@ func (c *Client) RenameSet(ctx context.Context, id int64, name string) error {
 	return c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/sets/%d", id), "application/json", bytes.NewReader(b), nil)
 }
 
+// Set reads one set.
+func (c *Client) Set(ctx context.Context, id int64) (Set, error) {
+	var out struct {
+		Set Set `json:"set"`
+	}
+	err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/sets/%d", id), "", nil, &out)
+	return out.Set, err
+}
+
+// Change is what Create's pages may change of a library creative or
+// headline: hide it (Apagar), refile it into another set of its vertical
+// (Mover), or tag it. By is who asked.
+type Change struct {
+	Hidden     *bool    `json:"hidden,omitempty"`
+	RefileTo   int64    `json:"refile_to,omitempty"`
+	AddTags    []string `json:"add_tags,omitempty"`
+	RemoveTags []string `json:"remove_tags,omitempty"`
+	By         string   `json:"by,omitempty"`
+}
+
+// Change changes one creative (kind "creatives") or headline ("headlines")
+// and returns the library's answer as it came.
+func (c *Client) Change(ctx context.Context, kind string, id int64, ch Change) (json.RawMessage, error) {
+	if kind != "creatives" && kind != "headlines" {
+		return nil, fmt.Errorf("library: no such kind %q", kind)
+	}
+	b, err := json.Marshal(ch)
+	if err != nil {
+		return nil, err
+	}
+	var out json.RawMessage
+	err = c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/%s/%d", kind, id), "application/json", bytes.NewReader(b), &out)
+	return out, err
+}
+
 // Creative reads one creative.
 func (c *Client) Creative(ctx context.Context, id string) (Creative, error) {
 	var out Creative
@@ -251,9 +291,9 @@ func (c *Client) Verticals(ctx context.Context) ([]Vertical, error) {
 }
 
 // Browse serves reads of the library to Create's pages, mounted with its
-// prefix stripped: GET /api/verticals, /api/sets, /api/sets/{id},
-// /api/creatives, /api/creatives/{id}, /api/headlines, /files/{id} and
-// /thumbs/{id}. Nothing else passes, and the page's Origin is not sent on.
+// prefix stripped: GET /api/verticals, /api/folders, /api/tags, /api/sets,
+// /api/sets/{id}, /api/creatives, /api/creatives/{id}, /api/headlines,
+// /api/headlines/{id}, /files/{id} and /thumbs/{id}. Nothing else passes, and the page's Origin is not sent on.
 func (c *Client) Browse() http.Handler {
 	target, err := url.Parse(c.Base)
 	if err != nil {
@@ -269,8 +309,8 @@ func (c *Client) Browse() http.Handler {
 		},
 	}
 	mux := http.NewServeMux()
-	for _, p := range []string{"/api/verticals", "/api/sets", "/api/sets/{id}", "/api/creatives", "/api/creatives/{id}",
-		"/api/headlines", "/files/{id}", "/thumbs/{id}"} {
+	for _, p := range []string{"/api/verticals", "/api/folders", "/api/tags", "/api/sets", "/api/sets/{id}", "/api/creatives", "/api/creatives/{id}",
+		"/api/headlines", "/api/headlines/{id}", "/files/{id}", "/thumbs/{id}"} {
 		mux.Handle("GET "+p, proxy)
 	}
 	return mux
