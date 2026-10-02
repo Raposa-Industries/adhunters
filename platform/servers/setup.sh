@@ -438,8 +438,12 @@ create_box() {
     local create_pw
     create_pw=$(login create_app)
     psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO create_app"
-    psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'spy_api_read') THEN CREATE ROLE spy_api_read NOLOGIN; END IF; END \$\$"
-    psql_su -d adhunters -c "GRANT tracks_api_read, spy_api_read TO create_app"
+    local r
+    for r in spy_api_read launch_api_read; do
+        psql_su -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '$r') THEN CREATE ROLE $r NOLOGIN; END IF; END \$\$"
+    done
+    # launch_api_read: Create's Biblioteca shows how many Launch ads use each picture.
+    psql_su -d adhunters -c "GRANT tracks_api_read, spy_api_read, launch_api_read TO create_app"
     install_bin create
     install -m 0644 "$create_src/deploy/create.service" /etc/systemd/system/create.service
     systemctl daemon-reload

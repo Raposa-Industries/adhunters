@@ -120,8 +120,8 @@ adds to the same folder. A save into a chosen folder (`set_id`) goes there
 instead, with that folder's vertical and platform naming the pictures, and
 `session_save` keeps the folder, its name and the tags (migration 0008).
 "No Launch" counts read `launch_api.item_v1` (the ad id's picture part),
-which needs `GRANT launch_api_read TO create_app`; without it the counts and
-the NO LAUNCH filter are not shown. Sessions are Taboola's unless made for NewsBreak;
+through `launch_api_read`, which `platform/servers/setup.sh` grants
+`create_app`; without it the counts and the NO LAUNCH filter are not shown. Sessions are Taboola's unless made for NewsBreak;
 sets saved before 2 Oct 2026 keep their folder.
 
 **Headline memory.** A turn that asks for headlines shows the text model
