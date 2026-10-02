@@ -366,10 +366,11 @@ Cloudflare Access on 2026-10-01 (owner's word) with our own sign-in:
 - Ten wrong passwords from one address (Cloudflare's `Cf-Connecting-Ip`)
   within 15 minutes block that address for the rest of the 15 minutes.
 - Signed in, each request goes to the app whose path it starts with
-  (`web.Apps`: `/launch`, `/create`, `/intel`, `/spy`, `/funnels`, `/desk`)
-  as it is, streams included, with the session cookie taken off; every other
-  path goes to `/launch/`. The apps listen only on localhost and do no
-  sign-in of their own.
+  (`web.Apps`: `/launch`, `/create`, `/intel`, `/spy`, `/funnels`, `/desk`,
+  `/raposa`) as it is, streams included, with the session cookie taken off;
+  every other path goes to `/launch/`. The apps listen only on localhost,
+  except raposa-web, which listens on the worker's private address
+  (`10.20.1.10:8090`), and none does sign-in of its own.
 
 Landing sites (funnels-edge) have their own hostnames and no sign-in.
 
