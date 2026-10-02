@@ -429,25 +429,35 @@ tests:
               resolved: Walks on the worker box fail at their usual rate again.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/walker-failing.md
 
-  # The oldest overdue ad goes from 1 hour to over 8 hours late.
+  # 1,500 ads wait. At 50 walks a minute that is 30 minutes of work: fine.
+  # At 10 a minute from 61m it is 2.5 hours: WalkerBehind once that has
+  # lasted 30 minutes. The walker stops at 141m: that is WalkerStopped's,
+  # so this one clears rather than saying "+Inf".
   - interval: 1m
     input_series:
-      - series: 'tracks_walker_oldest_overdue_seconds{service="tracks-walker",instance="adhunters-worker",box="worker",job="adhunters"}'
-        values: '3600x10 30000x60'
+      - series: 'tracks_walker_backlog{service="tracks-walker",instance="adhunters-worker",box="worker",job="adhunters"}'
+        values: '1500x200'
+      - series: 'tracks_walker_walks_total{outcome="ok",step="none",service="tracks-walker",instance="adhunters-worker",box="worker",job="adhunters"}'
+        values: '0+50x60 3010+10x79 3800x60'
     alert_rule_test:
-      - eval_time: 35m
+      - eval_time: 60m
         alertname: WalkerBehind
         exp_alerts: []
-      - eval_time: 45m
+      - eval_time: 100m
+        alertname: WalkerBehind
+        exp_alerts: []
+      - eval_time: 110m
         alertname: WalkerBehind
         exp_alerts:
           - exp_labels:
               tier: chat
-              box: worker
             exp_annotations:
-              summary: An ad has waited 8h 20m 0s past its re-walk on the worker box. tracks-walker is not keeping up.
-              resolved: tracks-walker on the worker box is keeping up with its re-walks again.
+              summary: At its current pace, tracks-walker needs 2h 30m 0s to walk the ads waiting for it. It is not keeping up.
+              resolved: tracks-walker is keeping up again.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/walker-behind.md
+      - eval_time: 170m
+        alertname: WalkerBehind
+        exp_alerts: []
 
   # The automatic queue queues a few an hour, then nothing (2 Oct 2026: a
   # join with a view that had no Taboola ads). 6 quiet hours, then 30 min.
