@@ -283,7 +283,7 @@ func parseTime(v string, end bool) (time.Time, error) {
 // a window of whole São Paulo days reads the UTC days of the same dates
 // (3 hours off), any other the UTC days it touches.
 func (w Window) days() (time.Time, time.Time) {
-	if f, t := w.From.In(saoPaulo), w.To.In(saoPaulo); midnight(f) && midnight(t) {
+	if f, t := w.From.In(saoPaulo), w.To.In(saoPaulo); !w.Recent && w.Hours == 0 && midnight(f) && midnight(t) {
 		t = t.AddDate(0, 0, -1)
 		return time.Date(f.Year(), f.Month(), f.Day(), 0, 0, 0, 0, time.UTC),
 			time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
