@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { nest, inState, standIns } from '../pages/rows.js';
+import { nest, inState, standIns, byAccount } from '../pages/rows.js';
 
 const groups = [
   { id: '1001', name: 'Memory Loss US', status: 'RUNNING', account: 'a' },
@@ -69,4 +69,18 @@ test('standIns: one stand-in per missing group of each account, and "Sem grupo"'
     ['a', '', 'Sem grupo', false, true],
   ]);
   assert.deepEqual(standIns(groups, campaigns.slice(0, 1)), []);
+});
+
+test('byAccount: each account on top with its own groups, in the order given', () => {
+  const accounts = [{ id: 'b', name: 'Beta' }, { id: 'a', name: 'Acme Health 1' }, { id: 'c', name: 'Empty' }];
+  const acc = (out) => out.map((x) => x.a.id + '[' + ids(x.rows).join(' ') + ']');
+  // No filter: every account, even one with no group yet.
+  assert.deepEqual(acc(byAccount(accounts, groups, campaigns, all)), ['b[b/1001:20]', 'a[a/1001:6,5,7 a/1002:10 a/1003:]', 'c[]']);
+  // A filter keeps only the accounts that still have a group.
+  assert.deepEqual(acc(byAccount(accounts, groups, campaigns, { ...all, text: 'seniors' })), ['a[a/1002:10]']);
+  assert.deepEqual(acc(byAccount(accounts, groups, campaigns, { ...all, groups: new Set(['b/1001']) })), ['b[b/1001:20]']);
+  // An account found by its name or id keeps every group that passes the rest.
+  assert.deepEqual(acc(byAccount(accounts, groups, campaigns, { ...all, text: 'acme' })), ['a[a/1001:6,5,7 a/1002:10 a/1003:]']);
+  assert.deepEqual(acc(byAccount(accounts, groups, campaigns, { ...all, text: 'acme', state: 'paused' })), ['a[a/1001:7 a/1002:]']);
+  assert.deepEqual(acc(byAccount(accounts, groups, campaigns, { ...all, text: 'empty' })), ['a[a/1003:]', 'c[]']);
 });

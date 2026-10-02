@@ -1,18 +1,19 @@
-// Campanhas: Launch's one table (Draw Designer batch 126). Groups, their
-// campaigns and the campaigns' ads are rows of one table that open in
-// place; a campaign opens on the right (campaign.js) without leaving the
-// list, and ↑ ↓ move to the next one. The numbers are Intel's (intel_api),
+// Campanhas: Launch's one table (Draw Designer batch 126). Accounts, their
+// groups, the groups' campaigns and the campaigns' ads are rows of one
+// table that open in place; a campaign opens on the right (campaign.js)
+// without leaving the list, and ↑ ↓ move to the next one. The numbers are Intel's (intel_api),
 // never asked of Taboola here; the lists of groups, campaigns and ads are
 // Taboola's, kept by the server for a moment.
 //
-// The address holds what the page shows: /launch/campaigns?account=<id|all>
+// The address holds what the page shows: /launch/campaigns?account=<id>
 // &w=<today|yesterday|7d|30d>&group=<id>&open=<campaign id>, so a link or a
-// reload shows the same thing. A campaign's own address
-// (/launch/taboola/<account>/g/<group>/c/<id>, Intel's and Desk's links) is
-// this page with that campaign open.
+// reload shows the same thing. Every account is always in the table;
+// account= and group= say which one opens (the others stay closed). A
+// campaign's own address (/launch/taboola/<account>/g/<group>/c/<id>,
+// Intel's and Desk's links) is this page with that campaign open.
 import { api, h, note, money, badge, link, select, input, field, plural, store, busy, numberOf, segmented, doneNote, DEVICES } from './lib.js';
 import { campaignView } from './campaign.js';
-import { nest, inState, standIns } from './rows.js';
+import { byAccount, inState, standIns } from './rows.js';
 
 export const WINDOWS = [['today', 'Hoje'], ['yesterday', 'Ontem'], ['7d', 'Últimos 7 dias'], ['30d', 'Últimos 30 dias']];
 
@@ -23,7 +24,8 @@ const NET = 'taboola';
 export function where(search) {
   const q = new URLSearchParams(search);
   const w = WINDOWS.some(([v]) => v === q.get('w')) ? q.get('w') : store('launch.window') || '7d';
-  return { account: q.get('account') || store('launch.acct') || 'all', group: q.get('group') || '', open: q.get('open') || q.get('campaign') || '', w };
+  const account = q.get('account') === 'all' ? '' : q.get('account') || '';
+  return { account, group: q.get('group') || '', open: q.get('open') || q.get('campaign') || '', w };
 }
 
 // href builds the page's address, keeping the account and the period.
@@ -106,17 +108,15 @@ export async function manage(ctx) {
     return;
   }
 
-  // Accounts, then every chosen account's groups and campaigns, and Intel's numbers.
+  // Every account, its groups and campaigns, and Intel's numbers.
   const accounts = (await api(`accounts/${NET}`)).accounts;
-  if (at.account !== 'all' && !accounts.some((a) => a.id === at.account)) at.account = 'all';
-  if (route.page !== 'campaign') store('launch.acct', at.account);
-  const chosen = at.account === 'all' ? accounts : accounts.filter((a) => a.id === at.account);
+  if (at.account && !accounts.some((a) => a.id === at.account)) at.account = '';
+  if (at.account) store('launch.acct', at.account);
   const acctName = new Map(accounts.map((a) => [a.id, a.name || a.id]));
-  const many = chosen.length > 1;
   const loading = note('', 'Lendo o Taboola…');
   main.append(loading);
-  const trees = await Promise.all(chosen.map((a) => api(`${NET}/${encodeURIComponent(a.id)}/tree`).then((t) => ({ a, t }), (e) => ({ a, error: e.message }))));
-  const nums = await api(`numbers?window=${at.w}` + (at.account === 'all' ? '' : '&accounts=' + encodeURIComponent(at.account))).catch(() => ({ available: false, campaigns: {}, ads: {} }));
+  const trees = await Promise.all(accounts.map((a) => api(`${NET}/${encodeURIComponent(a.id)}/tree`).then((t) => ({ a, t }), (e) => ({ a, error: e.message }))));
+  const nums = await api(`numbers?window=${at.w}`).catch(() => ({ available: false, campaigns: {}, ads: {} }));
   loading.remove();
   tracked = Object.values(nums.campaigns || {}).some((n) => n.sales || n.revenue);
 
@@ -153,7 +153,7 @@ export async function manage(ctx) {
   const numsOf = (id) => add(zero(), nums.campaigns?.[id]);
   const adNums = (a) => add(zero(), nums.ads?.[a.id]);
 
-  // ---- left column: search, account, groups, campaigns, state, device, period ----
+  // ---- left column: search, state, device, period, groups, campaigns ----
   const f = { state: store('launch.state') || 'all', device: store('launch.device') || 'all', text: '', groups: new Set(), camps: new Set() };
   const groupList = h('div', { class: 'check-list' });
   const campList = h('div', { class: 'check-list' });
@@ -163,17 +163,14 @@ export async function manage(ctx) {
   aside.append(
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Busca'),
       input({ type: 'search', placeholder: 'nome ou id', 'aria-label': 'Buscar na tabela', oninput: (e) => { f.text = e.target.value.trim().toLowerCase(); draw(); } })),
-    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Conta'),
-      select([['all', `Todas as contas (${accounts.length})`], ...accounts.map((a) => [a.id, a.name || a.id])], at.account,
-        { 'aria-label': 'Conta', onchange: (e) => location.assign(href({ ...at, account: e.target.value })) })),
-    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Grupo de campanha'), groupList),
-    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Campanha'), campList),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Estado'),
       chips('state', STATES, f.state, (v) => { f.state = v; store('launch.state', v); draw(); })),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Dispositivo'),
       chips('device', [['all', 'Todos'], ['desktop', 'Desktop'], ['mobile', 'Mobile']], f.device, (v) => { f.device = v; store('launch.device', v); draw(); })),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Período'),
-      select(WINDOWS, at.w, { 'aria-label': 'Período', onchange: (e) => location.assign(href({ ...at, w: e.target.value }, { group: at.group })) })));
+      select(WINDOWS, at.w, { 'aria-label': 'Período', onchange: (e) => location.assign(href({ ...at, w: e.target.value }, { group: at.group })) })),
+    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Grupo de campanha'), groupList),
+    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Campanha'), campList));
 
   // Grupo de campanha and Campanha: tick some to see only those. The
   // campaign list follows the ticked groups; each list shows a few and
@@ -196,7 +193,7 @@ export async function manage(ctx) {
         if (f.groups.size) for (const id of f.camps) if (!f.groups.has(gKey(campById.get(id)?.account, campById.get(id)?.group_id))) f.camps.delete(id);
         drawLists();
         draw();
-      }, many ? acctName.get(g.account) : '');
+      }, accounts.length > 1 ? acctName.get(g.account) : '');
     }), more(groups.length - gs.length, 'grupo', 'grupos', 'groups')].filter(Boolean));
     const all = campaigns.filter((c) => !f.groups.size || f.groups.has(gKey(c.account, c.group_id)));
     const cs = few(all, listsFull.camps, (c) => f.camps.has(c.id), 4);
@@ -212,7 +209,7 @@ export async function manage(ctx) {
   // ---- head ----
   main.append(h('div', { class: 'page-head camp-head' },
     h('div', {}, h('h1', {}, 'Campanhas'), h('p', { class: 'muted numbers-line' }, numbersLine(nums))),
-    h('div', { class: 'actions' }, newMenu({ at, group: at.group ? realGroups.find((g) => g.id === at.group) : null }))));
+    h('div', { class: 'actions' }, newMenu({ at, group: at.group ? realGroups.find((g) => g.id === at.group && (!at.account || g.account === at.account)) : null }))));
   for (const p of problems) main.append(note('fail', p));
   const result = h('div', { class: 'result' });
   const totals = h('div', { class: 'totals' });
@@ -224,6 +221,7 @@ export async function manage(ctx) {
   // ---- what is open, picked, sorted and shown ----
   const sort = { key: store('launch.sort') || 'spent', down: store('launch.sort.down') ?? true };
   let cols = (store('launch.cols') || DEFAULT_COLUMNS).filter((k) => COLUMNS.some(([c]) => c === k));
+  const openAccts = new Set();
   const openGroups = new Set();
   const openCamps = new Set();
   // adsOf holds each opened campaign's ads: a list, or {error}, or 'loading'.
@@ -232,7 +230,13 @@ export async function manage(ctx) {
   const pickA = new Set(); // "<campaign>/<ad>"
   const together = { on: store('launch.together') ?? true };
   let shown = []; // the campaigns in the order the table shows them, for ↑ ↓
-  for (const g of groups) if (!at.group || g.id === at.group) openGroups.add(g.account + '/' + (g.id || '-'));
+  // Every account and group opens, unless the address names a group (then
+  // only it and its account do) or an account (then only it does).
+  const named = at.group ? groups.filter((g) => g.id === at.group && (!at.account || g.account === at.account)) : [];
+  for (const g of named.length ? named : groups) openGroups.add(g.account + '/' + (g.id || '-'));
+  for (const a of accounts) {
+    if (named.length ? named.some((g) => g.account === a.id) : !at.account || a.id === at.account) openAccts.add(a.id);
+  }
 
   const byNumbers = (list, numbers, name) => list.sort((a, b) => {
     const d = sort.key === 'name' ? name(a).localeCompare(name(b), 'pt-BR') : sortValue(numbers(a), sort.key) - sortValue(numbers(b), sort.key);
@@ -265,16 +269,18 @@ export async function manage(ctx) {
     draw();
   }
 
-  const toggleGroup = (key) => { openGroups.has(key) ? openGroups.delete(key) : openGroups.add(key); draw(); };
+  const toggle = (set, key) => { set.has(key) ? set.delete(key) : set.add(key); draw(); };
   const toggleCamp = (c) => {
     if (openCamps.has(c.id)) openCamps.delete(c.id);
     else { openCamps.add(c.id); loadAds([c]); }
     draw();
   };
-  // Abrir tudo opens every group, and every campaign when there are few
-  // enough to read their ads at once.
+  // Abrir tudo opens every account and group, and every campaign when there
+  // are few enough to read their ads at once.
   const openAll = () => {
-    const rows = nest(groups, campaigns, f);
+    const accts = byAccount(accounts, groups, campaigns, f);
+    for (const x of accts) openAccts.add(x.key);
+    const rows = accts.flatMap((x) => x.rows);
     for (const r of rows) openGroups.add(r.key);
     const cs = rows.flatMap((r) => r.cs);
     if (cs.length <= 25) {
@@ -283,7 +289,7 @@ export async function manage(ctx) {
     }
     draw();
   };
-  const closeAll = () => { openGroups.clear(); openCamps.clear(); draw(); };
+  const closeAll = () => { openAccts.clear(); openGroups.clear(); openCamps.clear(); draw(); };
 
   // A pair's two campaigns are picked together unless the person says not to.
   const chooseCamp = (id, on) => {
@@ -311,39 +317,47 @@ export async function manage(ctx) {
   }
 
   function draw() {
-    const rows = nest(groups, campaigns, f);
+    const accts = byAccount(accounts, groups, campaigns, f);
+    const rows = accts.flatMap((x) => x.rows);
     const gNums = (r) => r.cs.reduce((s, c) => add(s, nums.campaigns?.[c.id]), zero());
-    byNumbers(rows, gNums, (r) => r.g.name || '');
+    const aNums = (x) => x.rows.reduce((s, r) => { const n = gNums(r); return n.has ? add(s, n) : s; }, zero());
+    byNumbers(accts, aNums, (x) => x.a.name || x.a.id);
     const visCols = COLUMNS.filter(([k]) => cols.includes(k));
     const nCols = 4 + visCols.length;
     const sum = rows.reduce((s, r) => add(s, gNums(r)), zero());
     const nCamps = rows.reduce((n, r) => n + r.cs.length, 0);
-    const openAny = rows.some((r) => openGroups.has(r.key));
+    const openAny = accts.some((x) => openAccts.has(x.key) && x.rows.some((r) => openGroups.has(r.key)));
     drawTotals(sum, { g: rows.length, cs: nCamps }, openAny);
     shown = [];
     const body = [];
     let adCount = 0;
-    for (const r of rows) {
-      const open = openGroups.has(r.key);
-      body.push(groupRow(r, open, gNums(r), visCols));
-      if (!open) continue;
-      byNumbers(r.cs, (c) => numsOf(c.id), (c) => c.name);
-      for (const c of r.cs) {
-        shown.push(c);
-        body.push(campRow(c, visCols));
-        if (!openCamps.has(c.id)) continue;
-        const ads = adsOf.get(c.id);
-        if (ads === 'loading' || ads === undefined) body.push(h('tr', { class: 'row-ad' }, h('td'), h('td', { colspan: nCols - 1, class: 'faint indent-2' }, 'Lendo os anúncios…')));
-        else if (ads.error) body.push(h('tr', { class: 'row-ad' }, h('td'), h('td', { colspan: nCols - 1, class: 'indent-2' }, note('fail', ads.error))));
-        else if (!ads.length) body.push(h('tr', { class: 'row-ad' }, h('td'), h('td', { colspan: nCols - 1, class: 'faint indent-2' }, 'Nenhum anúncio. Use Novo › Anúncios.')));
-        else {
-          const list = byNumbers(ads.filter((a) => inState(a.status, f.state)), adNums, (a) => a.title || '');
-          adCount += list.length;
-          for (const a of list) body.push(adRow(c, a, visCols));
+    for (const x of accts) {
+      const aOpen = openAccts.has(x.key);
+      body.push(accountRow(x, aOpen, aNums(x), visCols));
+      if (!aOpen) continue;
+      byNumbers(x.rows, gNums, (r) => r.g.name || '');
+      for (const r of x.rows) {
+        const open = openGroups.has(r.key);
+        body.push(groupRow(r, open, gNums(r), visCols));
+        if (!open) continue;
+        byNumbers(r.cs, (c) => numsOf(c.id), (c) => c.name);
+        for (const c of r.cs) {
+          shown.push(c);
+          body.push(campRow(c, visCols));
+          if (!openCamps.has(c.id)) continue;
+          const ads = adsOf.get(c.id);
+          if (ads === 'loading' || ads === undefined) body.push(h('tr', { class: 'row-ad' }, h('td'), h('td', { colspan: nCols - 1, class: 'faint indent-3' }, 'Lendo os anúncios…')));
+          else if (ads.error) body.push(h('tr', { class: 'row-ad' }, h('td'), h('td', { colspan: nCols - 1, class: 'indent-3' }, note('fail', ads.error))));
+          else if (!ads.length) body.push(h('tr', { class: 'row-ad' }, h('td'), h('td', { colspan: nCols - 1, class: 'faint indent-3' }, 'Nenhum anúncio. Use Novo › Anúncios.')));
+          else {
+            const list = byNumbers(ads.filter((a) => inState(a.status, f.state)), adNums, (a) => a.title || '');
+            adCount += list.length;
+            for (const a of list) body.push(adRow(c, a, visCols));
+          }
         }
       }
     }
-    const chip = [plural(rows.length, 'grupo', 'grupos'), openAny ? plural(nCamps, 'campanha', 'campanhas') : null, adCount ? plural(adCount, 'anúncio', 'anúncios') : null].filter(Boolean).join(' · ');
+    const chip = [plural(accts.length, 'conta', 'contas'), plural(rows.length, 'grupo', 'grupos'), openAny ? plural(nCamps, 'campanha', 'campanhas') : null, adCount ? plural(adCount, 'anúncio', 'anúncios') : null].filter(Boolean).join(' · ');
     const allPicked = shown.length > 0 && shown.every((c) => pickC.has(c.id));
     const table = h('table', { class: 'list numbers nested camp-table' },
       h('thead', {}, h('tr', {},
@@ -352,8 +366,8 @@ export async function manage(ctx) {
         sortHead('name', 'Nome', 'name'), h('th', { class: 'state' }, 'Estado'), h('th', { class: 'budget' }, 'Orçamento'),
         visCols.map(([k, label]) => sortHead(k, label, 'num col-' + k)))),
       h('tbody', {}, body.length ? body : h('tr', {}, h('td', { colspan: nCols, class: 'faint empty-row' },
-        groups.length ? 'Nada com esses filtros.' : 'Nenhum grupo nesta conta. Use Novo › Grupo de campanha.'))),
-      rows.length ? h('tfoot', {}, h('tr', {}, h('td'), h('td', { colspan: 3 }, h('b', {}, 'Total')), visCols.map(([, , show]) => h('td', { class: 'num' }, show(sum))))) : null);
+        accounts.length ? 'Nada com esses filtros.' : 'Nenhuma conta. Adicione uma em Contas.'))),
+      accts.length ? h('tfoot', {}, h('tr', {}, h('td'), h('td', { colspan: 3 }, h('b', {}, 'Total')), visCols.map(([, , show]) => h('td', { class: 'num' }, show(sum))))) : null);
     const sep = () => h('span', { class: 'faint', 'aria-hidden': 'true' }, '·');
     card.replaceChildren(
       h('div', { class: 'card-head' },
@@ -372,20 +386,40 @@ export async function manage(ctx) {
       h('span', { class: 'tri', 'aria-hidden': 'true' }));
   }
 
-  function groupRow(r, open, n, visCols) {
-    const { g, cs } = r;
+  // pickBox ticks (or unticks) a box that stands for several campaigns.
+  function pickBox(cs, label) {
     const picked = cs.filter((c) => pickC.has(c.id)).length;
-    const box = h('input', { type: 'checkbox', 'aria-label': 'Escolher as campanhas de ' + (g.name || g.id), checked: cs.length > 0 && picked === cs.length, disabled: !cs.length,
+    const box = h('input', { type: 'checkbox', 'aria-label': label, checked: cs.length > 0 && picked === cs.length, disabled: !cs.length,
       onchange: (e) => { for (const c of cs) e.target.checked ? pickC.add(c.id) : pickC.delete(c.id); draw(); } });
     box.indeterminate = picked > 0 && picked < cs.length;
-    return h('tr', { class: 'row-group' },
-      h('td', { class: 'pick' }, box),
+    return box;
+  }
+
+  // accountRow is the table's top level: the account's name and id, how
+  // many of its groups show, and their numbers summed.
+  function accountRow(x, open, n, visCols) {
+    const name = x.a.name || x.a.id;
+    return h('tr', { class: 'row-account' },
+      h('td', { class: 'pick' }, pickBox(x.rows.flatMap((r) => r.cs), 'Escolher as campanhas de ' + name)),
       h('td', { class: 'name' }, h('div', { class: 'name-cell' },
-        caret(open, 'o grupo ' + (g.name || g.id), () => toggleGroup(r.key)),
+        caret(open, 'a conta ' + name, () => toggle(openAccts, x.key)),
+        h('span', { class: 'tag tag-account' }, 'Conta'),
+        h('span', { class: 'row-name' }, name),
+        x.a.name && x.a.name !== x.a.id ? h('span', { class: 'mono faint' }, x.a.id) : null)),
+      h('td', { class: 'groups-count' }, plural(x.rows.length, 'grupo', 'grupos')),
+      h('td', { class: 'budget' }),
+      visCols.map(([, , show]) => h('td', { class: 'num' }, show(n))));
+  }
+
+  function groupRow(r, open, n, visCols) {
+    const { g, cs } = r;
+    return h('tr', { class: 'row-group' },
+      h('td', { class: 'pick' }, pickBox(cs, 'Escolher as campanhas de ' + (g.name || g.id))),
+      h('td', { class: 'name' }, h('div', { class: 'name-cell indent-1' },
+        caret(open, 'o grupo ' + (g.name || g.id), () => toggle(openGroups, r.key)),
         h('span', { class: 'tag' }, 'Grupo'),
         h('span', { class: 'row-name' }, g.name || g.id),
-        g.id ? h('span', { class: 'mono faint' }, g.id) : null,
-        many ? h('span', { class: 'faint acct' }, acctName.get(g.account)) : null)),
+        g.id ? h('span', { class: 'mono faint' }, g.id) : null)),
       h('td', {}, g.status ? badge(g.status) : '—'),
       h('td', { class: 'mono budget' }, g.gone || g.none ? '—' : budget(g)),
       visCols.map(([, , show]) => h('td', { class: 'num' }, show(n))));
@@ -396,7 +430,7 @@ export async function manage(ctx) {
     const open = openCamps.has(c.id);
     return h('tr', { class: 'row-camp' + (pickC.has(c.id) ? ' chosen' : ''), 'data-campaign': c.id },
       h('td', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher ' + c.name, checked: pickC.has(c.id), onchange: (e) => chooseCamp(c.id, e.target.checked) })),
-      h('td', { class: 'name' }, h('div', { class: 'name-cell indent-1' },
+      h('td', { class: 'name' }, h('div', { class: 'name-cell indent-2' },
         caret(open, 'os anúncios de ' + c.name, () => toggleCamp(c)),
         h('span', { class: 'tag' }, 'Camp'),
         h('a', { class: 'row-name', href: link(NET, c.account, c.group_id || '-', c.id), title: 'Abrir a campanha ao lado',
@@ -413,7 +447,7 @@ export async function manage(ctx) {
     return h('tr', { class: 'row-ad' + (pickA.has(key) ? ' chosen' : '') },
       h('td', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher ' + (a.title || a.id), checked: pickA.has(key),
         onchange: (e) => { e.target.checked ? pickA.add(key) : pickA.delete(key); draw(); } })),
-      h('td', { class: 'name' }, h('div', { class: 'name-cell indent-2' },
+      h('td', { class: 'name' }, h('div', { class: 'name-cell indent-3' },
         h('span', { class: 'tag' }, 'Ad'),
         a.image_url ? h('img', { class: 'ad-thumb', src: a.image_url, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }) : h('span', { class: 'ad-thumb empty', 'aria-hidden': 'true' }, '–'),
         h('span', { class: 'row-name', title: [a.title, a.description, a.url].filter(Boolean).join('\n') }, a.title || a.id))),
@@ -596,12 +630,13 @@ export async function manage(ctx) {
   if (at.open) {
     const c = campById.get(at.open);
     if (c) {
+      openAccts.add(c.account);
       openGroups.add(c.account + '/' + (c.group_id || '-'));
       draw();
     }
     openCampaign(at.open, true);
   }
-  newKeys({ at, group: at.group ? realGroups.find((g) => g.id === at.group) : null });
+  newKeys({ at, group: at.group ? realGroups.find((g) => g.id === at.group && (!at.account || g.account === at.account)) : null });
 }
 
 // drawMoves lists group changes waiting for their copy to start: the
@@ -643,10 +678,10 @@ const NEW = [
 ];
 
 // newHref is where a "+ Novo" item goes, starting from where the person is
-// (the account and group the page shows).
+// (the account and group the address names).
 function newHref(make, { at, group }) {
   const q = new URLSearchParams({ make });
-  const acct = at.account !== 'all' ? at.account : group?.account || '';
+  const acct = at.account || group?.account || '';
   if (acct) q.set('account', acct);
   if (make === 'campaign' && group?.id) q.set('group', group.id);
   return '/launch/new?' + q;
