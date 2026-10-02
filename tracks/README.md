@@ -275,7 +275,9 @@ tracks-walker import-old
 
 `run` reads `tracks.walks_due`: ads seen in the last hour with a saved link,
 never walked or due again (6 hours after a walk that reached the landing page;
-after a failure 15 minutes, doubling up to 6 hours), newest first. Each walk
+after a failure 15 minutes, doubling up to 6 hours). Never walked ads go
+first, the newest first; then the most overdue first, so an ad seen once an
+hour is not held back by ads seen every few minutes. Each walk
 follows the link as a desktop Chrome would, with the publisher's page as
 referer, through up to 10 redirects to the landing page, then one next step
 through the page's main button with the same cookies (the collector's funnel
@@ -336,7 +338,10 @@ before the data box's tracks-loader has applied migration 12: update
 tracks-loader first. The archive's keys are set as for
 `tracks-shipper`. Metrics: `tracks_walker_walks_total{outcome,step}`,
 `tracks_walker_walk_seconds`, `tracks_walker_due`,
-`tracks_walker_files_archived_total`. The unit is
+`tracks_walker_files_archived_total`, and, read once a minute,
+`tracks_walker_backlog` (ads seen in the last hour with a link that are due,
+never walked included) and `tracks_walker_oldest_overdue_seconds` (how long
+ago the most overdue of them fell due again). The unit is
 [`tracks-walker.service`](../platform/servers/units/tracks-walker.service),
 installed on the worker box by `setup.sh` (settings in
 `/etc/adhunters/tracks-walker.env`, ops on 9119).

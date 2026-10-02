@@ -37,6 +37,7 @@ type Config struct {
 	PageTimeout time.Duration // per page, redirects included (15 s)
 	Rewalk      time.Duration // how soon an ad is walked again (6 h)
 	Poll        time.Duration // how often the due list is read when idle (30 s)
+	BacklogPoll time.Duration // how often the backlog gauges are read (1 min)
 	Now         func() time.Time
 	Log         *slog.Logger
 	Metrics     *Metrics
@@ -47,6 +48,8 @@ type Metrics struct {
 	Walks         *prometheus.CounterVec
 	Seconds       prometheus.Histogram
 	Due           prometheus.Gauge
+	Backlog       prometheus.Gauge
+	OldestOverdue prometheus.Gauge
 	LastWalkUnix  atomic.Int64
 	LastErrorUnix atomic.Int64
 }
@@ -64,8 +67,14 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		Due: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "tracks_walker_due", Help: "Ads due for a walk at the last read of the list (at most one batch).",
 		}),
+		Backlog: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "tracks_walker_backlog", Help: "Ads seen in the last hour with a link that are due for a walk, never walked included.",
+		}),
+		OldestOverdue: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "tracks_walker_oldest_overdue_seconds", Help: "How long ago the most overdue of those ads fell due again (0: none).",
+		}),
 	}
-	reg.MustRegister(m.Walks, m.Seconds, m.Due)
+	reg.MustRegister(m.Walks, m.Seconds, m.Due, m.Backlog, m.OldestOverdue)
 	return m
 }
 
@@ -84,6 +93,9 @@ func (c *Config) defaults() {
 	}
 	if c.Poll <= 0 {
 		c.Poll = 30 * time.Second
+	}
+	if c.BacklogPoll <= 0 {
+		c.BacklogPoll = time.Minute
 	}
 	if c.Now == nil {
 		c.Now = time.Now
@@ -118,6 +130,11 @@ func Run(ctx context.Context, c Config) error {
 			}
 		}()
 	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		c.watchBacklog(ctx)
+	}()
 	defer func() {
 		close(work)
 		wg.Wait()
@@ -156,6 +173,28 @@ func Run(ctx context.Context, c Config) error {
 		}
 	}
 	return nil
+}
+
+// watchBacklog sets the backlog gauges every BacklogPoll until ctx ends.
+func (c *Config) watchBacklog(ctx context.Context) {
+	for {
+		n, oldest, err := Backlog(ctx, c.DB, c.Now())
+		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			c.Log.Error("reading the walker backlog", "err", err)
+			c.Metrics.LastErrorUnix.Store(c.Now().Unix())
+		} else {
+			c.Metrics.Backlog.Set(float64(n))
+			c.Metrics.OldestOverdue.Set(oldest.Seconds())
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(c.BacklogPoll):
+		}
+	}
 }
 
 // walkOne walks one ad, writes the raw walk, then saves what it said. It
