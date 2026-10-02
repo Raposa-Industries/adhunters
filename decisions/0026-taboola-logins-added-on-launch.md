@@ -31,3 +31,14 @@ Launch uses.
 before the deploy, and a copy of the database alone (backups included)
 cannot open a secret. Losing the file loses only the added logins, which
 are added again; the server's own login does not depend on it.
+
+**Changed 2 Oct 2026 (the key gets a copy):** the key file was on the data
+box only, and nothing backs up `/var/lib` (pgBackRest keeps only Postgres), so
+losing the box would have lost every added login. Launch now also reads the
+key from `LAUNCH_LOGIN_KEY_BASE64` in `/etc/adhunters/launch-web.env`, the key
+in base64, and the owner keeps a copy in their password manager like every
+other key (platform/OPERATIONS.md, "Accounts"). With the setting, Launch
+neither reads nor makes the key file, so a rebuilt box given its settings
+back opens the logins the old one sealed. The key still never goes in the
+database or its backups, so a database copy alone still cannot open a
+secret. Without the setting, Launch keeps using the file as before.

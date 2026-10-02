@@ -20,23 +20,26 @@ choice, with a warning when pictures that look AI-made are marked "no".
 
 ## Pages
 
-All under `/launch/`; a link to any of them opens it.
+All under `/launch/`; a link to any of them opens it. The tabs are
+Campanhas · Pedidos · Histórico · Rascunhos · Contas (Draw Designer batch
+126); Presets has no tab and opens from **Ver os presets** in the new-item
+steps.
 
 | Path | Shows |
 |---|---|
-| `/launch/groups` | **Grupos de campanha**, like Realize's: a table of groups with their campaigns, budget and the period's numbers (summed from their campaigns). Clicking a group opens Campanhas narrowed to it. |
-| `/launch/campaigns` (also `/launch/`) | **Campanhas**: a table with each campaign's group, device, state, bid, daily budget and numbers. Clicking a campaign opens Anúncios narrowed to it. Tick campaigns (a pair's other half comes along unless unticked) to see or add ads, **pause**, change budget and bid, **copy**, or **move** them to another group. Moves waiting on their copy are listed on top. |
-| `/launch/ads` | **Anúncios**: each ad with its picture, campaign, state, review, Intel's word and numbers; tick ads to pause them. Without a group or campaign it reads the 25 campaigns that spent most and says so. |
-| the three tables | Share the address `?account=<id or all>&group=<id>&campaign=<id>&w=<today, yesterday, 7d, 30d>`, so a link or a reload shows the same table. At the top, like Realize, a breadcrumb of pickers (Conta, Grupo de campanha, Campanha) with search: picking a group opens its campaigns, a campaign its ads, and "Todos" takes that narrowing off. The period sits by the title; search, state and device are on the left. A group or campaign the table is narrowed to is the title and a chip; its × (or **Ver todas**) goes back to all, and the top tabs always open the whole level. Columns sort by a click; totals are on top and in the last row; 50 rows a page; each row has its actions on the right (**+ Campanha**, **Editar**, **+ Anúncios**, the ad's page). Numbers are Intel's (`intel_api.campaign_result_v1`, `ad_result_v1`), never asked of Taboola by Launch; without Intel they show "—". **Novo ▾** on every table makes a group, a campaign or ads, starting from the group or campaign the table is narrowed to. |
+| `/launch/campaigns` (also `/launch/`) | **Campanhas**: one table, like Realize's, with each group, its campaigns and their ads as rows that open in place (**Abrir tudo** opens every group, and every campaign's ads when there are 25 campaigns or fewer; **Fechar tudo**). Each row has its state, budget and the period's numbers; on top, the totals (Linhas or Grupos, Gasto, Cliques, CTR, Vendas, CPA, Receita, Lucro, ROI), and **Colunas** picks the number columns (kept per browser). Search, account (**Todas as contas** or one), state, device and period are on the left. A campaign whose group was deleted sits under "Grupo apagado · id", and one with no group under "Sem grupo". Tick campaigns to **pause**, change budget and bid, **copy**, **move** them to another group or add ads (a pair's other half comes along unless unticked), or tick ads to pause them. Clicking a campaign opens it on the right without leaving the table: its account and group, state, pair, **Pausar** (with "com o par"), **Mudar**, **Adicionar anúncios**, **Duplicar**, **Mudar de grupo**, its numbers, and tabs for its settings, its ads and its History; Esc closes it and ↑ ↓ go to the next campaign. Numbers are Intel's (`intel_api.campaign_result_v1`, `ad_result_v1`), never asked of Taboola by Launch; without Intel they show "—". **+ Novo** makes a group, a campaign or ads (N then G, C or A), starting from the account and group shown. |
+| the address | `?account=<id or all>&group=<id>&open=<campaign id>&w=<today, yesterday, 7d, 30d>`, so a link or a reload shows the same table with the same campaign open. |
+| `/launch/groups`, `/launch/ads` | The tables before batch 126: they open Campanhas with the same address. |
 | `/launch/taboola/<account>[/g/<group>]` | Old addresses: open Campanhas narrowed to that account and group. `g/-` is campaigns without a group. |
-| `/launch/taboola/<account>/g/<group>/c/<campaign>` | One campaign: settings, ads with their review state, the pair's other half, its History, and the same actions (rename here only). |
-| `…/c/<campaign>?do=…&from=intel:<id>` | The same page with a suggested change filled in on top: `do=pause-ads&ads=<ids,…>`, `pause-campaign`, `set-daily-cap&cap=<usd>`, `set-bid&cpc=<usd>`. Only this campaign, not its pair. Nothing is sent until the person presses the button; History records `from` (only `intel:…` or `desk:…`, like `desk:step:12`) as who asked. |
-| `/launch/new?make=…` | The steps behind **Novo ▾**, like Realize's "+ New": the steps on the left, one at a time (**Próximo** checks the step first; the step list jumps back), and on the right a preview of everything that will be made: account, group, each campaign with its name and settings, and the first ads as cards. Everything is made paused. |
-| `make=campaign` (the default; `&group=` picks the group) | **Nova campanha**: 1 · Grupo (account; an existing group or a new one, named with the account's next number, 01, 02…, from a group preset or typed: objective, budget per campaign (default) or the group's per month or in total; every group runs for ever, with no end date, see "How the writes work"). 2 · Campanha (devices: both, which makes a desktop and a mobile campaign, mobile or desktop; mobile is phones and tablets, desktop is computers only; named CMP<n>-<account number>-<Mobile or Desktop>-pp-bl unless a name is typed; settings from a campaign preset or the team's defaults below; with both, **Mobile com valores próprios** gives the mobile campaign its own CPC (or target CPA), daily budget and start date, each empty field keeping the desktop's, under the same ceilings). 3 · Anúncios (pictures uploaded or from the library, English headlines, buttons, AI label, and the pairing: **Sortido**, **Par a par** (picture 1 with headline 1, 2 with 2, …, the shorter list starting over), **Escolher pares** (rows of one picture and one headline the person sets, starting par a par; each row is one ad per button) or **Todas as combinações**). 4 · Revisar e **Criar pausado**: every ad is a row where its picture (any picked or uploaded one), headline (from the list, or its text edited) or button can be changed, or the ad taken out. The first edit freezes the list (a note says so, and **Refazer pela combinação** goes back to the pairing's); the edited list is exactly what is sent, to each campaign. Repeated ads and headline warnings only warn. Each step of the send shows as it happens; the same send twice is one send. Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
-| `make=group` | **Novo grupo de campanha**: **Criar grupo**, or **Criar e adicionar campanha**, which goes straight on to a campaign in it. |
-| `make=ads` (`&to=<ids>` picks campaigns) | **Novos anúncios**: pick campaigns of one account, then the same ads, paused, go into each (Realize's "assign creatives"). |
+| `/launch/taboola/<account>/g/<group>/c/<campaign>` | One campaign: Campanhas with that campaign open on the right. |
+| `…/c/<campaign>?do=…&from=intel:<id>` | The same, with a suggested change filled in on top: `do=pause-ads&ads=<ids,…>`, `pause-campaign`, `set-daily-cap&cap=<usd>`, `set-bid&cpc=<usd>`. Only this campaign, not its pair. Nothing is sent until the person presses the button; History records `from` (only `intel:…` or `desk:…`, like `desk:step:12`) as who asked. |
+| `/launch/new?make=…` | The steps behind **+ Novo**, like Realize's "+ New". On the left the steps (each with what it holds so far; a click goes back to one), **Salvar rascunho** and **Cancelar**. In the middle one step at a time, "Passo N · …" in one card, and **Próximo: …**, which checks the step first. On the right **Prévia na tabela**: the rows Campanhas will show, the group with the campaigns already in it and the new ones marked "novo", each with its bid and budgets, its ads, and the first ads as cards. Groups, campaigns and ads go up running or paused as the server says (`TABOOLA_CREATE_ACTIVE`), and the preview says which. |
+| `make=campaign` (the default; `&account=…&group=…` picks the group) | **Nova campanha**: 1 · Campanha: **Grupo**, every account's groups and "+ Grupo novo" in each (a new group: name, by default the account's next number, 01, 02…, objective and budget per campaign (default) or the group's per month or in total; every group runs for ever, with no end date, see "How the writes work"); **Dispositivo**: both, which makes a desktop and a mobile campaign, mobile or desktop (mobile is phones and tablets, desktop is computers only); a card per campaign with its **Nome** (empty: CMP<n>-<account number>-<Mobile or Desktop>-pp-bl), **Lance** (Maximizar conversões, CPC fixo or CPC Smart, with the CPC or the target CPA), **Orç. diário** and **Limite total**; with both, every empty field of the mobile card keeps the desktop's (shown in it), and a filled one is the mobile's own, under the same ceilings; **Países** (the United States minus the cities listed) and **Mais configurações** (start and end dates, the mobile's own start, delivery, the objective, which follows the group's). A campaign preset or the team's defaults below fill the settings. 2 · Anúncios: **Página e tracking** (tracker, landing page, tracking code), brand and description, then pictures uploaded or from the library, English headlines, buttons, the AI label and the pairing: **Sortido**, **Par a par** (picture 1 with headline 1, 2 with 2, …, the shorter list starting over), **Escolher pares** (rows of one picture and one headline the person sets, starting par a par; each row is one ad per button) or **Todas as combinações**. 3 · Revisar e criar: every ad is a row where its picture (any picked or uploaded one), headline (from the list, or its text edited) or button can be changed, or the ad taken out. The first edit freezes the list (a note says so, and **Refazer pela combinação** goes back to the pairing's); the edited list is exactly what is sent, to each campaign. Repeated ads and headline warnings only warn. Each step of the send shows as it happens; the same send twice is one send. Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
+| `make=group` | **Novo grupo**: 1 · Grupo (account, name, objective, budget, duration: "Para sempre"; "Com data de fim" is shown, not offered yet). 2 · Revisar e **Criar grupo**, or **Criar e adicionar campanha**, which goes straight on to a campaign in it. |
+| `make=ads` (`&to=<ids>` picks campaigns) | **Novos anúncios**: 1 · Campanhas: a tree of every account's groups and campaigns with search (a group's box picks all its campaigns), and the landing page and description of the ads. 2 · Anúncios, as in Nova campanha. 3 · Revisar e adicionar: the same ads go into each campaign picked, through its own account (Realize's "assign creatives"). |
 | `/launch/new?set=<id>` | Nova campanha with one library set's creatives and headlines already in (Create links here after saving a set). |
-| `/launch/drafts` | Drafts; opening one continues it in Nova campanha. |
+| `/launch/drafts` | **Rascunhos**: new campaigns, groups and ads saved to finish later; opening one continues it in its steps. A draft goes away once what it holds is made. |
+| `/launch/presets` | **Presets**: group and campaign presets, made and changed here or saved from the steps. |
 | `/launch/accounts` | **Contas**: the Taboola logins Launch uses, each with its accounts. The server's own login (`TABOOLA_*`) is listed and changes only there. **Adicionar login** takes a name, client ID and client secret; **Verificar na Taboola** asks Taboola for a token and the login's account list (reads only: nothing is made or changed on Taboola), then the person ticks the advertiser accounts to use (the network account is shown, never pickable) and **Salvar login**. Those accounts then appear in the Conta picker, ⌘K and every table, and every call about one goes to its own login, with the same guards and ceilings. **Escolher contas** changes them (checking with Taboola again); **Remover** stops using the login. The secret is sealed before it is saved and no page, answer or log line shows it again; the page shows only the client ID's first and last four characters. An account two logins share belongs to the first (the server's own first). |
 | `/launch/requests` | **Pedidos**: changes Desk asked for, waiting ones first. |
 | `/launch/requests/<id>` | One request: what it asks, the campaigns as they are now, **Confirmar e enviar** or **Recusar**. Confirming makes the change as the person, with the request's origin as who asked. |
@@ -166,14 +169,14 @@ or failed, 503 not connected.
 | `GET status` | The person, each network (connected, why not), the ceilings. |
 | `GET search?q=` | Groups and campaigns for ⌘K. |
 | `GET accounts/{net}` | Every login's chosen accounts. |
-| `GET {net}/{account}/tree` | Groups, campaigns, pairs, waiting moves. The lists are kept 30 s and dropped by any write through Launch. |
+| `GET {net}/{account}/tree` | Groups (with their objective), campaigns, pairs, waiting moves. The lists are kept 30 s and dropped by any write through Launch. |
 | `GET {net}/{account}/ads?campaigns=1,2` | `{ads: {campaign: [ad]}, errors: {campaign: why}}`, at most 25 campaigns, kept like the tree. |
 | `GET numbers?window=7d&accounts=a,b` | Intel's numbers for the window by campaign and by ad: `{available, campaigns, ads, refreshed_at}`; `available` is false without Intel's views. |
 | `GET {net}/{account}/campaigns/{id}` | Campaign, ads, pair, twin, History. |
-| `POST {net}/{account}/groups` | A paused group `{name, budget, budget_model, objective}`. |
+| `POST {net}/{account}/groups` | A group `{name, budget, budget_model, objective}`, running or paused like campaigns (`TABOOLA_CREATE_ACTIVE`). |
 | `POST {net}/{account}/move` `duplicate` `pause` `change` | `{campaigns, to_group, originals, change}`; one result per campaign. |
 | `POST moves/{id}/cancel` | Stops waiting on a move. |
-| `POST pairs` then `GET jobs/{id}` | A new campaign or pair (`actions.PairRequest` plus `key`; `devices` both, mobile or desktop; no `name` for the team's names; `ads` exactly as made, one entry per ad; `desktop` or `mobile`, whole settings that replace `settings` for that device only); the job lists each step. |
+| `POST pairs` then `GET jobs/{id}` | A new campaign or pair (`actions.PairRequest` plus `key`; `devices` both, mobile or desktop; no `name` for the team's names; `desktop_name` or `mobile_name` names that campaign only; `ads` exactly as made, one entry per ad; `desktop` or `mobile`, whole settings that replace `settings` for that device only); the job lists each step. |
 | `GET/POST presets`, `PUT/DELETE presets/{id}` | Presets. |
 | `GET history?network=&account=&campaign=&limit=` | History and waiting moves. |
 | `GET/POST drafts`, `GET/PUT/DELETE drafts/{id}` | Drafts. |
@@ -217,12 +220,37 @@ Accounts are not in `launch_api`: they are the network logins', read live
 `launch.login` (`migrations/sql/0003_login.sql`) holds each added login: name,
 client ID, the chosen accounts, who added it and when, and its secret sealed
 with AES-256-GCM (`internal/logins`), tied to its network and client ID. The
-key is a 32-byte file Launch makes at its first start, owner-only:
-`LAUNCH_LOGIN_KEY`, by default `login.key` in the data folder
-(`/var/lib/launch-web/login.key` on the data box). It is never in the
-database, so a database copy alone cannot open a secret. If the key file is
-lost, the added logins show "a chave do servidor mudou" and have to be added
-again; the server's own login is not affected. Intel does not read these
+key is 32 bytes, never in the database, so a database copy alone cannot
+open a secret. Launch reads it from `LAUNCH_LOGIN_KEY_BASE64` (the key in
+base64, in `/etc/adhunters/launch-web.env`); without that setting it uses the
+file `LAUNCH_LOGIN_KEY`, by default `login.key` in the data folder
+(`/var/lib/launch-web/login.key` on the data box), which it makes at its
+first start, owner-only. With the setting it neither reads nor makes the file;
+if a file holds another key, the log says so and the setting wins.
+
+Nothing backs up `/var/lib`, so the owner keeps the key in their password
+manager, like every other key (decision 0026). To move the key file into the
+setting and copy the key to the clipboard without showing it, run this from
+your computer, then paste the key into the password manager. No restart is
+needed: the key is the same.
+
+```
+ssh admin@adhunters-data sudo bash -s <<'EOF' | wl-copy
+set -e
+f=/etc/adhunters/launch-web.env k=/var/lib/launch-web/login.key
+v=$(base64 -w0 "$k")
+sed -i '/^LAUNCH_LOGIN_KEY_BASE64=/d' "$f"
+[ -z "$(tail -c1 "$f")" ] || echo >>"$f"
+echo "LAUNCH_LOGIN_KEY_BASE64=$v" >>"$f"
+if sed -n 's/^LAUNCH_LOGIN_KEY_BASE64=//p' "$f" | base64 -d | cmp -s - "$k"; then echo "== saved in $f, the same key as $k; it is in your clipboard" >&2; else echo "== the setting does not match $k" >&2; exit 1; fi
+printf %s "$v"
+EOF
+```
+
+On a rebuilt box, put the line `LAUNCH_LOGIN_KEY_BASE64=` with the key from
+the password manager back in `launch-web.env` and restart launch-web. If the
+key is lost, the added logins show "a chave do servidor mudou" and have to be
+added again; the server's own login is not affected. Intel does not read these
 logins yet: their accounts have no numbers in Launch until it does.
 
 ## Settings and running it

@@ -19,11 +19,13 @@
 //	LAUNCH_DATA_DIR         launch-data (kept exchanges, pictures, only-own state)
 //	LAUNCH_WATCH_EVERY      5m: how often moves are checked for started copies
 //	TABOOLA_*               the server's own Taboola login (shared/taboola/write, SettingsFromEnv)
-//	LAUNCH_LOGIN_KEY        <data>/login.key: the key that seals the secrets of
-//	                        logins added on the Contas page (made at first start)
+//	LAUNCH_LOGIN_KEY_BASE64 the key that seals the secrets of logins added on
+//	                        the Contas page, in base64; the owner keeps a copy
+//	LAUNCH_LOGIN_KEY        <data>/login.key: the key file used without
+//	                        LAUNCH_LOGIN_KEY_BASE64 (made at first start)
 //
-// Nothing is created running: groups, campaigns and ads are made paused,
-// and a person turns them on in Taboola's own dashboard.
+// Groups, campaigns and ads go up running only with TABOOLA_CREATE_ACTIVE=1;
+// otherwise they are made paused. Copies and moves always arrive paused.
 package main
 
 import (
@@ -120,11 +122,21 @@ func serve(args []string) error {
 	img := &images.Store{Dir: filepath.Join(*dataDir, "images")}
 	st := store.New(db)
 	// Taboola is the server's own login and those people add on the Contas
-	// page, whose secrets are sealed with the key in LAUNCH_LOGIN_KEY.
+	// page, whose secrets are sealed with the key in LAUNCH_LOGIN_KEY_BASE64,
+	// or without it the key file LAUNCH_LOGIN_KEY.
 	nets := tbnet.NewLogins(tbnet.Login{T: tbnet.New(tb), Accounts: tbSet.Accounts})
-	box, err := logins.OpenKey(envOr("LAUNCH_LOGIN_KEY", filepath.Join(*dataDir, "login.key")))
+	keyFile := envOr("LAUNCH_LOGIN_KEY", filepath.Join(*dataDir, "login.key"))
+	box, differs, err := logins.KeyFrom(os.Getenv("LAUNCH_LOGIN_KEY_BASE64"), keyFile)
 	if err != nil {
 		return err
+	}
+	switch {
+	case os.Getenv("LAUNCH_LOGIN_KEY_BASE64") == "":
+		log.Info("login key from its file, keep a copy (launch/README.md)", "file", keyFile)
+	case differs:
+		log.Warn("login key: the file holds another key, LAUNCH_LOGIN_KEY_BASE64 is used", "file", keyFile)
+	default:
+		log.Info("login key from LAUNCH_LOGIN_KEY_BASE64")
 	}
 	accts := logins.New(st, box, nets, tb, tbSet, kept, log)
 	if err := accts.Load(ctx); err != nil {

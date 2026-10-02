@@ -67,37 +67,46 @@ export function repeats(list) {
 
 // MOBILE are the settings a pair's mobile campaign may have of its own; the
 // rest are always the same as the desktop's.
-export const MOBILE = ['cpc', 'target_cpa', 'daily_cap', 'start_date'];
+export const MOBILE = ['bid_strategy', 'cpc', 'target_cpa', 'daily_cap', 'spending_limit', 'start_date'];
 
 // mobileSettings is the mobile campaign's settings: the desktop's with the
-// person's own values in over (empty ones keep the desktop's). The bid stays
-// the desktop's kind: a CPC only with a CPC bid, a target CPA only with
-// Maximize conversions. Nothing over: null, both the same.
+// person's own values in over (empty ones keep the desktop's). A CPC goes
+// only with a CPC bid and a target CPA only with Maximize conversions, the
+// mobile's own bid kind when it has one. Nothing over: null, both the same.
 export function mobileSettings(desktop, over) {
   if (!over) return null;
   const m = { ...desktop };
-  const maxConv = desktop.bid_strategy === 'MAX_CONVERSIONS';
+  const own = (k) => over[k] !== undefined && over[k] !== null && over[k] !== '';
+  if (own('bid_strategy')) m.bid_strategy = over.bid_strategy;
+  const maxConv = m.bid_strategy === 'MAX_CONVERSIONS';
+  if (maxConv) m.cpc = 0;
+  else m.target_cpa = 0;
   for (const k of MOBILE) {
-    const v = over[k];
-    if (v === undefined || v === null || v === '') continue;
+    if (k === 'bid_strategy' || !own(k)) continue;
     if (k === 'cpc' && maxConv) continue;
     if (k === 'target_cpa' && !maxConv) continue;
-    m[k] = v;
+    m[k] = over[k];
   }
   return m;
 }
+
+// CONVERSION_OBJECTIVES are the objectives Taboola allows Maximize
+// conversions on.
+const CONVERSION_OBJECTIVES = new Set(['LEADS_GENERATION', 'ONLINE_PURCHASES']);
 
 // mobileProblem checks the mobile campaign's own values against the same
 // ceilings as the desktop's (the server refuses them anyway); '' when fine.
 export function mobileProblem(m, limits = {}) {
   if (!m) return '';
-  for (const [k, name] of [['cpc', 'O CPC do mobile'], ['target_cpa', 'O CPA alvo do mobile'], ['daily_cap', 'O orçamento diário do mobile']]) {
+  for (const [k, name] of [['cpc', 'O CPC do mobile'], ['target_cpa', 'O CPA alvo do mobile'], ['daily_cap', 'O orçamento diário do mobile'], ['spending_limit', 'O limite total do mobile']]) {
     if (Number.isNaN(m[k])) return name + ' é um número, como 0,35.';
   }
   if (m.bid_strategy !== 'MAX_CONVERSIONS' && !(m.cpc > 0)) return 'Diga o CPC do mobile.';
+  if (m.bid_strategy === 'MAX_CONVERSIONS' && m.objective && !CONVERSION_OBJECTIVES.has(m.objective)) return 'Maximizar conversões no mobile pede o objetivo Leads ou Compras.';
   if (limits.max_cpc && m.cpc > limits.max_cpc) return `O CPC do mobile vai até ${usd(limits.max_cpc)}.`;
   if (!(m.daily_cap > 0)) return 'Diga o orçamento diário do mobile.';
   if (limits.max_daily_cap && m.daily_cap > limits.max_daily_cap) return `O orçamento diário do mobile vai até ${usd(limits.max_daily_cap)}.`;
+  if (limits.max_spend_limit && m.spending_limit > limits.max_spend_limit) return `O limite total do mobile vai até ${usd(limits.max_spend_limit)}.`;
   const total = m.spending_limit || limits.max_spend_limit || 0;
   if (total && m.daily_cap > total) return `O orçamento diário do mobile (${usd(m.daily_cap)}) passa do limite total (${usd(total)}): o Taboola recusa.`;
   if (m.start_date && m.end_date && m.end_date < m.start_date) return 'O mobile começaria depois de terminar.';

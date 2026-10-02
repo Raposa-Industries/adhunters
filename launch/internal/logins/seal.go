@@ -1,14 +1,17 @@
 package logins
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // keySize is AES-256's key length.
@@ -18,9 +21,37 @@ const keySize = 32
 // row was altered. The login has to be added again.
 var ErrSealed = errors.New("logins: secret cannot be opened with this key")
 
-// Box seals and opens secrets with AES-256-GCM. The key lives in a file on
-// the server's disk, apart from the database that holds what it seals.
+// Box seals and opens secrets with AES-256-GCM. The key lives in the
+// server's settings or in a file on its disk, apart from the database that
+// holds what it seals.
 type Box struct{ aead cipher.AEAD }
+
+// KeyFrom is the box for the key in setting, the key's 32 bytes in base64
+// (LAUNCH_LOGIN_KEY_BASE64, kept with the other secrets in the owner's
+// password manager), or, when setting is empty, for the key file at path
+// (OpenKey). With a setting no file is read for the key or made, so a
+// rebuilt server given its settings back opens what the old one sealed.
+// differs tells that a file at path holds another key, which then is not
+// used. No error holds the key.
+func KeyFrom(setting, path string) (box *Box, differs bool, err error) {
+	setting = strings.TrimSpace(setting)
+	if setting == "" {
+		box, err = OpenKey(path)
+		return box, false, err
+	}
+	key, err := base64.StdEncoding.DecodeString(setting)
+	if err != nil {
+		return nil, false, errors.New("logins: the key setting is not base64")
+	}
+	if len(key) != keySize {
+		return nil, false, fmt.Errorf("logins: the key setting holds %d bytes, not %d", len(key), keySize)
+	}
+	if file, err := os.ReadFile(path); err == nil && !bytes.Equal(file, key) {
+		differs = true
+	}
+	box, err = NewBox(key)
+	return box, differs, err
+}
 
 // OpenKey reads the key at path, making a new random one (mode 0600, its
 // folder 0700) when there is none yet.

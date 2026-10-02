@@ -14,7 +14,7 @@ export const OBJECTIVES = [
   ['BRAND_AWARENESS', 'Marca'],
 ];
 
-const MODELS = [['', 'Por campanha'], ['MONTHLY', 'Por mês'], ['ENTIRE', 'Total']];
+export const MODELS = [['', 'Por campanha'], ['MONTHLY', 'Por mês'], ['ENTIRE', 'Total']];
 
 // The team's defaults for a new campaign (2026-09-30; the budget from the
 // owner, 2026-10-02: $500 a day and no total limit).
@@ -39,31 +39,46 @@ const cityLines = (ids) => (ids || []).map((id) => (CITY[id] ? `${id} ${CITY[id]
 const cityIds = (text) => text.split(/\r?\n/).map((l) => (l.trim().match(/^\d+/) || [''])[0]).filter(Boolean);
 
 // CONVERSIONS are the objectives Taboola allows Maximize conversions on.
-const CONVERSIONS = { LEADS_GENERATION: true, ONLINE_PURCHASES: true };
-const BIDS = [['MAX_CONVERSIONS', 'Maximizar conversões (CPA)'], ['FIXED', 'CPC fixo'], ['SMART', 'CPC Smart']];
+export const CONVERSIONS = { LEADS_GENERATION: true, ONLINE_PURCHASES: true };
+export const BIDS = [['MAX_CONVERSIONS', 'Maximizar conversões'], ['FIXED', 'CPC fixo'], ['SMART', 'CPC Smart']];
 const DELIVERY = [['OPTIMIZED', 'Priorizar os melhores anúncios'], ['EVEN', 'Teste A/B (igual para todos)']];
 
 // groupFields is the part of a form that describes a new group. An empty
 // name gets the account's next number (01, 02…) when the group is made.
+// el lays the fields out for the Presets page; parts are the same fields
+// for a page that lays them out itself (Novo grupo).
 export function groupFields(values = {}) {
   const name = input({ placeholder: 'próximo número', value: values.name || '' });
   const budget = input({ inputmode: 'decimal', placeholder: '500', value: values.budget || '' });
   const model = select(MODELS, values.budget_model ?? '');
   const objective = select(OBJECTIVES, values.objective || TEAM.objective);
   const budgetBox = field('Orçamento do grupo (US$)', budget, 'as campanhas do grupo gastam deste orçamento');
-  const showBudget = () => { budgetBox.hidden = !model.value; };
+  const modelHint = h('span', { class: 'hint' }, '');
+  const showBudget = () => {
+    budgetBox.hidden = !model.value;
+    modelHint.textContent = { '': 'cada campanha tem o seu (padrão)', MONTHLY: 'o grupo gasta até este valor por mês', ENTIRE: 'o grupo gasta até este valor no total' }[model.value];
+  };
   model.addEventListener('change', showBudget);
   showBudget();
-  const el = h('div', { class: 'fields' },
-    field('Nome do grupo', name, 'vazio: o próximo número da conta'),
-    field('Objetivo', objective, 'as campanhas do grupo têm o mesmo'),
-    field('Orçamento', model, 'por campanha: cada campanha tem o seu (padrão)'),
-    budgetBox,
-    // Backstage gives a group with no end_date its default, 9999-12-31: no
-    // end. Launch never sends one, so every group runs until someone ends it.
-    field('Duração', h('span', { class: 'static' }, 'Para sempre'), 'sem data de fim: o grupo segue até alguém pausar'));
+  // Backstage gives a group with no end_date its default, 9999-12-31: no
+  // end. Launch never sends one, so every group runs until someone ends it;
+  // "Com data de fim" is shown, not offered yet.
+  const duration = h('div', { class: 'field' }, 'Duração',
+    h('div', { class: 'segmented wide', role: 'radiogroup' },
+      h('label', {}, h('input', { type: 'radio', name: 'duration-' + Math.random().toString(36).slice(2, 7), value: 'forever', checked: true }), h('span', {}, 'Para sempre')),
+      h('label', { title: 'Ainda não: o Launch só cria grupos sem data de fim' }, h('input', { type: 'radio', value: 'end', disabled: true }), h('span', {}, 'Com data de fim'))),
+    h('span', { class: 'hint' }, 'sem data de fim: o grupo segue até alguém pausar'));
+  const parts = {
+    name: field('Nome do grupo', name, 'vazio: o próximo número da conta'),
+    objective: field('Objetivo', objective, 'as campanhas do grupo têm o mesmo'),
+    model: h('label', { class: 'field' }, 'Orçamento', model, modelHint),
+    budget: budgetBox,
+    duration,
+  };
+  const el = h('div', { class: 'fields' }, parts.name, parts.objective, parts.model, parts.budget, parts.duration);
   return {
     el,
+    parts,
     name,
     // preset is what a group preset keeps: everything but the name.
     preset: () => ({ budget: model.value ? numberOf(budget.value) || 0 : 0, budget_model: model.value, objective: objective.value }),
@@ -92,7 +107,7 @@ export function settingsForm(values = {}, limits = {}) {
   const cpcBox = field('CPC (US$)', cpc, limits.max_cpc ? 'até ' + money(limits.max_cpc) : null);
   const cpaBox = field('CPA alvo (US$)', cpa, 'opcional: vazio deixa o Taboola maximizar');
   const showBid = () => { cpcBox.hidden = bidNow === 'MAX_CONVERSIONS'; cpaBox.hidden = bidNow !== 'MAX_CONVERSIONS'; };
-  const bid = segmented('bid-' + Math.random().toString(36).slice(2, 7), BIDS, bidNow, (v) => { bidNow = v; showBid(); });
+  const bid = select(BIDS, bidNow, { 'aria-label': 'Lance', onchange: (e) => { bidNow = e.target.value; showBid(); } });
   const cap = input({ inputmode: 'decimal', placeholder: '20', value: s.daily_cap || '' });
   const limit = input({ inputmode: 'decimal', placeholder: limits.max_spend_limit ? String(limits.max_spend_limit) : 'nenhum', value: s.spending_limit || '' });
   let deliveryNow = s.ad_delivery || 'OPTIMIZED';
@@ -132,29 +147,38 @@ export function settingsForm(values = {}, limits = {}) {
   const trackers = segmented('tracker-' + Math.random().toString(36).slice(2, 7),
     Object.entries(TRACKERS).map(([k, t]) => [k, t.name]), trackerId, (v) => { trackerId = v; hint.textContent = TRACKERS[v].hint; splitNow(); });
 
+  // parts are the labelled fields, for a page that lays them out itself
+  // (Nova campanha); el lays them out for the Presets page.
+  const parts = {
+    brand: field('Marca', brand, 'o nome que aparece no anúncio'),
+    objective: field('Objetivo', objective, 'o mesmo do grupo'),
+    start: field('Começa em', start, 'vazio: quando for ligada'),
+    end: field('Termina em', end, 'vazio: sem fim'),
+    cities,
+    cap: field('Orç. diário (US$)', cap, limits.max_daily_cap ? 'até ' + money(limits.max_daily_cap) : null),
+    limit: field('Limite total (US$)', limit, limits.max_spend_limit ? `até ${money(limits.max_spend_limit)}` : 'vazio: nenhum'),
+    bid: field('Lance', bid),
+    cpc: cpcBox,
+    cpa: cpaBox,
+    delivery: h('div', { class: 'field' }, 'Entrega dos anúncios', delivery),
+    tracker: h('div', { class: 'field' }, 'Tracker', trackers),
+    link: h('label', { class: 'field' }, 'Página (landing page)', linkBox, hint),
+    warnings: warnBox,
+    tracking: field('Tracking code da campanha', tracking, 'o Taboola junta ao link de cada anúncio e preenche os {macros}'),
+    description: field('Descrição', description, 'opcional, em inglês; vai em todos os anúncios'),
+  };
   const el = h('div', { class: 'settings-form' },
     h('h3', {}, 'Configuração'),
-    h('div', { class: 'fields' },
-      field('Marca', brand, 'o nome que aparece no anúncio'),
-      field('Objetivo', objective),
-      field('Começa em', start, 'vazio: quando for ligada'), field('Termina em', end, 'vazio: sem fim')),
+    h('div', { class: 'fields' }, parts.brand, parts.objective, parts.start, parts.end),
     h('h3', {}, 'Onde'),
     h('p', { class: 'muted' }, 'Estados Unidos, menos estas cidades (uma por linha, começando pelo número da cidade no Taboola):'),
     cities,
     h('h3', {}, 'Orçamento e lance'),
-    h('div', { class: 'fields' },
-      field('Orçamento diário (US$)', cap, limits.max_daily_cap ? 'até ' + money(limits.max_daily_cap) : 'por campanha'),
-      field('Limite total da campanha (US$)', limit, limits.max_spend_limit ? `no máximo ${money(limits.max_spend_limit)}: a campanha nunca gasta mais que isso` : 'vazio: nenhum')),
-    h('span', { class: 'field' }, 'Otimizar para'), bid,
-    h('div', { class: 'fields' }, cpcBox, cpaBox),
-    h('span', { class: 'field' }, 'Entrega dos anúncios'), delivery,
+    h('div', { class: 'fields' }, parts.cap, parts.limit, parts.bid, cpcBox, cpaBox),
+    parts.delivery,
     h('h3', {}, 'Página e tracking'),
-    h('div', { class: 'link-part' },
-      h('span', { class: 'field' }, 'Tracker'), trackers,
-      h('label', { class: 'field' }, 'Página (landing page)', linkBox, hint),
-      warnBox,
-      field('Tracking code da campanha', tracking, 'o Taboola junta ao link de cada anúncio e preenche os {macros}')),
-    h('div', { class: 'fields' }, field('Descrição', description, 'vai em todos os anúncios')));
+    h('div', { class: 'link-part' }, parts.tracker, parts.link, warnBox, parts.tracking),
+    h('div', { class: 'fields' }, parts.description));
   showBid();
   warn();
 
@@ -176,9 +200,12 @@ export function settingsForm(values = {}, limits = {}) {
       end_date: end.value,
     };
   };
-  const radio = (name, v) => { const r = el.querySelector(`input[name^="${name}"][value="${v}"]`); if (r) r.checked = true; };
+  // The radios are found in their own boxes: a page may lay the parts out
+  // outside el.
+  const radio = (box, v) => { const r = box.querySelector(`input[value="${v}"]`); if (r) r.checked = true; };
   return {
     el,
+    parts,
     settings,
     url: () => linkBox.value.trim(),
     description: () => description.value.trim(),
@@ -195,8 +222,8 @@ export function settingsForm(values = {}, limits = {}) {
       if (s.brand !== undefined) brand.value = s.brand;
       if (s.cpc !== undefined) cpc.value = s.cpc || '';
       if (s.target_cpa !== undefined) cpa.value = s.target_cpa || '';
-      if (s.bid_strategy) { bidNow = s.bid_strategy; radio('bid-', bidNow); showBid(); }
-      if (s.ad_delivery) { deliveryNow = s.ad_delivery; radio('delivery-', deliveryNow); }
+      if (s.bid_strategy) { bidNow = s.bid_strategy; bid.value = bidNow; showBid(); }
+      if (s.ad_delivery) { deliveryNow = s.ad_delivery; radio(delivery, deliveryNow); }
       if (s.daily_cap !== undefined) cap.value = s.daily_cap || '';
       if (s.spending_limit !== undefined) limit.value = s.spending_limit || '';
       if (s.exclude_cities) cities.value = cityLines(s.exclude_cities);
@@ -208,12 +235,20 @@ export function settingsForm(values = {}, limits = {}) {
       if (f.description !== undefined) description.value = f.description;
       if (f.tracker && TRACKERS[f.tracker]) {
         trackerId = f.tracker;
-        radio('tracker-', f.tracker);
+        radio(trackers, f.tracker);
         hint.textContent = TRACKERS[f.tracker].hint;
       }
       warn();
     },
-    problem: () => {
+    // problem is what keeps the settings from going out, '' when nothing:
+    // part 'campaign' checks only the bid and budget, 'ads' only the brand
+    // and the page, for a page that asks for them in different steps.
+    problem: (part = '') => {
+      if (part === 'ads') {
+        if (!brand.value.trim()) return 'Escreva a marca.';
+        if (!linkBox.value.trim()) return 'Falta o link da página.';
+        return '';
+      }
       for (const [box, name] of [[cpc, 'O CPC'], [cpa, 'O CPA alvo'], [cap, 'O orçamento diário'], [limit, 'O limite de gasto']]) {
         if (Number.isNaN(numberOf(box.value))) return name + ' é um número, como 0,35.';
       }
@@ -224,6 +259,8 @@ export function settingsForm(values = {}, limits = {}) {
       if (limits.max_spend_limit && numberOf(limit.value) > limits.max_spend_limit) return `O limite total vai até ${money(limits.max_spend_limit)}.`;
       const total = numberOf(limit.value) || limits.max_spend_limit || 0;
       if (total && numberOf(cap.value) > total) return `O orçamento diário (${money(numberOf(cap.value))}) passa do limite total (${money(total)}): o Taboola recusa.`;
+      if (start.value && end.value && end.value < start.value) return 'A campanha terminaria antes de começar.';
+      if (part === 'campaign') return '';
       if (!brand.value.trim()) return 'Escreva a marca.';
       if (!linkBox.value.trim()) return 'Falta o link da página.';
       return '';
@@ -274,13 +311,13 @@ export function presetBar({ level, net, account, form, list, onUse }) {
     out.replaceChildren(h('div', { class: 'preset-save' }, name, account ? h('label', { class: 'check' }, onlyHere, 'só nesta conta') : null, ok), msg);
     name.focus();
   } }, 'Salvar como preset');
-  return h('div', { class: 'preset-bar' }, pick, save, out);
+  return h('div', { class: 'preset-bar' }, pick, save, h('a', { class: 'faint', href: '/launch/presets' }, 'Ver os presets'), out);
 }
 
 // presets is the Presets page.
 export async function presets({ main, status }) {
   main.append(h('div', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Presets'),
-    h('p', { class: 'lead muted' }, 'Configurações que você salva e reaproveita. Salve um preset em Novo par ou aqui.'))));
+    h('p', { class: 'lead muted' }, 'Configurações que você salva e reaproveita. Salve um preset nos passos de + Novo ou aqui.'))));
   const list = await loadPresets('taboola', '');
   for (const [level, title, about] of [
     ['group', 'Grupos', 'Orçamento e objetivo de um grupo novo. Todo grupo é para sempre, sem data de fim.'],

@@ -171,7 +171,7 @@ func (n *Net) CreateGroup(_ context.Context, account string, g network.NewGroup)
 	if err := n.fail("CreateGroup", g.Name); err != nil {
 		return network.Group{}, err
 	}
-	made := network.Group{ID: n.id(), Name: g.Name, Status: "PAUSED", Budget: g.Budget, BudgetModel: g.BudgetModel}
+	made := network.Group{ID: n.id(), Name: g.Name, Status: "PAUSED", Budget: g.Budget, BudgetModel: g.BudgetModel, Objective: g.Objective}
 	n.groups[account] = append(n.groups[account], made)
 	n.Calls = append(n.Calls, "CreateGroup "+made.ID)
 	return made, nil

@@ -1,38 +1,37 @@
-// The three main pages, like Realize's: Campaign Groups, Campaigns and Ads,
-// each a table with the numbers of the period picked. Clicking a group opens
-// its campaigns; clicking a campaign opens its ads. Each narrowing shows as
-// a chip (× takes it off, back to all) and in the trail at the top. The
-// numbers are Intel's (intel_api), never asked of Taboola here; the lists of
-// groups, campaigns and ads are Taboola's, kept by the server for a moment.
+// Campanhas: Launch's one table (Draw Designer batch 126). Groups, their
+// campaigns and the campaigns' ads are rows of one table that open in
+// place; a campaign opens on the right (campaign.js) without leaving the
+// list, and ↑ ↓ move to the next one. The numbers are Intel's (intel_api),
+// never asked of Taboola here; the lists of groups, campaigns and ads are
+// Taboola's, kept by the server for a moment.
 //
-// The address holds everything: /launch/<groups|campaigns|ads>?account=<id|all>
-// &group=<id>&campaign=<id>&w=<today|yesterday|7d|30d>, so a link or a reload
-// shows the same table.
+// The address holds what the page shows: /launch/campaigns?account=<id|all>
+// &w=<today|yesterday|7d|30d>&group=<id>&open=<campaign id>, so a link or a
+// reload shows the same thing. A campaign's own address
+// (/launch/taboola/<account>/g/<group>/c/<id>, Intel's and Desk's links) is
+// this page with that campaign open.
 import { api, h, note, money, badge, link, select, input, field, plural, store, busy, numberOf, segmented, doneNote, DEVICES } from './lib.js';
-
-export const LEVELS = {
-  groups: 'Grupos de campanha',
-  campaigns: 'Campanhas',
-  ads: 'Anúncios',
-};
+import { campaignView } from './campaign.js';
+import { nest, inState, standIns } from './rows.js';
 
 export const WINDOWS = [['today', 'Hoje'], ['yesterday', 'Ontem'], ['7d', 'Últimos 7 dias'], ['30d', 'Últimos 30 dias']];
 
 const NET = 'taboola';
 
-// where reads the address into what the page shows.
+// where reads the address into what the page shows. campaign= is the old
+// Ads table's narrowing, now the campaign that opens.
 export function where(search) {
   const q = new URLSearchParams(search);
   const w = WINDOWS.some(([v]) => v === q.get('w')) ? q.get('w') : store('launch.window') || '7d';
-  return { account: q.get('account') || store('launch.acct') || 'all', group: q.get('group') || '', campaign: q.get('campaign') || '', w };
+  return { account: q.get('account') || store('launch.acct') || 'all', group: q.get('group') || '', open: q.get('open') || q.get('campaign') || '', w };
 }
 
-// href builds a page address, keeping the account and the period.
-export function href(level, at, more = {}) {
+// href builds the page's address, keeping the account and the period.
+export function href(at, more = {}) {
   const q = new URLSearchParams();
   const v = { account: at.account, w: at.w, ...more };
-  for (const k of ['account', 'group', 'campaign', 'w']) if (v[k]) q.set(k, v[k]);
-  return `/launch/${level}?${q}`;
+  for (const k of ['account', 'group', 'open', 'w']) if (v[k]) q.set(k, v[k]);
+  return '/launch/campaigns?' + q;
 }
 
 // ---- numbers ----
@@ -53,13 +52,15 @@ function add(sum, n) {
 }
 
 // tracked is false while Intel has no sales from the tracker in the period
-// shown: sales, CPA, revenue, profit and ROI then show
-// "—" instead of a loss as big as the spend.
+// shown: sales, CPA, revenue, profit and ROI then show "—" instead of a
+// loss as big as the spend.
 let tracked = true;
 const sold = (show) => (n) => (tracked ? show(n) : '—');
 
-// COLUMNS are the number columns every table shares, in Realize's order.
-const COLUMNS = [
+// COLUMNS are the number columns, in Realize's order. The table shows the
+// ones picked in Colunas (DEFAULT_COLUMNS until someone picks); the strip
+// above it shows the totals of the main ones.
+export const COLUMNS = [
   ['spent', 'Gasto', (n) => usd(n.spent)],
   ['impressions', 'Impressões', (n) => (n.has ? int.format(n.impressions) : '—')],
   ['clicks', 'Cliques', (n) => (n.has ? int.format(n.clicks) : '—')],
@@ -71,6 +72,8 @@ const COLUMNS = [
   ['profit', 'Lucro', sold((n) => (n.has ? h('span', { class: n.profit < 0 ? 'down' : n.profit > 0 ? 'up' : '' }, money(n.profit) || 'US$ 0') : '—'))],
   ['roi', 'ROI', sold((n) => (n.spent && n.has ? pct.format(n.profit / n.spent) : '—'))],
 ];
+export const DEFAULT_COLUMNS = ['spent', 'impressions', 'clicks', 'sales'];
+const STRIP = ['spent', 'clicks', 'ctr', 'sales', 'cpa', 'revenue', 'profit', 'roi'];
 
 function sortValue(n, key) {
   switch (key) {
@@ -83,26 +86,22 @@ function sortValue(n, key) {
 }
 
 const STATES = [['all', 'Todos'], ['running', 'Rodando'], ['paused', 'Pausados'], ['other', 'Outros']];
-const RUNNING = new Set(['RUNNING', 'APPROVED']);
-const PAUSED = new Set(['PAUSED', 'STOPPED']);
-
-function inState(s, which) {
-  if (which === 'all') return true;
-  if (which === 'running') return RUNNING.has(s);
-  if (which === 'paused') return PAUSED.has(s);
-  return !RUNNING.has(s) && !PAUSED.has(s);
-}
 
 // ---- the page ----
 
 export async function manage(ctx) {
   const { main, aside, route, status } = ctx;
-  const level = route.level;
   const at = where(location.search);
+  // A campaign's own address opens it here, asked actions (?do=) and all.
+  const asked = route.page === 'campaign' ? location.search : '';
+  if (route.page === 'campaign') {
+    at.account = route.account;
+    at.open = route.campaign;
+  }
   store('launch.window', at.w);
   const taboola = (status.networks || []).find((n) => n.name === NET);
   if (!taboola?.connected) {
-    main.append(h('h1', {}, LEVELS[level]), note('warn', h('b', {}, 'Taboola desligado. '), taboola?.reason || '',
+    main.append(h('h1', {}, 'Campanhas'), note('warn', h('b', {}, 'Taboola desligado. '), taboola?.reason || '',
       ' Em Novo › Campanha você ainda monta os anúncios e baixa a planilha para subir à mão.'));
     return;
   }
@@ -110,9 +109,10 @@ export async function manage(ctx) {
   // Accounts, then every chosen account's groups and campaigns, and Intel's numbers.
   const accounts = (await api(`accounts/${NET}`)).accounts;
   if (at.account !== 'all' && !accounts.some((a) => a.id === at.account)) at.account = 'all';
-  store('launch.acct', at.account);
+  if (route.page !== 'campaign') store('launch.acct', at.account);
   const chosen = at.account === 'all' ? accounts : accounts.filter((a) => a.id === at.account);
   const acctName = new Map(accounts.map((a) => [a.id, a.name || a.id]));
+  const many = chosen.length > 1;
   const loading = note('', 'Lendo o Taboola…');
   main.append(loading);
   const trees = await Promise.all(chosen.map((a) => api(`${NET}/${encodeURIComponent(a.id)}/tree`).then((t) => ({ a, t }), (e) => ({ a, error: e.message }))));
@@ -137,323 +137,291 @@ export async function manage(ctx) {
   }
   // A campaign whose group was deleted stays in Taboola's list (Realize
   // shows "Campaign Group Was Deleted"). It gets a stand-in group, so it can
-  // be found and opened, and that state instead of its own.
-  const known = new Set(groups.map((g) => g.account + '/' + g.id));
-  const gone = new Set();
+  // be found and opened, and that state instead of its own. Campaigns with
+  // no group at all get "Sem grupo".
+  const extra = standIns(groups, campaigns);
+  groups.push(...extra);
   for (const c of campaigns) {
-    const key = c.account + '/' + c.group_id;
-    if (!c.group_id || (known.has(key) && !gone.has(key))) continue;
-    if (!gone.has(key)) groups.push({ id: c.group_id, name: 'Grupo apagado · ' + c.group_id, status: 'GROUP_DELETED', account: c.account });
-    gone.add(key);
-    known.add(key);
+    if (!extra.some((g) => g.gone && g.account === c.account && g.id === c.group_id)) continue;
     c.taboola_status = c.status;
     c.status = 'GROUP_DELETED';
   }
-  const groupById = new Map(groups.map((g) => [g.id, g]));
   const campById = new Map(campaigns.map((c) => [c.id, c]));
-  const group = at.group ? groupById.get(at.group) || { id: at.group, name: at.group === '-' ? 'Sem grupo' : 'Grupo ' + at.group, account: at.account } : null;
-  const campaign = at.campaign ? campById.get(at.campaign) || { id: at.campaign, name: 'Campanha ' + at.campaign, account: at.account } : null;
+  const groupOf = (c) => groups.find((g) => g.account === c.account && (g.id || '') === (c.group_id || ''));
   const numsOf = (id) => add(zero(), nums.campaigns?.[id]);
+  const adNums = (a) => add(zero(), nums.ads?.[a.id]);
 
-  // ---- left column: account, period, state, device, search ----
-  const f = { state: store('launch.state') || 'all', device: 'all', text: '' };
-  const go = (more) => location.assign(href(level, { ...at, ...more }, { group: at.group, campaign: at.campaign, ...more }));
+  // ---- left column: search, account, state, device, period ----
+  const f = { state: store('launch.state') || 'all', device: store('launch.device') || 'all', text: '' };
+  const chips = (name, list, now, set) => h('div', { class: 'chips' }, list.map(([v, label]) => h('label', { class: 'chip' },
+    h('input', { type: 'radio', name, value: v, checked: now === v, onchange: () => set(v) }), h('span', {}, label))));
   aside.append(
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Busca'),
       input({ type: 'search', placeholder: 'nome ou id', 'aria-label': 'Buscar na tabela', oninput: (e) => { f.text = e.target.value.trim().toLowerCase(); draw(); } })),
+    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Conta'),
+      select([['all', `Todas as contas (${accounts.length})`], ...accounts.map((a) => [a.id, a.name || a.id])], at.account,
+        { 'aria-label': 'Conta', onchange: (e) => location.assign(href({ ...at, account: e.target.value })) })),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Estado'),
-      h('div', { class: 'chips' }, STATES.map(([v, label]) => h('label', { class: 'chip' },
-        h('input', { type: 'radio', name: 'state', value: v, checked: f.state === v, onchange: () => { f.state = v; store('launch.state', v); draw(); } }), h('span', {}, label))))),
-  );
-  if (level !== 'groups') {
-    aside.append(h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Dispositivo'),
-      h('div', { class: 'chips' }, [['all', 'Todos'], ['desktop', 'Desktop'], ['mobile', 'Mobile']].map(([v, label]) => h('label', { class: 'chip' },
-        h('input', { type: 'radio', name: 'device', value: v, checked: f.device === v, onchange: () => { f.device = v; draw(); } }), h('span', {}, label))))));
-  }
+      chips('state', STATES, f.state, (v) => { f.state = v; store('launch.state', v); draw(); })),
+    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Dispositivo'),
+      chips('device', [['all', 'Todos'], ['desktop', 'Desktop'], ['mobile', 'Mobile']], f.device, (v) => { f.device = v; store('launch.device', v); draw(); })),
+    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Período'),
+      select(WINDOWS, at.w, { 'aria-label': 'Período', onchange: (e) => location.assign(href({ ...at, w: e.target.value }, { group: at.group })) })));
 
-  // ---- head: Realize's breadcrumb of pickers (account, group, campaign), title, Novo ▾ ----
-  // Picking a group opens its campaigns, a campaign its ads; "Todos" takes
-  // that narrowing off and stays on the same table.
-  const groupsHere = groups.filter((g) => at.account === 'all' || g.account === at.account);
-  const campsHere = campaigns.filter((c) => !group || (c.group_id || '-') === group.id);
-  const acctLine = (id) => (at.account === 'all' && id ? acctName.get(id) + ' · ' : '');
-  main.append(h('nav', { class: 'pickers', 'aria-label': 'Onde você está' },
-    picker('Conta', at.account === 'all' ? `Todas as contas (${accounts.length})` : acctName.get(at.account) || at.account, [
-      { label: 'Todas as contas', href: href(level, { ...at, account: 'all' }), on: at.account === 'all' },
-      ...accounts.map((a) => ({ label: a.name || a.id, sub: 'ID: ' + a.id, href: href(level, { ...at, account: a.id }), on: a.id === at.account }))]),
-    picker('Grupo de campanha', group ? group.name || group.id : `Todos os grupos (${groupsHere.length})`, [
-      { label: 'Todos os grupos', href: href(level, at), on: !group },
-      ...groupsHere.map((g) => ({ label: g.name || g.id, sub: acctLine(g.account) + 'ID: ' + g.id, dot: g.status, on: group?.id === g.id,
-        href: href(level === 'groups' ? 'campaigns' : level === 'ads' ? 'ads' : 'campaigns', { ...at, account: g.account || at.account }, { group: g.id }) }))]),
-    picker('Campanha', campaign ? campaign.name : `Todas as campanhas (${campsHere.length})`, [
-      { label: 'Todas as campanhas', href: href(level === 'groups' ? 'campaigns' : level, at, { group: at.group }), on: !campaign },
-      ...campsHere.map((c) => ({ label: c.name, sub: acctLine(c.account) + 'ID: ' + c.id, dot: c.status, on: campaign?.id === c.id,
-        href: href('ads', { ...at, account: c.account }, { group: c.group_id || '-', campaign: c.id }) }))])));
-  const title = level === 'groups' ? 'Todos os grupos de campanha' : campaign ? campaign.name : group ? group.name || group.id : level === 'ads' ? 'Todos os anúncios' : 'Todas as campanhas';
+  // ---- head ----
   main.append(h('div', { class: 'page-head' },
-    h('div', {}, h('h1', {}, title), h('p', { class: 'muted numbers-line' }, numbersLine(nums))),
-    h('div', { class: 'actions' }, select(WINDOWS, at.w, { 'aria-label': 'Período', class: 'period', onchange: (e) => go({ w: e.target.value }) }),
-      newMenu({ at, group, campaign, accounts }))));
+    h('div', {}, h('h1', {}, 'Campanhas'), h('p', { class: 'muted numbers-line' }, numbersLine(nums))),
+    h('div', { class: 'actions' }, newMenu({ at, group: at.group ? realGroups.find((g) => g.id === at.group) : null }))));
   for (const p of problems) main.append(note('fail', p));
-
-  // ---- chips: what the table is narrowed to ----
-  // Groups shows every group, so only Campaigns and Ads are narrowed.
-  if (level !== 'groups' && (group || campaign)) {
-    const all = level === 'ads' ? 'Ver todos os anúncios' : 'Ver todas as campanhas';
-    main.append(h('div', { class: 'scope' }, h('span', { class: 'fr-label' }, 'Mostrando só'),
-      group ? scopeChip('Grupo', group.name || group.id, href(level, at, { campaign: at.campaign })) : null,
-      campaign ? scopeChip('Campanha', campaign.name, href(level, at, { group: at.group })) : null,
-      h('a', { class: 'scope-all', href: href(level, at) }, all)));
-  }
-
-  const totals = h('div', { class: 'totals' });
-  const table = h('div', { class: 'table-wrap' });
   const result = h('div', { class: 'result' });
-  const pages = h('div', { class: 'pages' });
+  const totals = h('div', { class: 'totals' });
+  const card = h('section', { class: 'table-card', 'aria-label': 'Grupos, campanhas e anúncios' });
   const bar = h('div', { class: 'select-bar', hidden: true });
-  main.append(result, totals, table, pages, bar);
+  main.append(result, totals, card, bar);
+  drawMoves(main, totals, moves, campById, groups);
 
-  const sort = { key: store('launch.sort.' + level) || 'spent', down: true };
-  const heads = (cols) => cols.map(([key, label, cls]) => h('th', { class: (cls || '') + (key ? ' sortable' : ''), 'aria-sort': key && key === sort.key ? (sort.down ? 'descending' : 'ascending') : null },
-    key ? h('button', { type: 'button', class: 'sort', onclick: () => { sort.down = sort.key === key ? !sort.down : true; sort.key = key; store('launch.sort.' + level, key); draw(); } }, label, key === sort.key ? (sort.down ? ' ↓' : ' ↑') : '') : label));
-  const header = (cols) => h('thead', {}, h('tr', {}, heads(cols)));
+  // ---- what is open, picked, sorted and shown ----
+  const sort = { key: store('launch.sort') || 'spent', down: store('launch.sort.down') ?? true };
+  let cols = (store('launch.cols') || DEFAULT_COLUMNS).filter((k) => COLUMNS.some(([c]) => c === k));
+  const openGroups = new Set();
+  const openCamps = new Set();
+  // adsOf holds each opened campaign's ads: a list, or {error}, or 'loading'.
+  const adsOf = new Map();
+  const pickC = new Set();
+  const pickA = new Set(); // "<campaign>/<ad>"
+  const together = { on: store('launch.together') ?? true };
+  let shown = []; // the campaigns in the order the table shows them, for ↑ ↓
+  for (const g of groups) if (!at.group || g.id === at.group) openGroups.add(g.account + '/' + (g.id || '-'));
+
   const byNumbers = (list, numbers, name) => list.sort((a, b) => {
-    const k = sort.key;
-    const d = k === 'name' ? name(a).localeCompare(name(b)) : sortValue(numbers(a), k) - sortValue(numbers(b), k);
+    const d = sort.key === 'name' ? name(a).localeCompare(name(b), 'pt-BR') : sortValue(numbers(a), sort.key) - sortValue(numbers(b), sort.key);
     return sort.down ? -d : d;
   });
-  const drawTotals = (sum, count) => totals.replaceChildren(h('div', { class: 'kpis' },
-    h('div', { class: 'kpi' }, h('span', { class: 'fr-label' }, 'Linhas'), h('b', { class: 'num' }, int.format(count))),
-    COLUMNS.filter(([k]) => ['spent', 'clicks', 'ctr', 'sales', 'cpa', 'revenue', 'profit', 'roi'].includes(k))
-      .map(([, label, show]) => h('div', { class: 'kpi' }, h('span', { class: 'fr-label' }, label), h('b', { class: 'num' }, show(sum))))));
 
-  // foot is the totals row at the bottom, under the number columns.
-  const foot = (before, sum) => h('tfoot', {}, h('tr', {}, h('td', { colspan: before }, h('b', {}, 'Total')), COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(sum))), h('td')));
-  // page shows 50 rows at a time, like Realize.
-  const PER = 50;
-  let pageAt = 0;
-  const page = (list) => {
-    const last = Math.max(0, Math.ceil(list.length / PER) - 1);
-    if (pageAt > last) pageAt = last;
-    const from = pageAt * PER;
-    const shown = list.slice(from, from + PER);
-    const step = (to, label, off) => h('button', { type: 'button', class: 'small ghost', disabled: off, onclick: () => { pageAt = to; draw(); } }, label);
-    pages.replaceChildren(...(list.length > PER ? [step(0, '«', pageAt === 0), step(pageAt - 1, '‹', pageAt === 0),
-      h('span', { class: 'muted' }, `${from + 1} - ${from + shown.length} de ${list.length}`), step(pageAt + 1, '›', pageAt === last), step(last, '»', pageAt === last)] : []));
-    return shown;
-  };
-  const text = (s) => !f.text || s.toLowerCase().includes(f.text);
-  let draw = () => {};
-
-  // ---- Campaign Groups ----
-  if (level === 'groups') {
-    const inGroup = new Map();
-    for (const c of campaigns) {
-      const g = c.group_id || '-';
-      if (!inGroup.has(g)) inGroup.set(g, []);
-      inGroup.get(g).push(c);
+  async function loadAds(list) {
+    const want = list.filter((c) => !adsOf.has(c.id));
+    if (!want.length) return;
+    for (const c of want) adsOf.set(c.id, 'loading');
+    draw();
+    const byAcct = new Map();
+    for (const c of want) {
+      if (!byAcct.has(c.account)) byAcct.set(c.account, []);
+      byAcct.get(c.account).push(c.id);
     }
-    const rows = [...groups];
-    if (inGroup.has('-')) rows.push({ id: '-', name: 'Sem grupo', status: '', account: at.account === 'all' ? '' : at.account });
-    const gNums = (g) => (inGroup.get(g.id) || []).reduce((s, c) => add(s, nums.campaigns?.[c.id]), zero());
-    draw = () => {
-      const list = byNumbers(rows.filter((g) => inState(g.status, f.state) && (text(g.name || '') || text(g.id))), gNums, (g) => g.name || '');
-      const sum = list.reduce((s, g) => add(s, gNums(g)), zero());
-      drawTotals(sum, list.length);
-      table.replaceChildren(h('table', { class: 'list numbers' },
-        header([['name', 'Grupo'], ['', 'Estado'], ['', 'Campanhas', 'num'], ['', 'Orçamento'], ...COLUMNS.map(([k, l]) => [k, l, 'num']), ['', '', 'row-acts']]),
-        list.length ? foot(4, sum) : null,
-        h('tbody', {}, list.length ? page(list).map((g) => {
-          const cs = inGroup.get(g.id) || [];
-          const running = cs.filter((c) => RUNNING.has(c.status)).length;
-          const n = gNums(g);
-          return h('tr', {},
-            h('td', {}, h('a', { href: href('campaigns', { ...at, account: g.account || at.account }, { group: g.id }) }, g.name || g.id),
-              h('div', { class: 'faint mono' }, (at.account === 'all' && g.account ? acctName.get(g.account) + ' · ' : '') + (g.id === '-' ? '' : g.id))),
-            h('td', {}, g.status ? badge(g.status) : '—'),
-            h('td', { class: 'num' }, cs.length ? `${cs.length}${running ? ` (${running} rodando)` : ''}` : '0'),
-            h('td', { class: 'muted' }, g.id === '-' || g.status === 'GROUP_DELETED' ? '—' : budget(g)),
-            COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(n))),
-            h('td', { class: 'row-acts' }, g.id === '-' || g.status === 'GROUP_DELETED' ? null : h('a', { class: 'button small ghost', title: 'Nova campanha neste grupo',
-              href: '/launch/new?' + new URLSearchParams({ make: 'campaign', account: g.account || at.account, group: g.id }) }, '+ Campanha')));
-        }) : h('tr', {}, h('td', { colspan: 5 + COLUMNS.length, class: 'faint' }, rows.length ? 'Nenhum grupo com esses filtros.' : 'Nenhum grupo nesta conta. Use Novo › Grupo de campanha.')))));
-    };
+    await Promise.all([...byAcct].flatMap(([acct, ids]) => {
+      const parts = [];
+      for (let i = 0; i < ids.length; i += 25) parts.push(ids.slice(i, i + 25));
+      return parts.map(async (part) => {
+        try {
+          const res = await api(`${NET}/${encodeURIComponent(acct)}/ads?campaigns=${part.join(',')}`);
+          for (const id of part) adsOf.set(id, (res.ads[id] || []).map((a) => ({ ...a, campaign: id, account: acct })));
+          for (const [id, why] of Object.entries(res.errors || {})) adsOf.set(id, { error: why });
+        } catch (e) {
+          for (const id of part) adsOf.set(id, { error: e.message });
+        }
+      });
+    }));
+    draw();
   }
 
-  // ---- Campaigns ----
-  if (level === 'campaigns') {
-    const pick = new Set();
-    const together = { on: store('launch.together') ?? true };
-    // A pair's two campaigns are picked together unless the person says not to.
-    const choose = (id, on) => {
-      const p = pairOf.get(id);
-      const ids = [id];
-      if (together.on && p) for (const x of [p.desktop_id, p.mobile_id]) if (x && x !== id && campById.has(x)) ids.push(x);
-      for (const x of ids) on ? pick.add(x) : pick.delete(x);
+  const toggleGroup = (key) => { openGroups.has(key) ? openGroups.delete(key) : openGroups.add(key); draw(); };
+  const toggleCamp = (c) => {
+    if (openCamps.has(c.id)) openCamps.delete(c.id);
+    else { openCamps.add(c.id); loadAds([c]); }
+    draw();
+  };
+  // Abrir tudo opens every group, and every campaign when there are few
+  // enough to read their ads at once.
+  const openAll = () => {
+    const rows = nest(groups, campaigns, f);
+    for (const r of rows) openGroups.add(r.key);
+    const cs = rows.flatMap((r) => r.cs);
+    if (cs.length <= 25) {
+      for (const c of cs) openCamps.add(c.id);
+      loadAds(cs);
+    }
+    draw();
+  };
+  const closeAll = () => { openGroups.clear(); openCamps.clear(); draw(); };
+
+  // A pair's two campaigns are picked together unless the person says not to.
+  const chooseCamp = (id, on) => {
+    const p = pairOf.get(id);
+    const ids = [id];
+    if (together.on && p) for (const x of [p.desktop_id, p.mobile_id]) if (x && x !== id && campById.has(x)) ids.push(x);
+    for (const x of ids) on ? pick(pickC, x) : pickC.delete(x);
+    draw();
+  };
+  const pick = (set, x) => set.add(x);
+
+  const sortHead = (key, label, cls) => h('th', { class: cls || null, 'aria-sort': key === sort.key ? (sort.down ? 'descending' : 'ascending') : null },
+    h('button', { type: 'button', class: 'sort', onclick: () => {
+      sort.down = sort.key === key ? !sort.down : key !== 'name';
+      sort.key = key;
+      store('launch.sort', key);
+      store('launch.sort.down', sort.down);
       draw();
-    };
-    drawMoves(main, totals, moves.filter((m) => !group || campById.get(m.to_campaign)?.group_id === group.id || campById.get(m.from_campaign)?.group_id === group.id), campById, groupById);
-    const rows = campaigns.filter((c) => !group || (c.group_id || '-') === group.id);
-    draw = () => {
-      const list = byNumbers(rows.filter((c) => inState(c.status, f.state) && (f.device === 'all' || c.device === f.device || c.device === 'both') &&
-        (text(c.name) || text(c.id))), (c) => numsOf(c.id), (c) => c.name);
-      const sum = list.reduce((s, c) => add(s, nums.campaigns?.[c.id]), zero());
-      drawTotals(sum, list.length);
-      const all = h('input', { type: 'checkbox', 'aria-label': 'Escolher todas', checked: list.length > 0 && list.every((c) => pick.has(c.id)),
-        onchange: (e) => { for (const c of list) e.target.checked ? pick.add(c.id) : pick.delete(c.id); draw(); } });
-      table.replaceChildren(h('table', { class: 'list numbers tree' },
-        h('thead', {}, h('tr', {}, h('th', { class: 'pick' }, all), ...heads([['name', 'Campanha'], ['', 'Grupo'], ['', 'Dispositivo'], ['', 'Estado'], ['', 'Lance'], ['', 'Orçamento diário', 'num'], ...COLUMNS.map(([k, l]) => [k, l, 'num']), ['', '', 'row-acts']]))),
-        list.length ? foot(7, sum) : null,
-        h('tbody', {}, list.length ? page(list).map((c) => {
-          const g = groupById.get(c.group_id);
-          const p = pairOf.get(c.id);
-          return h('tr', { class: pick.has(c.id) ? 'chosen' : '' },
-            h('td', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher ' + c.name, checked: pick.has(c.id), onchange: (e) => choose(c.id, e.target.checked) })),
-            h('td', {}, h('a', { href: href('ads', { ...at, account: c.account }, { group: c.group_id || '-', campaign: c.id }) }, c.name),
-              p ? h('span', { class: 'badge pair', title: 'Par criado pelo Launch: ' + p.name }, 'par') : null,
-              h('div', { class: 'faint mono' }, (at.account === 'all' ? acctName.get(c.account) + ' · ' : '') + c.id)),
-            h('td', {}, group ? h('span', { class: 'muted' }, g?.name || '—') : h('a', { href: href('campaigns', { ...at, account: c.account }, { group: c.group_id || '-' }) }, g?.name || (c.group_id ? c.group_id : 'Sem grupo'))),
-            h('td', {}, DEVICES[c.device] || '—'),
-            h('td', {}, badge(c.status)),
-            h('td', { class: 'muted' }, bidName(c.settings)),
-            h('td', { class: 'num' }, money(c.settings.daily_cap)),
-            COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(numsOf(c.id)))),
-            h('td', { class: 'row-acts' },
-              h('a', { class: 'button small ghost', title: 'Abrir a campanha para mudar', href: link(NET, c.account, c.group_id || '-', c.id) }, 'Editar'),
-              h('a', { class: 'button small ghost', title: 'Adicionar anúncios a esta campanha', href: `/launch/new?make=ads&account=${encodeURIComponent(c.account)}&to=${c.id}` }, '+ Anúncios')));
-        }) : h('tr', {}, h('td', { colspan: 8 + COLUMNS.length, class: 'faint' }, rows.length ? 'Nenhuma campanha com esses filtros.' : group ? 'Nenhuma campanha neste grupo. Use Novo › Campanha.' : 'Nenhuma campanha.')))));
-      drawCampaignBar();
-    };
-    const panel = h('div', { class: 'act-panel' });
-    const drawCampaignBar = () => {
-      bar.hidden = pick.size === 0;
-      if (!pick.size) { panel.replaceChildren(); return; }
-      const ids = [...pick];
+    } }, label, key === sort.key ? h('span', { class: 'arrow', 'aria-hidden': 'true' }, sort.down ? ' ↓' : ' ↑') : null));
+
+  function drawTotals(sum, rows, openAny) {
+    totals.replaceChildren(h('div', { class: 'kpis' },
+      h('div', { class: 'kpi' }, h('span', { class: 'fr-label' }, openAny ? 'Linhas' : 'Grupos'), h('b', { class: 'num' }, int.format(openAny ? rows.cs : rows.g))),
+      COLUMNS.filter(([k]) => STRIP.includes(k)).map(([k, label, show]) => h('div', { class: 'kpi' + (k === 'profit' && sum.profit > 0 && tracked ? ' good' : '') }, h('span', { class: 'fr-label' }, label), h('b', { class: 'num' }, show(sum))))));
+  }
+
+  function draw() {
+    const rows = nest(groups, campaigns, f);
+    const gNums = (r) => r.cs.reduce((s, c) => add(s, nums.campaigns?.[c.id]), zero());
+    byNumbers(rows, gNums, (r) => r.g.name || '');
+    const visCols = COLUMNS.filter(([k]) => cols.includes(k));
+    const nCols = 4 + visCols.length;
+    const sum = rows.reduce((s, r) => add(s, gNums(r)), zero());
+    const nCamps = rows.reduce((n, r) => n + r.cs.length, 0);
+    const openAny = rows.some((r) => openGroups.has(r.key));
+    drawTotals(sum, { g: rows.length, cs: nCamps }, openAny);
+    shown = [];
+    const body = [];
+    let adCount = 0;
+    for (const r of rows) {
+      const open = openGroups.has(r.key);
+      body.push(groupRow(r, open, gNums(r), visCols));
+      if (!open) continue;
+      byNumbers(r.cs, (c) => numsOf(c.id), (c) => c.name);
+      for (const c of r.cs) {
+        shown.push(c);
+        body.push(campRow(c, visCols));
+        if (!openCamps.has(c.id)) continue;
+        const ads = adsOf.get(c.id);
+        if (ads === 'loading' || ads === undefined) body.push(h('tr', { class: 'row-ad' }, h('td'), h('td', { colspan: nCols - 1, class: 'faint indent-2' }, 'Lendo os anúncios…')));
+        else if (ads.error) body.push(h('tr', { class: 'row-ad' }, h('td'), h('td', { colspan: nCols - 1, class: 'indent-2' }, note('fail', ads.error))));
+        else if (!ads.length) body.push(h('tr', { class: 'row-ad' }, h('td'), h('td', { colspan: nCols - 1, class: 'faint indent-2' }, 'Nenhum anúncio. Use Novo › Anúncios.')));
+        else {
+          const list = byNumbers(ads.filter((a) => inState(a.status, f.state)), adNums, (a) => a.title || '');
+          adCount += list.length;
+          for (const a of list) body.push(adRow(c, a, visCols));
+        }
+      }
+    }
+    const chip = [plural(rows.length, 'grupo', 'grupos'), openAny ? plural(nCamps, 'campanha', 'campanhas') : null, adCount ? plural(adCount, 'anúncio', 'anúncios') : null].filter(Boolean).join(' · ');
+    const allPicked = shown.length > 0 && shown.every((c) => pickC.has(c.id));
+    const table = h('table', { class: 'list numbers nested' },
+      h('thead', {}, h('tr', {},
+        h('th', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher todas as campanhas abertas', checked: allPicked,
+          onchange: (e) => { for (const c of shown) e.target.checked ? pickC.add(c.id) : pickC.delete(c.id); draw(); } })),
+        sortHead('name', 'Nome', 'name'), h('th', {}, 'Estado'), h('th', {}, 'Orçamento'),
+        visCols.map(([k, label]) => sortHead(k, label, 'num')))),
+      h('tbody', {}, body.length ? body : h('tr', {}, h('td', { colspan: nCols, class: 'faint empty-row' },
+        groups.length ? 'Nada com esses filtros.' : 'Nenhum grupo nesta conta. Use Novo › Grupo de campanha.'))),
+      rows.length ? h('tfoot', {}, h('tr', {}, h('td'), h('td', { colspan: 3 }, h('b', {}, 'Total')), visCols.map(([, , show]) => h('td', { class: 'num' }, show(sum))))) : null);
+    const sep = () => h('span', { class: 'faint', 'aria-hidden': 'true' }, '·');
+    card.replaceChildren(
+      h('div', { class: 'card-head' },
+        h('div', { class: 'card-tabs' }, h('span', { class: 'card-tab', 'aria-current': 'true' }, 'Tudo', h('span', { class: 'count-chip' }, chip))),
+        h('div', { class: 'card-tools' },
+          h('button', { type: 'button', class: 'link-button', onclick: openAll }, 'Abrir tudo'), sep(),
+          h('button', { type: 'button', class: 'link-button', onclick: closeAll }, 'Fechar tudo'), sep(),
+          columnsMenu())),
+      h('div', { class: 'table-scroll' }, table));
+    drawBar();
+    if (current) card.querySelector(`tr[data-campaign="${CSS.escape(current)}"]`)?.classList.add('on');
+  }
+
+  function caret(open, label, onclick) {
+    return h('button', { type: 'button', class: 'caret' + (open ? ' open' : ''), 'aria-expanded': String(open), 'aria-label': (open ? 'Fechar ' : 'Abrir ') + label, onclick },
+      h('span', { 'aria-hidden': 'true' }, '▸'));
+  }
+
+  function groupRow(r, open, n, visCols) {
+    const { g, cs } = r;
+    const picked = cs.filter((c) => pickC.has(c.id)).length;
+    const box = h('input', { type: 'checkbox', 'aria-label': 'Escolher as campanhas de ' + (g.name || g.id), checked: cs.length > 0 && picked === cs.length, disabled: !cs.length,
+      onchange: (e) => { for (const c of cs) e.target.checked ? pickC.add(c.id) : pickC.delete(c.id); draw(); } });
+    box.indeterminate = picked > 0 && picked < cs.length;
+    return h('tr', { class: 'row-group' },
+      h('td', { class: 'pick' }, box),
+      h('td', { class: 'name' }, h('div', { class: 'name-cell' },
+        caret(open, 'o grupo ' + (g.name || g.id), () => toggleGroup(r.key)),
+        h('span', { class: 'tag' }, 'Grupo'),
+        h('span', { class: 'row-name' }, g.name || g.id),
+        g.id && !g.gone ? h('span', { class: 'mono faint' }, g.id) : null,
+        many ? h('span', { class: 'faint acct' }, acctName.get(g.account)) : null)),
+      h('td', {}, g.status ? badge(g.status) : '—'),
+      h('td', { class: 'mono budget' }, g.gone || g.none ? '—' : budget(g)),
+      visCols.map(([, , show]) => h('td', { class: 'num' }, show(n))));
+  }
+
+  function campRow(c, visCols) {
+    const p = pairOf.get(c.id);
+    const open = openCamps.has(c.id);
+    return h('tr', { class: 'row-camp' + (pickC.has(c.id) ? ' chosen' : ''), 'data-campaign': c.id },
+      h('td', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher ' + c.name, checked: pickC.has(c.id), onchange: (e) => chooseCamp(c.id, e.target.checked) })),
+      h('td', { class: 'name' }, h('div', { class: 'name-cell indent-1' },
+        caret(open, 'os anúncios de ' + c.name, () => toggleCamp(c)),
+        h('span', { class: 'tag' }, 'Camp'),
+        h('a', { class: 'row-name', href: link(NET, c.account, c.group_id || '-', c.id), title: 'Abrir a campanha ao lado',
+          onclick: (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; e.preventDefault(); openCampaign(c.id); } }, c.name),
+        p ? h('span', { class: 'badge pair', title: 'Par criado pelo Launch: ' + p.name }, 'par') : null,
+        h('span', { class: 'mono faint' }, DEVICES[c.device] || ''))),
+      h('td', {}, badge(c.status)),
+      h('td', { class: 'mono budget' }, c.settings?.daily_cap ? money(c.settings.daily_cap) + ' / dia' : '—'),
+      visCols.map(([, , show]) => h('td', { class: 'num' }, show(numsOf(c.id)))));
+  }
+
+  function adRow(c, a, visCols) {
+    const key = c.id + '/' + a.id;
+    return h('tr', { class: 'row-ad' + (pickA.has(key) ? ' chosen' : '') },
+      h('td', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher ' + (a.title || a.id), checked: pickA.has(key),
+        onchange: (e) => { e.target.checked ? pickA.add(key) : pickA.delete(key); draw(); } })),
+      h('td', { class: 'name' }, h('div', { class: 'name-cell indent-2' },
+        h('span', { class: 'tag' }, 'Ad'),
+        a.image_url ? h('img', { class: 'ad-thumb', src: a.image_url, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }) : h('span', { class: 'ad-thumb empty', 'aria-hidden': 'true' }, '–'),
+        h('span', { class: 'row-name', title: [a.title, a.description, a.url].filter(Boolean).join('\n') }, a.title || a.id),
+        a.ai ? h('span', { class: 'badge' }, 'IA') : null,
+        word(nums.ads?.[a.id]))),
+      h('td', {}, badge(a.approval && a.approval !== 'APPROVED' ? a.approval : a.status)),
+      h('td', { class: 'mono budget' }, '—'),
+      visCols.map(([, , show]) => h('td', { class: 'num' }, show(adNums(a)))));
+  }
+
+  function columnsMenu() {
+    const menu = h('details', { class: 'cols-menu' }, h('summary', { class: 'link-button' }, 'Colunas', h('span', { 'aria-hidden': 'true' }, ' ▾')),
+      h('div', { class: 'menu', role: 'group', 'aria-label': 'Colunas da tabela' },
+        COLUMNS.map(([k, label]) => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: cols.includes(k), onchange: (e) => {
+          cols = COLUMNS.map(([c]) => c).filter((c) => (c === k ? e.target.checked : cols.includes(c)));
+          store('launch.cols', cols);
+          draw();
+          card.querySelector('.cols-menu').open = true;
+        } }), label)),
+        h('button', { type: 'button', class: 'small ghost', onclick: () => { cols = DEFAULT_COLUMNS.slice(); store('launch.cols', cols); draw(); } }, 'Voltar ao padrão')));
+    return menu;
+  }
+  document.addEventListener('click', (e) => { const m = card.querySelector('.cols-menu'); if (m && !m.contains(e.target)) m.open = false; });
+
+  // ---- what to do with the chosen campaigns and ads ----
+  const actPanel = h('div', { class: 'act-panel' });
+  function drawBar() {
+    bar.hidden = pickC.size === 0 && pickA.size === 0;
+    if (bar.hidden) { actPanel.replaceChildren(); return; }
+    const parts = [];
+    if (pickC.size) {
+      const ids = [...pickC];
       const accts = new Set(ids.map((id) => campById.get(id)?.account));
       const one = accts.size === 1 ? [...accts][0] : '';
-      bar.replaceChildren(h('span', { class: 'count' }, plural(pick.size, 'campanha escolhida', 'campanhas escolhidas')),
+      parts.push(h('span', { class: 'count' }, plural(pickC.size, 'campanha escolhida', 'campanhas escolhidas')),
         h('label', { class: 'together' }, h('input', { type: 'checkbox', checked: together.on, onchange: (e) => { together.on = e.target.checked; store('launch.together', together.on); } }), ' escolher o par junto'),
         one ? h('div', { class: 'actions' },
-          h('a', { class: 'button', href: href('ads', { ...at, account: one }, { group: at.group, campaign: ids.length === 1 ? ids[0] : '' }) }, 'Ver anúncios'),
           h('a', { class: 'button', href: `/launch/new?make=ads&account=${encodeURIComponent(one)}&to=${ids.join(',')}` }, 'Adicionar anúncios'),
           h('button', { type: 'button', onclick: () => ask('pause', one, ids) }, 'Pausar'),
           h('button', { type: 'button', onclick: () => ask('change', one, ids) }, 'Mudar orçamento e lance'),
           h('button', { type: 'button', onclick: () => ask('duplicate', one, ids) }, 'Duplicar'),
           h('button', { type: 'button', onclick: () => ask('move', one, ids) }, 'Mudar de grupo'),
-          h('button', { type: 'button', class: 'ghost', onclick: () => { pick.clear(); draw(); } }, 'Limpar'))
-          : h('span', { class: 'muted' }, 'Escolha campanhas de uma conta só para agir nelas.'),
-        panel);
-    };
-    // ask shows what will happen and waits for the person's click.
-    const ask = (what, account, ids) => {
-      const out = h('div');
-      const names = ids.map((id) => campById.get(id)?.name || id).join(' · ');
-      const sendIt = (button, path, body, say) => busy(button, out, async () => {
-        const res = await api(`${NET}/${encodeURIComponent(account)}/${path}`, { method: 'POST', body });
-        result.replaceChildren(doneNote(res.done, say, campById));
-        setTimeout(() => location.reload(), 1500);
-      });
-      const n = plural(ids.length, 'campanha', 'campanhas');
-      let body;
-      if (what === 'pause') {
-        const b = h('button', { type: 'button', class: 'primary', onclick: () => sendIt(b, 'pause', { campaigns: ids }, ['pausada', 'pausadas']) }, 'Pausar ' + n);
-        body = [h('h3', {}, 'Pausar'), h('p', { class: 'muted' }, 'Para de gastar na hora. Para ligar de novo, use o próprio Taboola.'), h('p', { class: 'faint' }, names), h('div', { class: 'actions' }, b)];
-      } else if (what === 'duplicate') {
-        const b = h('button', { type: 'button', class: 'primary', onclick: () => sendIt(b, 'duplicate', { campaigns: ids }, ['duplicada, pausada', 'duplicadas, pausadas']) }, 'Duplicar ' + n);
-        body = [h('h3', {}, 'Duplicar'), h('p', { class: 'muted' }, 'Cada cópia nasce pausada no mesmo grupo, com os mesmos anúncios.'), h('p', { class: 'faint' }, names), h('div', { class: 'actions' }, b)];
-      } else if (what === 'move') {
-        const to = select([['', 'Escolha o grupo…'], ...groups.filter((g) => g.account === account).map((g) => [g.id, g.name || g.id])], '', { 'aria-label': 'Grupo de destino' });
-        let originals = 'when_started';
-        const b = h('button', { type: 'button', class: 'primary', onclick: () => {
-          if (!to.value) { out.replaceChildren(note('fail', 'Escolha o grupo de destino.')); return; }
-          sendIt(b, 'move', { campaigns: ids, to_group: to.value, originals }, ['copiada para o grupo novo, pausada', 'copiadas para o grupo novo, pausadas']);
-        } }, 'Mudar ' + n);
-        body = [h('h3', {}, 'Mudar de grupo'),
-          h('p', { class: 'muted' }, 'O Taboola não muda o grupo de uma campanha: o Launch cria uma cópia pausada, com os mesmos anúncios, no grupo novo (outro id).'),
-          h('div', { class: 'fields' }, field('Para o grupo', to)), h('p', {}, 'E a original?'),
-          segmented('originals', [['when_started', 'Pausar quando a cópia começar'], ['now', 'Pausar agora'], ['leave', 'Deixar como está']], originals, (v) => { originals = v; }),
-          h('p', { class: 'faint' }, names), h('div', { class: 'actions' }, b)];
-      } else {
-        const lim = status.limits || {};
-        const cap = input({ inputmode: 'decimal', placeholder: 'fica igual' });
-        const cpc = input({ inputmode: 'decimal', placeholder: 'fica igual' });
-        const b = h('button', { type: 'button', class: 'primary', onclick: () => {
-          const change = { daily_cap: numberOf(cap.value), cpc: numberOf(cpc.value) };
-          if (Object.values(change).some(Number.isNaN)) { out.replaceChildren(note('fail', 'Use só números, como 0,35.')); return; }
-          if (!change.daily_cap && !change.cpc) { out.replaceChildren(note('fail', 'Diga o que mudar.')); return; }
-          for (const k of Object.keys(change)) if (!change[k]) delete change[k];
-          sendIt(b, 'change', { campaigns: ids, change }, ['mudada', 'mudadas']);
-        } }, 'Mudar ' + n);
-        body = [h('h3', {}, 'Mudar orçamento e lance'), h('div', { class: 'fields' },
-          field('Orçamento diário (US$)', cap, lim.max_daily_cap ? 'até ' + money(lim.max_daily_cap) : null),
-          field('CPC (US$)', cpc, 'só para CPC fixo ou Smart')), h('p', { class: 'faint' }, names), h('div', { class: 'actions' }, b)];
-      }
-      panel.replaceChildren(h('div', { class: 'panel' }, ...body, out));
-    };
-  }
-
-  // ---- Ads ----
-  if (level === 'ads') {
-    let rows = campaigns.filter((c) => (!group || (c.group_id || '-') === group.id) && (!campaign || c.id === campaign.id));
-    if (campaign && !rows.length) rows = [campaign];
-    // Ads are read per campaign: the ones with the most spend first, 25 at most.
-    rows.sort((a, b) => numsOf(b.id).spent - numsOf(a.id).spent || (RUNNING.has(b.status) ? 1 : 0) - (RUNNING.has(a.status) ? 1 : 0));
-    const some = rows.slice(0, 25);
-    const ads = [];
-    const failed = [];
-    const byAcct = new Map();
-    for (const c of some) {
-      if (!byAcct.has(c.account)) byAcct.set(c.account, []);
-      byAcct.get(c.account).push(c.id);
+          h('button', { type: 'button', class: 'ghost', onclick: () => { pickC.clear(); draw(); } }, 'Limpar'))
+          : h('span', { class: 'muted' }, 'Escolha campanhas de uma conta só para agir nelas.'));
     }
-    const reading = note('', 'Lendo os anúncios…');
-    table.append(reading);
-    await Promise.all([...byAcct].map(async ([acct, ids]) => {
-      try {
-        const res = await api(`${NET}/${encodeURIComponent(acct)}/ads?campaigns=${ids.join(',')}`);
-        for (const [cid, list] of Object.entries(res.ads)) for (const ad of list) ads.push({ ...ad, campaign: cid, account: acct });
-        for (const [cid, why] of Object.entries(res.errors || {})) failed.push(`${campById.get(cid)?.name || cid}: ${why}`);
-      } catch (e) {
-        failed.push(`${acctName.get(acct)}: ${e.message}`);
-      }
-    }));
-    reading.remove();
-    if (rows.length > some.length) {
-      main.insertBefore(note('', `Mostrando os anúncios das ${some.length} campanhas que mais gastaram de ${rows.length}. Escolha um grupo ou uma campanha para ver os outros.`), totals);
-    }
-    for (const p of failed) main.insertBefore(note('fail', p), totals);
-    const adNums = (a) => add(zero(), nums.ads?.[a.id]);
-    const pick = new Set();
-    draw = () => {
-      const list = byNumbers(ads.filter((a) => inState(a.status, f.state) && (text(a.title || '') || text(a.id))), adNums, (a) => a.title || '');
-      const sum = list.reduce((s, a) => add(s, nums.ads?.[a.id]), zero());
-      drawTotals(sum, list.length);
-      table.replaceChildren(h('table', { class: 'list numbers tree' },
-        h('thead', {}, h('tr', {}, h('th', { class: 'pick' }, ''), ...heads([['name', 'Anúncio'], ['', 'Campanha'], ['', 'Estado'], ['', 'Revisão'], ['', 'Intel'], ...COLUMNS.map(([k, l]) => [k, l, 'num']), ['', '', 'row-acts']]))),
-        list.length ? foot(6, sum) : null,
-        h('tbody', {}, list.length ? page(list).map((a) => {
-          const c = campById.get(a.campaign) || { id: a.campaign, name: a.campaign };
-          const key = a.campaign + '/' + a.id;
-          return h('tr', { class: pick.has(key) ? 'chosen' : '' },
-            h('td', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher ' + (a.title || a.id), checked: pick.has(key), onchange: (e) => { e.target.checked ? pick.add(key) : pick.delete(key); draw(); } })),
-            h('td', {}, h('div', { class: 'ad-cell' }, a.image_url ? h('img', { class: 'media', src: a.image_url, alt: '', loading: 'lazy' }) : h('span', { class: 'media empty' }, 'sem imagem'),
-              h('div', { class: 'ad-text' }, h('b', { class: 'wrap' }, a.title || '—'), a.description ? h('span', { class: 'muted wrap' }, a.description) : null,
-                h('span', { class: 'faint mono' }, a.id, a.ai ? ' · IA' : ''), a.cta ? h('span', { class: 'cta-chip' }, ctaName(a.cta)) : null))),
-            h('td', {}, campaign ? h('span', { class: 'muted' }, c.name) : h('a', { href: href('ads', { ...at, account: a.account }, { group: c.group_id || '-', campaign: c.id }) }, c.name)),
-            h('td', {}, badge(a.status)),
-            h('td', {}, a.approval ? badge(a.approval) : '—'),
-            h('td', {}, word(nums.ads?.[a.id])),
-            COLUMNS.map(([, , show]) => h('td', { class: 'num' }, show(adNums(a)))),
-            h('td', { class: 'row-acts' }, a.url ? h('a', { class: 'button small ghost', href: a.url, target: '_blank', rel: 'noopener noreferrer', title: a.url }, 'Página') : null));
-        }) : h('tr', {}, h('td', { colspan: 7 + COLUMNS.length, class: 'faint' }, ads.length ? 'Nenhum anúncio com esses filtros.' : campaign ? 'Nenhum anúncio nesta campanha. Use Novo › Anúncios.' : 'Nenhum anúncio.')))));
-      drawAdBar();
-    };
-    const drawAdBar = () => {
-      bar.hidden = pick.size === 0;
-      if (!pick.size) return;
+    if (pickA.size) {
       const out = h('div');
       const byCamp = new Map();
-      for (const k of pick) {
+      for (const k of pickA) {
         const [cid, aid] = k.split('/');
         if (!byCamp.has(cid)) byCamp.set(cid, []);
         byCamp.get(cid).push(aid);
@@ -467,18 +435,139 @@ export async function manage(ctx) {
         }
         result.replaceChildren(note('ok', lines.join(' · ')));
         setTimeout(() => location.reload(), 1500);
-      }) }, 'Pausar ' + plural(pick.size, 'anúncio', 'anúncios'));
-      bar.replaceChildren(h('span', { class: 'count' }, plural(pick.size, 'anúncio escolhido', 'anúncios escolhidos')),
-        h('div', { class: 'actions' }, b, h('button', { type: 'button', class: 'ghost', onclick: () => { pick.clear(); draw(); } }, 'Limpar')), out);
-    };
+      }) }, 'Pausar ' + plural(pickA.size, 'anúncio', 'anúncios'));
+      parts.push(h('span', { class: 'count' }, plural(pickA.size, 'anúncio escolhido', 'anúncios escolhidos')),
+        h('div', { class: 'actions' }, b, h('button', { type: 'button', class: 'ghost', onclick: () => { pickA.clear(); draw(); } }, 'Limpar')), out);
+    }
+    bar.replaceChildren(...parts, actPanel);
   }
 
+  // ask shows what will happen and waits for the person's click.
+  function ask(what, account, ids) {
+    const out = h('div');
+    const names = ids.map((id) => campById.get(id)?.name || id).join(' · ');
+    const sendIt = (button, path, body, say) => busy(button, out, async () => {
+      const res = await api(`${NET}/${encodeURIComponent(account)}/${path}`, { method: 'POST', body });
+      result.replaceChildren(doneNote(res.done, say, campById));
+      setTimeout(() => location.reload(), 1500);
+    });
+    const n = plural(ids.length, 'campanha', 'campanhas');
+    let body;
+    if (what === 'pause') {
+      const b = h('button', { type: 'button', class: 'primary', onclick: () => sendIt(b, 'pause', { campaigns: ids }, ['pausada', 'pausadas']) }, 'Pausar ' + n);
+      body = [h('h3', {}, 'Pausar'), h('p', { class: 'muted' }, 'Para de gastar na hora. Para ligar de novo, use o próprio Taboola.'), h('p', { class: 'faint' }, names), h('div', { class: 'actions' }, b)];
+    } else if (what === 'duplicate') {
+      const b = h('button', { type: 'button', class: 'primary', onclick: () => sendIt(b, 'duplicate', { campaigns: ids }, ['duplicada, pausada', 'duplicadas, pausadas']) }, 'Duplicar ' + n);
+      body = [h('h3', {}, 'Duplicar'), h('p', { class: 'muted' }, 'Cada cópia nasce pausada no mesmo grupo, com os mesmos anúncios.'), h('p', { class: 'faint' }, names), h('div', { class: 'actions' }, b)];
+    } else if (what === 'move') {
+      const to = select([['', 'Escolha o grupo…'], ...realGroups.filter((g) => g.account === account).map((g) => [g.id, g.name || g.id])], '', { 'aria-label': 'Grupo de destino' });
+      let originals = 'when_started';
+      const b = h('button', { type: 'button', class: 'primary', onclick: () => {
+        if (!to.value) { out.replaceChildren(note('fail', 'Escolha o grupo de destino.')); return; }
+        sendIt(b, 'move', { campaigns: ids, to_group: to.value, originals }, ['copiada para o grupo novo, pausada', 'copiadas para o grupo novo, pausadas']);
+      } }, 'Mudar ' + n);
+      body = [h('h3', {}, 'Mudar de grupo'),
+        h('p', { class: 'muted' }, 'O Taboola não muda o grupo de uma campanha: o Launch cria uma cópia pausada, com os mesmos anúncios, no grupo novo (outro id).'),
+        h('div', { class: 'fields' }, field('Para o grupo', to)), h('p', {}, 'E a original?'),
+        segmented('originals', [['when_started', 'Pausar quando a cópia começar'], ['now', 'Pausar agora'], ['leave', 'Deixar como está']], originals, (v) => { originals = v; }),
+        h('p', { class: 'faint' }, names), h('div', { class: 'actions' }, b)];
+    } else {
+      const lim = status.limits || {};
+      const cap = input({ inputmode: 'decimal', placeholder: 'fica igual' });
+      const cpc = input({ inputmode: 'decimal', placeholder: 'fica igual' });
+      const b = h('button', { type: 'button', class: 'primary', onclick: () => {
+        const change = { daily_cap: numberOf(cap.value), cpc: numberOf(cpc.value) };
+        if (Object.values(change).some(Number.isNaN)) { out.replaceChildren(note('fail', 'Use só números, como 0,35.')); return; }
+        if (!change.daily_cap && !change.cpc) { out.replaceChildren(note('fail', 'Diga o que mudar.')); return; }
+        for (const k of Object.keys(change)) if (!change[k]) delete change[k];
+        sendIt(b, 'change', { campaigns: ids, change }, ['mudada', 'mudadas']);
+      } }, 'Mudar ' + n);
+      body = [h('h3', {}, 'Mudar orçamento e lance'), h('div', { class: 'fields' },
+        field('Orçamento diário (US$)', cap, lim.max_daily_cap ? 'até ' + money(lim.max_daily_cap) : null),
+        field('CPC (US$)', cpc, 'só para CPC fixo ou Smart')), h('p', { class: 'faint' }, names), h('div', { class: 'actions' }, b)];
+    }
+    actPanel.replaceChildren(h('div', { class: 'panel' }, ...body, out));
+  }
+
+  // ---- the campaign on the right ----
+  let current = null;
+  const shade = h('div', { class: 'side-shade', hidden: true, onclick: () => closeCampaign() });
+  const side = h('aside', { class: 'side', hidden: true, 'aria-label': 'Campanha', tabindex: '-1' });
+  document.body.append(shade, side);
+  let opened = 0;
+  async function openCampaign(id, first = false) {
+    const c = campById.get(id);
+    if (!c && !first) return;
+    current = id;
+    const run = ++opened;
+    for (const tr of card.querySelectorAll('tr.on')) tr.classList.remove('on');
+    const row = card.querySelector(`tr[data-campaign="${CSS.escape(id)}"]`);
+    row?.classList.add('on');
+    row?.scrollIntoView({ block: 'nearest' });
+    side.hidden = false;
+    shade.hidden = false;
+    document.body.classList.add('side-open');
+    if (!first) history.replaceState(null, '', href(at, { group: at.group, open: id }));
+    side.replaceChildren(note('', 'Lendo a campanha…'));
+    const account = c?.account || at.account;
+    const g = c ? groupOf(c) : null;
+    try {
+      const view = await campaignView({
+        net: NET, account, id, status, asked: first ? asked : '',
+        accountName: acctName.get(account) || account,
+        group: g && !g.gone && !g.none ? g : null,
+        groups: realGroups.filter((x) => x.account === account),
+        numbers: c ? numsOf(id) : null, tracked,
+        open: (other) => openCampaign(other),
+        close: () => closeCampaign(),
+        settle: () => history.replaceState(null, '', href(at, { group: at.group, open: id })),
+      });
+      if (run === opened) side.replaceChildren(view);
+    } catch (e) {
+      if (run === opened) side.replaceChildren(h('div', { class: 'side-head' }, h('span'), closeButton()), note('fail', e.message));
+    }
+    if (run === opened) side.focus({ preventScroll: true });
+  }
+  const closeButton = () => h('button', { type: 'button', class: 'side-close', 'aria-label': 'Fechar (Esc)', onclick: () => closeCampaign() }, '×');
+  function closeCampaign() {
+    if (!current) return;
+    const row = card.querySelector(`tr[data-campaign="${CSS.escape(current)}"]`);
+    current = null;
+    opened++;
+    side.hidden = true;
+    shade.hidden = true;
+    document.body.classList.remove('side-open');
+    for (const tr of card.querySelectorAll('tr.on')) tr.classList.remove('on');
+    history.replaceState(null, '', href(at, { group: at.group }));
+    row?.querySelector('a.row-name')?.focus({ preventScroll: true });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (!current || e.metaKey || e.ctrlKey || e.altKey) return;
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
+    if (e.key === 'Escape' && !typing) { e.preventDefault(); closeCampaign(); return; }
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !typing) {
+      const i = shown.findIndex((c) => c.id === current);
+      const next = shown[i + (e.key === 'ArrowDown' ? 1 : -1)];
+      if (next) { e.preventDefault(); openCampaign(next.id); }
+    }
+  });
+
   draw();
+  if (at.group) card.querySelector('tr.row-group')?.scrollIntoView({ block: 'nearest' });
+  if (at.open) {
+    const c = campById.get(at.open);
+    if (c) {
+      openGroups.add(c.account + '/' + (c.group_id || '-'));
+      draw();
+    }
+    openCampaign(at.open, true);
+  }
+  newKeys({ at, group: at.group ? realGroups.find((g) => g.id === at.group) : null });
 }
 
 // drawMoves lists group changes waiting for their copy to start: the
 // original is paused then, unless the person says not to.
-function drawMoves(main, before, moves, campById, groupById) {
+function drawMoves(main, before, moves, campById, groups) {
   if (!moves.length) return;
   main.insertBefore(h('div', { class: 'panel moves-panel' }, h('h3', {}, 'Mudanças de grupo esperando'),
     h('p', { class: 'muted' }, 'A cópia já está no grupo novo, pausada. Quando alguém ligar a cópia no Taboola, o Launch pausa a original.'),
@@ -487,7 +576,7 @@ function drawMoves(main, before, moves, campById, groupById) {
       const to = campById.get(m.to_campaign);
       const out = h('span');
       const btn = h('button', { type: 'button', class: 'small ghost', onclick: () => busy(btn, out, async () => { await api(`moves/${m.id}/cancel`, { method: 'POST' }); location.reload(); }) }, 'Não pausar a original');
-      return h('li', {}, (from?.name || m.from_campaign) + ' → ' + (groupById.get(m.to_group)?.name || m.to_group) + ' ',
+      return h('li', {}, (from?.name || m.from_campaign) + ' → ' + (groups.find((g) => g.id === m.to_group)?.name || m.to_group) + ' ',
         h('a', { href: link(NET, m.account, to?.group_id || m.to_group || '-', m.to_campaign) }, '(cópia ' + m.to_campaign + ')'), ' ', btn, out);
     }))), before);
 }
@@ -500,83 +589,67 @@ function numbersLine(nums) {
   return 'Números do Intel' + when + '. ' + (tracked ? 'Vendas e receita do RedTrack.' : 'Ainda sem vendas do RedTrack neste período: vendas, receita e lucro aparecem quando chegarem.');
 }
 
-// picker is one step of the breadcrumb: a small label over the value, and a
-// list with a search box, like Realize's.
-function picker(label, value, options) {
-  const find = input({ type: 'search', placeholder: 'Buscar', 'aria-label': 'Buscar ' + label.toLowerCase() });
-  const list = h('div', { class: 'pick-list', role: 'menu' });
-  const draw = () => {
-    const q = find.value.trim().toLowerCase();
-    list.replaceChildren(...options.filter((o, i) => i === 0 || !q || o.label.toLowerCase().includes(q) || (o.sub || '').toLowerCase().includes(q)).slice(0, 200)
-      .map((o) => h('a', { href: o.href, role: 'menuitem', class: o.on ? 'on' : '' },
-        o.dot !== undefined ? h('span', { class: 'dot ' + dotOf(o.dot), title: o.dot }) : null,
-        h('span', {}, h('span', { class: 'pick-name' }, o.label), o.sub ? h('small', {}, o.sub) : null))));
-  };
-  find.addEventListener('input', draw);
-  draw();
-  const box = h('details', { class: 'pick-crumb' }, h('summary', {}, h('small', {}, label), h('b', {}, value, ' ▾')),
-    h('div', { class: 'menu' }, options.length > 6 ? find : null, list));
-  box.addEventListener('toggle', () => { if (box.open) find.focus(); });
-  document.addEventListener('click', (e) => { if (!box.contains(e.target)) box.open = false; });
-  return box;
-}
-
-function dotOf(status) {
-  return RUNNING.has(status) ? 'run' : PAUSED.has(status) ? 'stop' : 'other';
-}
-
-const CTA_NAMES = { LEARN_MORE: 'Learn More', READ_MORE: 'Read More', SHOP_NOW: 'Shop Now', SIGN_UP: 'Sign Up', GET_OFFER: 'Get Offer', DOWNLOAD: 'Download', CALL_NOW: 'Call Now', NONE: '' };
-
-function ctaName(c) {
-  return CTA_NAMES[c] ?? c.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (x) => x.toUpperCase());
-}
-
-function scopeChip(kind, name, without) {
-  return h('span', { class: 'scope-chip' }, h('span', { class: 'faint' }, kind + ': '), h('b', {}, name),
-    h('a', { href: without, class: 'x', 'aria-label': `Tirar o filtro ${kind}`, title: 'Ver todos' }, '×'));
-}
-
-const BID = { MAX_CONVERSIONS: 'Maximizar conversões', TARGET_CPA: 'CPA alvo', FIXED: 'CPC fixo', SMART: 'CPC Smart' };
-
-function bidName(s) {
-  const b = BID[s?.bid_strategy] || s?.bid_strategy || '—';
-  if (s?.bid_strategy === 'FIXED' || s?.bid_strategy === 'SMART') return b + ' ' + money(s.cpc);
-  if (s?.target_cpa) return 'CPA alvo ' + money(s.target_cpa);
-  return b;
-}
-
-function budget(g) {
-  const per = { DAILY: ' por dia', MONTHLY: ' por mês', ENTIRE: ' no total' }[g.budget_model];
+// budget is a group's own budget, or "por campanha" when it has none.
+export function budget(g) {
+  const per = { DAILY: ' / dia', MONTHLY: ' / mês', ENTIRE: ' no total' }[g.budget_model];
   return per && g.budget ? money(g.budget) + per : 'por campanha';
 }
 
 const WORDS = { better: ['melhor', 'up'], worse: ['pior', 'down'], usual: ['normal', ''], unclear: ['incerto', 'faint'], too_little: ['pouco dado', 'faint'] };
 
 function word(n) {
-  if (!n?.word) return '—';
+  if (!n?.word) return null;
   const [label, cls] = WORDS[n.word] || [n.word, ''];
-  return h('span', { class: cls, title: n.sureness ? 'certeza: ' + n.sureness : '' }, label);
+  return h('span', { class: 'word ' + cls, title: 'Intel' + (n.sureness ? ', certeza: ' + n.sureness : '') }, label);
 }
 
-// newMenu is the "Novo ▾" button: group, campaign or ads, starting from
-// where the person is (the group or campaign the table is narrowed to).
-export function newMenu({ at, group, campaign }) {
-  const acct = at.account !== 'all' ? at.account : group?.account || campaign?.account || '';
-  const base = (make, more = {}) => {
-    const q = new URLSearchParams({ make });
-    if (acct) q.set('account', acct);
-    for (const [k, v] of Object.entries(more)) if (v) q.set(k, v);
-    return '/launch/new?' + q;
-  };
-  const groupId = group && group.id !== '-' ? group.id : campaign?.group_id || '';
-  const items = [
-    ['Grupo de campanha', 'Só o grupo; depois, se quiser, uma campanha nele.', base('group')],
-    ['Campanha', groupId ? 'Neste grupo, com os anúncios.' : 'Num grupo novo ou num que já existe, com os anúncios.', base('campaign', { group: groupId })],
-    ['Anúncios', campaign ? 'Nesta campanha.' : 'Em campanhas que já existem.', base('ads', { to: campaign?.id || '' })],
-  ];
-  const menu = h('details', { class: 'new-menu' }, h('summary', { class: 'button primary' }, 'Novo ▾'),
-    h('div', { class: 'menu', role: 'menu' }, items.map(([label, about, to]) => h('a', { href: to, role: 'menuitem' }, h('b', {}, label), h('small', {}, about)))));
+// NEW is what the "+ Novo" menu makes: a group, a campaign (a pair) or ads,
+// each with its letter (N then the letter opens it).
+const NEW = [
+  ['group', 'G', 'Grupo de campanha', 'Objetivo e orçamento, sem campanhas'],
+  ['campaign', 'C', 'Campanha', 'Um par desktop + mobile, num grupo'],
+  ['ads', 'A', 'Anúncios', 'Nas campanhas que você escolher'],
+];
+
+// newHref is where a "+ Novo" item goes, starting from where the person is
+// (the account and group the page shows).
+function newHref(make, { at, group }) {
+  const q = new URLSearchParams({ make });
+  const acct = at.account !== 'all' ? at.account : group?.account || '';
+  if (acct) q.set('account', acct);
+  if (make === 'campaign' && group?.id) q.set('group', group.id);
+  return '/launch/new?' + q;
+}
+
+// newMenu is the "+ Novo" button and its menu.
+export function newMenu(where) {
+  const menu = h('details', { class: 'new-menu' }, h('summary', { class: 'button primary' }, '+ Novo'),
+    h('div', { class: 'menu', role: 'menu' }, NEW.map(([make, key, label, about]) => h('a', { href: newHref(make, where), role: 'menuitem' },
+      h('span', { class: 'new-glyph', 'aria-hidden': 'true' }, key),
+      h('span', { class: 'new-text' }, h('b', {}, label), h('small', {}, about)),
+      h('span', { class: 'new-keys', 'aria-label': 'atalho N ' + key }, h('kbd', {}, 'N'), h('kbd', {}, key))))));
   document.addEventListener('click', (e) => { if (!menu.contains(e.target)) menu.open = false; });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') menu.open = false; });
   return menu;
+}
+
+// newKeys: N then G, C or A opens that "+ Novo" item. It listens before
+// the Frame, whose G starts switching apps.
+function newKeys(where) {
+  let armed = 0;
+  window.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+    const k = e.key.toLowerCase();
+    if (armed && performance.now() - armed < 1500) {
+      const item = NEW.find(([, key]) => key.toLowerCase() === k);
+      armed = 0;
+      if (item) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        location.assign(newHref(item[0], where));
+      }
+      return;
+    }
+    armed = k === 'n' ? performance.now() : 0;
+  }, true);
 }

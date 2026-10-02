@@ -62,7 +62,7 @@ func (t *Taboola) Groups(ctx context.Context, account string) ([]network.Group, 
 }
 
 func group(g write.Group) network.Group {
-	return network.Group{ID: g.ID, Name: g.Name, Status: g.Status, Budget: g.SpendingLimit, BudgetModel: g.SpendingLimitModel}
+	return network.Group{ID: g.ID, Name: g.Name, Status: g.Status, Budget: g.SpendingLimit, BudgetModel: g.SpendingLimitModel, Objective: g.MarketingObjective}
 }
 
 func (t *Taboola) Campaigns(ctx context.Context, account string) ([]network.Campaign, error) {
