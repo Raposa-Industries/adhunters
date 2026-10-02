@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/Raposa-Industries/adhunters/kit/keep"
+	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 
 // Other text models may write headlines (decision 0024): xAI's Grok,
@@ -78,6 +80,7 @@ func NewCompat(cp Compat, meter Meter, kept *keep.Folder, log *slog.Logger) *Cli
 	c := New(Settings{APIKey: cp.APIKey, BaseURL: cp.BaseURL, TextModel: cp.Model, TextPriceIn: cp.PriceIn, TextPriceOut: cp.PriceOut},
 		meter, kept, log)
 	c.provider, c.name, c.chatPath, c.compat = cp.ID, cp.Name, "/chat/completions", true
+	c.http = &http.Client{Transport: ops.Transport(cp.ID, nil)}
 	return c
 }
 

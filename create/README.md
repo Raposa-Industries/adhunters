@@ -371,7 +371,7 @@ rest answer 503; 400 for anything the server refuses before calling Taboola,
 
 Every reply is saved raw under `CREATE_KEEP_DIR/<UTC date>/` before it is
 read, with a `.json` beside each picture saying what was asked and what it
-cost. Every Taboola request and answer is kept there too. Spend is counted in `/metrics` (`ops.Spent`).
+cost. Every Taboola request and answer is kept there too. Spend is counted in `/metrics` (`ops.Spent`), and every call to OpenAI or a headline provider, by status, as `adhunters_outbound_requests_total{provider}`.
 
 ## Settings
 
@@ -428,6 +428,10 @@ Cloudflare Access on 2026-10-01 (owner's word) with our own sign-in:
   every other path goes to `/launch/`. The apps listen only on localhost,
   except raposa-web, which listens on the worker's private address
   (`10.20.1.10:8090`), and none does sign-in of its own.
+- Every request is counted and timed on create-web's `/metrics` by the app
+  it goes to and the status it got (`adhunters_http_requests_total`,
+  `adhunters_http_request_seconds`), the sign-in's pages as `signin` and
+  every other path as `home`. Grafana's "AdHunters · Web" shows them.
 
 Landing sites (funnels-edge) have their own hostnames and no sign-in.
 

@@ -15,7 +15,7 @@ itself works (decision 0009).
 | Telegram | the ops group "AdHunters operation" | What the team acts on: Intel's alerts, delivery status changes and suggestions, and Taboola policy changes. Set by `OPS_TELEGRAM_CHAT_ID` in `observe-bot.env` and `intel-numbers.env`; while it is empty they go to "AdHunters alerts". |
 | Better Stack | hosted (free tier) | Receives the always-firing `Heartbeat` every minute and calls the owner when it stops. Later: outside checks of the apps. |
 | `observe-bot` | data box, `cmd/observe-bot` here | Sends the 08:00 digest (the last 24 hours in numbers, with the alerts that fired, the errors logged and the failed task runs; three lines on a quiet day) and posts each new Sentry issue to Telegram, silently, as it first appears (it asks Sentry every minute, tries a slow or failing answer three times, and logs a failed poll as a warning rather than reporting it to Sentry; `adhunters_task_runs_total{task="sentry_relay",result="error"}` counts them and `TaskLate` fires after 10 minutes without getting through). Reads what is left on each prepaid service every 15 minutes and knows when subscriptions renew (see Credits below). Crawls Taboola's policy pages every 6 hours and posts what changed (see Taboola policy watch below). |
-| Dashboards | `dashboards/`, uploaded by `push.sh` | "AdHunters · Collection" (capture, shipper, loader) and "AdHunters · Boxes" (hosts, services, Postgres, backups, Raposa, task freshness). |
+| Dashboards | `dashboards/`, uploaded by `push.sh` | "AdHunters · Services" (what fires now, errors by service and message with their log lines, tasks, processes, spend), "AdHunters · Web" (the Cloudflare tunnel, each app's requests through create-web, calls to outside services, landing sites), "AdHunters · Postgres" (connections, load, the queries that take the most time, space by schema and table, each app's pool), "AdHunters · Apps" (Raposa, Spy, Funnels, Desk), "AdHunters · Collection" (capture, shipper, loader, walker) and "AdHunters · Boxes" (hosts, network, processes and pressure, Postgres, backups, task freshness, what Alloy sends). |
 | Backups | data box, pgBackRest (`platform/servers/setup.sh`) | WAL archived every 60 s, a full backup on Sundays and a differential on other days, all to object storage; alerts when archiving fails or a backup is late. |
 
 ## What you sign up for
@@ -231,6 +231,11 @@ Alloy watches every unit of ours (`UnitFailed`, `PostgresRestarted`) and ships
 its journal. `push.sh check` fails when `platform/servers/setup.sh` runs a
 unit that `alloy/common.alloy` does not cover.
 
+`rules/web.yaml` watches what the team opens: `TunnelDown` when the data box's
+cloudflared holds no connection to Cloudflare, and `AppErrors` when over 20%
+of an app's answers through create-web (`adhunters_http_requests_total`) are
+5xx.
+
 Chat alerts are delivered at any hour, silently. Until 2 Oct 2026 they were
 held from 22:00 to 08:00, and one that cleared before morning was never sent
 (decision 0009).
@@ -242,7 +247,7 @@ one set of label values) and drops what goes over; it bills nothing. On
 2 Oct 2026 we sent 12,859: Postgres 6,936 (statistics for each of its 221
 tables and a copy of every setting, which nothing read), the hosts 2,126,
 Alloy's own 1,869 and our services 1,820. Since then each exporter sends
-what a rule, a dashboard or a person reads, about 4,500 in all:
+what a rule, a dashboard or a person reads, about 5,000 in all:
 
 - Postgres (`alloy/postgres.alloy`): connections, locks, transactions,
   cache hits, deadlocks and temporary files per database, checkpoints,
@@ -256,12 +261,19 @@ what a rule, a dashboard or a person reads, about 4,500 in all:
   table, file handles, processes and threads, the clock, and each unit's
   restarts and threads to what the alerts read.
 - Alloy and cloudflared: a short list each of the metrics worth keeping.
+- Our services (`kit/ops`, `kit/pg`): besides their own metrics, each
+  service with a database reports its pool (`adhunters_db_pool_*`), calls to
+  Taboola, Telegram, OpenAI and the other headline providers are counted by
+  provider and status code (`adhunters_outbound_*`), and create-web counts
+  every request by app and status code (`adhunters_http_*`). About 500
+  series together.
 
 Before adding a metric, count its series: each label multiplies them, so a
 label never holds an id, a URL or free text, only a short fixed set of
 values. Where we stand, in Grafana's Explore: `count({__name__=~".+"})`, and
 `count by (job) ({__name__=~".+"})` for who sends them. Each box's Alloy
-reports what it sends as `prometheus_remote_write_wal_storage_active_series`.
+reports what it sends as `prometheus_remote_write_wal_storage_active_series`;
+`SeriesNearLimit` (chat) fires when the boxes send over 9,000 together.
 
 ## Daily check
 
