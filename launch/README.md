@@ -37,6 +37,7 @@ All under `/launch/`; a link to any of them opens it.
 | `make=ads` (`&to=<ids>` picks campaigns) | **Novos anúncios**: pick campaigns of one account, then the same ads, paused, go into each (Realize's "assign creatives"). |
 | `/launch/new?set=<id>` | Nova campanha with one library set's creatives and headlines already in (Create links here after saving a set). |
 | `/launch/drafts` | Drafts; opening one continues it in Nova campanha. |
+| `/launch/accounts` | **Contas**: the Taboola logins Launch uses, each with its accounts. The server's own login (`TABOOLA_*`) is listed and changes only there. **Adicionar login** takes a name, client ID and client secret; **Verificar na Taboola** asks Taboola for a token and the login's account list (reads only: nothing is made or changed on Taboola), then the person ticks the advertiser accounts to use (the network account is shown, never pickable) and **Salvar login**. Those accounts then appear in the Conta picker, ⌘K and every table, and every call about one goes to its own login, with the same guards and ceilings. **Escolher contas** changes them (checking with Taboola again); **Remover** stops using the login. The secret is sealed before it is saved and no page, answer or log line shows it again; the page shows only the client ID's first and last four characters. An account two logins share belongs to the first (the server's own first). |
 | `/launch/requests` | **Pedidos**: changes Desk asked for, waiting ones first. |
 | `/launch/requests/<id>` | One request: what it asks, the campaigns as they are now, **Confirmar e enviar** or **Recusar**. Confirming makes the change as the person, with the request's origin as who asked. |
 
@@ -164,7 +165,7 @@ or failed, 503 not connected.
 |---|---|
 | `GET status` | The person, each network (connected, why not), the ceilings. |
 | `GET search?q=` | Groups and campaigns for ⌘K. |
-| `GET accounts/{net}` | The login's accounts. |
+| `GET accounts/{net}` | Every login's chosen accounts. |
 | `GET {net}/{account}/tree` | Groups, campaigns, pairs, waiting moves. The lists are kept 30 s and dropped by any write through Launch. |
 | `GET {net}/{account}/ads?campaigns=1,2` | `{ads: {campaign: [ad]}, errors: {campaign: why}}`, at most 25 campaigns, kept like the tree. |
 | `GET numbers?window=7d&accounts=a,b` | Intel's numbers for the window by campaign and by ad: `{available, campaigns, ads, refreshed_at}`; `available` is false without Intel's views. |
@@ -186,6 +187,11 @@ or failed, 503 not connected.
 | `POST requests/{id}/confirm`, `POST requests/{id}/refuse` | Decides one, as the signed-in person. |
 | `POST images` (multipart `image`), `GET images/{sha}` | Pictures. |
 
+| `GET logins` | The logins for Contas: `{id, server, network, name, client_id` (first and last four characters only)`, accounts, added_by, added_at, problem}`. Never a secret. |
+| `POST logins/check` | `{client_id, client_secret}`: asks Taboola which accounts the login sees (a token and allowed-accounts, reads only): `{accounts: [{id, name, network}]}`. |
+| `POST logins` | `{name, client_id, client_secret, accounts}`: checks again, seals the secret, saves, and starts using the accounts. 400 when Taboola refuses the login, an account is not the login's or is its network account, or the login is already there. |
+| `GET logins/{id}/allowed`, `PUT logins/{id}`, `DELETE logins/{id}` | What an added login sees now; `{name, accounts}` to rename it and choose again; stop using it (nothing changes on Taboola). |
+
 Every write takes `?from=intel:<id>` or `?from=desk:<id>` for History's
 "who asked"; anything else there is ignored.
 
@@ -203,8 +209,21 @@ What other services may read, and Desk's one call
 | `item_v1` | Every ad Launch made (new pairs and copies): network, account, campaign and item ids (text and number), our `ad_id`. |
 | `pair_v1`, `preset_v1`, `change_v1` | Pairs, presets, History. |
 
-Accounts are not in `launch_api`: they are the network login's, read live
+Accounts are not in `launch_api`: they are the network logins', read live
 (`GET accounts/{net}`).
+
+## Logins added on Contas
+
+`launch.login` (`migrations/sql/0003_login.sql`) holds each added login: name,
+client ID, the chosen accounts, who added it and when, and its secret sealed
+with AES-256-GCM (`internal/logins`), tied to its network and client ID. The
+key is a 32-byte file Launch makes at its first start, owner-only:
+`LAUNCH_LOGIN_KEY`, by default `login.key` in the data folder
+(`/var/lib/launch-web/login.key` on the data box). It is never in the
+database, so a database copy alone cannot open a secret. If the key file is
+lost, the added logins show "a chave do servidor mudou" and have to be added
+again; the server's own login is not affected. Intel does not read these
+logins yet: their accounts have no numbers in Launch until it does.
 
 ## Settings and running it
 

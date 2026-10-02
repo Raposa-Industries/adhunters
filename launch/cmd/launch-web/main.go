@@ -18,7 +18,9 @@
 //	LAUNCH_WEB_ADDR         127.0.0.1:8094
 //	LAUNCH_DATA_DIR         launch-data (kept exchanges, pictures, only-own state)
 //	LAUNCH_WATCH_EVERY      5m: how often moves are checked for started copies
-//	TABOOLA_*               one Taboola login (shared/taboola/write, SettingsFromEnv)
+//	TABOOLA_*               the server's own Taboola login (shared/taboola/write, SettingsFromEnv)
+//	LAUNCH_LOGIN_KEY        <data>/login.key: the key that seals the secrets of
+//	                        logins added on the Contas page (made at first start)
 //
 // Nothing is created running: groups, campaigns and ads are made paused,
 // and a person turns them on in Taboola's own dashboard.
@@ -48,6 +50,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/launch/internal/api"
 	"github.com/Raposa-Industries/adhunters/launch/internal/images"
 	"github.com/Raposa-Industries/adhunters/launch/internal/library"
+	"github.com/Raposa-Industries/adhunters/launch/internal/logins"
 	"github.com/Raposa-Industries/adhunters/launch/internal/network"
 	tbnet "github.com/Raposa-Industries/adhunters/launch/internal/network/taboola"
 	"github.com/Raposa-Industries/adhunters/launch/internal/store"
@@ -103,7 +106,8 @@ func serve(args []string) error {
 	if err != nil {
 		return err
 	}
-	tb, err := write.New(tbSet, keep.New(filepath.Join(*dataDir, "kept")), log)
+	kept := keep.New(filepath.Join(*dataDir, "kept"))
+	tb, err := write.New(tbSet, kept, log)
 	if err != nil {
 		return err
 	}
@@ -115,8 +119,20 @@ func serve(args []string) error {
 
 	img := &images.Store{Dir: filepath.Join(*dataDir, "images")}
 	st := store.New(db)
-	l := actions.New(st, img, log, tbnet.Message, tbnet.New(tb))
+	// Taboola is the server's own login and those people add on the Contas
+	// page, whose secrets are sealed with the key in LAUNCH_LOGIN_KEY.
+	nets := tbnet.NewLogins(tbnet.Login{T: tbnet.New(tb), Accounts: tbSet.Accounts})
+	box, err := logins.OpenKey(envOr("LAUNCH_LOGIN_KEY", filepath.Join(*dataDir, "login.key")))
+	if err != nil {
+		return err
+	}
+	accts := logins.New(st, box, nets, tb, tbSet, kept, log)
+	if err := accts.Load(ctx); err != nil {
+		return err
+	}
+	l := actions.New(st, img, log, tbnet.Message, nets)
 	a := api.New(ctx, l, img, log, classify)
+	a.Logins = accts
 	a.Limits = map[string]any{"max_cpc": tbSet.MaxCPC, "max_daily_cap": tbSet.MaxDailyCap, "max_spend_limit": tbSet.MaxSpendLimit, "only_own": tbSet.OnlyOwn, "create_active": tbSet.CreateActive}
 	if lib := envOr("LAUNCH_LIBRARY_URL", "http://127.0.0.1:8093"); lib != "off" {
 		a.Library = library.New(lib)

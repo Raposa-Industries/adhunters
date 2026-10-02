@@ -23,6 +23,7 @@ import (
 
 	"github.com/Raposa-Industries/adhunters/launch/internal/actions"
 	"github.com/Raposa-Industries/adhunters/launch/internal/images"
+	"github.com/Raposa-Industries/adhunters/launch/internal/logins"
 	"github.com/Raposa-Industries/adhunters/launch/internal/network"
 	"github.com/Raposa-Industries/adhunters/launch/internal/store"
 )
@@ -43,6 +44,9 @@ type API struct {
 	// Library is the team's library, for a new pair's pictures and
 	// headlines; nil when there is none.
 	Library *library.Client
+	// Logins are the network logins people add on the Contas page; nil
+	// when the server has none to offer.
+	Logins *logins.Service
 
 	mu   sync.Mutex
 	jobs map[string]*job
@@ -116,6 +120,7 @@ func (a *API) Handler() http.Handler {
 	// path segment would clash with {net}/{account}/….
 	m.HandleFunc("GET "+p+"library/{what}", a.libraryList)
 	m.HandleFunc("POST "+p+"library/use", a.libraryUse)
+	a.loginRoutes(m, p)
 	m.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) { say(w, http.StatusNotFound, "endereço desconhecido") })
 	return a.forgetOnWrite(m)
 }

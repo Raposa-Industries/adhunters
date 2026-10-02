@@ -74,10 +74,16 @@ kbd { font: 500 11px/1 var(--mono); color: var(--ink-2); background: var(--surfa
 /* ---- the Frame ---- */
 body.fr { min-height: 100vh; display: flex; flex-direction: column; }
 .fr-top { position: sticky; top: 0; z-index: 30; height: var(--top); flex: none; display: flex; align-items: stretch; gap: 10px; background: var(--bar); border-bottom: 1px solid var(--line-subtle); }
-.fr-app { width: var(--column); flex: none; display: flex; align-items: center; gap: 10px; padding: 0 12px; margin: 0; border: 0; border-right: 1px solid var(--line-subtle); border-radius: 0; background: var(--rail); color: var(--ink-strong); font: 700 14px var(--display); font-stretch: 125%; text-align: left; cursor: pointer; min-height: 0; }
-.fr-app:hover { background: var(--surface-1); }
+/* The app selector names the app and says what it is for, one line each
+   (Figma "App selector", Option A, 2026-10-02). */
+.fr-app { width: var(--column); flex: none; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 12px; margin: 0; border: 0; border-right: 1px solid var(--line-subtle); border-radius: 0; background: var(--surface-1); color: var(--ink-strong); text-align: left; cursor: pointer; min-height: 0; }
+.fr-app:hover { background: var(--surface-2); border-color: var(--line-subtle); }
+.fr-app-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fr-app-name { font: 700 13px/14px var(--display); font-stretch: 125%; color: var(--ink-strong); }
+.fr-app-about { font: 400 12px/18px var(--sans); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fr-app[aria-expanded="true"] .fr-chev { transform: rotate(180deg); }
 .fr-glyph { width: 28px; height: 28px; flex: none; border-radius: 7px; display: grid; place-items: center; color: var(--accent); background: var(--ember-chip); border: 1px solid var(--ember-chip-line); }
-.fr-chev { margin-left: auto; display: flex; color: var(--faint); }
+.fr-chev { margin-left: auto; display: flex; color: #8b8b96; }
 .fr-tabs { display: flex; align-items: stretch; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .fr-tabs::-webkit-scrollbar { display: none; }
 .fr-tab { display: flex; align-items: center; padding: 0 12px; font: 500 12.5px var(--sans); color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; }
@@ -139,7 +145,7 @@ a.fr-apps-item:hover, a.fr-apps-item:focus-visible { background: var(--surface-3
    filters open as a drawer from the button in the bar. */
 @media (max-width: 900px) {
   .fr-app { width: auto; }
-  .fr-app-name, .fr-chev { display: none; }
+  .fr-app-text, .fr-chev { display: none; }
   .fr-search { width: 36px; justify-content: center; padding: 0; }
   .fr-search-label, .fr-search kbd { display: none; }
   .fr-filter-toggle { display: grid; place-items: center; width: 36px; height: 30px; min-height: 0; padding: 0; }
