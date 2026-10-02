@@ -1,14 +1,15 @@
-// Novo: the steps behind "+ Novo" (Draw Designer batch 126). The steps are
-// listed on the left with "Salvar rascunho" and "Cancelar"; each step is one
-// card ("Passo N · …") with "Próximo: …" under it; on the right, "Prévia na
-// tabela" shows the rows Campanhas will show once it is made, the new ones
-// marked "novo".
+// Novo: the steps behind "+ Novo" (Draw Designer batch 126, IMPLEMENT
+// 43e7b65f44). Each item has its own short page, made one at a time: the
+// steps are listed on the left; each step is one card ("Passo N · …") with
+// Cancelar and "Próximo: …" under it; on the right, "Prévia na tabela" shows
+// the rows Campanhas will show once it is made, the new ones marked "novo".
 //
 // make=campaign (the default): Campanha (the group, or a new one; the
-// devices; each campaign's name, bid and budgets; countries; more settings),
-// Anúncios (page and tracking, brand, the ads) and Revisar e criar. With
-// "Os dois" one desktop and one mobile campaign go in the group with the
-// same ads; the mobile one may have its own name, bid, budgets and start.
+// devices; each campaign's name, bid and budgets; countries and brand; more
+// settings with the tracking code) and Revisar e criar. With "Os dois" one
+// desktop and one mobile campaign go in the group; the mobile one may have
+// its own name, bid, budgets and start. The campaigns go up without ads:
+// "Adicionar anúncios" then opens make=ads with them picked.
 // make=group makes a group only. make=ads adds ads to campaigns that exist,
 // picked in a tree of every account's groups and campaigns.
 //
@@ -52,7 +53,7 @@ export function combos(nImages, nHeadlines, nCTAs, mode, seed) {
 // MODES are the ways pictures and headlines become ads.
 const MODES = [['mixed', 'Sortido'], ['pairs', 'Par a par'], ['manual', 'Escolher pares'], ['every', 'Todas as combinações']];
 
-// MAKES name each kind of new item: the rail's title and where Cancelar goes.
+// MAKES name each kind of new item: the rail's title.
 const MAKES = { campaign: 'Nova campanha', group: 'Novo grupo', ads: 'Novos anúncios' };
 
 let hid = 0;
@@ -82,8 +83,9 @@ export async function newPair({ main, status }) {
     }
   }
   const asked = draft?.body?.make || q.get('make');
-  // An address with campaigns (to=) is ads only, as before the menu.
-  const make = ['group', 'campaign', 'ads'].includes(asked) ? asked : q.get('to') ? 'ads' : 'campaign';
+  // An address with campaigns (to=) or a library set (set=, from Create) is
+  // ads: a new campaign has none.
+  const make = ['group', 'campaign', 'ads'].includes(asked) ? asked : q.get('to') || q.get('set') ? 'ads' : 'campaign';
   const s = {
     net: q.get('net') || connected[0]?.name || 'taboola',
     account: q.get('account') || '',
@@ -112,11 +114,8 @@ export async function newPair({ main, status }) {
 
   // ---- the left rail ----
   const railSteps = h('ol', { class: 'rail-steps' });
-  const draftOut = h('span', { class: 'faint rail-note' });
-  const draftBtn = h('button', { type: 'button', onclick: () => saveDraft() }, 'Salvar rascunho');
   const rail = h('aside', { class: 'steps-rail', 'aria-label': 'Passos' },
-    h('div', {}, h('div', { class: 'rail-label' }, MAKES[make]), railSteps),
-    h('div', { class: 'rail-actions' }, draftBtn, h('a', { class: 'button ghost', href: back }, 'Cancelar'), draftOut));
+    h('div', {}, h('div', { class: 'rail-label' }, MAKES[make]), railSteps));
 
   // ---- Campanha: group, devices, each campaign ----
   const groupSel = h('select', { 'aria-label': 'Grupo' }, h('option', { value: '' }, connected.length ? 'Carregando os grupos…' : 'Sem conexão: só a planilha'));
@@ -155,13 +154,13 @@ export async function newPair({ main, status }) {
   const where = h('details', { class: 'select-like' }, h('summary', {}, countries),
     h('p', { class: 'faint' }, 'Estados Unidos, menos estas cidades (uma por linha, começando pelo número da cidade no Taboola):'), set.parts.cities);
   const more = h('details', { class: 'more' }, h('summary', {}, 'Mais configurações'),
-    h('div', { class: 'two' }, set.parts.start, set.parts.end), mobStart, set.parts.delivery, set.parts.objective);
+    h('div', { class: 'two' }, set.parts.start, set.parts.end), mobStart, set.parts.delivery, set.parts.objective, set.parts.tracking);
   const campaignCard = h('section', { class: 'form-card' },
     presetHold,
     h('div', { class: 'two' }, h('label', { class: 'field' }, 'Grupo', groupSel, groupHint), h('div', { class: 'field' }, 'Dispositivo', deviceBox, deviceHint)),
     newGroupCard,
     h('div', { class: 'two cards' }, mainCard, mobileCard),
-    h('div', { class: 'field' }, 'Países', where),
+    h('div', { class: 'two' }, h('div', { class: 'field' }, 'Países', where), set.parts.brand),
     more);
 
   // ---- Grupo (make=group): the account and the group ----
@@ -233,24 +232,19 @@ export async function newPair({ main, status }) {
   const reshuffle = h('button', { type: 'button', class: 'small ghost', onclick: () => { s.seed = 1 + Math.floor(Math.random() * 2 ** 31); update(); } }, 'Sortear de novo');
   const aiBox = h('div');
   const pairing = h('p', { class: 'muted' });
-  // The page and tracking go with a new campaign; new ads in campaigns that
-  // exist take their page in the first step.
-  const linkCard = make === 'campaign' ? h('section', { class: 'form-card' }, h('h3', {}, 'Página e tracking'),
-    set.parts.tracker, set.parts.link, set.parts.warnings, set.parts.tracking,
-    h('div', { class: 'two' }, set.parts.brand, set.parts.description)) : null;
   const adsCard = h('section', { class: 'form-card' }, h('h3', {}, 'Imagens'), lib.el, drop, fileIn, upNote, imgGrid,
     h('h3', {}, 'Headlines'), h('p', { class: 'faint' }, 'Sempre em inglês. Os avisos são do Taboola e não impedem o envio.'), paste, h('div', { class: 'actions' }, addHl), hlList,
     h('h3', {}, 'Botão'), ctaBox,
     h('h3', {}, 'Combinação'), h('div', { class: 'actions' }, modeBox, reshuffle), manualBox, pairing,
     h('h3', {}, 'Feito com IA?'), aiBox);
-  const adsStep = h('div', {}, linkCard, adsCard);
+  const adsStep = h('div', {}, adsCard);
 
   // ---- Campanhas (make=ads): the campaigns that get the ads ----
   const to = (q.get('to') || '').split(',').map((x) => x.trim()).filter((x) => /^\d+$/.test(x));
   const adUrl = input({ type: 'url', placeholder: 'https://…', 'aria-label': 'Página dos anúncios' });
   const adDesc = input({ placeholder: 'opcional, em inglês', 'aria-label': 'Descrição' });
-  const url = () => (make === 'ads' ? adUrl.value.trim() : set.url());
-  const description = () => (make === 'ads' ? adDesc.value.trim() : set.description());
+  const url = () => adUrl.value.trim();
+  const description = () => adDesc.value.trim();
   const findCamp = input({ type: 'search', placeholder: 'nome ou id', 'aria-label': 'Buscar campanha' });
   const targetList = h('div', { class: 'table-wrap pick-tree' });
   const closed = new Set(); // groups closed in the tree, by account/id
@@ -320,7 +314,7 @@ export async function newPair({ main, status }) {
   const andCampaign = h('button', { type: 'button', class: 'big', onclick: () => sendGroup(true) }, 'Criar e adicionar campanha');
   const reviewCard = h('section', { class: 'form-card' }, review,
     h('div', { class: 'actions' }, connected.length ? sendBtn : null, make === 'group' && connected.length ? andCampaign : null), sendOut,
-    make === 'group' ? null : h('details', { class: 'sheet', open: !connected.length }, h('summary', {}, 'Subir à mão pelo Bulk Upload'),
+    make !== 'ads' ? null : h('details', { class: 'sheet', open: !connected.length }, h('summary', {}, 'Subir à mão pelo Bulk Upload'),
       h('p', { class: 'muted' }, 'A planilha usa as campanhas que já existem no Taboola. Os anúncios entram pausados.'),
       h('div', { class: 'fields' }, field('Ids das campanhas', sheetIds, 'cada anúncio vai em todas')),
       h('div', { class: 'actions' }, sheetBtn), sheetOut));
@@ -332,9 +326,8 @@ export async function newPair({ main, status }) {
     campaign: [
       { label: 'Campanha', short: 'campanha', el: campaignCard, sub: () => ({ both: 'grupo e par desktop + mobile', desktop: 'grupo e campanha desktop', mobile: 'grupo e campanha mobile' })[s.devices],
         lead: 'Com "Os dois" saem uma campanha desktop e uma mobile, iguais ou com lance e orçamento próprios no mobile.' },
-      { label: 'Anúncios', short: 'anúncios', el: adsStep, sub: adsSub, lead: 'A página, a marca e os anúncios: os mesmos em cada campanha. As headlines vão sempre em inglês.' },
       { label: 'Revisar e criar', short: 'revisar', el: reviewCard, sub: () => '',
-        lead: 'Confira os anúncios como vão sair. ' + (live ? 'Tudo sobe ativo: começa a gastar assim que o Taboola aprovar.' : 'Tudo nasce pausado.') },
+        lead: 'Confira na prévia ao lado. As campanhas ' + (live ? 'sobem ativas' : 'nascem pausadas') + ', ainda sem anúncios.' },
     ],
     group: [
       { label: 'Grupo', short: 'grupo', el: groupCard, sub: () => 'objetivo e orçamento',
@@ -351,7 +344,8 @@ export async function newPair({ main, status }) {
   const title = h('h1', {}, '');
   const lead = h('p', { class: 'lead' }, '');
   const stepOut = h('div');
-  const backBtn = h('button', { type: 'button', class: 'ghost', onclick: () => show(at - 1) }, 'Voltar');
+  const backBtn = h('button', { type: 'button', class: 'ghost back', onclick: () => show(at - 1) }, 'Voltar');
+  const cancel = h('a', { class: 'button ghost', href: back }, 'Cancelar');
   const nextBtn = h('button', { type: 'button', class: 'primary', onclick: () => {
     const p = stepProblem(steps[at]);
     if (p) { stepOut.replaceChildren(note('fail', p)); return; }
@@ -380,11 +374,11 @@ export async function newPair({ main, status }) {
     drawRail();
     window.scrollTo?.({ top: 0 });
   }
-  const offline = connected.length ? null : note('warn', h('b', {}, 'Taboola desligado. '), 'Monte os anúncios aqui e baixe a planilha no fim para subir pelo Bulk Upload do Taboola.');
+  const offline = connected.length ? null : note('warn', h('b', {}, 'Taboola desligado. '), make === 'ads' ? 'Monte os anúncios aqui e baixe a planilha no fim para subir pelo Bulk Upload do Taboola.' : 'Criar precisa do Taboola ligado. A planilha do Bulk Upload fica em Novos anúncios.');
   main.append(h('div', { class: 'steps-page' }, rail,
     h('div', { class: 'steps-content' },
       h('div', { class: 'steps-form' }, h('div', { class: 'steps-head' }, title, lead), offline, ...steps.map((st) => st.el), stepOut,
-        h('div', { class: 'steps-next' }, backBtn, nextBtn)),
+        h('div', { class: 'steps-next' }, backBtn, cancel, nextBtn)),
       h('aside', { class: 'steps-preview', 'aria-label': 'Prévia na tabela' }, h('h2', {}, 'Prévia na tabela'), preview))));
 
   // ---- loading ----
@@ -712,6 +706,11 @@ export async function newPair({ main, status }) {
       review.replaceChildren(h('p', { class: 'muted' }, live ? 'O grupo sobe ativo, ainda sem campanhas.' : 'O grupo nasce pausado, ainda sem campanhas.'));
       return;
     }
+    if (make === 'campaign') {
+      review.replaceChildren(h('p', { class: 'muted' }, 'Os anúncios entram depois: ao criar, "Adicionar anúncios" abre Novos anúncios com ' +
+        (s.devices === 'both' ? 'as duas campanhas já escolhidas.' : 'a campanha já escolhida.')));
+      return;
+    }
     // Each ad can get another picture, headline (from the list or typed) or
     // button, or be taken out. The first edit freezes the list; the edited
     // list is exactly what is sent.
@@ -781,7 +780,7 @@ export async function newPair({ main, status }) {
       const g = groups.find((x) => x.account === s.account && x.id === s.group);
       if (s.newGroup) parts.push(row(0, 'Grupo', gForm.get().name || (next ? next.group : 'Grupo novo'), { fresh: true, state: live ? 'RUNNING' : 'PAUSED' }));
       else if (g) parts.push(row(0, 'Grupo', g.name || g.id, { state: g.status }));
-      else parts.push(h('p', { class: 'faint' }, connected.length ? 'Escolha o grupo.' : 'Sem conexão: os anúncios saem na planilha.'));
+      else parts.push(h('p', { class: 'faint' }, connected.length ? 'Escolha o grupo.' : 'Sem conexão com o Taboola.'));
       if (g) {
         const old = campaignList.filter((c) => c.account === s.account && c.group_id === g.id);
         parts.push(...old.slice(0, 5).map((c) => row(1, 'Camp', c.name)), more(1, old.length - 5));
@@ -795,7 +794,6 @@ export async function newPair({ main, status }) {
           sub(2, [DEVICES[d], bid, ds.daily_cap ? money(ds.daily_cap) + ' por dia' : 'sem orçamento',
             (ds.spending_limit || limits.max_spend_limit) ? 'até ' + money(ds.spending_limit || limits.max_spend_limit) + ' no total' : 'sem limite total',
             ds.start_date ? 'começa em ' + ds.start_date : ''].filter(Boolean).join(' · ')));
-        if (list.length) parts.push(row(2, 'Ad', adsLine, { fresh: true }));
       });
     }
     if (make === 'ads') {
@@ -817,10 +815,10 @@ export async function newPair({ main, status }) {
       for (const c of loose) if (shown++ < 8) parts.push(row(1, 'Camp', c.name), row(2, 'Ad', adsLine, { fresh: true }));
       parts.push(more(0, to.length - 8));
     }
-    if (make !== 'group' && list.length && at > 0) {
+    if (make === 'ads' && list.length && at > 0) {
       parts.push(h('div', { class: 'pv-cards' }, list.slice(0, 4).map((a) => h('figure', { class: 'pv-card' },
         h('img', { src: '/launch/api/images/' + a.img.sha256, alt: '', loading: 'lazy' }),
-        h('figcaption', {}, h('b', {}, a.title), make === 'campaign' && set.settings().brand ? h('span', { class: 'faint' }, set.settings().brand) : null, a.cta ? h('span', { class: 'pv-cta' }, a.cta) : null)))),
+        h('figcaption', {}, h('b', {}, a.title), a.cta ? h('span', { class: 'pv-cta' }, a.cta) : null)))),
       more(0, list.length - 4));
     }
     if (w.length) parts.push(note('warn', h('b', {}, 'Avisos: '), w.join(' ')));
@@ -839,6 +837,7 @@ export async function newPair({ main, status }) {
           if (p) return p;
         } else if (!s.group) return 'Escolha o grupo, ou crie um novo.';
       }
+      if (!set.settings().brand) return 'Escreva a marca.';
       return set.problem('campaign') || (s.devices === 'both' ? mobileProblem(mobileSettings(set.settings(), mobileOver()), limits) : '');
     }
     if (el === groupCard) {
@@ -850,10 +849,6 @@ export async function newPair({ main, status }) {
       if (!url()) return 'Falta o link da página.';
     }
     if (el === adsStep) {
-      if (make === 'campaign') {
-        const p = set.problem('ads');
-        if (p) return p;
-      }
       if (!on().I.length || !on().H.length || !on().T.length) return 'Escolha ao menos uma imagem, uma headline e um botão.';
       if (s.mode === 'manual' && !s.review && !generated().length) return 'Monte ao menos um par.';
       if (!s.ai) return 'Diga se os anúncios foram feitos com IA.';
@@ -903,11 +898,11 @@ export async function newPair({ main, status }) {
       sendOut.replaceChildren(note('fail', p));
       return;
     }
-    if (!list.length) {
-      sendOut.replaceChildren(note('fail', 'Nenhum anúncio para criar.'));
-      return;
-    }
     if (make === 'ads') {
+      if (!list.length) {
+        sendOut.replaceChildren(note('fail', 'Nenhum anúncio para criar.'));
+        return;
+      }
       await busy(sendBtn, sendOut, async () => {
         // The ads go to each campaign's own account.
         const byAcct = new Map();
@@ -938,7 +933,7 @@ export async function newPair({ main, status }) {
       devices: s.devices,
       group_id: s.newGroup ? '' : s.group,
       settings: set.settings(),
-      ads: list.map((a) => ({ title: a.title, description: description(), url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })),
+      ads: [], // they come after, in Novos anúncios
     };
     // A typed name names that campaign; empty ones get the team's.
     const typed = { [mainDevice()]: mainName.value.trim(), ...(s.devices === 'both' ? { mobile: mob.name.value.trim() } : {}) };
@@ -977,41 +972,27 @@ export async function newPair({ main, status }) {
     const r = job.result || {};
     const camp = (m) => (m?.campaign?.id ? h('a', { href: link(s.net, s.account, r.group_id || '-', m.campaign.id) }, m.campaign.name) : null);
     if (job.error) return note('fail', job.error);
+    // The new campaigns have no ads yet: the next page picks them.
+    const ids = [r.desktop, r.mobile].map((m) => m?.campaign?.id).filter(Boolean);
+    const addAds = ids.length ? h('a', { class: 'button primary', href: '/launch/new?' + new URLSearchParams({ make: 'ads', account: s.account, to: ids.join(',') }) }, 'Adicionar anúncios') : null;
     if (r.result === 'done') {
-      return h('div', {}, note('ok', h('b', {}, (r.desktop && r.mobile ? 'Par criado' : 'Campanha criada') + (live ? ', ativo. ' : ', pausado. ')), live ? 'Começa a gastar assim que o Taboola aprovar os anúncios.' : 'Ligue no Taboola quando quiser que comece.'),
-        h('p', {}, ...[camp(r.desktop), r.desktop && r.mobile ? ' · ' : null, camp(r.mobile)].filter(Boolean)),
-        h('div', { class: 'actions' }, h('a', { class: 'button', href: '/launch/campaigns?' + new URLSearchParams({ account: s.account, group: r.group_id || '' }) }, 'Ver em Campanhas'),
+      const pair = r.desktop && r.mobile;
+      return h('div', {}, note('ok', h('b', {}, (pair ? 'Par criado' : 'Campanha criada') + (live ? (pair ? ', ativo' : ', ativa') : (pair ? ', pausado' : ', pausada')) + ', ainda sem anúncios. '),
+        live ? 'Começa a gastar quando os anúncios entrarem e o Taboola aprovar.' : 'Ponha os anúncios e ligue no Taboola quando quiser que comece.'),
+        h('p', {}, ...[camp(r.desktop), pair ? ' · ' : null, camp(r.mobile)].filter(Boolean)),
+        h('div', { class: 'actions' }, addAds, h('a', { class: 'button', href: '/launch/campaigns?' + new URLSearchParams({ account: s.account, group: r.group_id || '' }) }, 'Ver em Campanhas'),
           h('a', { class: 'button ghost', href: '/launch/new?' + new URLSearchParams({ make: 'campaign', account: s.account, group: r.group_id || '' }) }, 'Outra campanha neste grupo')));
     }
     return h('div', {}, note(r.result === 'partial' ? 'warn' : 'fail', h('b', {}, r.result === 'partial' ? 'Criado em parte. ' : 'Nada foi criado. '), (r.problems || []).join(' · ')),
       h('p', {}, camp(r.desktop), r.desktop && r.mobile ? ' · ' : '', camp(r.mobile)),
-      h('p', { class: 'faint' }, (live ? 'O que foi criado está ativo' : 'O que foi criado está pausado') + ' e aparece no Histórico.'));
+      h('p', { class: 'faint' }, (live ? 'O que foi criado está ativo' : 'O que foi criado está pausado') + ' e aparece no Histórico.'),
+      addAds ? h('div', { class: 'actions' }, addAds) : null);
   }
 
   // ---- drafts ----
-  function draftBody() {
-    return {
-      make, net: s.net, account: s.account, group: s.group, newGroup: s.newGroup, group_fields: gForm.get(),
-      names: { main: mainName.value, mobile: mob.name.value }, settings: set.preset(), start: set.settings().start_date, end: set.settings().end_date,
-      images: s.images, headlines: s.headlines, ctas: [...s.ctas], mode: s.mode, seed: s.seed, ai: s.ai, devices: s.devices, preset_id: presetId,
-      manual: s.manual, review: s.review, mobile: Object.fromEntries(Object.entries(mob).filter(([k]) => k !== 'name').map(([k, el]) => [k, el.value])),
-      to: [...to], ad_url: adUrl.value, ad_desc: adDesc.value,
-    };
-  }
-  function draftName() {
-    if (make === 'group') return gForm.get().name || 'grupo sem nome';
-    if (make === 'ads') return to.length ? 'anúncios em ' + plural(to.length, 'campanha', 'campanhas') : 'anúncios sem campanha';
-    return campaignNames().filter(Boolean).join(' e ') || 'sem nome';
-  }
-  async function saveDraft() {
-    await busy(draftBtn, null, async () => {
-      const body = { network: s.net, account: s.account, name: draftName(), body: draftBody() };
-      const res = await api(s.draftId ? 'drafts/' + s.draftId : 'drafts', { method: s.draftId ? 'PUT' : 'POST', body });
-      s.draftId = res.id;
-      history.replaceState(null, '', '/launch/new?draft=' + res.id);
-      draftOut.textContent = 'Rascunho salvo ' + date(new Date().toISOString()) + '.';
-    });
-  }
+  // Drafts are no longer saved here (IMPLEMENT 43e7b65f44 took out "Salvar
+  // rascunho"); the ones already in Rascunhos still open, and go away once
+  // made.
   // openDraft fills the page from a draft. Drafts from before the steps
   // (a pair's one name, the mobile's values behind "on") still open.
   function openDraft(d) {
@@ -1092,7 +1073,8 @@ export async function newPair({ main, status }) {
   drawDevices();
   drawGroupPart();
   names();
-  // Create sends people here with the set they just saved: /launch/new?set=7.
+  // Create sends people here with the set they just saved: /launch/new?set=7
+  // opens Novos anúncios with it.
   if (/^\d+$/.test(q.get('set') || '')) lib.open(q.get('set'), true);
   for (const st of steps) {
     st.el.addEventListener('input', () => update());
