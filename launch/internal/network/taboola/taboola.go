@@ -4,7 +4,8 @@
 // everything paused, only-own on a lent login) and keeps every exchange raw.
 //
 // A group here is Taboola's campaign group. A desktop campaign targets DESK
-// and a mobile one PHON; a campaign made elsewhere with both is Both.
+// and a mobile one PHON and TBLT (phones and tablets, as the team's mobile
+// campaigns do); a campaign made elsewhere with DESK and more is Both.
 package taboola
 
 import (
@@ -101,7 +102,7 @@ func platforms(d network.Device) []string {
 	case network.Desktop:
 		return []string{"DESK"}
 	case network.Mobile:
-		return []string{"PHON"}
+		return []string{"PHON", "TBLT"}
 	}
 	return nil
 }

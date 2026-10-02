@@ -50,6 +50,8 @@ func (b *backstage) serve(w http.ResponseWriter, r *http.Request) {
 	case r.Method == "POST" && p == "acme-sc/campaigns/":
 		fmt.Fprintf(w, `{"id":"%d","name":%q,"status":"PAUSED","is_active":false,"campaign_group_id":%q,"platform_targeting":{"type":"INCLUDE","value":%s}}`,
 			500+b.next, body["name"], body["campaign_group_id"], mustJSON(body["platform_targeting"].(map[string]any)["value"]))
+	case r.Method == "POST" && p == "acme-sc/campaigns_group/":
+		fmt.Fprintf(w, `{"id":"%d","name":%q,"status":"PAUSED","is_active":false,"spending_limit_model":"NONE","end_date":"9999-12-31"}`, 300+b.next, body["name"])
 	case r.Method == "POST" && strings.HasSuffix(p, "/duplicate/"):
 		fmt.Fprintf(w, `{"id":"%d","name":%q,"status":"PAUSED","is_active":false,"campaign_group_id":%q}`, 700+b.next, body["name"], body["campaign_group_id"])
 	case r.Method == "GET" && strings.HasPrefix(p, "acme-sc/campaigns/7") && strings.HasSuffix(p, "/items/") && p != "acme-sc/campaigns/77/items/":
@@ -117,10 +119,14 @@ func TestPairSharesUploadsAndTargetsOneDevice(t *testing.T) {
 	if len(made) != 2 {
 		t.Fatalf("campaigns made: %d", len(made))
 	}
-	for i, want := range []string{"DESK", "PHON"} {
+	// The team's mobile campaign is phones and tablets; desktop is desktop only.
+	for i, want := range []string{"[DESK]", "[PHON TBLT]"} {
 		pt := made[i]["platform_targeting"].(map[string]any)
-		if v := pt["value"].([]any); len(v) != 1 || v[0] != want {
-			t.Errorf("campaign %d targets %v", i, v)
+		if v := pt["value"].([]any); fmt.Sprint(v) != want || pt["type"] != "INCLUDE" {
+			t.Errorf("campaign %d targets %v %v, want %s", i, pt["type"], v, want)
+		}
+		if made[i]["is_active"] != false {
+			t.Errorf("campaign %d sent with is_active %v", i, made[i]["is_active"])
 		}
 		if made[i]["campaign_group_id"] != "44" {
 			t.Errorf("campaign %d group %v", i, made[i]["campaign_group_id"])
@@ -146,6 +152,23 @@ func TestPairSharesUploadsAndTargetsOneDevice(t *testing.T) {
 	}
 	if _, ok := items[2].(map[string]any)["cta"]; ok {
 		t.Error("an ad without a button got one")
+	}
+}
+
+// A new group is made paused and with no end date: Launch leaves end_date
+// out, so Taboola gives it its default, 9999-12-31 ("no end date").
+func TestGroupRunsWithNoEnd(t *testing.T) {
+	tb, b := adapter(t)
+	g, err := tb.CreateGroup(context.Background(), "acme-sc", network.NewGroup{Name: "07", Objective: "ONLINE_PURCHASES"})
+	if err != nil || g.ID == "" {
+		t.Fatalf("%+v %v", g, err)
+	}
+	sent := b.bodies["POST acme-sc/campaigns_group/"]
+	if len(sent) != 1 || sent[0]["is_active"] != false || sent[0]["spending_limit_model"] != "NONE" {
+		t.Fatalf("group sent %v", sent)
+	}
+	if _, ok := sent[0]["end_date"]; ok {
+		t.Errorf("group sent with an end date: %v", sent[0]["end_date"])
 	}
 }
 

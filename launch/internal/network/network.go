@@ -62,7 +62,7 @@ type Group struct {
 }
 
 // Device is where a campaign shows: Launch makes every new campaign as a
-// desktop and mobile pair.
+// desktop and mobile pair. Mobile is phones and tablets.
 type Device string
 
 const (
