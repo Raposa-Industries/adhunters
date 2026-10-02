@@ -77,7 +77,8 @@ func demo(t *testing.T) (http.Handler, *fake.Net, *actions.Launch) {
 	img := &images.Store{Dir: t.TempDir()}
 	l := actions.New(st, img, log, func(err error) string { _, m := classify(err); return m }, n)
 	a := api.New(context.Background(), l, img, log, classify)
-	a.Limits = map[string]any{"max_cpc": 1, "max_daily_cap": 20, "max_spend_limit": 20, "only_own": true}
+	// The data box's ceilings: $500 a day and no total of the server's own.
+	a.Limits = map[string]any{"max_cpc": 1, "max_daily_cap": 500, "max_spend_limit": 0, "only_own": true}
 	a.Library = library.New(demoLibrary(t).URL)
 	return handler(a), n, l
 }
@@ -118,6 +119,10 @@ func TestRoutes(t *testing.T) {
 		{"GET", "/launch/api/accounts/taboola", "", "Acme Health", 200},
 		{"GET", "/launch/api/numbers?window=7d", "", `"available":true`, 200},
 		{"GET", "/launch/api/library/set?id=1", "", "Memory morning habit", 200},
+		{"GET", "/launch/api/library/creatives?set=2", "", "BPT43", 200},
+		{"GET", "/launch/api/used?creatives=4f2a91c0de", "", `{"used":{`, 200},
+		{"GET", "/launch/newpair.css", "", ".matrix", 200},
+		{"GET", "/launch/matrix.js", "", "matrixAds", 200},
 		{"POST", "/launch/api/taboola/acme-sc/pause", "https://evil.test", "outro site", 403},
 	} {
 		req := httptest.NewRequest(c.method, c.path, strings.NewReader(`{"campaigns":["1"]}`))

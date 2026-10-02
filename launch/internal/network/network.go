@@ -121,6 +121,9 @@ type Ad struct {
 	Status      string `json:"status"`
 	Approval    string `json:"approval"`
 	Active      bool   `json:"active"`
+	// Name is the team's name for an ad Launch made (AdName). Taboola's
+	// items have no name, so it is only Launch's: History and the pages.
+	Name string `json:"name,omitempty"`
 }
 
 // NewGroup is a group with a budget its campaigns share.

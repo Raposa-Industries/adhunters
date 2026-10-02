@@ -115,7 +115,7 @@ func (l *Launch) noteItems(ctx context.Context, net, account string, m network.M
 }
 
 // NewGroup makes a group. Without a name it gets the account's next
-// number (01, 02…).
+// number (GRP01, GRP02…).
 func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g network.NewGroup) (network.Group, error) {
 	n, err := l.Net(net)
 	if err != nil {
@@ -171,17 +171,21 @@ func (r PairRequest) Names() (desktop, mobile string) {
 	return n + " · Desktop", n + " · Mobile"
 }
 
-// NextNames are the names a new group and campaign get in an account now.
+// NextNames are the names a new group and campaign get in an account now:
+// Group is the next new group's name; Prefix, Campaign, Desktop and Mobile
+// are for a campaign in GroupID, or in that new group when GroupID is "".
 type NextNames struct {
-	Group         string `json:"group"`
-	Campaign      int    `json:"campaign"`
-	AccountNumber string `json:"account_number"`
-	Desktop       string `json:"desktop"`
-	Mobile        string `json:"mobile"`
+	Group    string `json:"group"`
+	GroupID  string `json:"group_id"`
+	Prefix   string `json:"prefix"`
+	Campaign int    `json:"campaign"`
+	Desktop  string `json:"desktop"`
+	Mobile   string `json:"mobile"`
 }
 
-// Next reads the account's groups and campaigns for the next names.
-func (l *Launch) Next(ctx context.Context, net, account string) (NextNames, error) {
+// Next reads the account's groups and campaigns for the next names, for a
+// campaign in group (or in a new group, "").
+func (l *Launch) Next(ctx context.Context, net, account, group string) (NextNames, error) {
 	n, err := l.Net(net)
 	if err != nil {
 		return NextNames{}, err
@@ -190,14 +194,29 @@ func (l *Launch) Next(ctx context.Context, net, account string) (NextNames, erro
 	if err != nil {
 		return NextNames{}, err
 	}
-	camps, err := n.Campaigns(ctx, account)
-	if err != nil {
-		return NextNames{}, err
+	out := NextNames{Group: NextGroupName(groups), GroupID: group, Prefix: NextGroupName(groups), Campaign: 1}
+	if group != "" {
+		found := false
+		for _, g := range groups {
+			if g.ID == group {
+				found = true
+				out.Prefix = GroupPrefix(g.Name)
+				if out.Prefix == "" {
+					out.Prefix = g.ID
+				}
+			}
+		}
+		if !found {
+			return NextNames{}, &network.Refused{Message: "o grupo " + group + " não está nesta conta"}
+		}
+		camps, err := n.Campaigns(ctx, account)
+		if err != nil {
+			return NextNames{}, err
+		}
+		out.Campaign = NextCampaignNumber(camps, group)
 	}
-	accts, _ := n.Accounts(ctx)
-	out := NextNames{Group: NextGroupName(groups), Campaign: NextCampaignNumber(camps), AccountNumber: AccountNumber(account, accts)}
-	out.Desktop = CampaignName(out.Campaign, out.AccountNumber, network.Desktop)
-	out.Mobile = CampaignName(out.Campaign, out.AccountNumber, network.Mobile)
+	out.Desktop = CampaignName(out.Prefix, out.Campaign, network.Desktop)
+	out.Mobile = CampaignName(out.Prefix, out.Campaign, network.Mobile)
 	return out, nil
 }
 
@@ -255,7 +274,11 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	var next NextNames
 	teamNames := strings.TrimSpace(r.Name) == ""
 	if teamNames || (r.NewGroup != nil && strings.TrimSpace(r.NewGroup.Name) == "") {
-		if next, err = l.Next(ctx, r.Network, r.Account); err != nil {
+		group := r.GroupID
+		if r.NewGroup != nil {
+			group = ""
+		}
+		if next, err = l.Next(ctx, r.Network, r.Account, group); err != nil {
 			return res, err
 		}
 	}
@@ -266,8 +289,15 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	}
 	dName, mName := r.Names()
 	if teamNames {
-		dName, mName = next.Desktop, next.Mobile
-		r.Name = fmt.Sprintf("CMP%02d-%s", next.Campaign, next.AccountNumber)
+		// The campaigns start with their group's name: a new group's own
+		// (typed or the next number), with campaign number 1.
+		prefix := next.Prefix
+		if r.NewGroup != nil {
+			prefix = GroupPrefix(r.NewGroup.Name)
+		}
+		dName = CampaignName(prefix, next.Campaign, network.Desktop)
+		mName = CampaignName(prefix, next.Campaign, network.Mobile)
+		r.Name = fmt.Sprintf("%s-CMP%02d", prefix, next.Campaign)
 	}
 	if n := strings.TrimSpace(r.DesktopName); n != "" {
 		dName = n
@@ -338,6 +368,7 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 			tell(i+1, "run", "criando a campanha, sem anúncios")
 		}
 		m, err := n.CreateCampaign(ctx, r.Account, network.NewCampaign{Name: side.name, GroupID: res.GroupID, Device: side.dev, Settings: set, Ads: r.Ads}, up)
+		nameAds(side.name, r.Ads, m.Ads)
 		if m.Campaign.ID != "" {
 			made++
 			if m.Campaign.Active {
@@ -635,8 +666,17 @@ func (l *Launch) AddAds(ctx context.Context, who Who, net, account string, campa
 			m.Campaign.ID = id
 			l.noteItems(ctx, net, account, m)
 		}
+		// Taboola's items have no name: the team's ad names (AD01, AD02… in
+		// the order asked) live in History.
+		nameAds(c.Name, newAds, m.Ads)
+		named := ""
+		if c.Name != "" {
+			if n := adNames(m.Ads); n != "" {
+				named = " (" + n + ")"
+			}
+		}
 		ch := store.Change{Who: who.Person, AskedBy: who.asked(), Network: net, Account: account, GroupID: c.GroupID, CampaignID: id,
-			Kind: "change", Summary: fmt.Sprintf("Adicionou %s, %s, em %s", ads(len(m.Ads)), adsState(m.Ads), orID(c.Name, id)),
+			Kind: "change", Summary: fmt.Sprintf("Adicionou %s%s, %s, em %s", ads(len(m.Ads)), named, adsState(m.Ads), orID(c.Name, id)),
 			After: raw(m.Ads), Result: "done"}
 		if err != nil {
 			d.Error = l.Say(err)

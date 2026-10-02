@@ -52,7 +52,8 @@ func demoLibrary(t *testing.T) *httptest.Server {
 			"headlines": []hl{{21, "Doctors Surprised By This Morning Habit", "unset"}, {22, "The 10-Second Trick For Sharper Memory", "unset"}}},
 		"2": map[string]any{"set": map[string]any{"id": 2, "name": "BP seniors kitchen"},
 			"creatives": []cr{mk(13, "BPT43", color.RGBA{30, 110, 60, 255}, "not_ai")},
-			"headlines": []hl{{23, "Seniors Are Ditching Their Pills For This", "unset"}}},
+			"headlines": []hl{{23, "Seniors Are Ditching Their Pills For This", "unset"},
+				{24, "This Headline Is Far Too Long For Taboola To Take It, So It Stays Out", "unset"}}},
 	}
 	byID := map[string]cr{}
 	for _, s := range sets {
@@ -78,6 +79,31 @@ func demoLibrary(t *testing.T) *httptest.Server {
 				}
 			}
 			send(map[string]any{"sets": out})
+		case p == "/api/creatives" || p == "/api/headlines":
+			// Every set's, or one set's, with ?q= on the name or text.
+			q := strings.ToLower(r.URL.Query().Get("q"))
+			var cs []cr
+			var hs []hl
+			for id, s := range sets {
+				if one := r.URL.Query().Get("set"); one != "" && one != id {
+					continue
+				}
+				for _, c := range s.(map[string]any)["creatives"].([]cr) {
+					if strings.Contains(strings.ToLower(c.Name), q) {
+						cs = append(cs, c)
+					}
+				}
+				for _, x := range s.(map[string]any)["headlines"].([]hl) {
+					if strings.Contains(strings.ToLower(x.Text), q) {
+						hs = append(hs, x)
+					}
+				}
+			}
+			if p == "/api/creatives" {
+				send(map[string]any{"creatives": cs})
+			} else {
+				send(map[string]any{"headlines": hs})
+			}
 		case strings.HasPrefix(p, "/api/sets/") && sets[strings.TrimPrefix(p, "/api/sets/")] != nil:
 			send(sets[strings.TrimPrefix(p, "/api/sets/")])
 		case strings.HasPrefix(p, "/api/creatives/") && byID[strings.TrimPrefix(p, "/api/creatives/")].ID != 0:

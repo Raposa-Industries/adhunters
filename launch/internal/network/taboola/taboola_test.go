@@ -234,3 +234,42 @@ func TestDevice(t *testing.T) {
 		t.Error("CTAType")
 	}
 }
+
+// Novos anúncios' Botão chips and each headline's Descrição reach Taboola's
+// item write; Nova campanha's start (Amanhã), daily budget and countries
+// reach the campaign write.
+func TestStepsReachTheWrites(t *testing.T) {
+	tb, b := adapter(t)
+	up := &network.Uploads{Read: func(sha string) ([]byte, string, error) { return []byte("\xff\xd8" + sha), sha + ".jpg", nil }}
+	set := network.Settings{Brand: "Nerve Health Report", BidStrategy: "MAX_CONVERSIONS", Objective: "ONLINE_PURCHASES", DailyCap: 50,
+		Countries: []string{"US", "CA"}, StartDate: "2030-01-02", ExcludeCities: []string{"3"}, TrackingCode: "sub1={campaign_id}"}
+	if _, err := tb.CreateCampaign(context.Background(), "acme-sc", network.NewCampaign{Name: "GRP01-CMP03-Desk-pp-bl", GroupID: "44", Device: network.Desktop, Settings: set}, up); err != nil {
+		t.Fatal(err)
+	}
+	c := b.bodies["POST acme-sc/campaigns/"][0]
+	if c["start_date"] != "2030-01-02" || c["daily_cap"] != 50.0 || c["bid_strategy"] != "MAX_CONVERSIONS" || c["branding_text"] != "Nerve Health Report" ||
+		fmt.Sprint(c["country_targeting"].(map[string]any)["value"]) != "[US CA]" || c["cpc"] != nil {
+		t.Errorf("campaign sent %v", c)
+	}
+	// The chips' labels (Saiba mais, Leia mais, Compre agora, Ver oferta,
+	// Inscreva-se) and one from Mais.
+	labels := map[string]string{"Learn More": "LEARN_MORE", "Read More": "READ_MORE", "Shop Now": "SHOP_NOW", "Get Offer": "GET_OFFER", "Sign Up": "SIGN_UP", "Order Now": "ORDER_NOW"}
+	var ads []network.NewAd
+	for label := range labels {
+		ads = append(ads, network.NewAd{Title: "The Spoon Trick Seniors Use", Description: "A simple kitchen habit " + label, URL: "https://lp.test/a", Image: "aaa", CTA: label, AdID: "ah-" + label})
+	}
+	if _, err := tb.AddAds(context.Background(), "acme-sc", "777", ads, up); err != nil {
+		t.Fatal(err)
+	}
+	items := b.bodies["POST acme-sc/campaigns/777/items/mass"][0]["collection"].([]any)
+	if len(items) != len(labels) {
+		t.Fatalf("%d items", len(items))
+	}
+	for i, it := range items {
+		m := it.(map[string]any)
+		label := ads[i].CTA
+		if m["cta"].(map[string]any)["cta_type"] != labels[label] || m["description"] != "A simple kitchen habit "+label {
+			t.Errorf("item %d (%s): %v", i, label, m)
+		}
+	}
+}
