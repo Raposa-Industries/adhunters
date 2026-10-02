@@ -471,7 +471,7 @@ func (s *Store) sets(ctx context.Context, vertical string, limit int) ([]Set, er
 	rows, err := s.db.Query(ctx, `
 		SELECT s.id, s.name, COALESCE(s.vertical_id, ''), s.origin, s.origin_ref, s.made_by, s.created_at,
 		       (SELECT count(*) FROM library.set_creative sc JOIN library.creative c ON c.id = sc.creative_id
-		         WHERE sc.set_id = s.id AND c.hidden_at IS NULL),
+		         WHERE sc.set_id = s.id AND c.hidden_at IS NULL AND c.drive_state <> 'gone'),
 		       (SELECT count(*) FROM library.set_headline sh JOIN library.headline h ON h.id = sh.headline_id
 		         WHERE sh.set_id = s.id AND h.hidden_at IS NULL),
 		       COALESCE(s.platform, '')
@@ -792,7 +792,8 @@ type Filter struct {
 	// Sort is new (newest first, the default; set order when a set is
 	// given), old (oldest first) or name. Before works with the default only.
 	Sort string
-	// Hidden lists the hidden ones instead.
+	// Hidden lists the hidden ones instead. Creatives whose Drive file was
+	// deleted are left out of the other lists.
 	Hidden bool
 	// Before is the id to continue after, from the end of the last page.
 	Before int64
@@ -853,6 +854,7 @@ func (s *Store) Creatives(ctx context.Context, f Filter) ([]Creative, error) {
 		  AND ($6 = '' OR c.name ILIKE '%' || $6 || '%' OR c.idea ILIKE '%' || $6 || '%' OR c.angle ILIKE '%' || $6 || '%'
 		       OR EXISTS (SELECT 1 FROM library.creative_tag t WHERE t.creative_id = c.id AND t.tag ILIKE '%' || $6 || '%'))
 		  AND (c.hidden_at IS NOT NULL) = $7
+		  AND ($7 OR c.drive_state <> 'gone')
 		  AND ($8 = 0 OR c.id < $8)
 		  AND ($10 = '' OR EXISTS (SELECT 1 FROM library.creative_tag t WHERE t.creative_id = c.id AND t.tag = lower($10)))
 		  AND ($11 = '' OR EXISTS (SELECT 1 FROM library.set_creative sc JOIN library.set s ON s.id = sc.set_id
@@ -967,7 +969,7 @@ func (s *Store) Tags(ctx context.Context, vertical string) ([]Tag, error) {
 	rows, err := s.db.Query(ctx, `
 		WITH t AS (
 			SELECT ct.tag, 1 AS c, 0 AS h FROM library.creative_tag ct JOIN library.creative c ON c.id = ct.creative_id
-			WHERE c.hidden_at IS NULL AND ($1 = '' OR c.vertical_id = $1)
+			WHERE c.hidden_at IS NULL AND c.drive_state <> 'gone' AND ($1 = '' OR c.vertical_id = $1)
 			UNION ALL
 			SELECT ht.tag, 0, 1 FROM library.headline_tag ht JOIN library.headline h ON h.id = ht.headline_id
 			WHERE h.hidden_at IS NULL AND ($1 = '' OR h.vertical_id = $1))
@@ -1044,7 +1046,8 @@ func refileTx(ctx context.Context, tx pgx.Tx, kind string, id, to int64, by stri
 
 // ---- folders -----------------------------------------------------------------
 
-// Counts are how many creatives and headlines (not hidden) a folder holds.
+// Counts are how many creatives and headlines (not hidden, and creatives
+// still in Drive) a folder holds.
 type Counts struct {
 	Creatives int `json:"creatives"`
 	Headlines int `json:"headlines"`
@@ -1085,9 +1088,9 @@ type Folders struct {
 func (s *Store) Folders(ctx context.Context) (Folders, error) {
 	var f Folders
 	err := s.db.QueryRow(ctx, `SELECT
-		(SELECT count(*) FROM library.creative WHERE hidden_at IS NULL),
-		(SELECT count(*) FROM library.creative WHERE hidden_at IS NULL AND origin <> 'create'),
-		(SELECT count(*) FROM library.creative WHERE hidden_at IS NULL AND origin = 'create'),
+		(SELECT count(*) FROM library.creative WHERE hidden_at IS NULL AND drive_state <> 'gone'),
+		(SELECT count(*) FROM library.creative WHERE hidden_at IS NULL AND drive_state <> 'gone' AND origin <> 'create'),
+		(SELECT count(*) FROM library.creative WHERE hidden_at IS NULL AND drive_state <> 'gone' AND origin = 'create'),
 		(SELECT count(*) FROM library.headline WHERE hidden_at IS NULL)`).
 		Scan(&f.Totals.Creatives, &f.Totals.Original, &f.Totals.Generated, &f.Totals.Headlines)
 	if err != nil {
@@ -1095,7 +1098,7 @@ func (s *Store) Folders(ctx context.Context) (Folders, error) {
 	}
 	rows, err := s.db.Query(ctx, `
 		SELECT v.id, v.name,
-		       (SELECT count(*) FROM library.creative c WHERE c.vertical_id = v.id AND c.hidden_at IS NULL),
+		       (SELECT count(*) FROM library.creative c WHERE c.vertical_id = v.id AND c.hidden_at IS NULL AND c.drive_state <> 'gone'),
 		       (SELECT count(*) FROM library.headline h WHERE h.vertical_id = v.id AND h.hidden_at IS NULL)
 		FROM library.vertical v ORDER BY v.name`)
 	if err != nil {
@@ -1117,7 +1120,7 @@ func (s *Store) Folders(ctx context.Context) (Folders, error) {
 		SELECT s.vertical_id, s.platform,
 		       (SELECT count(DISTINCT c.id) FROM library.set_creative sc JOIN library.set x ON x.id = sc.set_id
 		          JOIN library.creative c ON c.id = sc.creative_id
-		         WHERE x.vertical_id = s.vertical_id AND x.platform = s.platform AND c.hidden_at IS NULL),
+		         WHERE x.vertical_id = s.vertical_id AND x.platform = s.platform AND c.hidden_at IS NULL AND c.drive_state <> 'gone'),
 		       (SELECT count(DISTINCT h.id) FROM library.set_headline sh JOIN library.set x ON x.id = sh.set_id
 		          JOIN library.headline h ON h.id = sh.headline_id
 		         WHERE x.vertical_id = s.vertical_id AND x.platform = s.platform AND h.hidden_at IS NULL)

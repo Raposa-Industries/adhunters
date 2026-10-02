@@ -141,6 +141,16 @@ func TestSync(t *testing.T) {
 	if b := read(t, st, made.ID, true); len(b) == 0 {
 		t.Error("thumbnail lost with the file")
 	}
+	// It leaves the lists and the counts.
+	if l, _ := st.Creatives(ctx, store.Filter{VerticalID: "blood-pressure"}); len(l) != 0 {
+		t.Errorf("deleted picture still listed: %+v", l)
+	}
+	if l, _ := st.Creatives(ctx, store.Filter{SetID: set.ID}); len(l) != 0 {
+		t.Errorf("deleted picture still in its set: %+v", l)
+	}
+	if f, _ := st.Folders(ctx); f.Totals.Creatives != 1 {
+		t.Errorf("counts after delete %+v", f.Totals)
+	}
 	if hl := fake.Find(drivesync.HeadlinesFile); len(hl) != 1 || !strings.HasSuffix(string(hl[0].Data), "Three\n") {
 		t.Errorf("headlines not rewritten: %+v", hl)
 	}
@@ -323,5 +333,52 @@ func TestPlatformFolders(t *testing.T) {
 	}
 	if _, ok := got["NewsBreak"]; ok {
 		t.Errorf("the platform's folder became a set: %v", got)
+	}
+}
+
+func TestTrashedFileLeavesTheLists(t *testing.T) {
+	ctx := context.Background()
+	fake := drivetest.New(t)
+	st := store.New(testdb.New(t))
+	dc := drive.New(fake.App(), "refresh")
+	st.UseDrive(func(context.Context) (store.Drive, error) { return dc, nil })
+	sy := drivesync.New(st, dc, drivetest.Root, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	vert := fake.Add(drivetest.Root, "Memory Loss", drive.FolderType, nil)
+	set := fake.Add(vert, "Winners", drive.FolderType, nil)
+	id := fake.Add(set, "MMT1.png", "image/png", pic(t, 7))
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	listed := func() int {
+		l, err := st.Creatives(ctx, store.Filter{VerticalID: "memory-loss"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(l)
+	}
+	if listed() != 1 {
+		t.Fatal("not imported")
+	}
+
+	// In the trash: gone from the lists.
+	fake.Trash(id, true)
+	if res, err := sy.Run(ctx); err != nil || res.Gone != 1 {
+		t.Fatalf("pass after trash %+v %v", res, err)
+	}
+	if listed() != 0 {
+		t.Error("trashed picture still listed")
+	}
+
+	// Taken back out: listed again, without a second download.
+	fake.Trash(id, false)
+	if res, err := sy.Run(ctx); err != nil || res.Added != 0 {
+		t.Fatalf("pass after restore %+v %v", res, err)
+	}
+	if listed() != 1 {
+		t.Error("restored picture not listed")
+	}
+	if n := fake.Calls["GET /drive/v3/files/"+id]; n != 1 {
+		t.Errorf("downloaded %d times", n)
 	}
 }

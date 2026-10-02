@@ -34,9 +34,10 @@ schemas.
 - **Files, in Drive only.** A picture saved from an app waits in its row
   until the next Drive pass uploads it (seconds later), and then only Drive
   has its bytes; `/files/{id}` reads them back from there. Each creative's
-  480px JPEG thumbnail stays in its row. A file deleted in Drive is gone:
-  its row, name and thumbnail stay, `/files/{id}` answers 410, and saving the
-  same bytes again brings it back.
+  480px JPEG thumbnail stays in its row. A file deleted in Drive (or put in
+  its trash) is gone: it leaves the lists and the counts, its row, name and
+  thumbnail stay, `/files/{id}` answers 410, and saving the same bytes again,
+  or taking the file back out of the trash, brings it back.
 
 - **Tags.** Words people put on creatives and headlines ("cozinha"), kept
   in lower case without a leading `#`; up to 20 at a time. The search (`q`)
@@ -88,8 +89,11 @@ saves something, one pass:
    person makes inside it is a set of that platform, and a picture loose in
    it belongs to the vertical only. Pictures are JPEG, PNG, WebP or GIF, up to
    40 MB; anything else is recorded and left alone.
-3. **Gone.** After a whole listing, a file that was not in it is marked gone.
-   Its creative's row and thumbnail stay; its bytes went with the file.
+3. **Gone.** After a whole listing, a file that was not in it (deleted, or in
+   Drive's trash) is marked gone, and its creative leaves the lists (Create's
+   and Launch's Biblioteca) on that pass. Its row and thumbnail stay; its
+   bytes went with the file. A file taken back out of the trash is listed
+   again on the next pass.
 
 The library never deletes or moves anything in Drive. The one thing it
 renames is a set's folder, when the app that owns the set renames it

@@ -12,9 +12,10 @@
 //     downloaded once, for its hash and thumbnail, and added as a creative
 //     whose bytes are that Drive file: its vertical from the top folder's
 //     name, its set from the folder it sits in.
-//  3. Gone: after a whole listing, a file that was not in it is marked gone,
-//     and so is its creative. The creative's row and thumbnail stay; its
-//     bytes went with the file.
+//  3. Gone: after a whole listing, a file that was not in it (deleted, or
+//     in Drive's trash) is marked gone, and so is its creative, which leaves
+//     the lists. The creative's row and thumbnail stay; its bytes went with
+//     the file. A file taken back out of the trash brings it back.
 //
 // Nothing is ever deleted in Drive.
 package drivesync
@@ -585,7 +586,16 @@ func withParent(f drive.File, parent string) drive.File {
 
 func (s *Syncer) touch(ctx context.Context, f drive.File, kind string, dir folderAt, creative int64) error {
 	return pgx.BeginFunc(ctx, s.st.DB(), func(tx pgx.Tx) error {
-		return recordFile(ctx, tx, withParent(f, dir.id), kind, creative)
+		if err := recordFile(ctx, tx, withParent(f, dir.id), kind, creative); err != nil {
+			return err
+		}
+		if creative == 0 {
+			return nil
+		}
+		// A file back from Drive's trash brings its creative back.
+		_, err := tx.Exec(ctx, `UPDATE library.creative SET drive_state = 'in_drive', updated_at = now()
+			WHERE id = $1 AND drive_file_id = $2 AND drive_state = 'gone'`, creative, f.ID)
+		return err
 	})
 }
 

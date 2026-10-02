@@ -87,6 +87,15 @@ func (d *Drive) Remove(id string) {
 	delete(d.files, id)
 }
 
+// Trash puts a file in Drive's trash, or takes it out, as a person would.
+func (d *Drive) Trash(id string, on bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if f, ok := d.files[id]; ok {
+		f.Trashed = on
+	}
+}
+
 // Get returns a copy of a file, or false.
 func (d *Drive) Get(id string) (File, bool) {
 	d.mu.Lock()
@@ -155,7 +164,7 @@ func (d *Drive) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		var kids []drive.File
 		for _, f := range d.files {
-			if len(f.Parents) > 0 && f.Parents[0] == m[1] {
+			if len(f.Parents) > 0 && f.Parents[0] == m[1] && !f.Trashed {
 				kids = append(kids, f.File)
 			}
 		}
