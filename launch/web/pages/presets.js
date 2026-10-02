@@ -17,13 +17,13 @@ export const OBJECTIVES = [
 const MODELS = [['', 'Por campanha'], ['MONTHLY', 'Por mês'], ['ENTIRE', 'Total']];
 
 // The team's defaults for a new campaign (2026-09-30; the budget from the
-// owner's rule of 2026-10-01: a campaign never spends more than $20 in all).
+// owner, 2026-10-02: $500 a day and no total limit).
 export const TEAM = {
   // Maximize conversions needs a conversion objective; the team's campaigns
   // are Online Purchases (like campaign 50549004, made in Realize).
   objective: 'ONLINE_PURCHASES',
-  daily_cap: 20,
-  spending_limit: 20,
+  daily_cap: 500,
+  spending_limit: 0,
   bid_strategy: 'MAX_CONVERSIONS',
   ad_delivery: 'OPTIMIZED',
   countries: ['US'],

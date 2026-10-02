@@ -19,10 +19,13 @@
 //     a total budget of at most 30 daily caps;
 //   - ads carry a plain link (no {macros}: Taboola escapes them) and a title
 //     of 1 to 100 characters;
-//   - nothing is ever created running: campaigns, copies and groups are made
-//     with is_active false, and every new ad is sent with is_active false
-//     and paused again when Taboola's answer says otherwise. Only a person
-//     turns anything on, in Taboola's own dashboard;
+//   - nothing is created running unless CreateActive is on: campaigns,
+//     copies and groups are made with is_active false, and every new ad is
+//     sent with is_active false and paused again when Taboola's answer says
+//     otherwise. With CreateActive (the owner, 2026-10-02) a new campaign,
+//     its group and the ads a person makes in Launch or Create go up
+//     running; copies (duplicate, move) still arrive paused, and nothing
+//     else ever sets is_active true;
 //   - with OnlyOwn (a lent account), only campaigns and groups this server
 //     created, named with NamePrefix and recorded in StateFile, are listed
 //     or touched (own.go).
@@ -79,6 +82,10 @@ type Settings struct {
 	// spend: every campaign made or copied gets a total (lifetime) spending
 	// limit no higher than it, and no change raises one above it.
 	MaxSpendLimit float64
+	// CreateActive makes a new campaign, a new group and new ads go up
+	// running (is_active true) instead of paused. Copies stay paused, and
+	// no other call can turn anything on.
+	CreateActive bool
 
 	// OnlyOwn limits the client to what it created itself: each new campaign
 	// and group is recorded in StateFile, and nothing else in the account is
@@ -215,6 +222,11 @@ func (c *Client) totalCeiling() float64 {
 		return c.s.MaxSpendLimit
 	}
 	return 30 * c.s.MaxDailyCap
+}
+
+// CreateActive reports whether new campaigns, groups and ads go up running.
+func (c *Client) CreateActive() bool {
+	return c != nil && c.s.CreateActive
 }
 
 func (c *Client) Limits() (maxCPC, maxDailyCap float64) {
@@ -493,16 +505,25 @@ func turnsOn(raw []byte) bool {
 }
 
 func (c *Client) sendJSON(ctx context.Context, method, path string, body any, retry5xx bool) (obj, error) {
+	return c.send(ctx, method, path, body, retry5xx, false)
+}
+
+// sendNew is sendJSON for a create that may go up running: is_active true
+// passes the guard only with CreateActive.
+func (c *Client) sendNew(ctx context.Context, method, path string, body any) (obj, error) {
+	return c.send(ctx, method, path, body, false, c.s.CreateActive)
+}
+
+func (c *Client) send(ctx context.Context, method, path string, body any, retry5xx, on bool) (obj, error) {
 	k := call{method: method, path: path, retry5xx: retry5xx}
 	if body != nil {
 		raw, err := json.Marshal(body)
 		if err != nil {
 			return nil, err
 		}
-		// The owner's rule: nothing here ever turns a campaign or an ad on;
-		// only a person does, in Taboola's dashboard. Checked on the bytes
-		// sent, whatever built them.
-		if turnsOn(raw) {
+		// Nothing here turns a campaign or an ad on, except a new one when
+		// CreateActive is on. Checked on the bytes sent, whatever built them.
+		if !on && turnsOn(raw) {
 			return nil, refuse("o Launch nunca liga campanha nem anúncio: só uma pessoa liga, no Taboola")
 		}
 		k.body, k.ctype, k.kept = raw, "application/json", json.RawMessage(raw)

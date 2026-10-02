@@ -53,6 +53,8 @@ function withId(hl) {
 export async function newPair({ main, status }) {
   const q = new URLSearchParams(location.search);
   const connected = (status.networks || []).filter((n) => n.connected);
+  // live: new campaigns and ads go up running (TABOOLA_CREATE_ACTIVE).
+  const live = !!status.limits?.create_active;
   // An address with campaigns (to=) is ads only, as before the menu.
   const make = ['group', 'campaign', 'ads'].includes(q.get('make')) ? q.get('make') : q.get('to') ? 'ads' : 'campaign';
   const s = {
@@ -79,8 +81,8 @@ export async function newPair({ main, status }) {
 
   const TITLES = {
     group: ['Novo grupo de campanha', 'O grupo nasce sem campanhas. As campanhas de um grupo têm o mesmo objetivo e podem dividir o orçamento dele.'],
-    campaign: ['Nova campanha', 'Grupo, campanha e anúncios, como no Taboola. Com "Os dois" saem uma campanha desktop e uma mobile (celular e tablet), iguais ou com lance, orçamento e início próprios no mobile. Tudo nasce pausado.'],
-    ads: ['Novos anúncios', 'Os mesmos anúncios, pausados, em cada campanha escolhida. Eles passam pela revisão do Taboola.'],
+    campaign: ['Nova campanha', 'Grupo, campanha e anúncios, como no Taboola. Com "Os dois" saem uma campanha desktop e uma mobile (celular e tablet), iguais ou com lance, orçamento e início próprios no mobile. ' + (live ? 'Tudo sobe ativo: começa a gastar assim que o Taboola aprovar.' : 'Tudo nasce pausado.')],
+    ads: ['Novos anúncios', 'Os mesmos anúncios, ' + (live ? 'ativos' : 'pausados') + ', em cada campanha escolhida. Eles passam pela revisão do Taboola.'],
   };
   const back = '/launch/' + (make === 'group' ? 'groups' : make === 'ads' ? 'ads' : 'campaigns') + '?' +
     new URLSearchParams(Object.entries({ account: s.account, group: s.group }).filter(([, v]) => v));
@@ -261,7 +263,7 @@ export async function newPair({ main, status }) {
   // ---- 4. review and send ----
   const review = h('div');
   const sendOut = h('div');
-  const sendBtn = h('button', { type: 'button', class: 'primary big', onclick: () => (make === 'group' ? sendGroup(false) : sendPair()) }, make === 'group' ? 'Criar grupo' : 'Criar pausado');
+  const sendBtn = h('button', { type: 'button', class: 'primary big', onclick: () => (make === 'group' ? sendGroup(false) : sendPair()) }, make === 'group' ? 'Criar grupo' : live ? 'Criar e ligar' : 'Criar pausado');
   const draftBtn = h('button', { type: 'button', class: 'ghost', onclick: () => saveDraft() }, 'Salvar rascunho');
   const draftOut = h('span', { class: 'faint' });
   const sheetIds = input({ placeholder: '123456, 123457', 'aria-label': 'Ids das campanhas para a planilha' });
@@ -277,7 +279,7 @@ export async function newPair({ main, status }) {
       h('div', { class: 'actions' }, sheetBtn), sheetOut));
 
   // Ads only (Realize's "assign creatives"): /launch/new?make=ads&account=…&to=<campaign ids>
-  // adds the ads, paused, to campaigns that exist, picked here or before.
+  // adds the ads to campaigns that exist, picked here or before.
   const to = (q.get('to') || '').split(',').map((x) => x.trim()).filter((x) => /^\d+$/.test(x));
   const adUrl = input({ type: 'url', placeholder: 'https://…', 'aria-label': 'Página dos anúncios' });
   const adDesc = input({ placeholder: 'opcional, em inglês', 'aria-label': 'Descrição' });
@@ -309,7 +311,7 @@ export async function newPair({ main, status }) {
     ads: [['Campanhas', targets], ['Anúncios', adsPanel], ['Revisar e adicionar', sendPanel]],
   }[make];
   if (make === 'ads') {
-    sendBtn.textContent = 'Adicionar pausados';
+    sendBtn.textContent = live ? 'Adicionar ativos' : 'Adicionar pausados';
     sendPanel.querySelector('h2').textContent = 'Revisar e adicionar';
   }
   const nav = h('ol', { class: 'wiz-nav' });
@@ -631,7 +633,7 @@ export async function newPair({ main, status }) {
         const ds = s.devices === 'both' ? per[d] : st;
         const bid = ds.bid_strategy === 'MAX_CONVERSIONS' ? 'Maximizar conversões' + (ds.target_cpa ? `, CPA alvo ${money(ds.target_cpa)}` : '') : ds.cpc ? `CPC ${money(ds.cpc)}` : 'lance —';
         return h('div', { class: 'pv-node pv-campaign' },
-          row('Campanha · ' + DEVICES[d] + (d === 'mobile' ? ' (celular e tablet)' : ''), h('b', {}, names[i] || '—'), ' ', badge('PAUSED')),
+          row('Campanha · ' + DEVICES[d] + (d === 'mobile' ? ' (celular e tablet)' : ''), h('b', {}, names[i] || '—'), ' ', badge(live ? 'RUNNING' : 'PAUSED')),
           h('p', { class: 'faint' }, [bid, ds.daily_cap ? money(ds.daily_cap) + ' por dia' : 'sem orçamento',
             ds.start_date ? 'começa em ' + ds.start_date : '',
             'Estados Unidos' + (ds.exclude_cities.length ? ` menos ${plural(ds.exclude_cities.length, 'cidade', 'cidades')}` : ''),
@@ -647,14 +649,14 @@ export async function newPair({ main, status }) {
     if (make !== 'group') {
       const each = make === 'ads' ? to.length : campaignNames().length;
       parts.push(h('div', { class: 'pv-node pv-ads' },
-        row('Anúncios', list.length ? `${list.length} em cada campanha, ${list.length * each} no total, pausados` : h('span', { class: 'faint' }, 'escolha imagens, headlines e botão')),
+        row('Anúncios', list.length ? `${list.length} em cada campanha, ${list.length * each} no total, ${live ? 'ativos' : 'pausados'}` : h('span', { class: 'faint' }, 'escolha imagens, headlines e botão')),
         list.length ? h('div', { class: 'pv-cards' }, list.slice(0, 6).map((a) => h('figure', { class: 'pv-card' },
           h('img', { src: '/launch/api/images/' + a.img.sha256, alt: '', loading: 'lazy' }),
           h('figcaption', {}, h('b', {}, a.title), h('span', { class: 'faint' }, st.brand || ''), a.cta ? h('span', { class: 'pv-cta' }, a.cta) : null)))) : null,
         list.length > 6 ? h('p', { class: 'faint' }, `…e mais ${list.length - 6}.`) : null));
     }
     if (w.length) parts.push(note('warn', h('b', {}, 'Avisos: '), w.join(' ')));
-    parts.push(h('p', { class: 'faint' }, 'Tudo nasce pausado: alguém liga no Taboola.'));
+    parts.push(h('p', { class: 'faint' }, live ? 'Tudo sobe ativo: começa a gastar assim que o Taboola aprovar.' : 'Tudo nasce pausado: alguém liga no Taboola.'));
     preview.replaceChildren(...parts);
   }
 
@@ -725,7 +727,7 @@ export async function newPair({ main, status }) {
         const res = await api(`${s.net}/${encodeURIComponent(s.account)}/add-ads`, { method: 'POST', body: { campaigns: to,
           new_ads: list.map((a) => ({ title: a.title, description: description(), url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })) } });
         sendBtn.hidden = true;
-        sendOut.replaceChildren(...res.done.map((d) => (d.error ? note('fail', h('b', {}, d.campaign + ': '), d.error) : note('ok', h('b', {}, d.campaign + ': '), plural(d.ads, 'anúncio adicionado', 'anúncios adicionados') + ', pausados'))),
+        sendOut.replaceChildren(...res.done.map((d) => (d.error ? note('fail', h('b', {}, d.campaign + ': '), d.error) : note('ok', h('b', {}, d.campaign + ': '), plural(d.ads, 'anúncio adicionado', 'anúncios adicionados') + (live ? ', ativos' : ', pausados')))),
           h('p', {}, h('a', { href: '/launch/ads?' + new URLSearchParams({ account: s.account, ...(to.length === 1 ? { campaign: to[0] } : {}) }) }, 'Ver os anúncios')));
       });
       return;
@@ -774,14 +776,14 @@ export async function newPair({ main, status }) {
     if (job.error) return note('fail', job.error);
     if (r.result === 'done') {
       loadNext();
-      return h('div', {}, note('ok', h('b', {}, (r.desktop && r.mobile ? 'Par criado' : 'Campanha criada') + ', pausado. '), 'Ligue no Taboola quando quiser que comece.'),
+      return h('div', {}, note('ok', h('b', {}, (r.desktop && r.mobile ? 'Par criado' : 'Campanha criada') + (live ? ', ativo. ' : ', pausado. ')), live ? 'Começa a gastar assim que o Taboola aprovar os anúncios.' : 'Ligue no Taboola quando quiser que comece.'),
         h('p', {}, ...[camp(r.desktop), r.desktop && r.mobile ? ' · ' : null, camp(r.mobile)].filter(Boolean)),
         h('div', { class: 'actions' }, h('a', { class: 'button', href: '/launch/campaigns?' + new URLSearchParams({ account: s.account, group: r.group_id || '-' }) }, 'Ver o grupo'),
           h('a', { class: 'button ghost', href: '/launch/new?' + new URLSearchParams({ make: 'campaign', account: s.account, group: r.group_id || '' }) }, 'Outra campanha neste grupo')));
     }
     return h('div', {}, note(r.result === 'partial' ? 'warn' : 'fail', h('b', {}, r.result === 'partial' ? 'Criado em parte. ' : 'Nada foi criado. '), (r.problems || []).join(' · ')),
       h('p', {}, camp(r.desktop), r.desktop && r.mobile ? ' · ' : '', camp(r.mobile)),
-      h('p', { class: 'faint' }, 'O que foi criado está pausado e aparece no Histórico.'));
+      h('p', { class: 'faint' }, (live ? 'O que foi criado está ativo' : 'O que foi criado está pausado') + ' e aparece no Histórico.'));
   }
 
   // ---- drafts ----
