@@ -2,9 +2,7 @@ package web
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/Raposa-Industries/adhunters/shared/access"
 )
@@ -56,20 +54,12 @@ func (s *Server) investigate(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Only the pages may call this: a JSON body a form on another site
-	// cannot send, and the same origin when the browser says one.
-	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
-		return nil, bad("send JSON")
-	}
-	if o := r.Header.Get("Origin"); o != "" && o != "https://"+r.Host && o != "http://"+r.Host {
-		return nil, bad("wrong origin")
-	}
 	var body struct {
 		Mode string `json:"mode"`
 		AdID *int   `json:"ad_id"`
 	}
-	if err := json.NewDecoder(http.MaxBytesReader(nil, r.Body, 4096)).Decode(&body); err != nil {
-		return nil, bad("the body must be JSON: %v", err)
+	if err := postJSON(r, &body); err != nil {
+		return nil, err
 	}
 	if body.Mode == "" {
 		body.Mode = "deep"

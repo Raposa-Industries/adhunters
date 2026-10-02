@@ -232,7 +232,8 @@ func (c *Classifier) rulesPass(ctx context.Context) (int, error) {
 		cat[i], vert[i], src[i], evid[i], conf[i] = a.Category, a.Vertical, a.Source, string(ev), a.Confidence
 	}
 	// A model answer stays while the rules are still unsure; the model is
-	// asked again, since the text changed.
+	// asked again, since the text changed. A person's vertical (source
+	// 'hand', spy.vertical_fix) always stays.
 	_, err = c.db.Exec(ctx, `
 		INSERT INTO spy.creative_class AS k (creative_id, category_id, vertical_id, confidence, source, evidence,
 		    rules_category_id, rules_vertical_id, rules_confidence, rules_source, rules_hash, input_ad_id,
@@ -244,10 +245,10 @@ func (c *Classifier) rulesPass(ctx context.Context) (int, error) {
 		            $10::timestamptz[])
 		     AS u(id, cat, vert, conf, src, ev, ad, evid, pg)
 		ON CONFLICT (creative_id) DO UPDATE SET
-		    category_id = CASE WHEN k.source = 'model' AND EXCLUDED.needs_model THEN k.category_id ELSE EXCLUDED.category_id END,
-		    vertical_id = CASE WHEN k.source = 'model' AND EXCLUDED.needs_model THEN k.vertical_id ELSE EXCLUDED.vertical_id END,
-		    confidence = CASE WHEN k.source = 'model' AND EXCLUDED.needs_model THEN k.confidence ELSE EXCLUDED.confidence END,
-		    source = CASE WHEN k.source = 'model' AND EXCLUDED.needs_model THEN k.source ELSE EXCLUDED.source END,
+		    category_id = CASE WHEN k.source = 'hand' OR (k.source = 'model' AND EXCLUDED.needs_model) THEN k.category_id ELSE EXCLUDED.category_id END,
+		    vertical_id = CASE WHEN k.source = 'hand' OR (k.source = 'model' AND EXCLUDED.needs_model) THEN k.vertical_id ELSE EXCLUDED.vertical_id END,
+		    confidence = CASE WHEN k.source = 'hand' OR (k.source = 'model' AND EXCLUDED.needs_model) THEN k.confidence ELSE EXCLUDED.confidence END,
+		    source = CASE WHEN k.source = 'hand' OR (k.source = 'model' AND EXCLUDED.needs_model) THEN k.source ELSE EXCLUDED.source END,
 		    evidence = EXCLUDED.evidence,
 		    rules_category_id = EXCLUDED.rules_category_id,
 		    rules_vertical_id = EXCLUDED.rules_vertical_id,
@@ -355,20 +356,22 @@ func (c *Classifier) grown(ctx context.Context, id int32) (bool, error) {
 	return float64(now) >= regrowth*float64(used) && now-used >= minRegrowth, nil
 }
 
-// Train learns from the creatives the rules are sure about (catch-alls and
-// junk left out, at most perClass per vertical, the most seen first), stores
-// the model and makes it the current one.
+// Train learns from the creatives people set a vertical for and those the
+// rules are sure about (catch-alls and junk left out, at most perClass per
+// vertical, people's first, then the most seen), stores the model and makes
+// it the current one.
 func (c *Classifier) Train(ctx context.Context) error {
 	start := time.Now()
 	rows, err := c.db.Query(ctx, `
-		SELECT creative_id, rules_vertical_id FROM (
-		    SELECT k.creative_id, k.rules_vertical_id,
-		           row_number() OVER (PARTITION BY k.rules_vertical_id
-		                              ORDER BY COALESCE(cs.sightings_7d, 0) DESC, k.creative_id) AS rn
+		SELECT creative_id, label FROM (
+		    SELECT k.creative_id, l.label,
+		           row_number() OVER (PARTITION BY l.label
+		                              ORDER BY k.source = 'hand' DESC, COALESCE(cs.sightings_7d, 0) DESC, k.creative_id) AS rn
 		    FROM spy.creative_class k
+		    CROSS JOIN LATERAL (SELECT CASE WHEN k.source = 'hand' THEN k.vertical_id ELSE k.rules_vertical_id END AS label) l
 		    LEFT JOIN spy.creative_stats cs USING (creative_id)
-		    WHERE k.rules_confidence >= 0.6 AND k.rules_vertical_id IS NOT NULL AND k.rules_hash = $1
-		      AND NOT COALESCE(cs.is_junk, FALSE)
+		    WHERE (k.source = 'hand' OR (k.rules_confidence >= 0.6 AND k.rules_vertical_id IS NOT NULL AND k.rules_hash = $1))
+		      AND l.label IS NOT NULL AND NOT COALESCE(cs.is_junk, FALSE)
 		) s WHERE rn <= $2`, c.hash, perClass)
 	if err != nil {
 		return err
@@ -462,7 +465,7 @@ func (c *Classifier) modelPass(ctx context.Context) (answered, declined int, err
 		FROM spy.creative_class k
 		LEFT JOIN spy.creative_stats cs USING (creative_id)
 		WHERE (k.needs_model OR k.source = 'model') AND (k.model_at IS NULL OR k.model_at < k.classified_at)
-		  AND NOT COALESCE(cs.is_junk, FALSE)
+		  AND k.source IS DISTINCT FROM 'hand' AND NOT COALESCE(cs.is_junk, FALSE)
 		ORDER BY COALESCE(cs.sightings_7d, 0) DESC, k.creative_id
 		LIMIT $1`, c.cfg.PerRun)
 	if err != nil {
@@ -528,14 +531,14 @@ func (c *Classifier) modelPass(ctx context.Context) (answered, declined int, err
 		UPDATE spy.creative_class k SET category_id = u.cat, vertical_id = u.vert, confidence = u.conf,
 		       source = 'model', model_top = u.ev::jsonb, model_id = $1, model_at = now()
 		FROM unnest($2::int[], $3::text[], $4::text[], $5::numeric[], $6::text[]) AS u(id, cat, vert, conf, ev)
-		WHERE k.creative_id = u.id`, c.modelID, ansID, ansCat, ansVert, ansConf, ansEv); err != nil {
+		WHERE k.creative_id = u.id AND k.source IS DISTINCT FROM 'hand'`, c.modelID, ansID, ansCat, ansVert, ansConf, ansEv); err != nil {
 		return 0, 0, err
 	}
 	if _, err := tx.Exec(ctx, `
 		UPDATE spy.creative_class k SET category_id = rules_category_id, vertical_id = rules_vertical_id,
 		       confidence = rules_confidence, source = rules_source, model_top = u.ev::jsonb, model_id = $1, model_at = now()
 		FROM unnest($2::int[], $3::text[]) AS u(id, ev)
-		WHERE k.creative_id = u.id`, c.modelID, keepID, keepEv); err != nil {
+		WHERE k.creative_id = u.id AND k.source IS DISTINCT FROM 'hand'`, c.modelID, keepID, keepEv); err != nil {
 		return 0, 0, err
 	}
 	return len(ansID), len(keepID), tx.Commit(ctx)

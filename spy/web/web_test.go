@@ -301,3 +301,152 @@ func TestPages(t *testing.T) {
 		t.Errorf("/spy: %d", w.Code)
 	}
 }
+
+func (s *site) post(path, body string) (int, map[string]any) {
+	s.t.Helper()
+	w := s.do("POST", path, body, "Content-Type", "application/json")
+	var out map[string]any
+	_ = json.Unmarshal(w.Body.Bytes(), &out)
+	return w.Code, out
+}
+
+// The team's asks of 2 Oct 2026: 48 and 72 hours, against the 24 hours
+// before, Z to A, hiding, nicknames and watches, verticals by hand, brands
+// per campaign, a daily chart per operator, and the export.
+func TestTeamAsks(t *testing.T) {
+	s := newSite(t)
+
+	last48 := s.get("/spy/api/ads?from=48h")
+	if w := last48["window"].(map[string]any); w["hours"] != float64(48) || w["recent"] != false || len(list(last48["items"])) != 2 {
+		t.Errorf("48 hours: %v", last48)
+	}
+	if w := s.get("/spy/api/operators?vs=before")["window"].(map[string]any); w["vs"] != "before" {
+		t.Errorf("against the period before: %v", w)
+	}
+	if got := list(s.get("/spy/api/ads?vs=before&from=72h")["items"]); len(got) != 2 {
+		t.Errorf("72 hours against the 72 before: %v", got)
+	}
+	az := list(s.get("/spy/api/ads?sort=name")["items"])
+	za := list(s.get("/spy/api/ads?sort=name&rev=1")["items"])
+	if len(az) != 2 || len(za) != 2 || az[0].(map[string]any)["headline"] != "Doctors hate this trick" || za[0].(map[string]any)["headline"] != "Lose belly fat fast" {
+		t.Errorf("A to Z %v, Z to A %v", az, za)
+	}
+	// A São Paulo day: 2026-10-01 is 03:00 UTC to 03:00 UTC.
+	if w := s.get("/spy/api/operators?from=2026-09-30&to=2026-10-01")["window"].(map[string]any); w["from"] != "2026-09-30T03:00:00Z" || w["to"] != "2026-10-02T03:00:00Z" {
+		t.Errorf("São Paulo days: %v", w)
+	}
+
+	ops := list(s.get("/spy/api/operators")["items"])
+	if best := ops[0].(map[string]any)["best"].(map[string]any); best["image_url"] != "https://img.example/x.jpg" || best["headline"] == nil {
+		t.Errorf("best creative: %v", best)
+	}
+
+	// Nickname and watch.
+	code, out := s.post("/spy/api/operators/7/mark", `{"nickname": "Memo", "watched": true}`)
+	if m, _ := out["mark"].(map[string]any); code != http.StatusOK || m["nickname"] != "Memo" || m["watched"] != true || m["hidden"] != false {
+		t.Fatalf("mark: %d %v", code, out)
+	}
+	if got := list(s.get("/spy/api/operators?show=watched")["items"]); len(got) != 1 || got[0].(map[string]any)["name"] != "Memo" {
+		t.Errorf("watched operators: %v", got)
+	}
+	op := s.get("/spy/api/operators/7")
+	if m := op["mark"].(map[string]any); m["watched"] != true || op["operator"].(map[string]any)["name"] != "Memo" {
+		t.Errorf("operator page mark: %v %v", op["mark"], op["operator"])
+	}
+	// Hidden: out of both lists unless asked for.
+	if code, _ := s.post("/spy/api/operators/7/mark", `{"hidden": true}`); code != http.StatusOK {
+		t.Fatalf("hide: %d", code)
+	}
+	if got := list(s.get("/spy/api/operators")["items"]); len(got) != 0 {
+		t.Errorf("hidden operator listed: %v", got)
+	}
+	if got := list(s.get("/spy/api/ads")["items"]); len(got) != 0 {
+		t.Errorf("hidden operator's ads listed: %v", got)
+	}
+	if got := list(s.get("/spy/api/ads?hidden=1")["items"]); len(got) != 2 {
+		t.Errorf("ads with the hidden: %v", got)
+	}
+	if got := list(s.get("/spy/api/operators?show=hidden")["items"]); len(got) != 1 {
+		t.Errorf("hidden operators: %v", got)
+	}
+	if _, out := s.post("/spy/api/operators/7/mark", `{"hidden": false, "watched": false, "nickname": ""}`); out["mark"] != nil {
+		t.Errorf("unmarked: %v", out)
+	}
+	for body, want := range map[string]int{
+		`{"nickname": "` + strings.Repeat("x", 61) + `"}`: http.StatusBadRequest,
+		`not json`: http.StatusBadRequest,
+	} {
+		if code, _ := s.post("/spy/api/operators/7/mark", body); code != want {
+			t.Errorf("mark %s: %d, want %d", body, code, want)
+		}
+	}
+	if code, _ := s.post("/spy/api/operators/999/mark", `{"hidden": true}`); code != http.StatusNotFound {
+		t.Errorf("marking an operator that does not exist: %d", code)
+	}
+	if got := list(s.get("/spy/api/pulse?vs=before")["verticals"]); len(got) == 0 {
+		t.Errorf("pulse against the period before has no verticals")
+	}
+
+	// The operator page: why each account is in it, a day-by-day chart, and
+	// brands per campaign.
+	op = s.get("/spy/api/operators/7")
+	if got := list(op["series"]); len(got) != 30 {
+		t.Errorf("daily chart has %d days, want 30", len(got))
+	}
+	if got := list(s.get("/spy/api/operators/7?from=2026-09-01&to=2026-09-03")["series"]); len(got) != 3 {
+		t.Errorf("daily chart over 3 days has %d", len(got))
+	}
+	if acc := list(op["accounts"])[0].(map[string]any); acc["external_id"] != "today55-sc" {
+		t.Errorf("accounts: %v", acc)
+	} else if _, ok := acc["reason"]; !ok {
+		t.Errorf("accounts carry no reason: %v", acc)
+	}
+	camps := list(op["campaigns"])
+	if len(camps) != 1 || camps[0].(map[string]any)["name"] != "Belly US" || len(list(camps[0].(map[string]any)["brands"])) != 1 {
+		t.Errorf("campaigns: %v", camps)
+	}
+	if c := list(s.get("/spy/api/ads/10")["campaigns"])[0].(map[string]any); c["brand"] != "SlimFast" {
+		t.Errorf("ad page campaign brand: %v", c)
+	}
+
+	// A vertical by hand, and back to the classifier.
+	code, out = s.post("/spy/api/ads/11/vertical", `{"vertical_id": "blood-pressure"}`)
+	if code != http.StatusOK || out["vertical_id"] != "blood-pressure" || out["vertical_source"] != "hand" || out["category_name"] != "Heart" {
+		t.Errorf("vertical by hand: %d %v", code, out)
+	}
+	if c := s.get("/spy/api/ads/11")["creative"].(map[string]any); c["vertical_name"] != "Blood Pressure" || c["vertical_source"] != "hand" {
+		t.Errorf("ad page after the fix: %v", c)
+	}
+	if code, _ := s.post("/spy/api/ads/11/vertical", `{"vertical_id": "made-up"}`); code != http.StatusBadRequest {
+		t.Errorf("a vertical not on the list: %d", code)
+	}
+	if code, _ := s.post("/spy/api/ads/999/vertical", `{"vertical_id": "blood-pressure"}`); code != http.StatusNotFound {
+		t.Errorf("a creative that does not exist: %d", code)
+	}
+	if code, out := s.post("/spy/api/ads/11/vertical", `{"vertical_id": ""}`); code != http.StatusOK || out["vertical_source"] == "hand" {
+		t.Errorf("back to the classifier: %d %v", code, out)
+	}
+
+	// The export: one HTML file with the list's filters.
+	w := s.do("GET", "/spy/api/ads/export?q=belly", "")
+	body := w.Body.String()
+	if w.Code != http.StatusOK || !strings.HasPrefix(w.Header().Get("Content-Disposition"), "attachment; filename=\"spy-anuncios-") ||
+		!strings.Contains(body, "Lose belly fat fast") || strings.Contains(body, "Doctors hate") || !strings.Contains(body, "SlimFast") ||
+		!strings.Contains(body, "/spy/ads/10") {
+		t.Errorf("export: %d %s\n%s", w.Code, w.Header(), body)
+	}
+	if w := s.do("GET", "/spy/api/ads/export?sort=nope", ""); w.Code != http.StatusBadRequest {
+		t.Errorf("export with a bad sort: %d", w.Code)
+	}
+	for path, code := range map[string]int{
+		"/spy/api/ads?rev=2":          http.StatusBadRequest,
+		"/spy/api/ads?vs=lastyear":    http.StatusBadRequest,
+		"/spy/api/ads?from=0h":        http.StatusBadRequest,
+		"/spy/api/operators?show=all": http.StatusOK,
+		"/spy/api/operators?show=x":   http.StatusBadRequest,
+	} {
+		if w := s.do("GET", path, ""); w.Code != code {
+			t.Errorf("%s: %d, want %d (%s)", path, w.Code, code, w.Body.String())
+		}
+	}
+}

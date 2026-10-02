@@ -1,7 +1,7 @@
 // The ads list: every creative seen in the range, as cards with their
 // sparkline, filtered on the left and sorted on top.
 
-import { frame, h, api, params, setParams, rangeParams, rangePicker, load, presence, momentum, num, word, direction, spark, windowText, keepRange, fill } from './spy.js';
+import { frame, h, api, params, setParams, rangeParams, rangePicker, comparePicker, sortPicker, load, presence, momentum, num, word, direction, spark, windowText, keepRange, fill } from './spy.js';
 
 frame('ads');
 
@@ -18,12 +18,13 @@ const SORTS = [
   ['lifespan', 'No ar há mais tempo'],
   ['days', 'Dias ativos'],
   ['total', 'Vistas no total'],
+  ['name', 'Headline'],
 ];
 const STATUS = [
   ['new', 'Novo'], ['running', 'No ar'], ['ended', 'Saiu'], ['rising', 'Subindo'],
   ['fading', 'Caindo'], ['scaled', 'Escalado'], ['stopped', 'Parou'],
 ];
-const FILTERS = ['q', 'category', 'vertical', 'operator', 'publisher', 'network', 'account', 'tracker', 'affiliate', 'device', 'status', 'min_days', 'sort'];
+const FILTERS = ['q', 'category', 'vertical', 'operator', 'publisher', 'network', 'account', 'tracker', 'affiliate', 'device', 'status', 'min_days', 'hidden', 'sort', 'rev'];
 
 let items = [];
 
@@ -62,11 +63,15 @@ async function drawFilters() {
     h('label', {}, h('input', { type: 'radio', name: 'device', value: v, checked: (p.get('device') || '') === v, onchange: () => set('device', v) }), h('span', {}, l))));
   const minDays = h('input', { type: 'number', min: 0, name: 'min_days', value: p.get('min_days') || '', placeholder: '0' });
   minDays.addEventListener('change', () => set('min_days', minDays.value));
+  const hidden = h('label', { class: 'chip', title: 'Operadores ocultos na página do operador' },
+    h('input', { type: 'checkbox', checked: p.get('hidden') === '1', onchange: (e) => set('hidden', e.target.checked ? '1' : '') }),
+    h('span', {}, 'Mostrar operadores ocultos'));
   aside.append(
     h('label', { class: 'field' }, 'Buscar', q),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Situação'), status),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Dispositivo'), device),
-    h('label', { class: 'field' }, 'Dias ativos, no mínimo', minDays));
+    h('label', { class: 'field' }, 'Dias ativos, no mínimo', minDays),
+    h('div', { class: 'filter-group' }, hidden));
   const [vs, facets] = await Promise.all([api('verticals'), api('facets')]).catch(() => [null, null]);
   if (vs) {
     const verts = [];
@@ -128,11 +133,27 @@ async function refresh(more = false) {
     out.next_offset != null ? h('div', { class: 'sp-more' }, h('button', { type: 'button', onclick: () => refresh(true) }, 'Mostrar mais')) : null);
 }
 
-const sort = h('select', { 'aria-label': 'Ordenar', onchange: (e) => set('sort', e.target.value === 'presence' ? '' : e.target.value) },
-  SORTS.map(([v, l]) => option(v, l, params().get('sort') || 'presence')));
+// exportLink is the list as one HTML file, with the page's range, filters
+// and sort, the first 100 creatives.
+function exportLink() {
+  const a = h('a', { class: 'button ghost small', title: 'Baixa os 100 primeiros desta lista em um arquivo HTML' }, 'Exportar');
+  // The filters change the address without reloading: read it on each click.
+  const point = () => {
+    const p = params();
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(rangeParams())) if (v) q.set(k, v);
+    for (const f of FILTERS) for (const v of p.getAll(f)) if (v) q.append(f, v);
+    a.href = '/spy/api/ads/export?' + q.toString();
+  };
+  point();
+  a.addEventListener('click', point);
+  return a;
+}
+
 main.append(
   h('div', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Anúncios'), h('p', { class: 'sp-count' }, ''))),
-  h('div', { class: 'sp-toolbar' }, rangePicker(() => refresh()), sort),
+  h('div', { class: 'sp-toolbar' }, rangePicker(() => refresh()),
+    h('div', { class: 'sp-tools' }, comparePicker(() => refresh()), sortPicker(SORTS, 'presence', () => refresh()), exportLink())),
   h('div', { class: 'sp-list' }));
 drawFilters();
 refresh();
