@@ -334,3 +334,59 @@ BEGIN
     RETURN n;
 END;
 $$;`
+
+// Size counts a subject inside its market only. Operator 7's market is the
+// small vertical most of its first ads were in, but nearly all its sightings
+// are in the big one: counted whole, it took 250,000% of the small vertical
+// and the Direction job failed on numeric field overflow.
+func TestSizeInsideTheMarket(t *testing.T) {
+	b := newBench(t)
+	b.exec(`INSERT INTO spy.operator (id, name, display_name) VALUES (8, 'other · OP8', 'other')`)
+	today := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
+	// ad: creative, operator, vertical, sightings in the last 24 hours
+	ads := []struct {
+		ad, creative, operator int
+		vertical               string
+		sightings              int
+	}{{100, 10, 7, "small", 1}, {101, 11, 7, "small", 1}, {102, 12, 7, "big", 5000}, {103, 13, 8, "big", 100}}
+	hour := map[int]int{}
+	for _, a := range ads {
+		b.ad(a.creative, a.ad, a.operator, fmt.Sprintf("ck%d", a.creative), fmt.Sprintf("h%d", a.ad))
+		ad, creative := strconv.Itoa(a.ad), strconv.Itoa(a.creative)
+		b.exec(`INSERT INTO spy.direction_member (ad_id, kind, key) VALUES ($1, 'ad', $2), ($1, 'creative', $3),
+			($1, 'operator', $4), ($1, 'vertical', $5), ($1, 'network', '*')`, a.ad, ad, creative, strconv.Itoa(a.operator), a.vertical)
+		b.exec(`INSERT INTO spy.direction_subject (kind, key, market_kind, market_key, first_seen_at)
+			VALUES ('ad', $1, 'vertical', $3, $4), ('creative', $2, 'vertical', $3, $4)`, ad, creative, a.vertical, now)
+		hour[a.ad] = a.sightings
+		b.day(today, a.ad, 1, 1, a.sightings)
+	}
+	b.hour(today.Add(10*time.Hour), 1, 1, 100, true, hour)
+	b.exec(`INSERT INTO spy.direction_subject (kind, key, market_kind, market_key, first_seen_at) VALUES
+		('operator', '7', 'vertical', 'small', $1), ('operator', '8', 'vertical', 'big', $1),
+		('vertical', 'small', 'network', '*', $1), ('vertical', 'big', 'network', '*', $1), ('network', '*', NULL, NULL, $1)`, now)
+
+	if _, err := b.db.Exec(b.ctx, `SELECT spy.refresh_size($1)`, now); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		kind, key       string
+		sightings, rank int
+		share           float64
+	}{
+		{"operator", "7", 2, 1, 100},          // its 2 sightings in the small vertical, all of it
+		{"operator", "8", 100, 1, 100.0 / 51}, // the only operator whose market is the big vertical
+		{"creative", "12", 5000, 1, 5000.0 / 51},
+		{"creative", "13", 100, 2, 100.0 / 51},
+		{"vertical", "big", 5100, 1, 5100.0 / 51.02},
+	} {
+		got := b.text(`SELECT sightings_24h || ' ' || rank_24h || ' ' || share_24h_pct FROM spy.size_stats WHERE kind = $1 AND key = $2`, c.kind, c.key)
+		var s, r int
+		var share float64
+		if _, err := fmt.Sscan(got, &s, &r, &share); err != nil || s != c.sightings || r != c.rank || math.Abs(share-c.share) > 0.0001 {
+			t.Errorf("%s %s: sightings, rank and share %q, want %d %d %.4f", c.kind, c.key, got, c.sightings, c.rank, c.share)
+		}
+	}
+	if got := b.float(`SELECT max(share_7d_before_pct) FROM spy.size_stats`); got > 100 {
+		t.Errorf("shares of those ranked above add up to %v%%", got)
+	}
+}
