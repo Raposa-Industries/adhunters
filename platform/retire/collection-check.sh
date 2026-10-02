@@ -286,10 +286,11 @@ WHERE ii.investigation_id IS NULL GROUP BY 1, 2 ORDER BY 1, 2;
 \echo '== Raposa: the automatic quick queue now (raposa.queue_quick step by step; each column keeps what passed the one before)'
 WITH c AS (
     SELECT a.creative_id
-    FROM tracks_api.ad_v1 a
-    JOIN tracks_api.network_ad_v1 na ON na.ad_id = a.id
-    JOIN tracks_api.network_v1 n ON n.id = na.network_id
-    WHERE a.last_seen_at > now() - interval '1 hour'
+    FROM tracks_api.ad_hourly_v1 h
+    JOIN tracks_api.publisher_v1 pb ON pb.id = h.publisher_id
+    JOIN tracks_api.network_v1 n ON n.id = pb.network_id
+    JOIN tracks_api.ad_v1 a ON a.id = h.ad_id
+    WHERE h.hour >= date_trunc('hour', now() - interval '1 hour') AND h.last_seen_at > now() - interval '1 hour'
       AND n.code = ANY (string_to_array(coalesce((SELECT value FROM raposa.setting WHERE key = 'quick_networks'), 'taboola'), ','))
     GROUP BY 1),
 f AS (
