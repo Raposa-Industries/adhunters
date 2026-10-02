@@ -176,6 +176,29 @@ SQL
 say "7. Raposa (old jobs -> raposa.imported_investigation)"
 old -c "SELECT 'old raposa_job', status, count(*), max(requested_at) FROM spy.raposa_job GROUP BY status ORDER BY 2"
 new -c "SELECT 'imported investigations', count(*), max(imported_at) FROM raposa.imported_investigation"
+# import-old keeps one row per page and per file content, however many jobs
+# used it, and copies only the pages a job points at (the rest stay in the
+# main dump). So these compare by content hash, and visits job by job.
+shot_pages="" shot_files=""
+if [ "$(old -c "SELECT to_regclass('spy.raposa_shot') IS NOT NULL")" = t ]; then
+    shot_pages="UNION SELECT page_id FROM spy.raposa_shot"
+    shot_files="OR EXISTS (SELECT 1 FROM spy.raposa_shot s WHERE s.content_hash = a.content_hash)"
+fi
+used="SELECT id FROM (SELECT white_page_id AS id FROM spy.raposa_job UNION SELECT landed_page_id FROM spy.raposa_visit
+      UNION SELECT page_id FROM spy.raposa_step UNION SELECT first_page_id FROM spy.raposa_variant
+      UNION SELECT unnest(page_ids) FROM spy.raposa_variant $shot_pages) u WHERE id IS NOT NULL"
+row "" old new ""
+keys "raposa jobs" "SELECT id FROM spy.raposa_job" "SELECT old_id FROM raposa.imported_investigation"
+keys "raposa visits per job" "SELECT job_id||':'||count(*) FROM spy.raposa_visit GROUP BY job_id" \
+     "SELECT i.old_id||':'||count(*) FROM raposa.visit v JOIN raposa.imported_investigation i ON i.investigation_id = v.investigation_id GROUP BY i.old_id"
+keys "raposa pages jobs use" "SELECT content_hash::text FROM spy.raposa_page WHERE id IN ($used)" \
+     "SELECT content_hash::text FROM raposa.page"
+old -c "SELECT 'old pages no job uses (main dump only)', count(*) FROM spy.raposa_page WHERE id NOT IN ($used)"
+files="SELECT a.content_hash::text FROM spy.raposa_asset a
+       WHERE (EXISTS (SELECT 1 FROM spy.raposa_page_asset pa WHERE pa.content_hash = a.content_hash AND pa.page_id IN ($used)) $shot_files)"
+keys "raposa files" "$files" "SELECT content_hash::text FROM raposa.asset"
+keys "raposa files with bytes" "$files AND (a.bytes IS NOT NULL OR COALESCE(a.object_key, '') <> '')" \
+     "SELECT content_hash::text FROM raposa.asset WHERE object_key IS NOT NULL"
 
 say "8. What the old database still writes (newest rows)"
 old <<'SQL'
