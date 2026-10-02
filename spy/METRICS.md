@@ -62,9 +62,10 @@ this ad if I looked at the network now".
 ### Share of voice
 `share_pct`: the subject's share of all the network's sightings in the
 range. `share_usual_pct` the same in the usual period, and
-`share_gain_pts` the difference in points. For creatives,
-`vertical_share_pct` is the share within its vertical, and `scaled` marks
-the few creatives that make half of their vertical (Size).
+`share_gain_pts` the difference in points. For creatives and operators,
+`vertical_share_pct` is the share within their vertical, counting only
+their ads in it, and `scaled` marks the few that make half of their
+vertical (Size).
 
 ### Momentum
 `momentum`: how the subject's presence moved against its usual, as a ratio
