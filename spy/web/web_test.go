@@ -161,6 +161,14 @@ func TestAPI(t *testing.T) {
 	if got := list(s.get("/spy/api/ads?vertical=weight-loss")["items"]); len(got) != 1 || got[0].(map[string]any)["vertical_name"] != "Weight Loss" {
 		t.Errorf("weight-loss filter: %v", got)
 	}
+	for _, it := range list(s.get("/spy/api/ads?category=none")["items"]) {
+		if m := it.(map[string]any); m["id"] == float64(10) || m["vertical_id"] != nil {
+			t.Errorf("no-vertical filter let a placed creative through: %v", m)
+		}
+	}
+	if got := list(s.get("/spy/api/ads?category=none")["items"]); len(got) == 0 {
+		t.Error("no-vertical filter: no creatives")
+	}
 	if got := list(s.get("/spy/api/ads?q=doctors")["items"]); len(got) != 1 {
 		t.Errorf("q filter: %v", got)
 	}

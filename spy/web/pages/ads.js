@@ -77,7 +77,7 @@ async function drawFilters() {
     const verts = [];
     for (const c of vs.categories) for (const v of c.verticals) verts.push([v.id, c.name + ' · ' + v.name]);
     aside.append(
-      select('category', 'Categoria', vs.categories.map((c) => [c.id, c.name])),
+      select('category', 'Categoria', [['none', 'Sem vertical (corrigir à mão)'], ...vs.categories.map((c) => [c.id, c.name])]),
       select('vertical', 'Vertical', verts));
   }
   if (facets) {
