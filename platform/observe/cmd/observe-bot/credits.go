@@ -69,7 +69,7 @@ const spendLag = 2 * time.Minute
 func newCredits(reg prometheus.Registerer, tasks *ops.Tasks, cfg *credit.Config, spend spending, state string) *credits {
 	c := &credits{
 		cfg:   cfg,
-		hc:    &http.Client{Timeout: 30 * time.Second},
+		hc:    &http.Client{Timeout: 30 * time.Second, Transport: ops.Transport("credits", nil)},
 		tasks: tasks,
 		spend: spend,
 		state: state,

@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 
 // Client queries one Prometheus-compatible API.
@@ -41,7 +43,7 @@ func (c *Client) Query(ctx context.Context, q string, t time.Time) ([]Sample, er
 	req.SetBasicAuth(c.User, c.Token)
 	hc := c.HTTP
 	if hc == nil {
-		hc = &http.Client{Timeout: 30 * time.Second}
+		hc = &http.Client{Timeout: 30 * time.Second, Transport: ops.Transport("grafana", nil)}
 	}
 	resp, err := hc.Do(req)
 	if err != nil {

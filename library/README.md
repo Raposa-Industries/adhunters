@@ -84,6 +84,9 @@ renames is a set's folder, when the app that owns the set renames it
 (`PATCH /api/sets/{id}`; Create does when a session is renamed). Headlines
 typed into a Drive file by hand are not read (only pictures are).
 
+Every call to Drive is counted and timed on `/metrics` by status, as
+provider `drive` (`adhunters_outbound_requests_total`, `kit/ops` `Transport`).
+
 **Signing in.** The folder's owner is a personal Google account, where a
 service account cannot own files, so the library signs in as that account,
 once, and keeps the refresh token (`library.drive_login`, never in

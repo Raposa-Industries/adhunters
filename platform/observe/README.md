@@ -263,9 +263,11 @@ what a rule, a dashboard or a person reads, about 5,000 in all:
 - Alloy and cloudflared: a short list each of the metrics worth keeping.
 - Our services (`kit/ops`, `kit/pg`): besides their own metrics, each
   service with a database reports its pool (`adhunters_db_pool_*`), calls to
-  Taboola, Telegram, OpenAI and the other headline providers are counted by
+  Taboola, RedTrack, Telegram, OpenAI and the other headline providers, Google
+  Drive, and observe-bot's to Sentry, Grafana Cloud, the balance checks
+  (`credits`) and Taboola's help center (`taboola-help`) are counted by
   provider and status code (`adhunters_outbound_*`), and create-web counts
-  every request by app and status code (`adhunters_http_*`). About 500
+  every request by app and status code (`adhunters_http_*`). About 600
   series together.
 
 Before adding a metric, count its series: each label multiplies them, so a

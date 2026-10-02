@@ -25,6 +25,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 
 // Scope is full Drive access: the sync must see files people add to the
@@ -131,7 +133,7 @@ type Client struct {
 
 // New returns a client for the account whose refresh token this is.
 func New(app App, refreshToken string) *Client {
-	return &Client{app: app, refresh: refreshToken, http: &http.Client{Timeout: 5 * time.Minute}, pause: time.Second}
+	return &Client{app: app, refresh: refreshToken, http: &http.Client{Timeout: 5 * time.Minute, Transport: ops.Transport("drive", nil)}, pause: time.Second}
 }
 
 // token returns an access token, refreshing it a minute before it ends.
