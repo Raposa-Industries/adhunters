@@ -186,3 +186,111 @@ func TestPagesWithEverythingFilled(t *testing.T) {
 		}
 	}
 }
+
+// A cloaked investigation shows its splits per step and its video players,
+// can be followed day by day, and is on the cloaked-ads page. Raposa's own
+// quick checks stay out of the list unless asked for.
+func TestSplitsFollowDaysAndCloaked(t *testing.T) {
+	ts, s := newServer(t)
+	ctx := context.Background()
+	mustExec := func(sql string, args ...any) {
+		t.Helper()
+		if _, err := s.db.Exec(ctx, sql, args...); err != nil {
+			t.Fatalf("%s: %v", sql, err)
+		}
+	}
+	mustExec(`INSERT INTO raposa.page (id, content_hash, page_key, text_digest, url, host, path, title, page_kind, is_dark, video_links) VALUES
+		(1, md5('w')::uuid, 'news.com/a', 'w', 'https://news.com/a', 'news.com', '/a', 'Seven habits', 'article', false, '{}'),
+		(2, md5('a1')::uuid, 'offer.xyz/a', 'a1', 'https://offer.xyz/a', 'offer.xyz', '/a', 'Doctor reveals', 'advertorial', true, '{}'),
+		(3, md5('a2')::uuid, 'offer.xyz/b', 'a2', 'https://offer.xyz/b', 'offer.xyz', '/b', 'Nurse reveals', 'advertorial', true, '{}'),
+		(4, md5('v')::uuid, 'offer.xyz/vsl', 'v', 'https://offer.xyz/vsl', 'offer.xyz', '/vsl', 'Watch now', 'vsl', true,
+		 '{https://scripts.converteai.net/a1/players/p9/v4/player.js}')`)
+	mustExec(`INSERT INTO raposa.investigation (id, creative_id, mode, status, is_cloaked, cloaked_confidence, breach_rung,
+			requested_by, started_at, completed_at, raposa_data, reviewer_data) VALUES
+		(1, 42, 'deep', 'completed', true, 75, 2, 'ana', now() - interval '1 hour', now(),
+		 '{"domain": "offer.xyz", "title": "Doctor reveals", "pageKind": "advertorial"}', '{"domain": "news.com"}'),
+		(2, 43, 'quick', 'completed', false, 0, NULL, 'raposa', now(), now(), '{}', '{}')`)
+	// Four sample visits: three past the white page (two on advertorial a,
+	// one on b, all then on the VSL) and one white.
+	for i, pages := range [][]int{{2, 4}, {2, 4}, {3, 4}, {1}} {
+		outcome := "dark"
+		if len(pages) == 1 {
+			outcome = "white"
+		}
+		mustExec(`INSERT INTO raposa.visit (id, investigation_id, purpose, rung, disguise_id, outcome, landed_page_id)
+			VALUES ($1, 1, 'sample', 2, (SELECT id FROM raposa.disguise WHERE rung = 2), $2, $3)`, i+1, outcome, pages[0])
+		for n, p := range pages {
+			mustExec(`INSERT INTO raposa.step (visit_id, step_no, page_id) VALUES ($1, $2, $3)`, i+1, n+1, p)
+		}
+	}
+
+	_, body := get(t, ts, "/i/1")
+	for _, want := range []string{"Splits per step", "Step 1: advertorials", "Doctor reveals", "67%", "Nurse reveals", "33%",
+		"Step 2: VSLs", "100%", "https://scripts.converteai.net/a1/players/p9/v4/player.js", "Run this ad again every 24 hours"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("the investigation page lacks %q:\n%s", want, body)
+		}
+	}
+
+	if resp := post(t, ts, "/i/1/follow", url.Values{"days": {"9"}}, ""); resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("9 days answered %d", resp.StatusCode)
+	}
+	if resp := post(t, ts, "/i/1/follow", url.Values{"days": {"3"}, "by": {"ana"}}, ""); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("follow answered %d", resp.StatusCode)
+	}
+	post(t, ts, "/i/1/follow", url.Values{"days": {"5"}}, "") // already followed: nothing changes
+	var days, open int
+	if err := s.db.QueryRow(ctx, `SELECT max(days), count(*) FROM raposa.follow WHERE ended_at IS NULL`).Scan(&days, &open); err != nil || days != 3 || open != 1 {
+		t.Fatalf("follows: %d open, %d days (%v)", open, days, err)
+	}
+	if _, body := get(t, ts, "/i/1"); !strings.Contains(body, "0 of 3 done") || !strings.Contains(body, "End the follow") {
+		t.Fatalf("the follow is not shown:\n%s", body)
+	}
+
+	// Day 1 ran: advertorial b took over.
+	mustExec(`INSERT INTO raposa.investigation (id, creative_id, mode, status, follow_id, follow_day, started_at, completed_at)
+		VALUES (3, 42, 'deep', 'completed', (SELECT id FROM raposa.follow), 1, now(), now())`)
+	for i, p := range []int{3, 3, 2} {
+		mustExec(`INSERT INTO raposa.visit (id, investigation_id, purpose, rung, disguise_id, outcome, landed_page_id)
+			VALUES ($1, 3, 'sample', 2, (SELECT id FROM raposa.disguise WHERE rung = 2), 'dark', $2)`, 10+i, p)
+		mustExec(`INSERT INTO raposa.step (visit_id, step_no, page_id) VALUES ($1, 1, $2)`, 10+i, p)
+	}
+	resp, body := get(t, ts, "/i/3/days")
+	if resp.StatusCode != 200 {
+		t.Fatalf("days answered %d:\n%s", resp.StatusCode, body)
+	}
+	for _, want := range []string{"Day by day: investigation", "visits past the white page went from 75% to 100%",
+		`step 1: &#34;Nurse reveals&#34; went from 33% to 67%`, `step 2: &#34;Watch now&#34; (100% the day before) was not met`, "&#43;33"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("the days page lacks %q:\n%s", want, body)
+		}
+	}
+
+	if _, body := get(t, ts, "/cloaked"); !strings.Contains(body, "offer.xyz") || !strings.Contains(body, "news.com") ||
+		!strings.Contains(body, "converteai.net") {
+		t.Fatalf("the cloaked page:\n%s", body)
+	}
+
+	_, body = get(t, ts, "/")
+	if strings.Contains(body, `href="/i/2"`) || !strings.Contains(body, "1 quick check(s) of its own") {
+		t.Fatalf("the list shows Raposa's own runs:\n%s", body)
+	}
+	if _, body := get(t, ts, "/?all=1"); !strings.Contains(body, `href="/i/2"`) {
+		t.Fatalf("all=1 hides Raposa's own runs:\n%s", body)
+	}
+}
+
+// Behind another site the pages answer under its path and link under it.
+func TestBasePath(t *testing.T) {
+	_, s := newServer(t)
+	s.Base = "/raposa"
+	ts := httptest.NewServer(s.Handler())
+	t.Cleanup(ts.Close)
+	resp, body := get(t, ts, "/raposa/")
+	if resp.StatusCode != 200 || !strings.Contains(body, `href="/raposa/cloaked"`) || !strings.Contains(body, `action="/raposa/request"`) {
+		t.Fatalf("under /raposa (%d):\n%s", resp.StatusCode, body)
+	}
+	if r := post(t, ts, "/raposa/request", url.Values{"creative": {"5"}}, ""); r.Header.Get("Location") != "/raposa/i/1" {
+		t.Fatalf("request went to %q", r.Header.Get("Location"))
+	}
+}

@@ -1,0 +1,21 @@
+{{template "head" "Cloaked ads"}}
+<h1>Cloaked ads</h1>
+<p>Every investigation that got past the white page in the last
+{{if eq .Days 1}}day{{else}}{{.Days}} days{{end}}:
+<a href="{{base}}/cloaked?days=1">1 day</a> · <a href="{{base}}/cloaked?days=7">7 days</a> · <a href="{{base}}/cloaked?days=30">30 days</a>.
+<span class="note">Print the page (or save it as PDF) to send it.</span></p>
+<div class="scroll"><table>
+<tr><th>Run</th><th>Creative</th><th>Reviewer sees</th><th>Readers get</th><th>Kind</th><th>Checkout</th><th>Past the white page</th><th>Funnels</th><th>Video</th><th>Ended</th></tr>
+{{range .Rows}}<tr>
+<td><a href="{{base}}/i/{{.ID}}">{{.ID}}</a></td>
+<td>{{.CreativeID}}{{with .AdID}} (ad {{.}}){{end}}</td>
+<td>{{.WhiteDomain}}</td>
+<td class="url"><span class="dark">{{.Domain}}</span>{{with .Title}}<br>{{.}}{{end}}</td>
+<td>{{.Kind}}</td><td>{{.Checkout}}</td>
+<td>{{printf "%.0f" .Confidence}}% on rung {{deref .BreachRung}}</td>
+<td>{{.Variants}}</td>
+<td class="url">{{range .Videos}}<a href="{{.URL}}" target="_blank" rel="noreferrer noopener">{{.URL}}</a><br>{{end}}</td>
+<td>{{when .CompletedAt}}</td>
+</tr>{{else}}<tr><td colspan="10">No investigation got past the white page in this time.</td></tr>{{end}}
+</table></div>
+{{template "foot"}}

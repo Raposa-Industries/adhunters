@@ -173,11 +173,11 @@ func (s *Store) Claim(ctx context.Context, node string) (*Investigation, error) 
 			LIMIT 1
 		)
 		RETURNING id, creative_id, ad_id, mode, status, stop_requested, target_click_url, publisher_referer,
-		          burn_scope, visits_target, retry_of, attempt, started_at, progress`,
+		          burn_scope, visits_target, retry_of, attempt, started_at, progress, COALESCE(start_rung, 0)`,
 		node, token, fmt.Sprintf("%d seconds", int(lease.Seconds()))).
 		Scan(&inv.ID, &inv.CreativeID, &inv.AdID, &inv.Mode, &inv.Status, &inv.StopRequested,
 			&inv.TargetClickURL, &inv.PublisherReferer, &inv.BurnScope, &inv.VisitsTarget,
-			&inv.RetryOf, &inv.Attempt, &inv.StartedAt, &progress)
+			&inv.RetryOf, &inv.Attempt, &inv.StartedAt, &progress, &inv.StartRung)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -425,6 +425,14 @@ func (s *Store) RefreshLineBurns(ctx context.Context) (int, error) {
 	return n, err
 }
 
+// ReleaseFollows queues the follow-up runs that are due
+// (raposa.release_follows) and returns how many.
+func (s *Store) ReleaseFollows(ctx context.Context) (int, error) {
+	var n int
+	err := s.pool.QueryRow(ctx, `SELECT raposa.release_follows()`).Scan(&n)
+	return n, err
+}
+
 // QueueQuick tops up the automatic quick queue (raposa.queue_quick) and
 // returns how many investigations it queued.
 func (s *Store) QueueQuick(ctx context.Context) (int, error) {
@@ -497,8 +505,10 @@ func upsertPage(ctx context.Context, tx pgx.Tx, p Page, key string, keep bool) (
 			UPDATE raposa.page
 			SET times_seen = times_seen + 1, last_seen_at = now(), is_dark = is_dark OR $2,
 			    capture_state = CASE WHEN capture_state = 'html' AND $3 AND page_kind IS DISTINCT FROM 'error'
-			                         THEN 'queued' ELSE capture_state END
-			WHERE id = $1`, id, p.IsDark, keep)
+			                         THEN 'queued' ELSE capture_state END,
+			    video_links = CASE WHEN $4::text[] <@ video_links THEN video_links
+			                       ELSE (SELECT array_agg(DISTINCT l) FROM unnest(video_links || $4::text[]) l) END
+			WHERE id = $1`, id, p.IsDark, keep, videoOrEmpty(p.VideoLinks))
 		if err != nil {
 			return 0, fmt.Errorf("bump page %d: %w", id, err)
 		}
@@ -512,14 +522,15 @@ func upsertPage(ctx context.Context, tx pgx.Tx, p Page, key string, keep bool) (
 		INSERT INTO raposa.page
 			(content_hash, page_key, text_digest, url, host, path, title, page_kind, word_count, html, body_text,
 			 html_bytes, headings, meta_tags, pixels, checkout_platform, checkout_merchant_id,
-			 outbound_links, is_dark, capture_state)
+			 outbound_links, is_dark, capture_state, video_links)
 		VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, $9, $10, $11, $12,
-		        $13::jsonb, $14::jsonb, $15::jsonb, NULLIF($16, ''), NULLIF($17, ''), $18::jsonb, $19, $20)
+		        $13::jsonb, $14::jsonb, $15::jsonb, NULLIF($16, ''), NULLIF($17, ''), $18::jsonb, $19, $20, $21)
 		RETURNING id`,
 		p.ContentHash, key, pagever.TextDigest(p.BodyText), clean(p.URL), p.Host, p.Path, clean(p.Title),
 		p.PageKind, p.WordCount, clean(p.HTML), clean(p.BodyText), p.HTMLBytes,
 		jsonOr(p.Headings, "{}"), jsonOr(p.MetaTags, "{}"), jsonOr(p.Pixels, "{}"),
-		clean(p.CheckoutPlatform), clean(p.CheckoutMerchantID), jsonOr(p.OutboundLinks, "[]"), p.IsDark, state).Scan(&id)
+		clean(p.CheckoutPlatform), clean(p.CheckoutMerchantID), jsonOr(p.OutboundLinks, "[]"), p.IsDark, state,
+		videoOrEmpty(p.VideoLinks)).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("insert page %s: %w", p.URL, err)
 	}
@@ -551,6 +562,15 @@ func matchVersion(ctx context.Context, tx pgx.Tx, key, text string) (int32, erro
 	}
 	id, _ := pagever.Match(versions, text)
 	return id, nil
+}
+
+// videoOrEmpty is the links as a text array, never NULL.
+func videoOrEmpty(links []string) []string {
+	out := make([]string, 0, len(links))
+	for _, l := range links {
+		out = append(out, clean(l))
+	}
+	return out
 }
 
 // clean drops the NUL bytes Postgres refuses in text, and anything that is

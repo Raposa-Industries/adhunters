@@ -1,6 +1,6 @@
 {{template "head" "Investigations"}}
 <h1>Investigations</h1>
-<form method="post" action="/request">
+<form method="post" action="{{base}}/request">
 <fieldset><legend>Investigate an ad</legend>
 <label>Creative <input name="creative" inputmode="numeric" required size="8"></label>
 <label>Ad (optional) <input name="ad" inputmode="numeric" size="8"></label>
@@ -8,14 +8,16 @@
 <label><input type="radio" name="mode" value="quick"> quick</label>
 <label>Your name <input name="by" size="10"></label>
 <button>Start</button>
-<p class="note">Deep climbs the whole ladder of disguises, then samples the funnel. Quick tries the rungs that cost nothing and reads the landing page only. Asking again while one runs opens that one.</p>
+<p class="note">Deep climbs the whole ladder of disguises, then samples the funnel: about 100 visits, with splits per step. Quick tries only the disguises that cost nothing and reads the landing page: it says whether the ad hides a dark page, without splits. Asking again while one runs opens that one.</p>
 </fieldset>
 </form>
+{{if .All}}<p class="note">Showing every investigation, the ones Raposa queues on its own included (quick checks of new ads whose landing page could not be fetched). <a href="{{base}}/">Only the ones people asked for</a>.</p>
+{{else}}<p class="note">The investigations people asked for.{{if .Auto}} Raposa also ran {{.Auto}} quick check(s) of its own in the last day, on new ads whose landing page could not be fetched: <a href="{{base}}/?all=1">show them too</a>.{{end}}</p>{{end}}
 <div class="scroll"><table>
 <tr><th>#</th><th>Creative</th><th>Mode</th><th>Status</th><th>Stage</th><th>Visits</th><th>Verdict</th><th>Asked</th><th>Ended</th></tr>
 {{range .Rows}}
 <tr>
-<td><a href="/i/{{.ID}}">{{.ID}}</a></td>
+<td><a href="{{base}}/i/{{.ID}}">{{.ID}}</a></td>
 <td>{{.CreativeID}}{{with .AdID}} (ad {{.}}){{end}}</td>
 <td>{{.Mode}}{{if ne .Origin "user"}} ({{.Origin}}){{end}}</td>
 <td>{{.Status}}</td>

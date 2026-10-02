@@ -2,7 +2,7 @@
 // follow it, read its visits, variants and evidence, open the pages it
 // stored, set watches, and see the burned lines.
 //
-//	raposa-web [-addr 127.0.0.1:8090] [-files file:///var/lib/raposa/files]
+//	raposa-web [-addr 127.0.0.1:8090] [-files file:///var/lib/raposa/files] [-base /raposa]
 //
 // The database URL comes from DATABASE_URL. It listens on localhost unless
 // told otherwise: reach it over Tailscale until Cloudflare Access is in
@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Raposa-Industries/adhunters/kit/logx"
@@ -46,6 +47,7 @@ func main() {
 func serve(args []string) error {
 	fs := flag.NewFlagSet("raposa-web", flag.ExitOnError)
 	addr := fs.String("addr", envOr("RAPOSA_WEB_ADDR", "127.0.0.1:8090"), "where the pages listen")
+	base := fs.String("base", os.Getenv("RAPOSA_WEB_BASE"), "the path the pages sit under when another site fronts them, such as /raposa")
 	filesURI := fs.String("files", envOr("RAPOSA_FILES", "file:///var/lib/raposa/files"), "where kept files are: file:///path or s3://bucket/prefix")
 	_ = fs.Parse(args)
 
@@ -76,6 +78,8 @@ func serve(args []string) error {
 	if err != nil {
 		return err
 	}
+	// Behind create-web the pages sit under /raposa.
+	pages.Base = strings.TrimSuffix(*base, "/")
 	srv := ops.New("raposa-web", version)
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 

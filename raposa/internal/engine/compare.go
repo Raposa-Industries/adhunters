@@ -183,3 +183,14 @@ func judge(white, got landing, whiteStable bool) verdict {
 	}
 	return verdict{Outcome: "white", Reason: "the same page the reviewer sees"}
 }
+
+// sentAway says a visit whose page did not open had been sent somewhere the
+// reviewer never goes: it ended on a domain that is neither the white page's
+// nor the link's own, so the link redirected it there.
+func sentAway(white, got landing, target string) bool {
+	whiteDomain, gotDomain := domainOf(white.URL), domainOf(got.URL)
+	if whiteDomain == "" || gotDomain == "" || gotDomain == whiteDomain {
+		return false
+	}
+	return gotDomain != domainOf(target)
+}

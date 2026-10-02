@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -276,5 +277,41 @@ func TestJudgeAcrossEngines(t *testing.T) {
 				t.Fatalf("judge outcome = %q (%s), want %q", got.Outcome, got.Reason, c.want)
 			}
 		})
+	}
+}
+
+// A visit the link sent to another site, which did not open, is dark: the
+// reviewer is never sent there. One whose own link did not open is not.
+func TestSentAway(t *testing.T) {
+	white := landing{URL: "https://healthynews.com/article"}
+	cases := []struct {
+		got, target string
+		want        bool
+	}{
+		{"https://offer-vsl.xyz/index.php", "https://trk.example.com/click?x=1", true},
+		{"https://trk.example.com/click?x=1", "https://trk.example.com/click?x=1", false},
+		{"https://healthynews.com/other", "https://trk.example.com/click", false},
+		{"", "https://trk.example.com/click", false},
+	}
+	for _, c := range cases {
+		if got := sentAway(white, landing{URL: c.got}, c.target); got != c.want {
+			t.Errorf("sentAway(%q, %q) = %v, want %v", c.got, c.target, got, c.want)
+		}
+	}
+}
+
+func TestVideoLinks(t *testing.T) {
+	html := `<script src="https://scripts.converteai.net/a1/players/p9/v4/player.js"></script>
+		<iframe src="//player.vimeo.com/video/123?h=1&amp;x=2"></iframe>
+		<script src="https://scripts.converteai.net/a1/players/p9/v4/player.js"></script>
+		<a href="https://example.com/converteai">not a player</a>`
+	got := videoLinks(html, "https://cdn.converteai.net/a1/video.m3u8")
+	want := []string{
+		"https://scripts.converteai.net/a1/players/p9/v4/player.js",
+		"https://player.vimeo.com/video/123?h=1&x=2",
+		"https://cdn.converteai.net/a1/video.m3u8",
+	}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("videoLinks = %v, want %v", got, want)
 	}
 }

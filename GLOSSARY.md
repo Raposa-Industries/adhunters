@@ -199,14 +199,19 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 |---|---|
 | investigation | Raposa's look at one creative (and, when given, one of its ads): visits under climbing disguises until one sees the dark page, then a sample of visits on that rung. |
 | deep investigation | The whole ladder, then the sample, retried while it finds no dark page. Its pages are kept whole. |
-| quick investigation | Only the rungs that cost nothing, the landing page's HTML only. No sample, no retry, nothing kept whole. |
-| automatic quick investigation | A quick investigation Raposa queues on its own (origin `auto`) for a new ad that runs now and whose landing page no visit has read whole. |
+| quick investigation | Only the rungs that cost nothing, the landing page's HTML only. No sample, nothing kept whole. Retried (quick again) only when it could not test the ad. |
+| automatic quick investigation | A quick investigation Raposa queues on its own (origin `auto`) for a new ad that runs now and whose landing page tracks-walker could not get. Left out of raposa-web's list unless asked for. |
 | usable page | A page read whole: 40 words or more, and not a bot check or an error page (`raposa.usable_page`). |
 | imported investigation | An investigation copied from the collector's database by `raposa-engine import-old`, with its visits, pages and files. |
 | white page | What an operator shows an ad network reviewer: the page the saved link opens from a reviewer's line. |
 | dark page | A page a visit reached that is not the white page: another page on the same site, or another site. |
 | dark funnel | The dark page and the pages its calls to action lead to, up to checkout. |
-| variant | One distinct dark funnel (the same pages in the same order). An operator can rotate several; the sample measures each one's share. |
+| variant | One distinct dark funnel (the same pages in the same order). An operator can rotate several; the sample measures each one's share. Also called a whole funnel. |
+| split per step | At one step of the dark funnel (advertorial, VSL, checkout), each page the sample visits met there and its share of the visits that reached the step (`raposa.step_split`). |
+| follow | Running one investigation's ad again every 24 hours for a few days (3 to 5, picked per investigation), each a deep investigation starting at the breach rung, to compare the days. |
+| follow-up run | One day of a follow: an investigation with `follow_id` and `follow_day`. |
+| video link | A video player address a page loads (VTurb on converteai.net and the like), kept on the page so a VSL can be watched without opening it. |
+| cloaked-ads page | raposa-web's `/cloaked`: every investigation that got past the white page in the last days, to read or print. |
 | disguise | Who a visit pretends to be: the line, the device, the link, the engine (plain fetch or real browser) and what it loads. |
 | ladder | The disguises in order of cost. A rung is one step on it. |
 | rung | One disguise's place on the ladder, 1 (the reviewer baseline) upward. |

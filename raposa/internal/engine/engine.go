@@ -212,8 +212,8 @@ func (e *Engine) stepFailed(ctx context.Context, inv *Investigation, before []by
 	}
 }
 
-// housekeep rebuilds the burned lines and tops up the automatic quick
-// queue every 5 minutes.
+// housekeep rebuilds the burned lines, tops up the automatic quick queue
+// and queues the follow-up runs that are due, every 5 minutes.
 func (e *Engine) housekeep(ctx context.Context) {
 	for {
 		if n, err := e.store.RefreshLineBurns(ctx); err != nil {
@@ -230,6 +230,13 @@ func (e *Engine) housekeep(ctx context.Context) {
 		} else if n > 0 {
 			e.m.autoQueued.Add(float64(n))
 			e.log.Info("queued quick investigations for new ads", "count", n)
+		}
+		if n, err := e.store.ReleaseFollows(ctx); err != nil {
+			if ctx.Err() == nil {
+				e.log.Error("release follow-up runs", "err", err)
+			}
+		} else if n > 0 {
+			e.log.Info("queued follow-up runs", "count", n)
 		}
 		if !sleep(ctx, 5*time.Minute) {
 			return
