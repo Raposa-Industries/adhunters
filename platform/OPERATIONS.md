@@ -134,8 +134,14 @@ What the deploy job needs, set once:
   `{ "src": ["tag:ci"], "dst": ["tag:server"], "ip": ["tcp:22"] }`).
 - Tailscale, Settings, Trust credentials (OAuth clients): a client with the
   `auth_keys` write scope and tag `tag:ci`.
-- GitHub, the repository's Settings, Secrets and variables, Actions: its ID
-  as `TS_OAUTH_CLIENT_ID` and its secret as `TS_OAUTH_SECRET`.
+- GitHub: an environment `production` that only `main` can deploy from,
+  holding the client's ID as `TS_OAUTH_CLIENT_ID` and its secret as
+  `TS_OAUTH_SECRET`, so no other branch's run can read them. The node each
+  run makes is ephemeral: Tailscale removes it when the run ends.
+
+The credential reaches every box as `admin`, who has sudo: Draw Designer's
+service on the data box too. If it may have leaked, delete the OAuth client
+and tell Draw Designer, which then changes its own keys.
 
 ### By hand
 
