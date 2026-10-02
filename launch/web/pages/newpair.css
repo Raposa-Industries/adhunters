@@ -218,7 +218,7 @@ table.matrix thead th { font-weight: 400; height: 58px; }
 .mx-warn { color: var(--accent-soft); }
 .mx-add { width: 62px; white-space: nowrap; text-align: center; border-left: 1px solid var(--line-subtle); padding: 0 4px !important; }
 .mx-img { min-height: 29px; width: 55px; padding: 0; border: 1px dashed var(--line-strong); border-radius: 5px; background: none; color: var(--accent); font-size: 12px; font-weight: 400; }
-.mx-row { text-align: left; font-weight: 400; padding: 8px 12px 8px 13px !important; min-width: 220px; }
+.mx-row { text-align: left; font-weight: 400; padding: 8px 12px 8px 13px !important; width: 366px; min-width: 366px; box-sizing: border-box; }
 .mx-hl { display: block; width: 100%; min-height: 0; padding: 0; border: 0; background: none; text-align: left; color: var(--ink-strong); font: 600 14px/19px var(--sans); cursor: pointer; }
 .mx-hl:hover { background: none; color: var(--accent); }
 .steps-page input.mx-desc:not([type=radio]):not([type=checkbox]) { width: 100%; min-height: 22px; height: 22px; margin-top: 4px; padding: 0 8px; font-size: 12.5px; border-color: var(--line-strong); border-radius: 5px; background: var(--surface-1); }
