@@ -65,6 +65,12 @@ type Client struct {
 
 	// retryBase is the first backoff pause; tests shrink it.
 	retryBase time.Duration
+
+	// provider is the name costs are counted under, name the one people
+	// read; chatPath is where chat completions are posted. compat is a
+	// client of another OpenAI-compatible provider (compat.go).
+	provider, name, chatPath string
+	compat                   bool
 }
 
 // New returns a client. meter may be nil (nothing is counted).
@@ -75,7 +81,8 @@ func New(s Settings, meter Meter, kept *keep.Folder, log *slog.Logger) *Client {
 	s.BaseURL = strings.TrimRight(s.BaseURL, "/")
 	// No client timeout: every call carries a context deadline instead, set by
 	// the caller, so a retry ladder and a slow picture share one budget.
-	return &Client{s: s, http: &http.Client{}, meter: meter, keep: kept, log: log, retryBase: retryBase}
+	return &Client{s: s, http: &http.Client{}, meter: meter, keep: kept, log: log, retryBase: retryBase,
+		provider: Provider, name: "OpenAI", chatPath: "/v1/chat/completions"}
 }
 
 // Settings returns the settings in force.
@@ -209,14 +216,14 @@ func (c *Client) call(ctx context.Context, path, contentType string, body []byte
 	out, err := retry(ctx, c.retryBase, func() ([]byte, error) { return c.post(ctx, path, contentType, body) })
 	var e *Error
 	if errors.As(err, &e) && e.OutOfCredit && c.meter != nil {
-		c.meter.OutOfCredit(Provider)
+		c.meter.OutOfCredit(c.provider)
 	}
 	return out, err
 }
 
 func (c *Client) spent(usd float64) {
 	if c.meter != nil {
-		c.meter.Spent(Provider, usd)
+		c.meter.Spent(c.provider, usd)
 	}
 }
 

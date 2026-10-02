@@ -54,6 +54,12 @@ type PlanRequest struct {
 	// ForPictures says the Winners are the ad's own pictures the headlines
 	// go with, not performing ads to analyse.
 	ForPictures bool `json:"for_pictures,omitempty"`
+	// LongMemory shows the headline memory instead of a random slice: every
+	// team example of the vertical, then Avoid (the session's, newest first)
+	// and Saved, up to MemoryTokens. Plan trims them.
+	LongMemory bool `json:"long_memory,omitempty"`
+	// Saved are the library's headlines for the vertical, newest first.
+	Saved []string `json:"saved,omitempty"`
 }
 
 // Plan is an analysis, headlines and image briefs from one text call.
@@ -94,6 +100,7 @@ type chatReply struct {
 type planKept struct {
 	Kind         string          `json:"kind"`
 	Time         time.Time       `json:"time"`
+	Provider     string          `json:"provider,omitempty"`
 	Model        string          `json:"model"`
 	Reasoning    string          `json:"reasoning_effort,omitempty"`
 	Request      PlanRequest     `json:"request"`
@@ -117,7 +124,23 @@ func (c *Client) TextCost(u *Usage) float64 {
 // Plan writes headlines and briefs in one structured text call. The reply is
 // kept before it is parsed.
 func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
-	r.Library = LibrarySample(r.Vertical, len(r.HeadlineExamples) > 0, rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())))
+	p, err := c.plan(ctx, r)
+	return p, c.named(err)
+}
+
+func (c *Client) plan(ctx context.Context, r PlanRequest) (Plan, error) {
+	if r.LongMemory {
+		r = withMemory(r, MemoryTokens)
+	} else {
+		r.Library = LibrarySample(r.Vertical, len(r.HeadlineExamples) > 0, rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())))
+	}
+	system := planSystem
+	if c.compat {
+		// Headlines only, from words: these models get no pictures and no
+		// JSON schema (decision 0023).
+		r.Winners, r.ForPictures, r.Images, r.Language = nil, false, 0, "en"
+		system += compatSystem
+	}
 	language := LanguageName(r.Language)
 	user := planUser(r, language)
 	var content any = user
@@ -137,7 +160,7 @@ func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
 	payload := map[string]any{
 		"model": c.s.TextModel,
 		"messages": []map[string]any{
-			{"role": "system", "content": planSystem},
+			{"role": "system", "content": system},
 			{"role": "user", "content": content},
 		},
 		// No temperature: the reasoning models refuse anything but the default.
@@ -148,14 +171,17 @@ func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
 			},
 		},
 	}
-	if c.s.TextReasoning != "" {
+	if c.compat {
+		payload["response_format"] = map[string]any{"type": "json_object"}
+	}
+	if c.s.TextReasoning != "" && !c.compat {
 		payload["reasoning_effort"] = c.s.TextReasoning
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return Plan{}, err
 	}
-	raw, err := c.call(ctx, "/v1/chat/completions", "application/json", body)
+	raw, err := c.call(ctx, c.chatPath, "application/json", body)
 	if err != nil {
 		return Plan{}, err
 	}
@@ -168,8 +194,8 @@ func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
 
 	// Kept before parsing, so a reply we could not read is still on disk.
 	kept, err := c.keep.JSON("plan", planKept{
-		Kind: "plan", Time: time.Now().UTC(), Model: c.s.TextModel, Reasoning: c.s.TextReasoning,
-		Request: r, Winners: len(r.Winners), LanguageName: language, System: planSystem, User: user,
+		Kind: "plan", Time: time.Now().UTC(), Provider: c.provider, Model: c.s.TextModel, Reasoning: c.s.TextReasoning,
+		Request: r, Winners: len(r.Winners), LanguageName: language, System: system, User: user,
 		Usage: reply.Usage, CostUSD: cost, Reply: raw,
 	})
 	if err != nil {
@@ -192,9 +218,44 @@ func (c *Client) Plan(ctx context.Context, r PlanRequest) (Plan, error) {
 		return Plan{}, err
 	}
 	plan.Cost = cost
-	c.log.Info("plan made", "model", c.s.TextModel, "winners", len(r.Winners), "headlines", len(plan.Headlines),
+	c.log.Info("plan made", "provider", c.provider, "model", c.s.TextModel, "winners", len(r.Winners), "headlines", len(plan.Headlines),
 		"briefs", len(plan.Briefs), "cost_usd", cost, "kept", kept)
 	return plan, nil
+}
+
+// MemoryTokens is the budget of the headline memory one plan is shown, in
+// rough tokens (4 characters each): about 64 KB of headlines, which holds
+// every team example of the largest vertical with room to spare, at a few
+// tenths of a cent per call on the default text model.
+const MemoryTokens = 16000
+
+func roughTokens(s string) int { return len(s)/4 + 1 }
+
+// withMemory fills a plan's headline memory (GLOSSARY: headline memory):
+// every team example of the vertical first, then the session's own
+// headlines (Avoid) and the library's (Saved), both newest first, until the
+// budget is spent. What does not fit is left out, oldest first.
+func withMemory(r PlanRequest, budget int) PlanRequest {
+	left := budget
+	take := func(lines []string) []string {
+		out := []string{}
+		for _, l := range lines {
+			t := roughTokens(l)
+			if t > left {
+				break
+			}
+			left -= t
+			out = append(out, l)
+		}
+		return out
+	}
+	r.Library = nil
+	if lib, ok := LibraryFor(r.Vertical); ok {
+		r.Library = take(lib.Headlines)
+	}
+	r.Avoid = take(r.Avoid)
+	r.Saved = take(r.Saved)
+	return r
 }
 
 // LibrarySample is a random slice of the team's headlines for a vertical:
@@ -225,7 +286,7 @@ func ParsePlan(content string, r PlanRequest) (Plan, error) {
 		return Plan{}, &Error{Status: http.StatusOK, Message: "a OpenAI devolveu um plano ilegível"}
 	}
 	shown := map[string]bool{}
-	for _, a := range r.Avoid {
+	for _, a := range append(append([]string{}, r.Avoid...), r.Saved...) {
 		shown[CleanLine(a)] = true
 	}
 	plan := Plan{Analysis: []Aspect{}, Headlines: tidy(answer.Headlines, r.Headlines, shown), Briefs: []Brief{}}

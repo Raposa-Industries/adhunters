@@ -103,6 +103,9 @@ type NewSet struct {
 	Origin       string `json:"origin"`
 	OriginRef    string `json:"origin_ref"`
 	MadeBy       string `json:"made_by"`
+	// Platform (taboola, newsbreak) puts the set in Drive under
+	// <vertical>/<platform>/<set> and picks its names' network letter.
+	Platform string `json:"platform,omitempty"`
 }
 
 // Set is the library's set, as far as Create reads it.
@@ -130,6 +133,8 @@ type CreativeMeta struct {
 	OriginRef    string `json:"origin_ref"`
 	AILabel      string `json:"ai_label"`
 	MadeBy       string `json:"made_by"`
+	// Platform picks the minted name's network letter (else the set's).
+	Platform string `json:"platform,omitempty"`
 }
 
 // Creative is the library's creative, as far as Create reads it.
@@ -184,6 +189,25 @@ type NewHeadline struct {
 // AddHeadlines saves headlines; a text kept already comes back as it was.
 func (c *Client) AddHeadlines(ctx context.Context, hs []NewHeadline) error {
 	return c.postJSON(ctx, "/api/headlines", map[string]any{"headlines": hs}, nil)
+}
+
+// Headlines are the texts of the library's headlines of a vertical, newest
+// first, at most limit (hidden ones left out).
+func (c *Client) Headlines(ctx context.Context, vertical string, limit int) ([]string, error) {
+	var out struct {
+		Headlines []struct {
+			Text string `json:"text"`
+		} `json:"headlines"`
+	}
+	q := url.Values{"vertical": {vertical}, "limit": {fmt.Sprint(limit)}}
+	if err := c.do(ctx, http.MethodGet, "/api/headlines?"+q.Encode(), "", nil, &out); err != nil {
+		return nil, err
+	}
+	texts := make([]string, 0, len(out.Headlines))
+	for _, h := range out.Headlines {
+		texts = append(texts, h.Text)
+	}
+	return texts, nil
 }
 
 // RenameSet renames a set; the library renames its Drive folder on its next

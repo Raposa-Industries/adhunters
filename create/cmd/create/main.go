@@ -90,10 +90,15 @@ func openDB(ctx context.Context, log *slog.Logger) (*pgxpool.Pool, error) {
 	return db, nil
 }
 
-// openAIStatus tells the pages why making is off.
-type openAIStatus struct{ c *openai.Client }
+// openAIStatus tells the pages why making is off and which other headline
+// models are on.
+type openAIStatus struct {
+	c      *openai.Client
+	others []site.HeadlineModel
+}
 
-func (s openAIStatus) OpenAIWhy() string { return s.c.Why() }
+func (s openAIStatus) OpenAIWhy() string                    { return s.c.Why() }
+func (s openAIStatus) HeadlineModels() []site.HeadlineModel { return s.others }
 
 func serve(args []string) error {
 	fs := flag.NewFlagSet("create", flag.ExitOnError)
@@ -113,6 +118,10 @@ func serve(args []string) error {
 
 	log := logx.New("create", version)
 	settings, err := openai.SettingsFromEnv()
+	if err != nil {
+		return err
+	}
+	compat, err := openai.CompatFromEnv()
 	if err != nil {
 		return err
 	}
@@ -136,10 +145,17 @@ func serve(args []string) error {
 	st := sessions.New(db, store0, func() { worker.Kick() })
 	worker = sessions.NewWorker(st, ai, lib, log)
 	worker.Workers = *workers
+	// Other headline models, each on only when its key is set (decision 0023).
+	status := openAIStatus{c: ai}
+	worker.Headliners = map[string]sessions.Headliner{}
+	for _, cp := range compat {
+		worker.Headliners[cp.ID] = openai.NewCompat(cp, srv, keep.New(*keepDir), log)
+		status.others = append(status.others, site.HeadlineModel{ID: cp.ID, Name: cp.Name})
+	}
 	tasks := srv.Tasks()
 	worker.Done = func(kind string, start time.Time, err error) { tasks.Done("work-"+kind, start, 1, err) }
 
-	web, err := site.New(st, lib, spyad.New(db, log), lib.Browse(), openAIStatus{ai}, log, version)
+	web, err := site.New(st, lib, spyad.New(db, log), lib.Browse(), status, log, version)
 	if err != nil {
 		return err
 	}
@@ -149,7 +165,7 @@ func serve(args []string) error {
 	}
 	httpSrv := &http.Server{Handler: web.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	log.Info("create listening", "addr", ln.Addr().String(), "files", store0.String(), "library", *libraryURL,
-		"openai", ai.Available(), "image_model", settings.ImageModel, "text_model", settings.TextModel)
+		"openai", ai.Available(), "image_model", settings.ImageModel, "text_model", settings.TextModel, "headline_models", len(compat))
 
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)
