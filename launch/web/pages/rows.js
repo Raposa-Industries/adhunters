@@ -41,3 +41,21 @@ export function nest(groups, campaigns, f) {
   }
   return out;
 }
+
+// standIns are the groups to add for campaigns whose group is not in the
+// list: "Grupo apagado · id" when the group was deleted (Taboola keeps its
+// campaigns, Realize says "Campaign Group Was Deleted"), "Sem grupo" when
+// the campaign has none. One per account and group.
+export function standIns(groups, campaigns) {
+  const known = new Set(groups.map((g) => g.account + '/' + g.id));
+  const out = [];
+  for (const c of campaigns) {
+    const key = c.account + '/' + (c.group_id || '');
+    if (known.has(key)) continue;
+    known.add(key);
+    out.push(c.group_id ?
+      { id: c.group_id, name: 'Grupo apagado · ' + c.group_id, status: 'GROUP_DELETED', account: c.account, gone: true } :
+      { id: '', name: 'Sem grupo', status: '', account: c.account, none: true });
+  }
+  return out;
+}

@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { nest, inState } from '../pages/rows.js';
+import { nest, inState, standIns } from '../pages/rows.js';
 
 const groups = [
   { id: '1001', name: 'Memory Loss US', status: 'RUNNING', account: 'a' },
@@ -44,4 +44,22 @@ test("nest: text finds a campaign, or a group with all its campaigns", () => {
   assert.deepEqual(ids(nest(groups, campaigns, { ...all, text: 'seniors' })), ['a/1002:10']);
   assert.deepEqual(ids(nest(groups, campaigns, { ...all, text: 'memory loss' })), ['a/1001:6,5,7']);
   assert.deepEqual(ids(nest(groups, campaigns, { ...all, text: '1003' })), ['a/1003:']);
+});
+
+test('standIns: one stand-in per missing group of each account, and "Sem grupo"', () => {
+  const groups = [{ id: '1', account: 'a' }];
+  const campaigns = [
+    { id: '10', group_id: '1', account: 'a' },
+    { id: '11', group_id: '9', account: 'a' },
+    { id: '12', group_id: '9', account: 'a' },
+    { id: '13', group_id: '9', account: 'b' },
+    { id: '14', group_id: '', account: 'a' },
+  ];
+  const out = standIns(groups, campaigns);
+  assert.deepEqual(out.map((g) => [g.account, g.id, g.name, !!g.gone, !!g.none]), [
+    ['a', '9', 'Grupo apagado · 9', true, false],
+    ['b', '9', 'Grupo apagado · 9', true, false],
+    ['a', '', 'Sem grupo', false, true],
+  ]);
+  assert.deepEqual(standIns(groups, campaigns.slice(0, 1)), []);
 });

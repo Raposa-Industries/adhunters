@@ -66,6 +66,16 @@ test('mobileSettings: nothing asked keeps both alike; empty fields keep the desk
   assert.equal(conv.cpc, 0, 'no CPC with Maximize conversions');
   assert.equal(conv.target_cpa, 7);
   assert.equal(conv.daily_cap, 10);
+  // The mobile's own bid kind and total limit.
+  const own = mobileSettings(desk, { bid_strategy: 'MAX_CONVERSIONS', cpc: 0.3, target_cpa: 6, spending_limit: 300 });
+  assert.equal(own.bid_strategy, 'MAX_CONVERSIONS');
+  assert.equal(own.cpc, 0, 'the desktop CPC does not follow a Maximize conversions mobile');
+  assert.equal(own.target_cpa, 6);
+  assert.equal(own.spending_limit, 300);
+  const fixed = mobileSettings({ ...desk, bid_strategy: 'MAX_CONVERSIONS', cpc: 0, target_cpa: 5 }, { bid_strategy: 'FIXED', cpc: 0.45 });
+  assert.equal(fixed.bid_strategy, 'FIXED');
+  assert.equal(fixed.cpc, 0.45);
+  assert.equal(fixed.target_cpa, 0, 'the desktop target CPA does not follow a CPC mobile');
 });
 
 test('mobileProblem: the mobile campaign meets the same ceilings', () => {
@@ -80,4 +90,8 @@ test('mobileProblem: the mobile campaign meets the same ceilings', () => {
   assert.match(mobileProblem({ ...ok, cpc: 0 }, limits), /Diga o CPC/);
   assert.equal(mobileProblem({ bid_strategy: 'MAX_CONVERSIONS', cpc: 0, daily_cap: 20 }, limits), '');
   assert.match(mobileProblem({ ...ok, start_date: '2030-02-01', end_date: '2030-01-01' }, limits), /começaria depois/);
+  assert.match(mobileProblem({ ...ok, spending_limit: 30 }, limits), /limite total do mobile vai até/);
+  assert.match(mobileProblem({ ...ok, spending_limit: NaN }, limits), /é um número/);
+  assert.match(mobileProblem({ bid_strategy: 'MAX_CONVERSIONS', cpc: 0, daily_cap: 20, objective: 'DRIVE_WEBSITE_TRAFFIC' }, limits), /pede o objetivo/);
+  assert.equal(mobileProblem({ bid_strategy: 'MAX_CONVERSIONS', cpc: 0, daily_cap: 20, objective: 'ONLINE_PURCHASES' }, limits), '');
 });

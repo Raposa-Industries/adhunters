@@ -12,7 +12,7 @@
 // this page with that campaign open.
 import { api, h, note, money, badge, link, select, input, field, plural, store, busy, numberOf, segmented, doneNote, DEVICES } from './lib.js';
 import { campaignView } from './campaign.js';
-import { nest, inState } from './rows.js';
+import { nest, inState, standIns } from './rows.js';
 
 export const WINDOWS = [['today', 'Hoje'], ['yesterday', 'Ontem'], ['7d', 'Últimos 7 dias'], ['30d', 'Últimos 30 dias']];
 
@@ -139,18 +139,12 @@ export async function manage(ctx) {
   // shows "Campaign Group Was Deleted"). It gets a stand-in group, so it can
   // be found and opened, and that state instead of its own. Campaigns with
   // no group at all get "Sem grupo".
-  const realGroups = groups.slice();
-  const known = new Set(groups.map((g) => g.account + '/' + g.id));
+  const extra = standIns(groups, campaigns);
+  groups.push(...extra);
   for (const c of campaigns) {
-    const key = c.account + '/' + (c.group_id || '-');
-    if (!c.group_id) {
-      if (!known.has(key)) groups.push({ id: '', name: 'Sem grupo', status: '', account: c.account, none: true });
-    } else if (!realGroups.some((g) => g.account === c.account && g.id === c.group_id)) {
-      if (!known.has(key)) groups.push({ id: c.group_id, name: 'Grupo apagado · ' + c.group_id, status: 'GROUP_DELETED', account: c.account, gone: true });
-      c.taboola_status = c.status;
-      c.status = 'GROUP_DELETED';
-    }
-    known.add(key);
+    if (!extra.some((g) => g.gone && g.account === c.account && g.id === c.group_id)) continue;
+    c.taboola_status = c.status;
+    c.status = 'GROUP_DELETED';
   }
   const campById = new Map(campaigns.map((c) => [c.id, c]));
   const groupOf = (c) => groups.find((g) => g.account === c.account && (g.id || '') === (c.group_id || ''));
