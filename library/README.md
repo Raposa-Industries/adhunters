@@ -38,8 +38,11 @@ anything that points at it still finds it.
 
 The verticals are our fixed list's ids (shared/verticals/verticals.yaml). The team's nine
 must-haves start with codes (Blood Pressure `BP`, Memory Loss `MM`, Weight
-Loss `WL`, Tinnitus `TN`, Diabetes `DB`, Neuropathy `NP`, Prostate Health
-`PR`, Joint Pain `JP`, Vision `VS`); another vertical gets a code from its
+Loss `WL`, Tinnitus `TIN`, Diabetes `DB`, Neuropathy `NP`, Prostate Health
+`PR`, Joint Pain `JP`, Vision `VS`), so the team's Taboola names start
+`BPT`, `DBT`, `MMT`, `NPT`, `TINT` and `WLT`. Tinnitus was `TN` until
+migration 0005, which changed it only where it was still `TN`; names minted
+before (`TNT…`) keep theirs. Another vertical gets a code from its
 initials the first time something is saved in it. A code and the counter can
 be changed (`PATCH /api/verticals/{id}`); names already minted keep theirs,
 and the counter never goes down. auto-creative's own counters were not

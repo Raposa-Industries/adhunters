@@ -240,7 +240,7 @@ func TestRenamedSetRenamesItsFolder(t *testing.T) {
 	if _, err := sy.Run(ctx); err != nil {
 		t.Fatal(err)
 	}
-	up := fake.Find("TNT1.png")
+	up := fake.Find("TINT1.png")
 	if len(up) != 1 {
 		t.Fatalf("uploaded %+v", up)
 	}
