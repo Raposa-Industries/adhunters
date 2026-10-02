@@ -46,6 +46,13 @@ test("nest: text finds a campaign, or a group with all its campaigns", () => {
   assert.deepEqual(ids(nest(groups, campaigns, { ...all, text: '1003' })), ['a/1003:']);
 });
 
+test('nest: ticked groups and campaigns keep only those; nothing ticked keeps all', () => {
+  assert.deepEqual(ids(nest(groups, campaigns, { ...all, groups: new Set(['a/1002', 'b/1001']) })), ['a/1002:10', 'b/1001:20']);
+  assert.deepEqual(ids(nest(groups, campaigns, { ...all, camps: new Set(['5', '10']) })), ['a/1001:5', 'a/1002:10']);
+  assert.deepEqual(ids(nest(groups, campaigns, { ...all, groups: new Set(['a/1001']), camps: new Set(['10']) })), []);
+  assert.deepEqual(ids(nest(groups, campaigns, { ...all, groups: new Set(), camps: new Set() })), ids(nest(groups, campaigns, all)));
+});
+
 test('standIns: one stand-in per missing group of each account, and "Sem grupo"', () => {
   const groups = [{ id: '1', account: 'a' }];
   const campaigns = [

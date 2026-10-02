@@ -151,8 +151,11 @@ export async function manage(ctx) {
   const numsOf = (id) => add(zero(), nums.campaigns?.[id]);
   const adNums = (a) => add(zero(), nums.ads?.[a.id]);
 
-  // ---- left column: search, account, state, device, period ----
-  const f = { state: store('launch.state') || 'all', device: store('launch.device') || 'all', text: '' };
+  // ---- left column: search, account, groups, campaigns, state, device, period ----
+  const f = { state: store('launch.state') || 'all', device: store('launch.device') || 'all', text: '', groups: new Set(), camps: new Set() };
+  const groupList = h('div', { class: 'check-list' });
+  const campList = h('div', { class: 'check-list' });
+  const listsFull = { groups: false, camps: false };
   const chips = (name, list, now, set) => h('div', { class: 'chips' }, list.map(([v, label]) => h('label', { class: 'chip' },
     h('input', { type: 'radio', name, value: v, checked: now === v, onchange: () => set(v) }), h('span', {}, label))));
   aside.append(
@@ -161,12 +164,48 @@ export async function manage(ctx) {
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Conta'),
       select([['all', `Todas as contas (${accounts.length})`], ...accounts.map((a) => [a.id, a.name || a.id])], at.account,
         { 'aria-label': 'Conta', onchange: (e) => location.assign(href({ ...at, account: e.target.value })) })),
+    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Grupo de campanha'), groupList),
+    h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Campanha'), campList),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Estado'),
       chips('state', STATES, f.state, (v) => { f.state = v; store('launch.state', v); draw(); })),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Dispositivo'),
       chips('device', [['all', 'Todos'], ['desktop', 'Desktop'], ['mobile', 'Mobile']], f.device, (v) => { f.device = v; store('launch.device', v); draw(); })),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Período'),
       select(WINDOWS, at.w, { 'aria-label': 'Período', onchange: (e) => location.assign(href({ ...at, w: e.target.value }, { group: at.group })) })));
+
+  // Grupo de campanha and Campanha: tick some to see only those. The
+  // campaign list follows the ticked groups; each list shows a few and
+  // "+N" for the rest, and a ticked one always shows.
+  const gKey = (acct, id) => acct + '/' + (id || '-');
+  const inCount = new Map();
+  for (const c of campaigns) inCount.set(gKey(c.account, c.group_id), (inCount.get(gKey(c.account, c.group_id)) || 0) + 1);
+  const check = (label, count, on, set, title) => h('label', { class: 'check-row', title: title || null },
+    h('input', { type: 'checkbox', checked: on, onchange: (e) => set(e.target.checked) }),
+    h('span', { class: 'check-name' }, label), count == null ? null : h('span', { class: 'faint num' }, String(count)));
+  const few = (list, full, on, n) => (full ? list : list.filter((x, i) => i < n || on(x)));
+  const more = (left, one, many, which) => (left > 0 ? h('button', { type: 'button', class: 'link-button more',
+    onclick: () => { listsFull[which] = true; drawLists(); } }, '+' + plural(left, one, many)) : null);
+  function drawLists() {
+    const gs = few(groups, listsFull.groups, (g) => f.groups.has(gKey(g.account, g.id)), 6);
+    groupList.replaceChildren(...[...gs.map((g) => {
+      const k = gKey(g.account, g.id);
+      return check(g.name || g.id, inCount.get(k) || 0, f.groups.has(k), (on) => {
+        on ? f.groups.add(k) : f.groups.delete(k);
+        if (f.groups.size) for (const id of f.camps) if (!f.groups.has(gKey(campById.get(id)?.account, campById.get(id)?.group_id))) f.camps.delete(id);
+        drawLists();
+        draw();
+      }, many ? acctName.get(g.account) : '');
+    }), more(groups.length - gs.length, 'grupo', 'grupos', 'groups')].filter(Boolean));
+    const all = campaigns.filter((c) => !f.groups.size || f.groups.has(gKey(c.account, c.group_id)));
+    const cs = few(all, listsFull.camps, (c) => f.camps.has(c.id), 4);
+    campList.replaceChildren(...[...cs.map((c) => check(c.name || c.id, null, f.camps.has(c.id), (on) => {
+      on ? f.camps.add(c.id) : f.camps.delete(c.id);
+      draw();
+    }, c.id)), more(all.length - cs.length, 'campanha', 'campanhas', 'camps')].filter(Boolean));
+    if (!all.length) campList.replaceChildren(h('span', { class: 'faint' }, 'Nenhuma campanha.'));
+    if (!groups.length) groupList.replaceChildren(h('span', { class: 'faint' }, 'Nenhum grupo.'));
+  }
+  drawLists();
 
   // ---- head ----
   main.append(h('div', { class: 'page-head' },
