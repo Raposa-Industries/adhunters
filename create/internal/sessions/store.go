@@ -627,9 +627,6 @@ func (s *Store) AddHeadline(ctx context.Context, sessionID int64, origin, ref, t
 	if text == "" {
 		return Item{}, BadInput("escreva a headline")
 	}
-	if len([]rune(text)) > 200 {
-		return Item{}, BadInput("a headline tem no máximo 200 caracteres")
-	}
 	if _, err := s.Session(ctx, sessionID); err != nil {
 		return Item{}, err
 	}
@@ -657,8 +654,8 @@ func (s *Store) EditHeadline(ctx context.Context, id int64, text string) (Item, 
 		return Item{}, BadInput("só headlines são editadas")
 	case it.Saved:
 		return Item{}, BadInput("essa headline já está na biblioteca; escreva uma nova")
-	case text == "" || len([]rune(text)) > 200:
-		return Item{}, BadInput("a headline precisa de 1 a 200 caracteres")
+	case text == "":
+		return Item{}, BadInput("escreva a headline")
 	}
 	if _, err := s.db.Exec(ctx, `UPDATE create_app.item SET text = $2 WHERE id = $1`, id, text); err != nil {
 		return Item{}, err

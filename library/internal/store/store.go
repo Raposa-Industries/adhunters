@@ -1256,11 +1256,6 @@ type NewHeadline struct {
 	Tags []string `json:"tags"`
 }
 
-// MaxHeadline is the longest headline kept, in characters. Taboola's hard
-// ceiling is lower (60 is its guideline); the library keeps what people
-// wrote and the apps warn.
-const MaxHeadline = 200
-
 // HeadlineSHA is the hash a headline is found by: of its cleaned text.
 func HeadlineSHA(t string) string {
 	s := sha256.Sum256([]byte(text.CleanLine(t)))
@@ -1282,9 +1277,6 @@ func (s *Store) AddHeadlines(ctx context.Context, in []NewHeadline) ([]Headline,
 			t := text.CleanLine(h.Text)
 			if t == "" {
 				return BadInput(fmt.Sprintf("headline %d is empty", i+1))
-			}
-			if len([]rune(t)) > MaxHeadline {
-				return BadInput(fmt.Sprintf("headline %d is over %d characters", i+1, MaxHeadline))
 			}
 			if h.Origin == "" {
 				h.Origin = OriginUpload

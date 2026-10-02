@@ -9,7 +9,7 @@
 // made in Create (origin create) is GERADA; uploaded or found in Drive
 // (upload, drive) is ORIGINAL, as Create's pages show them.
 import { api, h, note, input, plural, store } from './lib.js';
-import { MAX_HEADLINE, ORIGINS, originLabel, folderList } from './matrix.js';
+import { ORIGINS, originLabel, folderList } from './matrix.js';
 
 const ALL = { key: '', path: ['Todas as pastas'], q: {} };
 
@@ -46,8 +46,7 @@ export function libraryPanel({ letterOf, hasHeadline, pickImage, pickHeadline })
   const imgs = h('div', { class: 'lib-grid' });
   const hls = h('ul', { class: 'lib-hls' });
   const hlBox = h('div', { class: 'lib-part', tabindex: -1 },
-    h('div', { class: 'lib-label' }, hlCount, h('span', { class: 'faint' }, 'clique para virar uma linha')), hls,
-    h('p', { class: 'faint lib-foot' }, `Headlines com mais de ${MAX_HEADLINE} letras ficam de fora: o Taboola não aceita.`));
+    h('div', { class: 'lib-label' }, hlCount, h('span', { class: 'faint' }, 'clique para virar uma linha')), hls);
   const el = h('div', { class: 'lib-panel-in' },
     h('div', { class: 'lib-top' }, h('h2', {}, 'Biblioteca ', h('small', {}, 'do Create')),
       h('label', { class: 'lib-search' }, svg('lib-icon', ['M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10z', 'M10.5 10.5L14 14']), search)),
@@ -121,7 +120,7 @@ export function libraryPanel({ letterOf, hasHeadline, pickImage, pickHeadline })
     if (mine !== run) return;
     out.replaceChildren();
     creatives = (c.creatives || []).filter((x) => !x.hidden && /^image\//.test(x.media_type || 'image/'));
-    lines = (hd.headlines || []).filter((x) => !x.hidden && x.text && x.text.trim().length <= MAX_HEADLINE);
+    lines = (hd.headlines || []).filter((x) => !x.hidden && x.text);
     used = {};
     draw();
     // "no Launch: N anúncios": the ads Launch made with each picture.
@@ -202,7 +201,7 @@ export function libraryPanel({ letterOf, hasHeadline, pickImage, pickHeadline })
       folder = f;
       drawFolder();
       list();
-      return { creatives: (d.creatives || []).filter((c) => !c.hidden), headlines: (d.headlines || []).filter((x) => !x.hidden && x.text && x.text.trim().length <= MAX_HEADLINE) };
+      return { creatives: (d.creatives || []).filter((c) => !c.hidden), headlines: (d.headlines || []).filter((x) => !x.hidden && x.text) };
     },
   };
 }

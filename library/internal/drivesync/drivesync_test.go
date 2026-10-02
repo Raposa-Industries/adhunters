@@ -395,7 +395,7 @@ func TestTypedHeadlines(t *testing.T) {
 	vert := fake.Add(drivetest.Root, "Memory Loss", drive.FolderType, nil)
 	folder := fake.Add(vert, "Winners", drive.FolderType, nil)
 	fake.Add(folder, "MMT1.png", "image/png", pic(t, 9))
-	long := strings.Repeat("x", store.MaxHeadline+1)
+	long := strings.Repeat("x", 300) // any length is kept
 	doc := fake.Add(folder, "Headlines", drive.DocType, []byte("\ufeff- One Spoon Trick\r\n2. Doctors Hate This\n\n• One Spoon Trick\n"+long+"\n"))
 	fake.Add(vert, "headlines.txt", "text/plain", []byte("Loose Line\n"))
 
@@ -416,20 +416,20 @@ func TestTypedHeadlines(t *testing.T) {
 		t.Fatal(err)
 	}
 	sets, _ := st.Sets(ctx, "memory-loss", 0)
-	if len(sets) != 1 || sets[0].Name != "Winners" || sets[0].Creatives != 1 || sets[0].Headlines != 2 {
+	if len(sets) != 1 || sets[0].Name != "Winners" || sets[0].Creatives != 1 || sets[0].Headlines != 3 {
 		t.Fatalf("sets %+v", sets)
 	}
 	set := sets[0].ID
-	if got := texts(store.Filter{SetID: set}); strings.Join(got, "|") != "Doctors Hate This|One Spoon Trick" {
+	if got := texts(store.Filter{SetID: set}); strings.Join(got, "|") != "Doctors Hate This|One Spoon Trick|"+long {
 		t.Errorf("headlines of the folder %q", got)
 	}
-	if got := texts(store.Filter{VerticalID: "memory-loss"}); len(got) != 3 {
+	if got := texts(store.Filter{VerticalID: "memory-loss"}); len(got) != 4 {
 		t.Errorf("headlines of the vertical %q", got)
 	}
 	var why string
 	_ = st.DB().QueryRow(ctx, `SELECT error FROM library.drive_file WHERE file_id = $1`, doc).Scan(&why)
-	if !strings.Contains(why, "[5]") {
-		t.Errorf("long line not noted: %q", why)
+	if why != "" {
+		t.Errorf("error noted: %q", why)
 	}
 	var raws int
 	_ = st.DB().QueryRow(ctx, `SELECT count(*) FROM library.drive_text`).Scan(&raws)
@@ -475,8 +475,8 @@ func TestTypedHeadlines(t *testing.T) {
 }
 
 func TestHeadlineLines(t *testing.T) {
-	got, long := drivesync.HeadlineLines([]byte("1) First\n* Second\n  \n10. Tenth Thing\n3 Foods That Help\nFirst\n"))
-	if strings.Join(got, "|") != "First|Second|Tenth Thing|3 Foods That Help" || len(long) != 0 {
-		t.Errorf("%q %v", got, long)
+	got := drivesync.HeadlineLines([]byte("1) First\n* Second\n  \n10. Tenth Thing\n3 Foods That Help\nFirst\n"))
+	if strings.Join(got, "|") != "First|Second|Tenth Thing|3 Foods That Help" {
+		t.Errorf("%q", got)
 	}
 }
