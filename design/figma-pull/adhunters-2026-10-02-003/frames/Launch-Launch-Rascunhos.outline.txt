@@ -1,0 +1,24 @@
+FRAME 'Launch · Rascunhos' key=adh.k0ide 1440x900 @3280,2200 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start fills=["#09090C"]
+  FRAME 'Top bar' key=adh.k1zci 1440x48 @0,0 layout=H gap=10 pad=[0, 0, 1, 0] main=start cross=start sizing=fill/fixed fills=["#060608"] stroke={"color": "#1D1D23", "weight": 1}
+    INSTANCE 'App selector · Launch' key=adh.k2ej0 232x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=fixed/fill fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1} instanceOf=adh.c.au7t0.default
+    FRAME 'Page tabs' key=adh.k87at 331x46 @242,0 layout=H gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+      INSTANCE 'Tab' key=adh.kahf9 92x46 @0,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kcuqg 70x46 @94,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kd66t 76x46 @166,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      FRAME 'Tab' key=adh.kfsb1 87x46 @244,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill stroke={"color": "#FF7A1A", "weight": 1}
+        TEXT 'Tab' key=adh.kfsb1#text 63x16 @12,13 sizing=hug/hug font=IBM Plex Sans Medium 12.5 color=#F4EFE9 text="Rascunhos"
+    FRAME 'Spacer' key=adh.kgs15 513x46 @583,0 sizing=fill/fill
+    FRAME 'Tools' key=adh.khv8n 334x46 @1106,0 layout=H gap=12 pad=[0, 14, 0, 0] main=start cross=center sizing=hug/fill
+      INSTANCE 'Search box' key=adh.kiw87 280x30 @0,8 layout=H gap=8 pad=[1, 11, 1, 11] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=9 instanceOf=adh.c.a11ghd.default
+      INSTANCE 'Avatar' key=adh.kmqrn 28x28 @292,9 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#18181E"] stroke={"color": "#2A2A33", "weight": 1} radius=8 instanceOf=adh.c.a133ym.default
+  FRAME 'Body' key=adh.kn64e 1440x852 @0,48 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+    FRAME 'Main' key=adh.kob4n 1440x852 @0,0 layout=V gap=18 pad=[20, 24, 683.5900268554688, 24] main=start cross=start sizing=fill/fill
+      FRAME 'Page head' key=adh.kpsaj 1395x73 @24,20 layout=H gap=832 pad=[0, 0, 0, 0] main=start cross=end sizing=hug/hug
+        FRAME 'Box' key=adh.kqan0 479x73 @0,0 layout=V gap=4 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+          TEXT 'Rascunhos' key=adh.kr5jh 479x27 @0,0 sizing=fill/hug font=Inter Bold 22 color=#F4EFE9 text="Rascunhos"
+          FRAME 'Pares salvos para terminar depoi' key=adh.ksqoh 479x42 @0,31 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+            TEXT 'Pares salvos para terminar depoi' key=adh.ksqoh#text 479x42 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#B5AEA6 text="Pares salvos para terminar depois. Um rascunho some quando o par é criado."
+        FRAME 'Actions' key=adh.kt241 84x34 @1311,39 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/hug
+          INSTANCE 'Link button' key=adh.kut1s 84x34 @0,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=9 instanceOf=adh.c.a1hbom.primary props={"variant": "Primary"}
+      FRAME 'Nenhum rascunho.' key=adh.kvexw 1392x81 @24,111 layout=V gap=0 pad=[29, 29, 29, 29] main=start cross=start sizing=fill/hug stroke={"color": "#2A2A33", "weight": 1} radius=12
+        TEXT 'Nenhum rascunho.' key=adh.kvexw#text 1332x21 @30,30 sizing=fill/fixed font=IBM Plex Sans Regular 14 color=#B5AEA6 text="Nenhum rascunho."

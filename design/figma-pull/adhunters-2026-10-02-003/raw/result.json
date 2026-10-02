@@ -1,0 +1,30 @@
+{
+ "id": "adhunters-2026-10-02-003",
+ "fileKey": "N4eZQ2Mi2dPjo3yBGolUx1",
+ "fileName": "AdHunters · Ember",
+ "appliedAt": "2026-10-02T12:26:28.399Z",
+ "ok": true,
+ "created": [],
+ "updated": [],
+ "deleted": [],
+ "warnings": [],
+ "errors": [],
+ "exports": "exports/N4eZQ2Mi2dPjo3yBGolUx1/adhunters-2026-10-02-003.json",
+ "pngs": {
+  "8:1749": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-1749.png",
+  "8:1108": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-1108.png",
+  "8:2095": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-2095.png",
+  "8:2713": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-2713.png",
+  "8:3206": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-3206.png",
+  "8:742": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-742.png",
+  "8:3672": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-3672.png",
+  "8:3823": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-3823.png",
+  "8:3963": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-3963.png",
+  "8:4209": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-4209.png",
+  "8:4347": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-4347.png",
+  "8:4806": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-4806.png",
+  "8:4934": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-4934.png",
+  "8:5206": "exports/N4eZQ2Mi2dPjo3yBGolUx1/png/8-5206.png"
+ },
+ "source": "inbox/N4eZQ2Mi2dPjo3yBGolUx1/adhunters-2026-10-02-003.json"
+}

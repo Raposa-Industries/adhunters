@@ -1,0 +1,2601 @@
+{
+ "id": "8:3823",
+ "type": "FRAME",
+ "name": "Launch · Novo grupo",
+ "key": "adh.k0h16",
+ "x": 3280,
+ "y": 1100,
+ "w": 1440,
+ "h": 900,
+ "fills": [
+  "#09090C"
+ ],
+ "layout": {
+  "mode": "V",
+  "gap": 0,
+  "padding": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "main": "start",
+  "cross": "start"
+ },
+ "children": [
+  {
+   "id": "8:3824",
+   "type": "FRAME",
+   "name": "Top bar",
+   "key": "adh.k1okx",
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 48,
+   "fills": [
+    "#060608"
+   ],
+   "stroke": {
+    "color": "#1D1D23",
+    "weight": 1
+   },
+   "layout": {
+    "mode": "H",
+    "gap": 10,
+    "padding": [
+     0,
+     0,
+     1,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fixed"
+   },
+   "children": [
+    {
+     "id": "8:3825",
+     "type": "INSTANCE",
+     "name": "App selector · Launch",
+     "key": "adh.k21kt",
+     "x": 0,
+     "y": 0,
+     "w": 232,
+     "h": 46,
+     "fills": [
+      "#0F0F13"
+     ],
+     "stroke": {
+      "color": "#6A6A75",
+      "weight": 1
+     },
+     "layout": {
+      "mode": "H",
+      "gap": 0,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "fixed",
+      "v": "fill"
+     },
+     "of": {
+      "id": "8:3",
+      "name": "App selector · Launch",
+      "key": "adh.c.au7t0.default"
+     },
+     "instanceProps": {}
+    },
+    {
+     "id": "8:3836",
+     "type": "FRAME",
+     "name": "Page tabs",
+     "key": "adh.k84dq",
+     "x": 242,
+     "y": 0,
+     "w": 331,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 2,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:3839",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kaff9",
+       "x": 0,
+       "y": 0,
+       "w": 92,
+       "h": 46,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1
+       },
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:16",
+        "name": "variant=Current",
+        "key": "adh.c.awh7q.current"
+       },
+       "instanceProps": {
+        "variant": "Current"
+       }
+      },
+      {
+       "id": "8:3843",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kcqnl",
+       "x": 94,
+       "y": 0,
+       "w": 70,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:3845",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kdu0l",
+       "x": 166,
+       "y": 0,
+       "w": 76,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:3849",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kfp7g",
+       "x": 244,
+       "y": 0,
+       "w": 87,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      }
+     ]
+    },
+    {
+     "id": "8:3851",
+     "type": "FRAME",
+     "name": "Spacer",
+     "key": "adh.kgey7",
+     "x": 583,
+     "y": 0,
+     "w": 513,
+     "h": 46,
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": []
+    },
+    {
+     "id": "8:3852",
+     "type": "FRAME",
+     "name": "Tools",
+     "key": "adh.khvhu",
+     "x": 1106,
+     "y": 0,
+     "w": 334,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 12,
+      "padding": [
+       0,
+       14,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:3853",
+       "type": "INSTANCE",
+       "name": "Search box",
+       "key": "adh.kidn6",
+       "x": 0,
+       "y": 8,
+       "w": 280,
+       "h": 30,
+       "fills": [
+        "#121217"
+       ],
+       "stroke": {
+        "color": "#26262E",
+        "weight": 1
+       },
+       "radius": 9,
+       "layout": {
+        "mode": "H",
+        "gap": 8,
+        "padding": [
+         1,
+         11,
+         1,
+         11
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:19",
+        "name": "Search box",
+        "key": "adh.c.a11ghd.default"
+       },
+       "instanceProps": {}
+      },
+      {
+       "id": "8:3861",
+       "type": "INSTANCE",
+       "name": "Avatar",
+       "key": "adh.km4hj",
+       "x": 292,
+       "y": 9,
+       "w": 28,
+       "h": 28,
+       "fills": [
+        "#18181E"
+       ],
+       "stroke": {
+        "color": "#2A2A33",
+        "weight": 1
+       },
+       "radius": 8,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         1,
+         1,
+         1,
+         1
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:27",
+        "name": "Avatar",
+        "key": "adh.c.a133ym.default"
+       },
+       "instanceProps": {}
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "16:9889",
+   "type": "FRAME",
+   "name": "Body",
+   "key": "mm.b126.8-3823.body",
+   "x": 0,
+   "y": 48,
+   "w": 1440,
+   "h": 852,
+   "layout": {
+    "mode": "H",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fill"
+   },
+   "children": [
+    {
+     "id": "16:9890",
+     "type": "FRAME",
+     "name": "Rail",
+     "x": 0,
+     "y": 0,
+     "w": 232,
+     "h": 852,
+     "fills": [
+      "#0A0A0D"
+     ],
+     "stroke": {
+      "color": "#1D1D23",
+      "weight": 1
+     },
+     "layout": {
+      "mode": "V",
+      "gap": 12,
+      "padding": [
+       18,
+       14,
+       24,
+       14
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "fixed",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "16:9891",
+       "type": "FRAME",
+       "name": "Rail top",
+       "x": 14,
+       "y": 18,
+       "w": 203,
+       "h": 126,
+       "layout": {
+        "mode": "V",
+        "gap": 12,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "16:9892",
+         "type": "TEXT",
+         "name": "Novo grupo",
+         "x": 0,
+         "y": 0,
+         "w": 79,
+         "h": 12,
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "text": "Novo grupo",
+         "font": {
+          "family": "Inter",
+          "style": "Bold"
+         },
+         "size": 10,
+         "color": "#9A948D"
+        },
+        {
+         "id": "16:9893",
+         "type": "FRAME",
+         "name": "Steps",
+         "x": 0,
+         "y": 24,
+         "w": 203,
+         "h": 102,
+         "layout": {
+          "mode": "V",
+          "gap": 4,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "16:9894",
+           "type": "FRAME",
+           "name": "Step 1",
+           "x": 0,
+           "y": 0,
+           "w": 203,
+           "h": 56,
+           "fills": [
+            "#17171D"
+           ],
+           "radius": 8,
+           "layout": {
+            "mode": "H",
+            "gap": 10,
+            "padding": [
+             10,
+             10,
+             10,
+             10
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9895",
+             "type": "FRAME",
+             "name": "Num",
+             "x": 10,
+             "y": 10,
+             "w": 22,
+             "h": 22,
+             "fills": [
+              "#FF7A1A"
+             ],
+             "radius": 11,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "center",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "16:9896",
+               "type": "TEXT",
+               "name": "1",
+               "x": 7.5,
+               "y": 4,
+               "w": 7,
+               "h": 14,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "1",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 11,
+               "color": "#140A04"
+              }
+             ]
+            },
+            {
+             "id": "16:9897",
+             "type": "FRAME",
+             "name": "Text",
+             "x": 42,
+             "y": 10,
+             "w": 151,
+             "h": 36,
+             "layout": {
+              "mode": "V",
+              "gap": 2,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "16:9898",
+               "type": "TEXT",
+               "name": "Grupo",
+               "x": 0,
+               "y": 0,
+               "w": 39,
+               "h": 18,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Grupo",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13.5,
+               "color": "#F4EFE9"
+              },
+              {
+               "id": "16:9899",
+               "type": "TEXT",
+               "name": "objetivo e orçamento",
+               "x": 0,
+               "y": 20,
+               "w": 150,
+               "h": 16,
+               "sizing": {
+                "h": "fixed",
+                "v": "hug"
+               },
+               "text": "objetivo e orçamento",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 12,
+               "color": "#9A948D"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "16:9900",
+           "type": "FRAME",
+           "name": "Step 2",
+           "x": 0,
+           "y": 60,
+           "w": 203,
+           "h": 42,
+           "radius": 8,
+           "layout": {
+            "mode": "H",
+            "gap": 10,
+            "padding": [
+             10,
+             10,
+             10,
+             10
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9901",
+             "type": "FRAME",
+             "name": "Num",
+             "x": 10,
+             "y": 10,
+             "w": 22,
+             "h": 22,
+             "stroke": {
+              "color": "#3A3A44",
+              "weight": 1
+             },
+             "radius": 11,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "center",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "16:9902",
+               "type": "TEXT",
+               "name": "2",
+               "x": 7.5,
+               "y": 4,
+               "w": 7,
+               "h": 14,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "2",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 11,
+               "color": "#B5AEA6"
+              }
+             ]
+            },
+            {
+             "id": "16:9903",
+             "type": "FRAME",
+             "name": "Text",
+             "x": 42,
+             "y": 10,
+             "w": 151,
+             "h": 18,
+             "layout": {
+              "mode": "V",
+              "gap": 2,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "16:9904",
+               "type": "TEXT",
+               "name": "Revisar e criar",
+               "x": 0,
+               "y": 0,
+               "w": 90,
+               "h": 18,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Revisar e criar",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13.5,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "16:9905",
+       "type": "FRAME",
+       "name": "Spacer",
+       "x": 14,
+       "y": 156,
+       "w": 203,
+       "h": 584,
+       "sizing": {
+        "h": "fill",
+        "v": "fill"
+       },
+       "children": []
+      },
+      {
+       "id": "16:9906",
+       "type": "FRAME",
+       "name": "Rail actions",
+       "x": 14,
+       "y": 752,
+       "w": 203,
+       "h": 76,
+       "layout": {
+        "mode": "V",
+        "gap": 8,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "16:9907",
+         "type": "INSTANCE",
+         "name": "Button",
+         "key": "adh.c.a1dbqt.default",
+         "x": 0,
+         "y": 0,
+         "w": 203,
+         "h": 34,
+         "fills": [
+          "#121217"
+         ],
+         "stroke": {
+          "color": "#55555F",
+          "weight": 1
+         },
+         "radius": 9,
+         "layout": {
+          "mode": "H",
+          "gap": 0,
+          "padding": [
+           7,
+           14,
+           7,
+           14
+          ],
+          "main": "center",
+          "cross": "center"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "fixed"
+         },
+         "of": {
+          "id": "8:45",
+          "name": "variant=Default",
+          "key": "adh.c.a1dbqt.default"
+         },
+         "instanceProps": {
+          "variant": "Default"
+         }
+        },
+        {
+         "id": "16:9909",
+         "type": "INSTANCE",
+         "name": "Button",
+         "key": "adh.c.a1dbqt.ghost",
+         "x": 0,
+         "y": 42,
+         "w": 203,
+         "h": 34,
+         "stroke": {
+          "color": "#55555F",
+          "weight": 1
+         },
+         "radius": 9,
+         "layout": {
+          "mode": "H",
+          "gap": 0,
+          "padding": [
+           7,
+           14,
+           7,
+           14
+          ],
+          "main": "center",
+          "cross": "center"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "fixed"
+         },
+         "of": {
+          "id": "8:49",
+          "name": "variant=Ghost",
+          "key": "adh.c.a1dbqt.ghost"
+         },
+         "instanceProps": {
+          "variant": "Ghost"
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "16:9911",
+     "type": "FRAME",
+     "name": "Content",
+     "x": 232,
+     "y": 0,
+     "w": 1208,
+     "h": 852,
+     "layout": {
+      "mode": "H",
+      "gap": 48,
+      "padding": [
+       20,
+       24,
+       20,
+       24
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "16:9912",
+       "type": "FRAME",
+       "name": "Form column",
+       "x": 24,
+       "y": 20,
+       "w": 732,
+       "h": 417,
+       "layout": {
+        "mode": "V",
+        "gap": 16,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "16:9913",
+         "type": "FRAME",
+         "name": "Heading",
+         "x": 0,
+         "y": 0,
+         "w": 732,
+         "h": 45,
+         "layout": {
+          "mode": "V",
+          "gap": 4,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "16:9914",
+           "type": "TEXT",
+           "name": "Passo 1 · Grupo",
+           "x": 0,
+           "y": 0,
+           "w": 209,
+           "h": 24,
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "text": "Passo 1 · Grupo",
+           "font": {
+            "family": "Archivo Expanded",
+            "style": "Bold"
+           },
+           "size": 22,
+           "color": "#F4EFE9"
+          },
+          {
+           "id": "16:9915",
+           "type": "TEXT",
+           "name": "O grupo nasce sem campanhas. As campanhas de um grupo têm o mesmo objetivo e podem dividir o orçamento dele.",
+           "x": 0,
+           "y": 28,
+           "w": 732,
+           "h": 17,
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "text": "O grupo nasce sem campanhas. As campanhas de um grupo têm o mesmo objetivo e podem dividir o orçamento dele.",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 13,
+           "color": "#B5AEA6"
+          }
+         ]
+        },
+        {
+         "id": "16:9916",
+         "type": "FRAME",
+         "name": "Form card",
+         "x": 0,
+         "y": 61,
+         "w": 732,
+         "h": 306,
+         "fills": [
+          "#0F0F13"
+         ],
+         "stroke": {
+          "color": "#1D1D23",
+          "weight": 1
+         },
+         "radius": 12,
+         "layout": {
+          "mode": "V",
+          "gap": 14,
+          "padding": [
+           18,
+           18,
+           18,
+           18
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "16:9917",
+           "type": "FRAME",
+           "name": "Two columns",
+           "x": 19,
+           "y": 19,
+           "w": 694,
+           "h": 79,
+           "layout": {
+            "mode": "H",
+            "gap": 12,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9918",
+             "type": "FRAME",
+             "name": "Field · Conta",
+             "x": 0,
+             "y": 0,
+             "w": 341,
+             "h": 62,
+             "layout": {
+              "mode": "V",
+              "gap": 6,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "16:9919",
+               "type": "TEXT",
+               "name": "Conta",
+               "x": 0,
+               "y": 0,
+               "w": 34,
+               "h": 16,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Conta",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Medium"
+               },
+               "size": 12.5,
+               "color": "#F4EFE9"
+              },
+              {
+               "id": "16:9920",
+               "type": "INSTANCE",
+               "name": "Select",
+               "key": "adh.c.a1rxtf.default",
+               "x": 0,
+               "y": 22,
+               "w": 341,
+               "h": 40,
+               "fills": [
+                "#121217"
+               ],
+               "stroke": {
+                "color": "#55555F",
+                "weight": 1
+               },
+               "radius": 8,
+               "layout": {
+                "mode": "H",
+                "gap": 8,
+                "padding": [
+                 9,
+                 11,
+                 9,
+                 11
+                ],
+                "main": "start",
+                "cross": "center"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "of": {
+                "id": "8:81",
+                "name": "Select",
+                "key": "adh.c.a1rxtf.default"
+               },
+               "instanceProps": {}
+              }
+             ]
+            },
+            {
+             "id": "16:9925",
+             "type": "FRAME",
+             "name": "Field · Nome do grupo",
+             "x": 353,
+             "y": 0,
+             "w": 341,
+             "h": 79,
+             "layout": {
+              "mode": "V",
+              "gap": 6,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "16:9926",
+               "type": "TEXT",
+               "name": "Nome do grupo",
+               "x": 0,
+               "y": 0,
+               "w": 88,
+               "h": 16,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Nome do grupo",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Medium"
+               },
+               "size": 12.5,
+               "color": "#F4EFE9"
+              },
+              {
+               "id": "16:9927",
+               "type": "INSTANCE",
+               "name": "Text field",
+               "key": "adh.c.a18gut.filled",
+               "x": 0,
+               "y": 22,
+               "w": 341,
+               "h": 36,
+               "fills": [
+                "#121217"
+               ],
+               "stroke": {
+                "color": "#FF7A1A",
+                "weight": 1
+               },
+               "radius": 8,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 11,
+                 9,
+                 11
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "of": {
+                "id": "8:34",
+                "name": "variant=Filled",
+                "key": "adh.c.a18gut.filled"
+               },
+               "instanceProps": {
+                "variant": "Filled"
+               }
+              },
+              {
+               "id": "16:9930",
+               "type": "TEXT",
+               "name": "vazio: o próximo número (01)",
+               "x": 0,
+               "y": 64,
+               "w": 151,
+               "h": 15,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "vazio: o próximo número (01)",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 11.5,
+               "color": "#8F8A85"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "16:9931",
+           "type": "FRAME",
+           "name": "Two columns",
+           "x": 19,
+           "y": 112,
+           "w": 694,
+           "h": 83,
+           "layout": {
+            "mode": "H",
+            "gap": 12,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9932",
+             "type": "FRAME",
+             "name": "Field · Objetivo",
+             "x": 0,
+             "y": 0,
+             "w": 341,
+             "h": 83,
+             "layout": {
+              "mode": "V",
+              "gap": 6,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "16:9933",
+               "type": "TEXT",
+               "name": "Objetivo",
+               "x": 0,
+               "y": 0,
+               "w": 48,
+               "h": 16,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Objetivo",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Medium"
+               },
+               "size": 12.5,
+               "color": "#F4EFE9"
+              },
+              {
+               "id": "16:9934",
+               "type": "INSTANCE",
+               "name": "Select",
+               "key": "adh.c.a1rxtf.default",
+               "x": 0,
+               "y": 22,
+               "w": 341,
+               "h": 40,
+               "fills": [
+                "#121217"
+               ],
+               "stroke": {
+                "color": "#55555F",
+                "weight": 1
+               },
+               "radius": 8,
+               "layout": {
+                "mode": "H",
+                "gap": 8,
+                "padding": [
+                 9,
+                 11,
+                 9,
+                 11
+                ],
+                "main": "start",
+                "cross": "center"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "of": {
+                "id": "8:81",
+                "name": "Select",
+                "key": "adh.c.a1rxtf.default"
+               },
+               "instanceProps": {}
+              },
+              {
+               "id": "16:9939",
+               "type": "TEXT",
+               "name": "as campanhas do grupo têm o mesmo",
+               "x": 0,
+               "y": 68,
+               "w": 196,
+               "h": 15,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "as campanhas do grupo têm o mesmo",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 11.5,
+               "color": "#8F8A85"
+              }
+             ]
+            },
+            {
+             "id": "16:9940",
+             "type": "FRAME",
+             "name": "Field · Orçamento",
+             "x": 353,
+             "y": 0,
+             "w": 341,
+             "h": 83,
+             "layout": {
+              "mode": "V",
+              "gap": 6,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "16:9941",
+               "type": "TEXT",
+               "name": "Orçamento",
+               "x": 0,
+               "y": 0,
+               "w": 64,
+               "h": 16,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Orçamento",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Medium"
+               },
+               "size": 12.5,
+               "color": "#F4EFE9"
+              },
+              {
+               "id": "16:9942",
+               "type": "INSTANCE",
+               "name": "Select",
+               "key": "adh.c.a1rxtf.default",
+               "x": 0,
+               "y": 22,
+               "w": 341,
+               "h": 40,
+               "fills": [
+                "#121217"
+               ],
+               "stroke": {
+                "color": "#55555F",
+                "weight": 1
+               },
+               "radius": 8,
+               "layout": {
+                "mode": "H",
+                "gap": 8,
+                "padding": [
+                 9,
+                 11,
+                 9,
+                 11
+                ],
+                "main": "start",
+                "cross": "center"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "of": {
+                "id": "8:81",
+                "name": "Select",
+                "key": "adh.c.a1rxtf.default"
+               },
+               "instanceProps": {}
+              },
+              {
+               "id": "16:9947",
+               "type": "TEXT",
+               "name": "cada campanha tem o seu (padrão)",
+               "x": 0,
+               "y": 68,
+               "w": 182,
+               "h": 15,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "cada campanha tem o seu (padrão)",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 11.5,
+               "color": "#8F8A85"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "16:9948",
+           "type": "FRAME",
+           "name": "Field · Duração",
+           "x": 19,
+           "y": 209,
+           "w": 694,
+           "h": 78,
+           "layout": {
+            "mode": "V",
+            "gap": 6,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9949",
+             "type": "TEXT",
+             "name": "Duração",
+             "x": 0,
+             "y": 0,
+             "w": 48,
+             "h": 16,
+             "sizing": {
+              "h": "hug",
+              "v": "hug"
+             },
+             "text": "Duração",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Medium"
+             },
+             "size": 12.5,
+             "color": "#F4EFE9"
+            },
+            {
+             "id": "16:9950",
+             "type": "FRAME",
+             "name": "Segmented",
+             "x": 0,
+             "y": 22,
+             "w": 694,
+             "h": 35,
+             "stroke": {
+              "color": "#26262E",
+              "weight": 1
+             },
+             "radius": 8,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "16:9951",
+               "type": "FRAME",
+               "name": "Option Para sempre",
+               "x": 1,
+               "y": 1,
+               "w": 105,
+               "h": 33,
+               "fills": [
+                "#1C1109"
+               ],
+               "layout": {
+                "mode": "H",
+                "gap": 0,
+                "padding": [
+                 8,
+                 14,
+                 8,
+                 14
+                ],
+                "main": "start",
+                "cross": "center"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "16:9952",
+                 "type": "TEXT",
+                 "name": "Para sempre",
+                 "x": 14,
+                 "y": 8,
+                 "w": 77,
+                 "h": 17,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": "Para sempre",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9"
+                }
+               ]
+              },
+              {
+               "id": "16:9953",
+               "type": "FRAME",
+               "name": "Option Com data de fim",
+               "x": 106,
+               "y": 1,
+               "w": 124,
+               "h": 33,
+               "layout": {
+                "mode": "H",
+                "gap": 0,
+                "padding": [
+                 8,
+                 14,
+                 8,
+                 14
+                ],
+                "main": "start",
+                "cross": "center"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "16:9954",
+                 "type": "TEXT",
+                 "name": "Com data de fim",
+                 "x": 14,
+                 "y": 8,
+                 "w": 96,
+                 "h": 17,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": "Com data de fim",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#B5AEA6"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "16:9955",
+             "type": "TEXT",
+             "name": "sem data de fim: o grupo segue até alguém pausar",
+             "x": 0,
+             "y": 63,
+             "w": 260,
+             "h": 15,
+             "sizing": {
+              "h": "hug",
+              "v": "hug"
+             },
+             "text": "sem data de fim: o grupo segue até alguém pausar",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 11.5,
+             "color": "#8F8A85"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "16:9956",
+         "type": "FRAME",
+         "name": "Next",
+         "x": 0,
+         "y": 383,
+         "w": 732,
+         "h": 34,
+         "layout": {
+          "mode": "H",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "16:9957",
+           "type": "FRAME",
+           "name": "Spacer",
+           "x": 0,
+           "y": 0,
+           "w": 603,
+           "h": 1,
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "children": []
+          },
+          {
+           "id": "16:9958",
+           "type": "INSTANCE",
+           "name": "Button",
+           "key": "adh.c.a1dbqt.primary",
+           "x": 603,
+           "y": 0,
+           "w": 129,
+           "h": 34,
+           "fills": [
+            "#FF7A1A"
+           ],
+           "stroke": {
+            "color": "#FF7A1A",
+            "weight": 1
+           },
+           "radius": 9,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             7,
+             14,
+             7,
+             14
+            ],
+            "main": "center",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "fixed"
+           },
+           "of": {
+            "id": "8:47",
+            "name": "variant=Primary",
+            "key": "adh.c.a1dbqt.primary"
+           },
+           "instanceProps": {
+            "variant": "Primary"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "16:9960",
+       "type": "FRAME",
+       "name": "Preview",
+       "x": 804,
+       "y": 20,
+       "w": 380,
+       "h": 234,
+       "fills": [
+        "#0F0F13"
+       ],
+       "stroke": {
+        "color": "#1D1D23",
+        "weight": 1
+       },
+       "radius": 12,
+       "layout": {
+        "mode": "V",
+        "gap": 8,
+        "padding": [
+         14,
+         16,
+         14,
+         16
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "16:9961",
+         "type": "TEXT",
+         "name": "Prévia na tabela",
+         "x": 17,
+         "y": 15,
+         "w": 145,
+         "h": 16,
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "text": "Prévia na tabela",
+         "font": {
+          "family": "Archivo Expanded",
+          "style": "Bold"
+         },
+         "size": 15,
+         "color": "#F4EFE9"
+        },
+        {
+         "id": "16:9962",
+         "type": "FRAME",
+         "name": "Preview row",
+         "x": 17,
+         "y": 39,
+         "w": 346,
+         "h": 33,
+         "stroke": {
+          "color": "#1D1D23",
+          "weight": 1
+         },
+         "layout": {
+          "mode": "H",
+          "gap": 8,
+          "padding": [
+           5,
+           0,
+           5,
+           0
+          ],
+          "main": "start",
+          "cross": "center"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "16:9963",
+           "type": "FRAME",
+           "name": "Tag",
+           "x": 0,
+           "y": 7,
+           "w": 45,
+           "h": 18,
+           "fills": [
+            "#121217"
+           ],
+           "stroke": {
+            "color": "#26262E",
+            "weight": 1
+           },
+           "radius": 3,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             2,
+             6,
+             2,
+             6
+            ],
+            "main": "center",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9964",
+             "type": "TEXT",
+             "name": "Grupo",
+             "x": 7,
+             "y": 3,
+             "w": 31,
+             "h": 12,
+             "sizing": {
+              "h": "hug",
+              "v": "hug"
+             },
+             "text": "Grupo",
+             "font": {
+              "family": "IBM Plex Mono",
+              "style": "Medium"
+             },
+             "size": 9,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "16:9965",
+           "type": "TEXT",
+           "name": "Grupo 01",
+           "x": 53,
+           "y": 7.5,
+           "w": 56,
+           "h": 17,
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "text": "Grupo 01",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "SemiBold"
+           },
+           "size": 13,
+           "color": "#FF7A1A"
+          },
+          {
+           "id": "16:9966",
+           "type": "FRAME",
+           "name": "novo",
+           "x": 117,
+           "y": 7,
+           "w": 37,
+           "h": 18,
+           "stroke": {
+            "color": "#4A240D",
+            "weight": 1
+           },
+           "radius": 4,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             1,
+             6,
+             1,
+             6
+            ],
+            "main": "center",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9967",
+             "type": "TEXT",
+             "name": "novo",
+             "x": 7,
+             "y": 2,
+             "w": 23,
+             "h": 14,
+             "sizing": {
+              "h": "hug",
+              "v": "hug"
+             },
+             "text": "novo",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 10.5,
+             "color": "#FF7A1A"
+            }
+           ]
+          },
+          {
+           "id": "16:9968",
+           "type": "FRAME",
+           "name": "Spacer",
+           "x": 162,
+           "y": 15.5,
+           "w": 115,
+           "h": 1,
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "children": []
+          },
+          {
+           "id": "16:9969",
+           "type": "INSTANCE",
+           "name": "Badge",
+           "key": "adh.c.a1t3qx.paused",
+           "x": 285,
+           "y": 5,
+           "w": 61,
+           "h": 22,
+           "fills": [
+            "#1C1109"
+           ],
+           "stroke": {
+            "color": "#4A240D",
+            "weight": 1
+           },
+           "radius": 4,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             2,
+             8,
+             2,
+             8
+            ],
+            "main": "start",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "of": {
+            "id": "8:90",
+            "name": "variant=Paused",
+            "key": "adh.c.a1t3qx.paused"
+           },
+           "instanceProps": {
+            "variant": "Paused"
+           }
+          }
+         ]
+        },
+        {
+         "id": "16:9971",
+         "type": "FRAME",
+         "name": "Preview row",
+         "x": 17,
+         "y": 80,
+         "w": 346,
+         "h": 33,
+         "stroke": {
+          "color": "#1D1D23",
+          "weight": 1
+         },
+         "layout": {
+          "mode": "H",
+          "gap": 8,
+          "padding": [
+           5,
+           0,
+           5,
+           0
+          ],
+          "main": "start",
+          "cross": "center"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "16:9972",
+           "type": "FRAME",
+           "name": "Tag",
+           "x": 0,
+           "y": 7,
+           "w": 45,
+           "h": 18,
+           "fills": [
+            "#121217"
+           ],
+           "stroke": {
+            "color": "#26262E",
+            "weight": 1
+           },
+           "radius": 3,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             2,
+             6,
+             2,
+             6
+            ],
+            "main": "center",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9973",
+             "type": "TEXT",
+             "name": "Grupo",
+             "x": 7,
+             "y": 3,
+             "w": 31,
+             "h": 12,
+             "sizing": {
+              "h": "hug",
+              "v": "hug"
+             },
+             "text": "Grupo",
+             "font": {
+              "family": "IBM Plex Mono",
+              "style": "Medium"
+             },
+             "size": 9,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "16:9974",
+           "type": "TEXT",
+           "name": "Memory Loss US",
+           "x": 53,
+           "y": 7.5,
+           "w": 97,
+           "h": 17,
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "text": "Memory Loss US",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 13,
+           "color": "#ECE7E1"
+          },
+          {
+           "id": "16:9975",
+           "type": "FRAME",
+           "name": "Spacer",
+           "x": 158,
+           "y": 15.5,
+           "w": 117,
+           "h": 1,
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "children": []
+          },
+          {
+           "id": "16:9976",
+           "type": "INSTANCE",
+           "name": "Badge",
+           "key": "adh.c.a1t3qx.running",
+           "x": 283,
+           "y": 5,
+           "w": 63,
+           "h": 22,
+           "fills": [
+            "#0D1410"
+           ],
+           "stroke": {
+            "color": "#1F3A2A",
+            "weight": 1
+           },
+           "radius": 4,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             2,
+             8,
+             2,
+             8
+            ],
+            "main": "start",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "of": {
+            "id": "8:88",
+            "name": "variant=Running",
+            "key": "adh.c.a1t3qx.running"
+           },
+           "instanceProps": {
+            "variant": "Running"
+           }
+          }
+         ]
+        },
+        {
+         "id": "16:9978",
+         "type": "FRAME",
+         "name": "Preview row",
+         "x": 17,
+         "y": 121,
+         "w": 346,
+         "h": 33,
+         "stroke": {
+          "color": "#1D1D23",
+          "weight": 1
+         },
+         "layout": {
+          "mode": "H",
+          "gap": 8,
+          "padding": [
+           5,
+           0,
+           5,
+           0
+          ],
+          "main": "start",
+          "cross": "center"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "16:9979",
+           "type": "FRAME",
+           "name": "Tag",
+           "x": 0,
+           "y": 7,
+           "w": 45,
+           "h": 18,
+           "fills": [
+            "#121217"
+           ],
+           "stroke": {
+            "color": "#26262E",
+            "weight": 1
+           },
+           "radius": 3,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             2,
+             6,
+             2,
+             6
+            ],
+            "main": "center",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9980",
+             "type": "TEXT",
+             "name": "Grupo",
+             "x": 7,
+             "y": 3,
+             "w": 31,
+             "h": 12,
+             "sizing": {
+              "h": "hug",
+              "v": "hug"
+             },
+             "text": "Grupo",
+             "font": {
+              "family": "IBM Plex Mono",
+              "style": "Medium"
+             },
+             "size": 9,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "16:9981",
+           "type": "TEXT",
+           "name": "Blood Pressure US",
+           "x": 53,
+           "y": 7.5,
+           "w": 109,
+           "h": 17,
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "text": "Blood Pressure US",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 13,
+           "color": "#ECE7E1"
+          },
+          {
+           "id": "16:9982",
+           "type": "FRAME",
+           "name": "Spacer",
+           "x": 170,
+           "y": 15.5,
+           "w": 107,
+           "h": 1,
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "children": []
+          },
+          {
+           "id": "16:9983",
+           "type": "INSTANCE",
+           "name": "Badge",
+           "key": "adh.c.a1t3qx.paused",
+           "x": 285,
+           "y": 5,
+           "w": 61,
+           "h": 22,
+           "fills": [
+            "#1C1109"
+           ],
+           "stroke": {
+            "color": "#4A240D",
+            "weight": 1
+           },
+           "radius": 4,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             2,
+             8,
+             2,
+             8
+            ],
+            "main": "start",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "of": {
+            "id": "8:90",
+            "name": "variant=Paused",
+            "key": "adh.c.a1t3qx.paused"
+           },
+           "instanceProps": {
+            "variant": "Paused"
+           }
+          }
+         ]
+        },
+        {
+         "id": "16:9985",
+         "type": "FRAME",
+         "name": "Preview row",
+         "x": 17,
+         "y": 162,
+         "w": 346,
+         "h": 33,
+         "stroke": {
+          "color": "#1D1D23",
+          "weight": 1
+         },
+         "layout": {
+          "mode": "H",
+          "gap": 8,
+          "padding": [
+           5,
+           0,
+           5,
+           0
+          ],
+          "main": "start",
+          "cross": "center"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "16:9986",
+           "type": "FRAME",
+           "name": "Tag",
+           "x": 0,
+           "y": 7,
+           "w": 45,
+           "h": 18,
+           "fills": [
+            "#121217"
+           ],
+           "stroke": {
+            "color": "#26262E",
+            "weight": 1
+           },
+           "radius": 3,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             2,
+             6,
+             2,
+             6
+            ],
+            "main": "center",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "16:9987",
+             "type": "TEXT",
+             "name": "Grupo",
+             "x": 7,
+             "y": 3,
+             "w": 31,
+             "h": 12,
+             "sizing": {
+              "h": "hug",
+              "v": "hug"
+             },
+             "text": "Grupo",
+             "font": {
+              "family": "IBM Plex Mono",
+              "style": "Medium"
+             },
+             "size": 9,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "16:9988",
+           "type": "TEXT",
+           "name": "Grupo apagado · 990001",
+           "x": 53,
+           "y": 7.5,
+           "w": 147,
+           "h": 17,
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "text": "Grupo apagado · 990001",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 13,
+           "color": "#ECE7E1"
+          },
+          {
+           "id": "16:9989",
+           "type": "FRAME",
+           "name": "Spacer",
+           "x": 208,
+           "y": 15.5,
+           "w": 36,
+           "h": 1,
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "children": []
+          },
+          {
+           "id": "16:9990",
+           "type": "INSTANCE",
+           "name": "Badge",
+           "key": "adh.c.a1t3qx.rejected",
+           "x": 252,
+           "y": 5,
+           "w": 94,
+           "h": 22,
+           "fills": [
+            "#1A0B09"
+           ],
+           "stroke": {
+            "color": "#5A1D14",
+            "weight": 1
+           },
+           "radius": 4,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             2,
+             8,
+             2,
+             8
+            ],
+            "main": "start",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "of": {
+            "id": "8:94",
+            "name": "variant=Rejected",
+            "key": "adh.c.a1t3qx.rejected"
+           },
+           "instanceProps": {
+            "variant": "Rejected"
+           }
+          }
+         ]
+        },
+        {
+         "id": "16:9992",
+         "type": "TEXT",
+         "name": "Tudo nasce pausado: alguém liga no Taboola.",
+         "x": 17,
+         "y": 203,
+         "w": 244,
+         "h": 16,
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "text": "Tudo nasce pausado: alguém liga no Taboola.",
+         "font": {
+          "family": "IBM Plex Sans",
+          "style": "Regular"
+         },
+         "size": 12,
+         "color": "#8F8A85"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "page": "Launch"
+}

@@ -1,0 +1,181 @@
+FRAME 'Launch · Novos anúncios' key=adh.k0b25 1440x900 @4920,1100 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start fills=["#09090C"]
+  FRAME 'Top bar' key=adh.k1y9r 1440x48 @0,0 layout=H gap=10 pad=[0, 0, 1, 0] main=start cross=start sizing=fill/fixed fills=["#060608"] stroke={"color": "#1D1D23", "weight": 1}
+    INSTANCE 'App selector · Launch' key=adh.k26uh 232x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=fixed/fill fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1} instanceOf=adh.c.au7t0.default
+    FRAME 'Page tabs' key=adh.k8vgj 331x46 @242,0 layout=H gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+      INSTANCE 'Tab' key=adh.kaao7 92x46 @0,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill stroke={"color": "#FF7A1A", "weight": 1} instanceOf=adh.c.awh7q.current props={"variant": "Current"}
+      INSTANCE 'Tab' key=adh.kcz3k 70x46 @94,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kd9cl 76x46 @166,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kfjvy 87x46 @244,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+    FRAME 'Spacer' key=adh.kgfki 513x46 @583,0 sizing=fill/fill
+    FRAME 'Tools' key=adh.khlz6 334x46 @1106,0 layout=H gap=12 pad=[0, 14, 0, 0] main=start cross=center sizing=hug/fill
+      INSTANCE 'Search box' key=adh.kiutz 280x30 @0,8 layout=H gap=8 pad=[1, 11, 1, 11] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=9 instanceOf=adh.c.a11ghd.default
+      INSTANCE 'Avatar' key=adh.kmz7b 28x28 @292,9 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#18181E"] stroke={"color": "#2A2A33", "weight": 1} radius=8 instanceOf=adh.c.a133ym.default
+  FRAME 'Body' key=mm.b126.8-3963.body 1440x852 @0,48 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+    FRAME 'Rail' 232x852 @0,0 layout=V gap=12 pad=[18, 14, 24, 14] main=start cross=start sizing=fixed/fill fills=["#0A0A0D"] stroke={"color": "#1D1D23", "weight": 1}
+      FRAME 'Rail top' 203x186 @14,18 layout=V gap=12 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Novos anúncios' 109x12 @0,0 sizing=hug/hug font=Inter Bold 10 color=#9A948D text="Novos anúncios"
+        FRAME 'Steps' 203x162 @0,24 layout=V gap=4 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+          FRAME 'Step 1' 203x56 @0,0 layout=H gap=10 pad=[10, 10, 10, 10] main=start cross=start sizing=fill/hug fills=["#17171D"] radius=8
+            FRAME 'Num' 22x22 @10,10 layout=H gap=0 pad=[0, 0, 0, 0] main=center cross=center sizing=fixed/fixed fills=["#FF7A1A"] radius=11
+              TEXT '1' 7x14 @7.5,4 sizing=hug/hug font=IBM Plex Sans SemiBold 11 color=#140A04 text="1"
+            FRAME 'Text' 151x36 @42,10 layout=V gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT 'Campanhas' 74x18 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13.5 color=#F4EFE9 text="Campanhas"
+              TEXT '2 escolhidas' 150x16 @0,20 sizing=fixed/hug font=IBM Plex Sans Regular 12 color=#9A948D text="2 escolhidas"
+          FRAME 'Step 2' 203x56 @0,60 layout=H gap=10 pad=[10, 10, 10, 10] main=start cross=start sizing=fill/hug radius=8
+            FRAME 'Num' 22x22 @10,10 layout=H gap=0 pad=[0, 0, 0, 0] main=center cross=center sizing=fixed/fixed stroke={"color": "#3A3A44", "weight": 1} radius=11
+              TEXT '2' 7x14 @7.5,4 sizing=hug/hug font=IBM Plex Sans SemiBold 11 color=#B5AEA6 text="2"
+            FRAME 'Text' 151x36 @42,10 layout=V gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT 'Anúncios' 58x18 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13.5 color=#F4EFE9 text="Anúncios"
+              TEXT 'imagens, headlines, botão' 141x16 @0,20 sizing=hug/hug font=IBM Plex Sans Regular 12 color=#9A948D text="imagens, headlines, botão"
+          FRAME 'Step 3' 203x42 @0,120 layout=H gap=10 pad=[10, 10, 10, 10] main=start cross=start sizing=fill/hug radius=8
+            FRAME 'Num' 22x22 @10,10 layout=H gap=0 pad=[0, 0, 0, 0] main=center cross=center sizing=fixed/fixed stroke={"color": "#3A3A44", "weight": 1} radius=11
+              TEXT '3' 7x14 @7.5,4 sizing=hug/hug font=IBM Plex Sans SemiBold 11 color=#B5AEA6 text="3"
+            FRAME 'Text' 151x18 @42,10 layout=V gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT 'Revisar e adicionar' 119x18 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13.5 color=#F4EFE9 text="Revisar e adicionar"
+      FRAME 'Spacer' 203x524 @14,216 sizing=fill/fill
+      FRAME 'Rail actions' 203x76 @14,752 layout=V gap=8 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        INSTANCE 'Button' key=adh.c.a1dbqt.default 203x34 @0,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=fill/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=9 instanceOf=adh.c.a1dbqt.default props={"variant": "Default"}
+        INSTANCE 'Button' key=adh.c.a1dbqt.ghost 203x34 @0,42 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=fill/fixed stroke={"color": "#55555F", "weight": 1} radius=9 instanceOf=adh.c.a1dbqt.ghost props={"variant": "Ghost"}
+    FRAME 'Content' 1208x852 @232,0 layout=H gap=48 pad=[20, 24, 20, 24] main=start cross=start sizing=fill/fill
+      FRAME 'Form column' 732x608 @24,20 layout=V gap=16 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+        FRAME 'Heading' 732x45 @0,0 layout=V gap=4 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+          TEXT 'Passo 1 · Campanhas' 287x24 @0,0 sizing=hug/hug font=Archivo Expanded Bold 22 color=#F4EFE9 text="Passo 1 · Campanhas"
+          TEXT 'Os mesmos anúncios, pausados, em cada campanha escolhida. Eles passam pela revisão do Taboola.' 732x17 @0,28 sizing=fixed/hug font=IBM Plex Sans Regular 13 color=#B5AEA6 text="Os mesmos anúncios, pausados, em cada campanha escolhida. Eles passam pela revisão do Taboola."
+        FRAME 'Form card' 732x497 @0,61 layout=V gap=12 pad=[18, 18, 18, 18] main=start cross=start sizing=fill/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=12
+          INSTANCE 'Text field' key=adh.c.a18gut.placeholder 694x36 @19,19 layout=V gap=0 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a18gut.placeholder props={"variant": "Placeholder"}
+          FRAME 'Campaign picker' 694x314 @19,67 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Head' 692x36 @1,1 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed stroke={"color": "#1D1D23", "weight": 1}
+              FRAME 'chk' 40x36 @0,0 sizing=fixed/fixed
+              FRAME 'nome' 389x36 @40,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fill/fixed
+                TEXT 'Nome' 35x12 @12,12 sizing=hug/hug font=Inter Bold 10 color=#9A948D text="Nome"
+              FRAME 'estado' 143x36 @429,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                TEXT 'Estado' 48x12 @12,12 sizing=hug/hug font=Inter Bold 10 color=#9A948D text="Estado"
+              FRAME 'disp' 120x36 @572,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                TEXT 'Dispositivo' 77x12 @12,12 sizing=hug/hug font=Inter Bold 10 color=#9A948D text="Dispositivo"
+            FRAME 'Row · Memory Loss US' 692x46 @1,37 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed stroke={"color": "#1D1D23", "weight": 1}
+              FRAME 'chk' 40x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 12] main=start cross=center sizing=fixed/fixed
+                FRAME 'Checkbox' 16x16 @12,15 layout=H gap=0 pad=[0, 0, 0, 0] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=4
+              FRAME 'nome' 389x46 @40,0 layout=H gap=8 pad=[0, 12, 0, 12] main=start cross=center sizing=fill/fixed
+                FRAME 'Chevron' 10x10 @12,18 sizing=fixed/fixed
+                  VECTOR 'Vector' 6x3.5 @2,3.5 sizing=fixed/fixed fills=["#9A948D"]
+                FRAME 'Tag' 45x18 @30,14 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+                  TEXT 'Grupo' 31x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Grupo"
+                TEXT 'Memory Loss US' 98x17 @83,14.5 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="Memory Loss US"
+              FRAME 'estado' 143x46 @429,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                INSTANCE 'Badge' key=adh.c.a1t3qx.running 63x22 @12,12 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#0D1410"] stroke={"color": "#1F3A2A", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.running props={"variant": "Running"}
+              FRAME 'disp' 120x46 @572,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                TEXT '—' 11x17 @12,14.5 sizing=hug/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="—"
+            FRAME 'Row · Memory Loss US · Mobile' 692x46 @1,83 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed fills=["#1A1008"] stroke={"color": "#1D1D23", "weight": 1}
+              FRAME 'chk' 40x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 12] main=start cross=center sizing=fixed/fixed
+                FRAME 'Checkbox' 16x16 @12,15 layout=H gap=0 pad=[0, 0, 0, 0] main=center cross=center sizing=fixed/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=4
+                  FRAME 'Tick' 10x10 @3,3 sizing=fixed/fixed
+                    VECTOR 'Vector' 7x4.9 @1.5,2.6 sizing=fixed/fixed stroke={"color": "#140A04", "weight": 1.7999999523162842}
+              FRAME 'nome' 389x46 @40,0 layout=H gap=8 pad=[0, 12, 0, 12] main=start cross=center sizing=fill/fixed
+                FRAME 'Indent' 24x1 @12,22.5 sizing=fixed/fixed
+                FRAME 'Tag' 38x18 @44,14 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+                  TEXT 'Camp' 24x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Camp"
+                TEXT 'Memory Loss US · Mobile' 149x17 @90,14.5 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="Memory Loss US · Mobile"
+              FRAME 'estado' 143x46 @429,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                INSTANCE 'Badge' key=adh.c.a1t3qx.running 63x22 @12,12 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#0D1410"] stroke={"color": "#1F3A2A", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.running props={"variant": "Running"}
+              FRAME 'disp' 120x46 @572,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                TEXT 'Mobile' 40x17 @12,14.5 sizing=hug/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="Mobile"
+              RECTANGLE 'Selected bar' 2x46 @0,0 sizing=fixed/fixed fills=["#FF7A1A"]
+            FRAME 'Row · Memory Loss US · Desktop' 692x46 @1,129 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed fills=["#1A1008"] stroke={"color": "#1D1D23", "weight": 1}
+              FRAME 'chk' 40x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 12] main=start cross=center sizing=fixed/fixed
+                FRAME 'Checkbox' 16x16 @12,15 layout=H gap=0 pad=[0, 0, 0, 0] main=center cross=center sizing=fixed/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=4
+                  FRAME 'Tick' 10x10 @3,3 sizing=fixed/fixed
+                    VECTOR 'Vector' 7x4.9 @1.5,2.6 sizing=fixed/fixed stroke={"color": "#140A04", "weight": 1.7999999523162842}
+              FRAME 'nome' 389x46 @40,0 layout=H gap=8 pad=[0, 12, 0, 12] main=start cross=center sizing=fill/fixed
+                FRAME 'Indent' 24x1 @12,22.5 sizing=fixed/fixed
+                FRAME 'Tag' 38x18 @44,14 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+                  TEXT 'Camp' 24x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Camp"
+                TEXT 'Memory Loss US · Desktop' 158x17 @90,14.5 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="Memory Loss US · Desktop"
+              FRAME 'estado' 143x46 @429,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                INSTANCE 'Badge' key=adh.c.a1t3qx.running 63x22 @12,12 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#0D1410"] stroke={"color": "#1F3A2A", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.running props={"variant": "Running"}
+              FRAME 'disp' 120x46 @572,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                TEXT 'Desktop' 49x17 @12,14.5 sizing=hug/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="Desktop"
+              RECTANGLE 'Selected bar' 2x46 @0,0 sizing=fixed/fixed fills=["#FF7A1A"]
+            FRAME 'Row · Memory old test' 692x46 @1,175 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed stroke={"color": "#1D1D23", "weight": 1}
+              FRAME 'chk' 40x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 12] main=start cross=center sizing=fixed/fixed
+                FRAME 'Checkbox' 16x16 @12,15 layout=H gap=0 pad=[0, 0, 0, 0] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=4
+              FRAME 'nome' 389x46 @40,0 layout=H gap=8 pad=[0, 12, 0, 12] main=start cross=center sizing=fill/fixed
+                FRAME 'Indent' 24x1 @12,22.5 sizing=fixed/fixed
+                FRAME 'Tag' 38x18 @44,14 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+                  TEXT 'Camp' 24x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Camp"
+                TEXT 'Memory old test' 97x17 @90,14.5 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="Memory old test"
+              FRAME 'estado' 143x46 @429,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                INSTANCE 'Badge' key=adh.c.a1t3qx.paused 61x22 @12,12 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.paused props={"variant": "Paused"}
+              FRAME 'disp' 120x46 @572,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                TEXT 'Vários' 37x17 @12,14.5 sizing=hug/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="Vários"
+            FRAME 'Row · Blood Pressure US' 692x46 @1,221 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed stroke={"color": "#1D1D23", "weight": 1}
+              FRAME 'chk' 40x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 12] main=start cross=center sizing=fixed/fixed
+                FRAME 'Checkbox' 16x16 @12,15 layout=H gap=0 pad=[0, 0, 0, 0] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=4
+              FRAME 'nome' 389x46 @40,0 layout=H gap=8 pad=[0, 12, 0, 12] main=start cross=center sizing=fill/fixed
+                FRAME 'Chevron' 10x10 @12,18 sizing=fixed/fixed
+                  VECTOR 'Vector' 6x3.5 @2,3.5 sizing=fixed/fixed fills=["#9A948D"]
+                FRAME 'Tag' 45x18 @30,14 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+                  TEXT 'Grupo' 31x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Grupo"
+                TEXT 'Blood Pressure US' 110x17 @83,14.5 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="Blood Pressure US"
+              FRAME 'estado' 143x46 @429,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                INSTANCE 'Badge' key=adh.c.a1t3qx.paused 61x22 @12,12 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.paused props={"variant": "Paused"}
+              FRAME 'disp' 120x46 @572,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                TEXT '—' 11x17 @12,14.5 sizing=hug/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="—"
+            FRAME 'Row · BP Seniors · Desktop' 692x46 @1,267 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed stroke={"color": "#1D1D23", "weight": 1}
+              FRAME 'chk' 40x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 12] main=start cross=center sizing=fixed/fixed
+                FRAME 'Checkbox' 16x16 @12,15 layout=H gap=0 pad=[0, 0, 0, 0] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=4
+              FRAME 'nome' 389x46 @40,0 layout=H gap=8 pad=[0, 12, 0, 12] main=start cross=center sizing=fill/fixed
+                FRAME 'Indent' 24x1 @12,22.5 sizing=fixed/fixed
+                FRAME 'Tag' 38x18 @44,14 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+                  TEXT 'Camp' 24x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Camp"
+                TEXT 'BP Seniors · Desktop' 125x17 @90,14.5 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="BP Seniors · Desktop"
+              FRAME 'estado' 143x46 @429,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                INSTANCE 'Badge' key=adh.c.a1t3qx.review 73x22 @12,12 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#0E131C"] stroke={"color": "#2D4466", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.review props={"variant": "Review"}
+              FRAME 'disp' 120x46 @572,0 layout=H gap=0 pad=[0, 12, 0, 12] main=start cross=center sizing=fixed/fixed
+                TEXT 'Desktop' 49x17 @12,14.5 sizing=hug/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="Desktop"
+          FRAME 'Two columns' 694x58 @19,393 layout=H gap=12 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+            FRAME 'Field · Página (landing page)' 341x58 @0,0 layout=V gap=6 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT 'Página (landing page)' 124x16 @0,0 sizing=hug/hug font=IBM Plex Sans Medium 12.5 color=#F4EFE9 text="Página (landing page)"
+              INSTANCE 'Text field' key=adh.c.a18gut.placeholder 341x36 @0,22 layout=V gap=0 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a18gut.placeholder props={"variant": "Placeholder"}
+            FRAME 'Field · Descrição' 341x58 @353,0 layout=V gap=6 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT 'Descrição' 57x16 @0,0 sizing=hug/hug font=IBM Plex Sans Medium 12.5 color=#F4EFE9 text="Descrição"
+              INSTANCE 'Text field' key=adh.c.a18gut.placeholder 341x36 @0,22 layout=V gap=0 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a18gut.placeholder props={"variant": "Placeholder"}
+          TEXT 'a mesma em todos os anúncios' 162x15 @19,463 sizing=hug/hug font=IBM Plex Sans Regular 11.5 color=#8F8A85 text="a mesma em todos os anúncios"
+        FRAME 'Next' 732x34 @0,574 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+          FRAME 'Spacer' 590x1 @0,0 sizing=fill/fixed
+          INSTANCE 'Button' key=adh.c.a1dbqt.primary 142x34 @590,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=9 instanceOf=adh.c.a1dbqt.primary props={"variant": "Primary"}
+      FRAME 'Preview' 380x255 @804,20 layout=V gap=8 pad=[14, 16, 14, 16] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=12
+        TEXT 'Prévia na tabela' 145x16 @17,15 sizing=hug/hug font=Archivo Expanded Bold 15 color=#F4EFE9 text="Prévia na tabela"
+        FRAME 'Preview row' 346x29 @17,39 layout=H gap=8 pad=[5, 0, 5, 0] main=start cross=center sizing=fill/hug stroke={"color": "#1D1D23", "weight": 1}
+          FRAME 'Tag' 45x18 @0,5 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+            TEXT 'Grupo' 31x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Grupo"
+          TEXT 'Memory Loss US' 97x17 @53,5.5 sizing=hug/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="Memory Loss US"
+          FRAME 'Spacer' 188x1 @158,13.5 sizing=fill/fixed
+        FRAME 'Preview row' 346x29 @17,76 layout=H gap=8 pad=[5, 0, 5, 0] main=start cross=center sizing=fill/hug stroke={"color": "#1D1D23", "weight": 1}
+          FRAME 'Indent' 24x1 @0,13.5 sizing=fixed/fixed
+          FRAME 'Tag' 38x18 @32,5 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+            TEXT 'Camp' 24x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Camp"
+          TEXT 'Memory Loss US · Mobile' 147x17 @78,5.5 sizing=hug/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="Memory Loss US · Mobile"
+          FRAME 'Spacer' 113x1 @233,13.5 sizing=fill/fixed
+        FRAME 'Preview row' 346x29 @17,113 layout=H gap=8 pad=[5, 0, 5, 0] main=start cross=center sizing=fill/hug stroke={"color": "#1D1D23", "weight": 1}
+          FRAME 'Indent' 48x1 @0,13.5 sizing=fixed/fixed
+          FRAME 'Tag' 26x18 @56,5 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+            TEXT 'Ad' 12x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Ad"
+          TEXT 'novos anúncios aqui' 123x17 @90,5.5 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#FF7A1A text="novos anúncios aqui"
+          FRAME 'novo' 37x18 @221,5 layout=H gap=0 pad=[1, 6, 1, 6] main=center cross=center sizing=hug/hug stroke={"color": "#4A240D", "weight": 1} radius=4
+            TEXT 'novo' 23x14 @7,2 sizing=hug/hug font=IBM Plex Sans Regular 10.5 color=#FF7A1A text="novo"
+          FRAME 'Spacer' 80x1 @266,13.5 sizing=fill/fixed
+        FRAME 'Preview row' 346x29 @17,150 layout=H gap=8 pad=[5, 0, 5, 0] main=start cross=center sizing=fill/hug stroke={"color": "#1D1D23", "weight": 1}
+          FRAME 'Indent' 24x1 @0,13.5 sizing=fixed/fixed
+          FRAME 'Tag' 38x18 @32,5 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+            TEXT 'Camp' 24x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Camp"
+          TEXT 'Memory Loss US · Desktop' 156x17 @78,5.5 sizing=hug/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="Memory Loss US · Desktop"
+          FRAME 'Spacer' 104x1 @242,13.5 sizing=fill/fixed
+        FRAME 'Preview row' 346x29 @17,187 layout=H gap=8 pad=[5, 0, 5, 0] main=start cross=center sizing=fill/hug stroke={"color": "#1D1D23", "weight": 1}
+          FRAME 'Indent' 48x1 @0,13.5 sizing=fixed/fixed
+          FRAME 'Tag' 26x18 @56,5 layout=H gap=0 pad=[2, 6, 2, 6] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=3
+            TEXT 'Ad' 12x12 @7,3 sizing=hug/hug font=IBM Plex Mono Medium 9 color=#9A948D text="Ad"
+          TEXT 'novos anúncios aqui' 123x17 @90,5.5 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#FF7A1A text="novos anúncios aqui"
+          FRAME 'novo' 37x18 @221,5 layout=H gap=0 pad=[1, 6, 1, 6] main=center cross=center sizing=hug/hug stroke={"color": "#4A240D", "weight": 1} radius=4
+            TEXT 'novo' 23x14 @7,2 sizing=hug/hug font=IBM Plex Sans Regular 10.5 color=#FF7A1A text="novo"
+          FRAME 'Spacer' 80x1 @266,13.5 sizing=fill/fixed
+        TEXT 'Tudo nasce pausado: alguém liga no Taboola.' 244x16 @17,224 sizing=hug/hug font=IBM Plex Sans Regular 12 color=#8F8A85 text="Tudo nasce pausado: alguém liga no Taboola."

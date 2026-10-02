@@ -1,0 +1,617 @@
+# AdHunters · Ember: diff of export 2026-10-02T12:26:28.399Z against 2026-10-02T12:13:10.502Z
+
+Pages added: none. Pages removed: none.
+Top-level frames: 0 added, 0 removed, 14 changed, 0 unchanged.
+
+## Changed
+### Launch / Launch · Grupos de campanha (id 8:1749)
+Kinds: layout, other, structure, tokens/style. 175 layers added, 255 removed, 6 changed. Tree `frames/Launch-Launch-Grupos-de-campanha.json`, png `png/Launch-Launch-Grupos-de-campanha.png`.
+- added FRAME `Launch · Grupos de campanha / Body`
+- added FRAME `Launch · Grupos de campanha / Body / Filters`
+- added FRAME `Launch · Grupos de campanha / Body / Filters / Filters head`
+- added TEXT `Launch · Grupos de campanha / Body / Filters / Filters head / Filtros` text "Filtros"
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filters head / Fold button`
+- added FRAME `Launch · Grupos de campanha / Body / Filters / Filter group`
+- added TEXT `Launch · Grupos de campanha / Body / Filters / Filter group / Busca` text "Busca"
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Text field`
+- added FRAME `Launch · Grupos de campanha / Body / Filters / Filter group`
+- added TEXT `Launch · Grupos de campanha / Body / Filters / Filter group / Conta` text "Conta"
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Select`
+- added FRAME `Launch · Grupos de campanha / Body / Filters / Filter group`
+- added TEXT `Launch · Grupos de campanha / Body / Filters / Filter group / Estado` text "Estado"
+- added FRAME `Launch · Grupos de campanha / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Grupos de campanha / Body / Filters / Filter group`
+- added TEXT `Launch · Grupos de campanha / Body / Filters / Filter group / Dispositivo` text "Dispositivo"
+- added FRAME `Launch · Grupos de campanha / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Grupos de campanha / Body / Filters / Filter group`
+- … 150 more added (see diff.json)
+- removed INSTANCE `Launch · Grupos de campanha / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Grupos de campanha / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Grupos de campanha / Top bar / Page tabs / Tab`
+- removed FRAME `Launch · Grupos de campanha / Body`
+- removed FRAME `Launch · Grupos de campanha / Body / Filters`
+- removed FRAME `Launch · Grupos de campanha / Body / Filters / Filters head`
+- removed TEXT `Launch · Grupos de campanha / Body / Filters / Filters head / Label` text "Filtros"
+- removed INSTANCE `Launch · Grupos de campanha / Body / Filters / Filters head / Fold button`
+- removed FRAME `Launch · Grupos de campanha / Body / Filters / Filter group`
+- removed TEXT `Launch · Grupos de campanha / Body / Filters / Filter group / Label` text "Busca"
+- removed INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Text field`
+- removed FRAME `Launch · Grupos de campanha / Body / Filters / Filter group`
+- removed TEXT `Launch · Grupos de campanha / Body / Filters / Filter group / Label` text "Estado"
+- removed FRAME `Launch · Grupos de campanha / Body / Filters / Filter group / Chips`
+- removed INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Grupos de campanha / Body / Filters / Filter group / Chips / Chip`
+- removed FRAME `Launch · Grupos de campanha / Body / Main`
+- removed FRAME `Launch · Grupos de campanha / Body / Main / Pickers`
+- removed FRAME `Launch · Grupos de campanha / Body / Main / Pickers / Pick crumb`
+- removed FRAME `Launch · Grupos de campanha / Body / Main / Pickers / Pick crumb / Picker`
+- removed TEXT `Launch · Grupos de campanha / Body / Main / Pickers / Pick crumb / Picker / Conta` text "Conta"
+- removed FRAME `Launch · Grupos de campanha / Body / Main / Pickers / Pick crumb / Picker / Acme Health ▾`
+- removed TEXT `Launch · Grupos de campanha / Body / Main / Pickers / Pick crumb / Picker / Acme Health ▾ / Acme Health ▾` text "Acme Health ▾"
+- … 230 more removed (see diff.json)
+- changed `Launch · Grupos de campanha / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Grupos de campanha / Top bar / Page tabs / Tab`: of: {"id": "8:14", "name": "variant=Default", "key": "adh.c.awh7… → {"id": "8:16", "name": "variant=Current", "key": "adh.c.awh7…; instanceProps: {"variant": "Default"} → {"variant": "Current"}; x: 148 → 0; stroke: null → {"color": "#FF7A1A", "weight": 1}
+- changed `Launch · Grupos de campanha / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Grupos de campanha / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Grupos de campanha / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Grupos de campanha / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Campanhas (id 8:1108)
+Kinds: layout, structure. 297 layers added, 371 removed, 6 changed. Tree `frames/Launch-Launch-Campanhas.json`, png `png/Launch-Launch-Campanhas.png`.
+- added FRAME `Launch · Campanhas / Body`
+- added FRAME `Launch · Campanhas / Body / Filters`
+- added FRAME `Launch · Campanhas / Body / Filters / Filters head`
+- added TEXT `Launch · Campanhas / Body / Filters / Filters head / Filtros` text "Filtros"
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filters head / Fold button`
+- added FRAME `Launch · Campanhas / Body / Filters / Filter group`
+- added TEXT `Launch · Campanhas / Body / Filters / Filter group / Busca` text "Busca"
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Text field`
+- added FRAME `Launch · Campanhas / Body / Filters / Filter group`
+- added TEXT `Launch · Campanhas / Body / Filters / Filter group / Conta` text "Conta"
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Select`
+- added FRAME `Launch · Campanhas / Body / Filters / Filter group`
+- added TEXT `Launch · Campanhas / Body / Filters / Filter group / Estado` text "Estado"
+- added FRAME `Launch · Campanhas / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Campanhas / Body / Filters / Filter group`
+- added TEXT `Launch · Campanhas / Body / Filters / Filter group / Dispositivo` text "Dispositivo"
+- added FRAME `Launch · Campanhas / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Campanhas / Body / Filters / Filter group`
+- … 272 more added (see diff.json)
+- removed INSTANCE `Launch · Campanhas / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Campanhas / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Campanhas / Top bar / Page tabs / Tab`
+- removed FRAME `Launch · Campanhas / Body`
+- removed FRAME `Launch · Campanhas / Body / Filters`
+- removed FRAME `Launch · Campanhas / Body / Filters / Filters head`
+- removed TEXT `Launch · Campanhas / Body / Filters / Filters head / Label` text "Filtros"
+- removed INSTANCE `Launch · Campanhas / Body / Filters / Filters head / Fold button`
+- removed FRAME `Launch · Campanhas / Body / Filters / Filter group`
+- removed TEXT `Launch · Campanhas / Body / Filters / Filter group / Label` text "Busca"
+- removed INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Text field`
+- removed FRAME `Launch · Campanhas / Body / Filters / Filter group`
+- removed TEXT `Launch · Campanhas / Body / Filters / Filter group / Label` text "Estado"
+- removed FRAME `Launch · Campanhas / Body / Filters / Filter group / Chips`
+- removed INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- removed FRAME `Launch · Campanhas / Body / Filters / Filter group`
+- removed TEXT `Launch · Campanhas / Body / Filters / Filter group / Label` text "Dispositivo"
+- removed FRAME `Launch · Campanhas / Body / Filters / Filter group / Chips`
+- removed INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Campanhas / Body / Filters / Filter group / Chips / Chip`
+- removed FRAME `Launch · Campanhas / Body / Main`
+- … 346 more removed (see diff.json)
+- changed `Launch · Campanhas / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Campanhas / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Campanhas / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Campanhas / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Campanhas / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Campanhas / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Anúncios (id 8:2095)
+Kinds: layout, other, structure, tokens/style. 271 layers added, 224 removed, 6 changed. Tree `frames/Launch-Launch-Anúncios.json`, png `png/Launch-Launch-Anúncios.png`.
+- added FRAME `Launch · Anúncios / Body`
+- added FRAME `Launch · Anúncios / Body / Filters`
+- added FRAME `Launch · Anúncios / Body / Filters / Filters head`
+- added TEXT `Launch · Anúncios / Body / Filters / Filters head / Filtros` text "Filtros"
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filters head / Fold button`
+- added FRAME `Launch · Anúncios / Body / Filters / Filter group`
+- added TEXT `Launch · Anúncios / Body / Filters / Filter group / Busca` text "Busca"
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Text field`
+- added FRAME `Launch · Anúncios / Body / Filters / Filter group`
+- added TEXT `Launch · Anúncios / Body / Filters / Filter group / Conta` text "Conta"
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Select`
+- added FRAME `Launch · Anúncios / Body / Filters / Filter group`
+- added TEXT `Launch · Anúncios / Body / Filters / Filter group / Estado` text "Estado"
+- added FRAME `Launch · Anúncios / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Anúncios / Body / Filters / Filter group`
+- added TEXT `Launch · Anúncios / Body / Filters / Filter group / Dispositivo` text "Dispositivo"
+- added FRAME `Launch · Anúncios / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Anúncios / Body / Filters / Filter group`
+- … 246 more added (see diff.json)
+- removed INSTANCE `Launch · Anúncios / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Anúncios / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Anúncios / Top bar / Page tabs / Tab`
+- removed FRAME `Launch · Anúncios / Body`
+- removed FRAME `Launch · Anúncios / Body / Filters`
+- removed FRAME `Launch · Anúncios / Body / Filters / Filters head`
+- removed TEXT `Launch · Anúncios / Body / Filters / Filters head / Label` text "Filtros"
+- removed INSTANCE `Launch · Anúncios / Body / Filters / Filters head / Fold button`
+- removed FRAME `Launch · Anúncios / Body / Filters / Filter group`
+- removed TEXT `Launch · Anúncios / Body / Filters / Filter group / Label` text "Busca"
+- removed INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Text field`
+- removed FRAME `Launch · Anúncios / Body / Filters / Filter group`
+- removed TEXT `Launch · Anúncios / Body / Filters / Filter group / Label` text "Estado"
+- removed FRAME `Launch · Anúncios / Body / Filters / Filter group / Chips`
+- removed INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- removed FRAME `Launch · Anúncios / Body / Filters / Filter group`
+- removed TEXT `Launch · Anúncios / Body / Filters / Filter group / Label` text "Dispositivo"
+- removed FRAME `Launch · Anúncios / Body / Filters / Filter group / Chips`
+- removed INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Anúncios / Body / Filters / Filter group / Chips / Chip`
+- removed FRAME `Launch · Anúncios / Body / Main`
+- … 199 more removed (see diff.json)
+- changed `Launch · Anúncios / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Anúncios / Top bar / Page tabs / Tab`: of: {"id": "8:14", "name": "variant=Default", "key": "adh.c.awh7… → {"id": "8:16", "name": "variant=Current", "key": "adh.c.awh7…; instanceProps: {"variant": "Default"} → {"variant": "Current"}; x: 148 → 0; stroke: null → {"color": "#FF7A1A", "weight": 1}
+- changed `Launch · Anúncios / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Anúncios / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Anúncios / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Anúncios / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Campanha (id 8:2713)
+Kinds: layout, structure. 387 layers added, 134 removed, 6 changed. Tree `frames/Launch-Launch-Campanha.json`, png `png/Launch-Launch-Campanha.png`.
+- added FRAME `Launch · Campanha / Body`
+- added FRAME `Launch · Campanha / Body / Filters`
+- added FRAME `Launch · Campanha / Body / Filters / Filters head`
+- added TEXT `Launch · Campanha / Body / Filters / Filters head / Filtros` text "Filtros"
+- added INSTANCE `Launch · Campanha / Body / Filters / Filters head / Fold button`
+- added FRAME `Launch · Campanha / Body / Filters / Filter group`
+- added TEXT `Launch · Campanha / Body / Filters / Filter group / Busca` text "Busca"
+- added INSTANCE `Launch · Campanha / Body / Filters / Filter group / Text field`
+- added FRAME `Launch · Campanha / Body / Filters / Filter group`
+- added TEXT `Launch · Campanha / Body / Filters / Filter group / Conta` text "Conta"
+- added INSTANCE `Launch · Campanha / Body / Filters / Filter group / Select`
+- added FRAME `Launch · Campanha / Body / Filters / Filter group`
+- added TEXT `Launch · Campanha / Body / Filters / Filter group / Estado` text "Estado"
+- added FRAME `Launch · Campanha / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanha / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Campanha / Body / Filters / Filter group`
+- added TEXT `Launch · Campanha / Body / Filters / Filter group / Dispositivo` text "Dispositivo"
+- added FRAME `Launch · Campanha / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanha / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Campanha / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Campanha / Body / Filters / Filter group`
+- … 362 more added (see diff.json)
+- removed INSTANCE `Launch · Campanha / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Campanha / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Campanha / Top bar / Page tabs / Tab`
+- removed FRAME `Launch · Campanha / Body`
+- removed FRAME `Launch · Campanha / Body / Main`
+- removed FRAME `Launch · Campanha / Body / Main / Breadcrumb`
+- removed TEXT `Launch · Campanha / Body / Main / Breadcrumb / Launch` text "Launch"
+- removed FRAME `Launch · Campanha / Body / Main / Breadcrumb / /`
+- removed TEXT `Launch · Campanha / Body / Main / Breadcrumb / / / /` text "/"
+- removed FRAME `Launch · Campanha / Body / Main / Breadcrumb / Acme Health`
+- removed TEXT `Launch · Campanha / Body / Main / Breadcrumb / Acme Health / Acme Health` text "Acme Health"
+- removed FRAME `Launch · Campanha / Body / Main / Breadcrumb / /`
+- removed TEXT `Launch · Campanha / Body / Main / Breadcrumb / / / /` text "/"
+- removed FRAME `Launch · Campanha / Body / Main / Breadcrumb / Memory Loss US`
+- removed TEXT `Launch · Campanha / Body / Main / Breadcrumb / Memory Loss US / Memory Loss US` text "Memory Loss US"
+- removed FRAME `Launch · Campanha / Body / Main / Breadcrumb / /`
+- removed TEXT `Launch · Campanha / Body / Main / Breadcrumb / / / /` text "/"
+- removed FRAME `Launch · Campanha / Body / Main / Breadcrumb / Memory Loss US · Mobile`
+- removed TEXT `Launch · Campanha / Body / Main / Breadcrumb / Memory Loss US · Mobile / Memory Loss US · Mobile` text "Memory Loss US · Mobile"
+- removed FRAME `Launch · Campanha / Body / Main / Spacing`
+- removed FRAME `Launch · Campanha / Body / Main / Spacing / p`
+- removed TEXT `Launch · Campanha / Body / Main / Spacing / p / Ver os anúncios com os números d` text "Ver os anúncios com os números do Intel"
+- removed FRAME `Launch · Campanha / Body / Main / Spacing`
+- removed FRAME `Launch · Campanha / Body / Main / Spacing / Page head`
+- removed FRAME `Launch · Campanha / Body / Main / Spacing / Page head / Box`
+- … 109 more removed (see diff.json)
+- changed `Launch · Campanha / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Campanha / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Campanha / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Campanha / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Campanha / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Campanha / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Novo (menu aberto) (id 8:3206)
+Kinds: layout, structure. 322 layers added, 384 removed, 6 changed. Tree `frames/Launch-Launch-Novo-menu-aberto.json`, png `png/Launch-Launch-Novo-menu-aberto.png`.
+- added FRAME `Launch · Novo (menu aberto) / Body`
+- added FRAME `Launch · Novo (menu aberto) / Body / Filters`
+- added FRAME `Launch · Novo (menu aberto) / Body / Filters / Filters head`
+- added TEXT `Launch · Novo (menu aberto) / Body / Filters / Filters head / Filtros` text "Filtros"
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filters head / Fold button`
+- added FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group`
+- added TEXT `Launch · Novo (menu aberto) / Body / Filters / Filter group / Busca` text "Busca"
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Text field`
+- added FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group`
+- added TEXT `Launch · Novo (menu aberto) / Body / Filters / Filter group / Conta` text "Conta"
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Select`
+- added FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group`
+- added TEXT `Launch · Novo (menu aberto) / Body / Filters / Filter group / Estado` text "Estado"
+- added FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group`
+- added TEXT `Launch · Novo (menu aberto) / Body / Filters / Filter group / Dispositivo` text "Dispositivo"
+- added FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips`
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group`
+- … 297 more added (see diff.json)
+- removed INSTANCE `Launch · Novo (menu aberto) / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Novo (menu aberto) / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Novo (menu aberto) / Top bar / Page tabs / Tab`
+- removed FRAME `Launch · Novo (menu aberto) / Body`
+- removed FRAME `Launch · Novo (menu aberto) / Body / Filters`
+- removed FRAME `Launch · Novo (menu aberto) / Body / Filters / Filters head`
+- removed TEXT `Launch · Novo (menu aberto) / Body / Filters / Filters head / Label` text "Filtros"
+- removed INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filters head / Fold button`
+- removed FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group`
+- removed TEXT `Launch · Novo (menu aberto) / Body / Filters / Filter group / Label` text "Busca"
+- removed INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Text field`
+- removed FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group`
+- removed TEXT `Launch · Novo (menu aberto) / Body / Filters / Filter group / Label` text "Estado"
+- removed FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips`
+- removed INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- removed FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group`
+- removed TEXT `Launch · Novo (menu aberto) / Body / Filters / Filter group / Label` text "Dispositivo"
+- removed FRAME `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips`
+- removed INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Launch · Novo (menu aberto) / Body / Filters / Filter group / Chips / Chip`
+- removed FRAME `Launch · Novo (menu aberto) / Body / Main`
+- … 359 more removed (see diff.json)
+- changed `Launch · Novo (menu aberto) / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Novo (menu aberto) / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Novo (menu aberto) / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Novo (menu aberto) / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Novo (menu aberto) / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Novo (menu aberto) / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Nova campanha (id 8:3672)
+Kinds: layout, structure. 124 layers added, 103 removed, 6 changed. Tree `frames/Launch-Launch-Nova-campanha.json`, png `png/Launch-Launch-Nova-campanha.png`.
+- added FRAME `Launch · Nova campanha / Body`
+- added FRAME `Launch · Nova campanha / Body / Rail`
+- added FRAME `Launch · Nova campanha / Body / Rail / Rail top`
+- added TEXT `Launch · Nova campanha / Body / Rail / Rail top / Nova campanha` text "Nova campanha"
+- added FRAME `Launch · Nova campanha / Body / Rail / Rail top / Steps`
+- added FRAME `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 1`
+- added FRAME `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 1 / Num`
+- added TEXT `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 1 / Num / 1` text "1"
+- added FRAME `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 1 / Text`
+- added TEXT `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 1 / Text / Campanha` text "Campanha"
+- added TEXT `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 1 / Text / grupo e par desktop + mobile` text "grupo e par desktop + mobile"
+- added FRAME `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 2`
+- added FRAME `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 2 / Num`
+- added TEXT `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 2 / Num / 2` text "2"
+- added FRAME `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 2 / Text`
+- added TEXT `Launch · Nova campanha / Body / Rail / Rail top / Steps / Step 2 / Text / Revisar e criar` text "Revisar e criar"
+- added FRAME `Launch · Nova campanha / Body / Rail / Spacer`
+- added FRAME `Launch · Nova campanha / Body / Rail / Rail actions`
+- added INSTANCE `Launch · Nova campanha / Body / Rail / Rail actions / Button`
+- added INSTANCE `Launch · Nova campanha / Body / Rail / Rail actions / Button`
+- added FRAME `Launch · Nova campanha / Body / Content`
+- added FRAME `Launch · Nova campanha / Body / Content / Form column`
+- added FRAME `Launch · Nova campanha / Body / Content / Form column / Heading`
+- added TEXT `Launch · Nova campanha / Body / Content / Form column / Heading / Passo 1 · Campanha` text "Passo 1 · Campanha"
+- added TEXT `Launch · Nova campanha / Body / Content / Form column / Heading / Com "Os dois" saem uma campanha desktop e uma mobile, iguais ou com lance e orçamento próprios no mobile.` text "Com \"Os dois\" saem uma campanha desktop e uma mobile, iguais ou com lance e orçamento p…
+- … 99 more added (see diff.json)
+- removed INSTANCE `Launch · Nova campanha / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Nova campanha / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Nova campanha / Top bar / Page tabs / Tab`
+- removed FRAME `Launch · Nova campanha / Body`
+- removed FRAME `Launch · Nova campanha / Body / Main`
+- removed FRAME `Launch · Nova campanha / Body / Main / Page head`
+- removed FRAME `Launch · Nova campanha / Body / Main / Page head / Box`
+- removed TEXT `Launch · Nova campanha / Body / Main / Page head / Box / Nova campanha` text "Nova campanha"
+- removed FRAME `Launch · Nova campanha / Body / Main / Page head / Box / Grupo, campanha e anúncios, como`
+- removed TEXT `Launch · Nova campanha / Body / Main / Page head / Box / Grupo, campanha e anúncios, como / Grupo, campanha e anúncios, como` text "Grupo, campanha e anúncios, como no Taboola. Com \"Os dois\" saem uma campanha desktop e …
+- removed FRAME `Launch · Nova campanha / Body / Main / Page head / Actions`
+- removed INSTANCE `Launch · Nova campanha / Body / Main / Page head / Actions / Link button`
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard`
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard / Wiz main`
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav`
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / On`
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button`
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / 1`
+- removed TEXT `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / 1 / 1` text "1"
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / Grupo`
+- removed TEXT `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / Grupo / Grupo` text "Grupo"
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / Item`
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / Item / Step button`
+- removed FRAME `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / Item / Step button / 1`
+- removed TEXT `Launch · Nova campanha / Body / Main / Wizard / Wiz main / Wiz nav / Item / Step button / 1 / 1` text "2"
+- … 78 more removed (see diff.json)
+- changed `Launch · Nova campanha / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Nova campanha / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Nova campanha / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Nova campanha / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Nova campanha / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Nova campanha / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Novo grupo (id 8:3823)
+Kinds: layout, structure. 83 layers added, 85 removed, 6 changed. Tree `frames/Launch-Launch-Novo-grupo.json`, png `png/Launch-Launch-Novo-grupo.png`.
+- added FRAME `Launch · Novo grupo / Body`
+- added FRAME `Launch · Novo grupo / Body / Rail`
+- added FRAME `Launch · Novo grupo / Body / Rail / Rail top`
+- added TEXT `Launch · Novo grupo / Body / Rail / Rail top / Novo grupo` text "Novo grupo"
+- added FRAME `Launch · Novo grupo / Body / Rail / Rail top / Steps`
+- added FRAME `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 1`
+- added FRAME `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 1 / Num`
+- added TEXT `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 1 / Num / 1` text "1"
+- added FRAME `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 1 / Text`
+- added TEXT `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 1 / Text / Grupo` text "Grupo"
+- added TEXT `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 1 / Text / objetivo e orçamento` text "objetivo e orçamento"
+- added FRAME `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 2`
+- added FRAME `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 2 / Num`
+- added TEXT `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 2 / Num / 2` text "2"
+- added FRAME `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 2 / Text`
+- added TEXT `Launch · Novo grupo / Body / Rail / Rail top / Steps / Step 2 / Text / Revisar e criar` text "Revisar e criar"
+- added FRAME `Launch · Novo grupo / Body / Rail / Spacer`
+- added FRAME `Launch · Novo grupo / Body / Rail / Rail actions`
+- added INSTANCE `Launch · Novo grupo / Body / Rail / Rail actions / Button`
+- added INSTANCE `Launch · Novo grupo / Body / Rail / Rail actions / Button`
+- added FRAME `Launch · Novo grupo / Body / Content`
+- added FRAME `Launch · Novo grupo / Body / Content / Form column`
+- added FRAME `Launch · Novo grupo / Body / Content / Form column / Heading`
+- added TEXT `Launch · Novo grupo / Body / Content / Form column / Heading / Passo 1 · Grupo` text "Passo 1 · Grupo"
+- added TEXT `Launch · Novo grupo / Body / Content / Form column / Heading / O grupo nasce sem campanhas. As campanhas de um grupo têm o mesmo objetivo e podem dividir o orçamento dele.` text "O grupo nasce sem campanhas. As campanhas de um grupo têm o mesmo objetivo e podem dividi…
+- … 58 more added (see diff.json)
+- removed INSTANCE `Launch · Novo grupo / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Novo grupo / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Novo grupo / Top bar / Page tabs / Tab`
+- removed FRAME `Launch · Novo grupo / Body`
+- removed FRAME `Launch · Novo grupo / Body / Main`
+- removed FRAME `Launch · Novo grupo / Body / Main / Page head`
+- removed FRAME `Launch · Novo grupo / Body / Main / Page head / Box`
+- removed TEXT `Launch · Novo grupo / Body / Main / Page head / Box / Novo grupo de campanha` text "Novo grupo de campanha"
+- removed FRAME `Launch · Novo grupo / Body / Main / Page head / Box / O grupo nasce sem campanhas. As `
+- removed TEXT `Launch · Novo grupo / Body / Main / Page head / Box / O grupo nasce sem campanhas. As  / O grupo nasce sem campanhas. As ` text "O grupo nasce sem campanhas. As campanhas de um grupo têm o mesmo objetivo e podem dividi…
+- removed FRAME `Launch · Novo grupo / Body / Main / Page head / Actions`
+- removed INSTANCE `Launch · Novo grupo / Body / Main / Page head / Actions / Link button`
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard`
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard / Wiz main`
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav`
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / On`
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button`
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / 1`
+- removed TEXT `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / 1 / 1` text "1"
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / Grupo`
+- removed TEXT `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / Grupo / Grupo` text "Grupo"
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / Item`
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / Item / Step button`
+- removed FRAME `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / Item / Step button / 1`
+- removed TEXT `Launch · Novo grupo / Body / Main / Wizard / Wiz main / Wiz nav / Item / Step button / 1 / 1` text "2"
+- … 60 more removed (see diff.json)
+- changed `Launch · Novo grupo / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Novo grupo / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Novo grupo / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Novo grupo / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Novo grupo / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Novo grupo / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Novos anúncios (id 8:3963)
+Kinds: layout, structure. 169 layers added, 126 removed, 6 changed. Tree `frames/Launch-Launch-Novos-anúncios.json`, png `png/Launch-Launch-Novos-anúncios.png`.
+- added FRAME `Launch · Novos anúncios / Body`
+- added FRAME `Launch · Novos anúncios / Body / Rail`
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top`
+- added TEXT `Launch · Novos anúncios / Body / Rail / Rail top / Novos anúncios` text "Novos anúncios"
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps`
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 1`
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 1 / Num`
+- added TEXT `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 1 / Num / 1` text "1"
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 1 / Text`
+- added TEXT `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 1 / Text / Campanhas` text "Campanhas"
+- added TEXT `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 1 / Text / 2 escolhidas` text "2 escolhidas"
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 2`
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 2 / Num`
+- added TEXT `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 2 / Num / 2` text "2"
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 2 / Text`
+- added TEXT `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 2 / Text / Anúncios` text "Anúncios"
+- added TEXT `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 2 / Text / imagens, headlines, botão` text "imagens, headlines, botão"
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 3`
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 3 / Num`
+- added TEXT `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 3 / Num / 3` text "3"
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 3 / Text`
+- added TEXT `Launch · Novos anúncios / Body / Rail / Rail top / Steps / Step 3 / Text / Revisar e adicionar` text "Revisar e adicionar"
+- added FRAME `Launch · Novos anúncios / Body / Rail / Spacer`
+- added FRAME `Launch · Novos anúncios / Body / Rail / Rail actions`
+- added INSTANCE `Launch · Novos anúncios / Body / Rail / Rail actions / Button`
+- … 144 more added (see diff.json)
+- removed INSTANCE `Launch · Novos anúncios / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Novos anúncios / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Novos anúncios / Top bar / Page tabs / Tab`
+- removed FRAME `Launch · Novos anúncios / Body`
+- removed FRAME `Launch · Novos anúncios / Body / Main`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Page head`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Page head / Box`
+- removed TEXT `Launch · Novos anúncios / Body / Main / Page head / Box / Novos anúncios` text "Novos anúncios"
+- removed FRAME `Launch · Novos anúncios / Body / Main / Page head / Box / Os mesmos anúncios, pausados, em`
+- removed TEXT `Launch · Novos anúncios / Body / Main / Page head / Box / Os mesmos anúncios, pausados, em / Os mesmos anúncios, pausados, em` text "Os mesmos anúncios, pausados, em cada campanha escolhida. Eles passam pela revisão do Tab…
+- removed FRAME `Launch · Novos anúncios / Body / Main / Page head / Actions`
+- removed INSTANCE `Launch · Novos anúncios / Body / Main / Page head / Actions / Link button`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard / Wiz main`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / On`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / 1`
+- removed TEXT `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / 1 / 1` text "1"
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / Grupo`
+- removed TEXT `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / On / Step button / Grupo / Grupo` text "Campanhas"
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / Item`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / Item / Step button`
+- removed FRAME `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / Item / Step button / 1`
+- removed TEXT `Launch · Novos anúncios / Body / Main / Wizard / Wiz main / Wiz nav / Item / Step button / 1 / 1` text "2"
+- … 101 more removed (see diff.json)
+- changed `Launch · Novos anúncios / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Novos anúncios / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Novos anúncios / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Novos anúncios / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Novos anúncios / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Novos anúncios / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Presets (id 8:4209)
+Kinds: layout, structure. 0 layers added, 2 removed, 7 changed. Tree `frames/Launch-Launch-Presets.json`, png `png/Launch-Launch-Presets.png`.
+- removed INSTANCE `Launch · Presets / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Presets / Top bar / Page tabs / Tab`
+- changed `Launch · Presets / Top bar / Page tabs`: w: 628 → 401
+- changed `Launch · Presets / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Presets / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Presets / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Presets / Top bar / Page tabs / Tab`: x: 471 → 244
+- changed `Launch · Presets / Top bar / Page tabs / Tab`: x: 541 → 314
+- changed `Launch · Presets / Top bar / Spacer`: w: 216 → 443; x: 880 → 653
+
+### Launch / Launch · Histórico (id 8:4347)
+Kinds: layout, structure. 0 layers added, 3 removed, 6 changed. Tree `frames/Launch-Launch-Histórico.json`, png `png/Launch-Launch-Histórico.png`.
+- removed INSTANCE `Launch · Histórico / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Histórico / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Histórico / Top bar / Page tabs / Tab`
+- changed `Launch · Histórico / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Histórico / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Histórico / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Histórico / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Histórico / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Histórico / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Rascunhos (id 8:4806)
+Kinds: layout, structure. 0 layers added, 3 removed, 6 changed. Tree `frames/Launch-Launch-Rascunhos.json`, png `png/Launch-Launch-Rascunhos.png`.
+- removed INSTANCE `Launch · Rascunhos / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Rascunhos / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Rascunhos / Top bar / Page tabs / Tab`
+- changed `Launch · Rascunhos / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Rascunhos / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Rascunhos / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Rascunhos / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Rascunhos / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Rascunhos / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Pedidos (id 8:4934)
+Kinds: layout, structure. 0 layers added, 3 removed, 6 changed. Tree `frames/Launch-Launch-Pedidos.json`, png `png/Launch-Launch-Pedidos.png`.
+- removed INSTANCE `Launch · Pedidos / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Pedidos / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Pedidos / Top bar / Page tabs / Tab`
+- changed `Launch · Pedidos / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Pedidos / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Pedidos / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Pedidos / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Pedidos / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Pedidos / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Launch / Launch · Pedido (id 8:5206)
+Kinds: layout, structure. 0 layers added, 3 removed, 6 changed. Tree `frames/Launch-Launch-Pedido.json`, png `png/Launch-Launch-Pedido.png`.
+- removed INSTANCE `Launch · Pedido / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Pedido / Top bar / Page tabs / Tab`
+- removed INSTANCE `Launch · Pedido / Top bar / Page tabs / Tab`
+- changed `Launch · Pedido / Top bar / Page tabs`: w: 628 → 331
+- changed `Launch · Pedido / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Launch · Pedido / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Launch · Pedido / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Launch · Pedido / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Launch · Pedido / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+### Ember / Ember · Menu de apps aberto (id 8:742)
+Kinds: layout, structure. 297 layers added, 371 removed, 6 changed. Tree `frames/Ember-Ember-Menu-de-apps-aberto.json`, png `png/Ember-Ember-Menu-de-apps-aberto.png`.
+- added FRAME `Ember · Menu de apps aberto / Body`
+- added FRAME `Ember · Menu de apps aberto / Body / Filters`
+- added FRAME `Ember · Menu de apps aberto / Body / Filters / Filters head`
+- added TEXT `Ember · Menu de apps aberto / Body / Filters / Filters head / Filtros` text "Filtros"
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filters head / Fold button`
+- added FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group`
+- added TEXT `Ember · Menu de apps aberto / Body / Filters / Filter group / Busca` text "Busca"
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Text field`
+- added FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group`
+- added TEXT `Ember · Menu de apps aberto / Body / Filters / Filter group / Conta` text "Conta"
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Select`
+- added FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group`
+- added TEXT `Ember · Menu de apps aberto / Body / Filters / Filter group / Estado` text "Estado"
+- added FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips`
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group`
+- added TEXT `Ember · Menu de apps aberto / Body / Filters / Filter group / Dispositivo` text "Dispositivo"
+- added FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips`
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- added INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- added FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group`
+- … 272 more added (see diff.json)
+- removed INSTANCE `Ember · Menu de apps aberto / Top bar / Page tabs / Tab`
+- removed INSTANCE `Ember · Menu de apps aberto / Top bar / Page tabs / Tab`
+- removed INSTANCE `Ember · Menu de apps aberto / Top bar / Page tabs / Tab`
+- removed FRAME `Ember · Menu de apps aberto / Body`
+- removed FRAME `Ember · Menu de apps aberto / Body / Filters`
+- removed FRAME `Ember · Menu de apps aberto / Body / Filters / Filters head`
+- removed TEXT `Ember · Menu de apps aberto / Body / Filters / Filters head / Label` text "Filtros"
+- removed INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filters head / Fold button`
+- removed FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group`
+- removed TEXT `Ember · Menu de apps aberto / Body / Filters / Filter group / Label` text "Busca"
+- removed INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Text field`
+- removed FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group`
+- removed TEXT `Ember · Menu de apps aberto / Body / Filters / Filter group / Label` text "Estado"
+- removed FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips`
+- removed INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- removed FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group`
+- removed TEXT `Ember · Menu de apps aberto / Body / Filters / Filter group / Label` text "Dispositivo"
+- removed FRAME `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips`
+- removed INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- removed INSTANCE `Ember · Menu de apps aberto / Body / Filters / Filter group / Chips / Chip`
+- removed FRAME `Ember · Menu de apps aberto / Body / Main`
+- … 346 more removed (see diff.json)
+- changed `Ember · Menu de apps aberto / Top bar / Page tabs`: w: 628 → 331
+- changed `Ember · Menu de apps aberto / Top bar / Page tabs / Tab`: x: 148 → 0
+- changed `Ember · Menu de apps aberto / Top bar / Page tabs / Tab`: x: 321 → 94
+- changed `Ember · Menu de apps aberto / Top bar / Page tabs / Tab`: x: 393 → 166
+- changed `Ember · Menu de apps aberto / Top bar / Page tabs / Tab`: x: 541 → 244
+- changed `Ember · Menu de apps aberto / Top bar / Spacer`: w: 216 → 513; x: 880 → 583
+
+## Variables
+Now 0 variables in no collections. Added 0, removed 0, changed 0 vs the old export.
