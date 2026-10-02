@@ -194,7 +194,9 @@ function go(from, to) {
 function appMenu(list, me) {
   const button = h('button', {
     type: 'button', class: 'fr-app', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'fr-apps',
-  }, h('span', { class: 'fr-glyph' }, icon(me.id)), h('span', { class: 'fr-app-name' }, me.name), h('span', { class: 'fr-chev' }, icon('chevron', 14)));
+  }, h('span', { class: 'fr-glyph' }, icon(me.id)),
+  h('span', { class: 'fr-app-text' }, h('span', { class: 'fr-app-name' }, me.name), h('small', { class: 'fr-app-about' }, me.about)),
+  h('span', { class: 'fr-chev' }, icon('chevron', 16)));
   const panel = h('nav', { id: 'fr-apps', class: 'fr-apps', 'aria-label': 'Apps', hidden: true },
     list.map((a) => {
       const inner = [
