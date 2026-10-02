@@ -74,16 +74,17 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 
 | Word | Means |
 |---|---|
-| session | One chat in Create: a vertical and a name, which are also the library folders what it saves goes in (`<vertical>/<session>`). The same name in the same vertical is the same session. |
+| session | One chat in Create: a vertical and a name, which are also the library folders what it saves goes in by default (`<vertical>/<platform>/<session>`). The same name in the same vertical is the same session, except one started from Início, which is always new ("name (2)"). Create's pages call it a *conversa* (not Desk's conversation). |
 | turn | One message a person sends in a session: a prompt, the items they picked, and how many pictures and headlines to make from them. |
 | item | One picture or headline in a session: made by a turn, or brought in from the computer, the library or typed. Any item can be picked for the next turn. |
 | pick | Choosing items in a session, for the next turn to start from or to save. Picked pictures are changed as the prompt says (or varied, with no prompt); picked headlines are varied. |
+| reference | What Create's pages call a pick for the next turn (Referenciar): a picture or headline of the session, of the library (added to the session as an item when the turn is sent) or from the computer, shown as a chip over the prompt. |
 | brief | The words Create gives the picture model for one picture. Before 1 Oct 2026 (decision 0015) also the starting point of the old brief pages, replaced by sessions (decision 0019). |
 | performing ads | Ads a person gives Create because they are doing well. Create reads them for their pattern (what is fixed, what can vary) and makes new images in it; they are never sent to the image model. |
 | angle | The kind of image an idea is: a close variation of what works, or a new way of showing the product ("Colher", "Canudo", "Reação depois de tomar"). A text call names one for each brief it writes. |
 | blocked words | The team's list of words and phrases Taboola has blocked for them in titles (a few in descriptions too). Create avoids them, warns about them and offers other words in their place; it never refuses them. |
 | analysis | What the performing ads share, aspect by aspect: what to keep and what can vary. Create writes it when it reads them; the person edits it before making options. |
-| save | Picked items written into the library, in their session's set (folder), with the person's AI label for made pictures. |
+| save | Items written into the library, in their session's set (folder) or another set of the session's vertical the person chooses, with their tags and the person's AI label for made pictures. |
 | pairing | How the chosen creatives, headlines and CTAs become ads (Launch's Novos anúncios uses the matrix instead since 2 Oct 2026). Mixed: the longest list once each, the shorter ones repeated in turn until it runs out (10 images, 5 headlines and 2 CTAs make 10 ads). Pair by pair ("Par a par"): creative k with headline k, the shorter list starting over in order. One to one ("Escolher pares"): the person picks each pair. Every combination: each creative with each headline and each CTA. |
 | CTA | The button on an ad ("Read More", "Learn More"). Taboola takes one per item, from its own list. In Launch's Novos anúncios one button goes on every ad of the matrix ("Saiba mais" is Learn More); the bulk sheet and pairing could spread several. |
 | ad id | Our own id for an ad: `ah-`, then the first 10 hex characters of the creative's SHA-256, a dash, and the first 10 of the headline's. It goes in Taboola's Custom ID (30 characters at most), so results can come back to the ad. |

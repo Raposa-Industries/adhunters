@@ -13,67 +13,94 @@ only), which stays as it is. Two binaries live here:
 
 Pages under `/create/` on the shared shell (the Frame), in Portuguese;
 headlines are always in English. Tabs: **Criar**, **Biblioteca**, **Regras**.
-Create is a chat, as auto-creative was, with iteration added (decision 0019):
+Create is a chat, as auto-creative was, with iteration added (decision 0019).
+The pages call a session a *conversa*.
 
-1. **A session.** Pick the vertical (our fixed list, `shared/verticals`),
-   then the platform (Taboola, the default, or NewsBreak; remembered), and
-   name the session in the left column, or open one already there. The
-   vertical, the platform and the name are the library folders what it saves
-   goes in (`<vertical>/<platform>/<session>`), and the platform gives the
-   network letter of its minted names (`BPT…`, `BPN…`); a name used before
-   in that vertical opens that session again, with the platform it has. Click the name to rename it; once saved, its library
-   folder (and the Drive folder) takes the new name too.
-2. **Send.** Write what you want, set how many pictures (up to 8) and
-   headlines (up to 20), the picture size (16:9 horizontal 1600x896, 9:16
-   vertical 896x1600, or NewsBreak 1504x786; remembered per session) and,
-   when other headline models are on, which one writes the headlines; press
-   Enviar (Ctrl+Enter). One text call writes the headlines and, for several
-   pictures from words alone, one brief per picture so they differ; then
-   each picture is its own call, three at a time. A picture that fails fails
-   alone, and its tile has **Tentar de novo**, which makes just that picture
-   again (the rate-limit case) without moving the page. **Parar** (on the
-   turn, and beside Enviar while something is being made) interrupts a turn:
-   pictures not started are not made and the turn shows as interrupted; a
+**Criar** has three columns: the conversations on the left (**+ Nova
+conversa**, then each one's name, vertical and day: hoje, ontem or dd/mm),
+the chat in the middle, and the library on the right.
+
+1. **Início** (`/create/`): "O que vamos criar?", a few starting ideas and
+   the composer. Pick the vertical (our fixed list, `shared/verticals`; set
+   for you by the first library reference) and the platform (Taboola, the
+   default, or NewsBreak; remembered) beside Enviar. Sending makes a new
+   conversation named from the first words of the prompt (a name used
+   before in that vertical gets " (2)"), then sends the turn. Biblioteca's
+   **Referenciar no Criar** lands here with its pictures and headlines
+   already referenced (`/create/?ref=c12,h5`).
+2. **Reference.** Click a picture or headline in the right column (search,
+   a folder, Todas / Originais / Geradas) to reference it; click again to
+   take it out. In the chat, **+ Referenciar** on any picture or headline
+   does the same. References show as chips over the prompt, each with an x;
+   the order is the order referenced (a prompt can say "the first"). **Do
+   computador** adds a picture from the computer, and Ctrl+V of a picture (a
+   screenshot) anywhere on the page does too. Under the hood a reference is
+   a pick (GLOSSARY): a library reference is added to the conversation as an
+   item first.
+3. **Send.** Write what you want about the references, set how many
+   pictures (up to 8) and headlines (up to 20), the picture size (16:9
+   horizontal 1600x896, 9:16 vertical 896x1600, or NewsBreak 1504x786;
+   remembered per conversation) and, when other headline models are on,
+   which one writes the headlines; press Enviar (Ctrl+Enter). Referenced
+   pictures go to the picture model and are changed as the prompt says, or
+   varied when the prompt is empty; referenced headlines are varied
+   minimally (same structure, a few words changed), and referenced pictures
+   are what new headlines are written for. One text call writes the
+   headlines and, for several pictures from words alone, one brief per
+   picture so they differ; then each picture is its own call, three at a
+   time. A picture that fails fails alone, and its tile has **Tentar de
+   novo**. **Parar** interrupts a turn: pictures not started are not made; a
    picture already being made was paid for, so it is kept and still shows
-   up if it arrives. A size the picture model cannot make (NewsBreak's: 786
-   is not a multiple of 16) is made at its closest shape (1504x784), kept as
-   it came, and cut to the exact size on the server; downloads are the file
-   as made, never cut by the page. Ctrl+V of a picture (a screenshot)
-   anywhere on the page adds it like + Imagem do computador, picked.
-3. **Pick and iterate.** Click any picture or headline to pick it (the
-   number is the order picked; a prompt can say "the first"). Send again:
-   picked pictures go to the picture model and are changed as the prompt
-   says, or varied when the prompt is empty; picked headlines are varied
-   minimally (same structure, a few words changed), and picked pictures are
-   what new headlines are written for. Every new item remembers what it
-   came from. Repeat as long as you like. With pictures picked, **quick
-   edits** above the prompt add a short English instruction each (camera 15°
-   to the right and slightly up, mirror, only the table's colour, other
-   people with the same expression, only the clothes' colour, rearrange the
-   table faithfully, feet and arms, distance between people); several
-   combine, and a second click takes one out.
-4. **Bring your own.** + Imagem do computador, + Da biblioteca (pictures and
-   headlines of the session's vertical) and + Escrever headline add items
-   that can be picked like any other.
-   **From Spy** (decision 0022): Spy's "Criar variações" links to
-   `/create/?from=spy&creative=<id>` (`tracks_api.creative_v1.id`). Create
-   opens a session in the ad's vertical (from `spy_api.creative_class_v1`;
-   the person picks one when Spy has none), named "Spy <id> · <brand>", with
-   the ad's picture and newest headline added (origin `spy`) and picked. The
-   same ad again opens the same session. The picture is downloaded by
-   Create's server from public addresses only.
-5. **Warnings.** Every headline shows Taboola's warnings (hidden characters,
+   up if it arrives. A size the picture model cannot make (NewsBreak's) is
+   made at its closest shape and cut to the exact size on the server;
+   downloads are the file as made. With pictures referenced, **quick edits**
+   above the prompt add a short English instruction each (camera 15° to the
+   right, mirror, the table's colour, other people, the clothes' colour,
+   rearrange the table, feet and arms, distance between people).
+4. **The answer** starts with "Create · N imagens e M headlines": pictures
+   two to a row, each with + Referenciar, Salvar and a button to see it big
+   (and download it); headlines one to a row with their length, ✎ to edit
+   one not yet saved, + Referenciar and Salvar. Every new item remembers
+   what it came from. A saved picture shows "✓ Salva em <pasta>", a saved
+   headline "✓ Salva".
+5. **Save into a folder.** Salvar opens **Salvar na biblioteca**: a folder
+   tree to search (vertical › platform › folder), the conversation's own
+   folder first, **+ Nova pasta em <platform>**, tags (+ tag, suggested from
+   the vertical's), the AI label for a made picture (on by default, with a
+   warning when switched off), and **Salvar em <pasta>**. Nothing reaches
+   the library before that. A folder of another vertical cannot be chosen.
+   Saved creatives are named by the chosen folder's vertical and platform
+   (`MMT…`, `MMN…`).
+6. **Warnings.** Every headline shows Taboola's warnings (hidden characters,
    length, capitals, cure claims, disease names, amounts, the team's blocked
-   words with a swap button); they never block. A headline is edited in
-   place until it is saved.
-6. **Save.** With items picked, Salvar na biblioteca writes them into the
-   session's folder, with the person's AI label for made pictures (on by
-   default, with a warning when switched off). Nothing reaches the library
-   before that. The head then links Abrir no Launch (`/launch/new?set=<id>`).
+   words with a swap button); they never block.
 
-The **Biblioteca** tab browses the library (pictures, headlines, folders)
-through Create's server. **Regras** lists the rules and the team's blocked
-words.
+**From Spy** (decision 0022): Spy's "Criar variações" links to
+`/create/?from=spy&creative=<id>` (`tracks_api.creative_v1.id`). Create
+opens a conversation in the ad's vertical (from `spy_api.creative_class_v1`;
+the person picks one when Spy has none), named "Spy <id> · <brand>", with
+the ad's picture and newest headline added (origin `spy`) and referenced.
+The same ad again opens the same conversation. The picture is downloaded by
+Create's server from public addresses only.
+
+**Biblioteca** (`/create/library`) is the library Launch makes ads from,
+the same one the right column shows. On the left: ORIGEM (Tudo, Originais:
+uploaded or from Drive, Geradas: saved from Criar, with counts), PASTAS (the
+folder tree with counts, + Nova) and NO LAUNCH (Todas, Em anúncios, Nunca
+usadas; shown only when Create may read `launch_api`, below). In the main
+column: the path, **+ Nova pasta**, **Subir originais** (into the open
+folder, or one chosen; tags optional), Imagens and Headlines with their
+counts, and the order (Mais recentes, Mais antigas, Por nome). Each picture
+shows ORIGINAL or GERADA, its name, its day and "no Launch: N anúncios";
+clicking it opens it big with its folder, AI label, size, tags (add and
+take off), Baixar and Referenciar no Criar. Tick pictures or headlines for
+the selection bar: **Referenciar no Criar**, **Mover** (refile into another
+folder of the same vertical; the library keeps where they were, and Drive
+files stay where they are), **Apagar** (hides them from the library, Criar
+and Launch; nothing is deleted, and Desfazer brings them back). Ctrl+K
+searches the library (names, headlines and tags).
+
+**Regras** lists the rules and the team's blocked words.
 
 ### How it works
 
@@ -89,7 +116,12 @@ for), anything else runs again. Every OpenAI reply is kept on disk as it
 came (`CREATE_KEEP_DIR`) before it is read; uploads and pictures are kept in
 `CREATE_FILES`. A session's first save makes its set in the library, with
 the session's platform, and remembers the id at once, so every later save
-adds to the same folder. Sessions are Taboola's unless made for NewsBreak;
+adds to the same folder. A save into a chosen folder (`set_id`) goes there
+instead, with that folder's vertical and platform naming the pictures, and
+`session_save` keeps the folder, its name and the tags (migration 0008).
+"No Launch" counts read `launch_api.item_v1` (the ad id's picture part),
+which needs `GRANT launch_api_read TO create_app`; without it the counts and
+the NO LAUNCH filter are not shown. Sessions are Taboola's unless made for NewsBreak;
 sets saved before 2 Oct 2026 keep their folder.
 
 **Headline memory.** A turn that asks for headlines shows the text model
@@ -140,7 +172,8 @@ from another site's page is refused.
 - `GET status` (with `headline_models`, `sizes`, `platforms`), `GET rules`,
   `GET verticals` (the fixed list by category).
 - `GET sessions?vertical=&limit=`, `POST sessions` (`{"name", "vertical_id",
-  "platform"}`; platform optional, taboola by default),
+  "platform", "fresh"}`; platform optional, taboola by default; `fresh`
+  makes a new session even when the name was used, as "name (2)"),
   `GET sessions/{id}` (the session, turns, items with warnings, saves),
   `PATCH sessions/{id}` (`{"name"}`; renames the library set too, and a
   name the library refuses puts the old one back).
@@ -156,9 +189,23 @@ from another site's page is refused.
 - `POST sessions/{id}/items`: a multipart `file`, or `{"headline"}`,
   `{"library_creative": id}`, `{"library_headline": id, "headline"}`.
   `PATCH items/{id}` (`{"text"}`, a headline not yet saved).
-- `POST sessions/{id}/saves` (`{"item_ids", "ai_label"}`), `GET saves/{id}`.
+- `POST sessions/{id}/saves` (`{"item_ids", "ai_label", "set_id",
+  "set_name", "tags"}`; `set_id` is the library folder to save into, of the
+  session's vertical, else the session's own folder; `set_name` names it on
+  the page; up to 20 tags), `GET saves/{id}`.
+- `POST library/sets` (`{"name", "vertical_id", "platform"}`): a new
+  library folder.
+- `POST library/creatives`: multipart `file`, `set_id`, `vertical_id`,
+  `tags` (comma separated): an original, uploaded.
+- `PATCH library/creatives/{id}` and `PATCH library/headlines/{id}`
+  (`{"hidden", "refile_to", "add_tags", "remove_tags"}`): Apagar (hidden,
+  and back), Mover and tags; the person is recorded.
+- `GET launch-use?sha=<10 hex>,…` (up to 500): `{"available", "ads"}`, how
+  many of Launch's ads use each picture (by the picture part of the ad id);
+  `available` is false when Create may not read `launch_api`.
 - `GET /create/files/items/{id}`: a picture. `GET /create/library-api/…`:
-  the library's reads.
+  the library's reads (verticals, folders, tags, sets, creatives,
+  headlines, files, thumbnails).
 
 ### Settings
 
@@ -174,7 +221,8 @@ its key is set: `CREATE_GROK_API_KEY`, `CREATE_DEEPSEEK_API_KEY`,
 (defaults `grok-4`, `deepseek-chat`, `kimi-k2-0905-preview`; check the
 provider's current name) and `_PRICE_IN`/`_PRICE_OUT` (USD per million
 tokens, 0 by default, so their cost is not counted until set). The library
-must be the one that takes `platform` (deploy it first).
+must be the one that takes `platform`, tags and refiles (library migration
+0007; deploy it first). No new settings for the library pages.
 
 ### Run it
 
@@ -472,6 +520,7 @@ Taboola write; this page keeps working until Launch replaces it.
 
 ```
 node --test shared/adsweb/test/*.test.js  # pairing, checks, tracking, zip, xlsx (needs python3)
+node --test create/internal/site/test/*.test.js  # Create's page parts: references, folders, saves
 cd create && go test ./...
 ```
 

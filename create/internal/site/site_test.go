@@ -43,6 +43,9 @@ type lib struct {
 	sets    int
 	renamed []string
 	refuse  bool
+	changes []string
+	added   []library.CreativeMeta
+	newSets []library.NewSet
 }
 
 func (l *lib) RenameSet(_ context.Context, id int64, name string) error {
@@ -70,15 +73,27 @@ func (s *spy) Picture(context.Context, string) ([]byte, error) {
 }
 
 func (l *lib) File(context.Context, string) ([]byte, error) { return nil, library.ErrNotFound }
-func (l *lib) AddSet(context.Context, library.NewSet) (library.Set, error) {
+func (l *lib) AddSet(_ context.Context, n library.NewSet) (library.Set, error) {
 	l.sets++
-	return library.Set{ID: 9}, nil
+	l.newSets = append(l.newSets, n)
+	return library.Set{ID: 9, Name: n.Name}, nil
 }
-func (l *lib) AddCreative(context.Context, library.CreativeMeta, string, []byte) (library.Creative, error) {
+func (l *lib) AddCreative(_ context.Context, m library.CreativeMeta, _ string, _ []byte) (library.Creative, error) {
+	l.added = append(l.added, m)
 	return library.Creative{ID: 1}, nil
 }
 func (l *lib) AddHeadlines(context.Context, []library.NewHeadline) error { return nil }
-func (l *lib) Headlines(context.Context, string, int) ([]string, error)  { return nil, nil }
+func (l *lib) Set(_ context.Context, id int64) (library.Set, error) {
+	return library.Set{ID: id, Name: "Pasta", VerticalID: "tinnitus"}, nil
+}
+func (l *lib) Change(_ context.Context, kind string, id int64, c library.Change) (json.RawMessage, error) {
+	l.changes = append(l.changes, kind+" "+itoa(id)+" "+c.By)
+	if c.RefileTo == 666 {
+		return nil, &library.Error{Status: 400, Message: "refile into a set of the same vertical"}
+	}
+	return json.RawMessage(`{"id":` + itoa(id) + `}`), nil
+}
+func (l *lib) Headlines(context.Context, string, int) ([]string, error) { return nil, nil }
 
 type on struct{}
 
@@ -335,5 +350,110 @@ func TestFeedbackAPI(t *testing.T) {
 	}
 	if code := call(t, h, "POST", "/create/api/items/"+itoa(item)+"/retry", "application/json", nil, nil); code != 400 {
 		t.Errorf("retry a waiting picture: %d", code)
+	}
+}
+
+type launchUse struct{ off bool }
+
+func (u launchUse) Ads(_ context.Context, p []string) (map[string]int, bool, error) {
+	if u.off {
+		return map[string]int{}, false, nil
+	}
+	out := map[string]int{}
+	for _, x := range p {
+		if x != "" {
+			out[x] = 2
+		}
+	}
+	return out, true, nil
+}
+
+// The redesign's server side: a fresh conversation never reopens an old one,
+// Salvar takes a folder and tags, and the library pages make folders, upload
+// originals, refile, hide and read Launch's ads per creative.
+func TestLibraryPagesAPI(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	st := sessions.New(testdb.New(t), &files.Dir{Root: t.TempDir()}, func() {})
+	l := &lib{}
+	browse := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		_, _ = rw.Write([]byte(`{"path":"` + r.URL.Path + `"}`))
+	})
+	web, err := site.New(st, l, &spy{}, browse, on{}, log, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := web.Handler()
+	js := "application/json"
+
+	var a, b sessions.Session
+	call(t, h, "POST", "/create/api/sessions", js, strings.NewReader(`{"name":"Colher","vertical_id":"tinnitus"}`), &a)
+	if code := call(t, h, "POST", "/create/api/sessions", js, strings.NewReader(`{"name":"Colher","vertical_id":"tinnitus","fresh":true}`), &b); code != 201 ||
+		b.ID == a.ID || b.Name != "Colher (2)" {
+		t.Fatalf("fresh: %d %+v", code, b)
+	}
+
+	var it sessions.Item
+	call(t, h, "POST", "/create/api/sessions/"+itoa(b.ID)+"/items", js, strings.NewReader(`{"headline":"A Calm Morning Habit"}`), &it)
+	var sv sessions.Save
+	body := `{"item_ids":[` + itoa(it.ID) + `],"ai_label":"ai","set_id":12,"set_name":"Cozinha","tags":["cozinha"]}`
+	if code := call(t, h, "POST", "/create/api/sessions/"+itoa(b.ID)+"/saves", js, strings.NewReader(body), &sv); code != 202 ||
+		sv.IntoSetID == nil || *sv.IntoSetID != 12 || sv.SetName != "Cozinha" || len(sv.Tags) != 1 {
+		t.Fatalf("save into: %d %+v", code, sv)
+	}
+
+	var set map[string]any
+	if code := call(t, h, "POST", "/create/api/library/sets", js, strings.NewReader(`{"name":"Cozinha","vertical_id":"memory-loss","platform":"taboola"}`), &set); code != 201 ||
+		l.newSets[0].VerticalName != "Memory Loss" || l.newSets[0].MadeBy != "mari@example.com" || l.newSets[0].Platform != "taboola" {
+		t.Fatalf("new folder: %d %v %+v", code, set, l.newSets)
+	}
+	if code := call(t, h, "POST", "/create/api/library/sets", js, strings.NewReader(`{"name":"a/b","vertical_id":"memory-loss"}`), nil); code != 400 {
+		t.Errorf("folder with a slash: %d", code)
+	}
+	if code := call(t, h, "POST", "/create/api/library/sets", js, strings.NewReader(`{"name":"x","vertical_id":"nope"}`), nil); code != 400 {
+		t.Errorf("folder in no vertical: %d", code)
+	}
+
+	var mb bytes.Buffer
+	mw := multipart.NewWriter(&mb)
+	p, _ := mw.CreateFormFile("file", "cozinha-ref.png")
+	_ = png.Encode(p, image.NewRGBA(image.Rect(0, 0, 20, 10)))
+	_ = mw.WriteField("set_id", "12")
+	_ = mw.WriteField("tags", "cozinha, mesa")
+	_ = mw.Close()
+	if code := call(t, h, "POST", "/create/api/library/creatives", mw.FormDataContentType(), &mb, nil); code != 201 ||
+		l.added[0].Origin != "upload" || l.added[0].SetID != 12 || len(l.added[0].Tags) != 2 {
+		t.Fatalf("upload original: %d %+v", code, l.added)
+	}
+
+	if code := call(t, h, "PATCH", "/create/api/library/creatives/5", js, strings.NewReader(`{"hidden":true}`), nil); code != 200 ||
+		l.changes[0] != "creatives 5 mari@example.com" {
+		t.Fatalf("hide: %d %v", code, l.changes)
+	}
+	if code := call(t, h, "PATCH", "/create/api/library/headlines/6", js, strings.NewReader(`{"refile_to":666}`), nil); code != 400 {
+		t.Errorf("refused refile: %d", code)
+	}
+	if code := call(t, h, "PATCH", "/create/api/library/sets/6", js, strings.NewReader(`{}`), nil); code != 404 {
+		t.Errorf("unknown kind: %d", code)
+	}
+	if code := call(t, h, "PATCH", "/create/api/library/creatives/5", js, strings.NewReader(`{"by":"x","name":"y"}`), nil); code != 400 {
+		t.Errorf("unknown field: %d", code)
+	}
+
+	var use struct {
+		Available bool           `json:"available"`
+		Ads       map[string]int `json:"ads"`
+	}
+	call(t, h, "GET", "/create/api/launch-use?sha=abc", "", nil, &use)
+	if use.Available {
+		t.Errorf("launch use without a reader: %+v", use)
+	}
+	web.UseLaunch(launchUse{})
+	call(t, h, "GET", "/create/api/launch-use?sha=0123456789", "", nil, &use)
+	if !use.Available || use.Ads["0123456789"] != 2 {
+		t.Errorf("launch use: %+v", use)
+	}
+	var got map[string]string
+	if code := call(t, h, "GET", "/create/library-api/api/folders", "", nil, &got); code != 200 {
+		t.Errorf("folders browse: %d %v", code, got)
 	}
 }

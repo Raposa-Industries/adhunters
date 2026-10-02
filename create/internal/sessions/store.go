@@ -153,6 +153,12 @@ type Save struct {
 	MadeBy       string     `json:"made_by"`
 	CreatedAt    time.Time  `json:"created_at"`
 	FinishedAt   *time.Time `json:"finished_at"`
+	// IntoSetID is the library set the person chose (nil: the session's,
+	// made by its first save), SetName the folder's name as they saw it
+	// (the session's name for its own), and Tags what goes on each item.
+	IntoSetID *int64   `json:"into_set_id"`
+	SetName   string   `json:"set_name"`
+	Tags      []string `json:"tags"`
 }
 
 // Detail is a session with everything in it, oldest first.
@@ -229,6 +235,29 @@ func (s *Store) NewSession(ctx context.Context, name, verticalID, verticalName, 
 		return Session{}, apiError(err)
 	}
 	return s.Session(ctx, id)
+}
+
+// FreeName is name when no session of the vertical has it, else name with
+// " (2)", " (3)" and so on: a new conversation started from the chat never
+// opens an old one by its name.
+func (s *Store) FreeName(ctx context.Context, verticalID, name string) (string, error) {
+	name = openai.CleanLine(strings.NewReplacer("/", " ", "\\", " ").Replace(name))
+	if r := []rune(name); len(r) > 110 {
+		name = strings.TrimSpace(string(r[:110]))
+	}
+	try := name
+	for i := 2; i < 1000; i++ {
+		var taken bool
+		if err := s.db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM create_app.session WHERE vertical_id = $1 AND lower(name) = lower($2))`,
+			verticalID, try).Scan(&taken); err != nil {
+			return "", err
+		}
+		if !taken {
+			return try, nil
+		}
+		try = fmt.Sprintf("%s (%d)", name, i)
+	}
+	return try, nil
 }
 
 func validPlatform(p string) bool {
@@ -696,11 +725,13 @@ func sha256hex(b []byte) string {
 
 // ---- saves -----------------------------------------------------------------
 
-const saveCols = `v.id, v.session_id, v.item_ids, v.ai_label, v.state, v.error, x.library_set_id, v.made_by, v.created_at, v.finished_at`
+const saveCols = `v.id, v.session_id, v.item_ids, v.ai_label, v.state, v.error, COALESCE(v.library_set_id, x.library_set_id), v.made_by,
+	v.created_at, v.finished_at, v.library_set_id, COALESCE(NULLIF(v.set_name, ''), x.name), v.tags`
 
 func scanSave(row pgx.Row) (Save, error) {
 	var v Save
-	err := row.Scan(&v.ID, &v.SessionID, &v.ItemIDs, &v.AILabel, &v.State, &v.Error, &v.LibrarySetID, &v.MadeBy, &v.CreatedAt, &v.FinishedAt)
+	err := row.Scan(&v.ID, &v.SessionID, &v.ItemIDs, &v.AILabel, &v.State, &v.Error, &v.LibrarySetID, &v.MadeBy, &v.CreatedAt, &v.FinishedAt,
+		&v.IntoSetID, &v.SetName, &v.Tags)
 	return v, err
 }
 
@@ -716,6 +747,52 @@ func (s *Store) SaveByID(ctx context.Context, id int64) (Save, error) {
 
 // Save saves items into the library, in the session's set.
 func (s *Store) Save(ctx context.Context, sessionID int64, itemIDs []int64, aiLabel, who string) (Save, error) {
+	return s.SaveInto(ctx, sessionID, itemIDs, aiLabel, who, Into{})
+}
+
+// Into is where a save goes: a library set the person chose (SetID 0: the
+// session's own), its name as they saw it, and tags for every item.
+type Into struct {
+	SetID   int64
+	SetName string
+	Tags    []string
+}
+
+// MaxTags is the most tags one save may put on its items.
+const MaxTags = 20
+
+// cleanTags makes tags one line each, lower case, without a leading # or
+// repeats, as the library keeps them.
+func cleanTags(in []string) ([]string, error) {
+	if len(in) > MaxTags {
+		return nil, BadInput(fmt.Sprintf("no máximo %d tags", MaxTags))
+	}
+	out := []string{}
+	seen := map[string]bool{}
+	for _, t := range in {
+		t = strings.ToLower(strings.TrimSpace(strings.TrimLeft(openai.CleanLine(t), "#")))
+		if t == "" || seen[t] {
+			continue
+		}
+		if len([]rune(t)) > 40 {
+			return nil, BadInput("uma tag tem no máximo 40 caracteres")
+		}
+		seen[t] = true
+		out = append(out, t)
+	}
+	return out, nil
+}
+
+// SaveInto saves items into the library, in the set into names (or the
+// session's), with its tags.
+func (s *Store) SaveInto(ctx context.Context, sessionID int64, itemIDs []int64, aiLabel, who string, into Into) (Save, error) {
+	tags, err := cleanTags(into.Tags)
+	if err != nil {
+		return Save{}, err
+	}
+	if into.SetID < 0 {
+		return Save{}, BadInput("pasta desconhecida")
+	}
 	switch aiLabel {
 	case "":
 		aiLabel = "ai"
@@ -730,7 +807,20 @@ func (s *Store) Save(ctx context.Context, sessionID int64, itemIDs []int64, aiLa
 		return Save{}, err
 	}
 	var id int64
-	err := s.db.QueryRow(ctx, `SELECT create_api.save_items_v1($1, $2, $3, $4, '')`, sessionID, itemIDs, aiLabel, who).Scan(&id)
+	err = pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx, `SELECT create_api.save_items_v1($1, $2, $3, $4, '')`, sessionID, itemIDs, aiLabel, who).Scan(&id); err != nil {
+			return err
+		}
+		// In the same transaction, so the worker never sees the save
+		// without where it goes.
+		var set *int64
+		if into.SetID > 0 {
+			set = &into.SetID
+		}
+		_, err := tx.Exec(ctx, `UPDATE create_app.session_save SET library_set_id = $2, set_name = $3, tags = $4 WHERE id = $1`,
+			id, set, openai.CleanLine(into.SetName), tags)
+		return err
+	})
 	if err != nil {
 		return Save{}, apiError(err)
 	}
