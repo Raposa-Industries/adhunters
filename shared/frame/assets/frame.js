@@ -31,7 +31,7 @@ const GLYPHS = {
   raposa: '<path d="M2 2.5 5.5 6h5L14 2.5 13 9l-5 5-5-5z" stroke-linejoin="round"/><circle cx="6" cy="8.5" r=".9" fill="currentColor" stroke="none"/><circle cx="10" cy="8.5" r=".9" fill="currentColor" stroke="none"/>',
   desk: '<path d="M2 3h12v7.5H8l-3.5 3v-3H2z" stroke-linejoin="round"/><path d="M5 6h6M5 8h3.5" stroke-width="1.2"/>',
   search: '<circle cx="7" cy="7" r="4.6"/><path d="m10.4 10.4 3.2 3.2"/>',
-  chevron: '<path d="m4.5 6.5 3.5 3.5 3.5-3.5"/>',
+  chevron: '<path d="m4.5 9.5 3.5-3.5 3.5 3.5"/>',
   filter: '<path d="M2 4h12M4.5 8h7M7 12h2"/>',
 };
 
@@ -191,24 +191,27 @@ function go(from, to) {
   location.assign(switchTo(from.id, to.id, location.pathname));
 }
 
+// MENU is the order the app menu lists the other apps in (Figma "Ember ·
+// Menu de apps aberto"); the app you are in is the selector itself, so it
+// is left out. The G shortcuts still work; the menu does not show them.
+const MENU = ['intel', 'spy', 'raposa', 'create', 'launch', 'funnels', 'desk'];
+
 function appMenu(list, me) {
   const button = h('button', {
     type: 'button', class: 'fr-app', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'fr-apps',
   }, h('span', { class: 'fr-glyph' }, icon(me.id)),
   h('span', { class: 'fr-app-text' }, h('span', { class: 'fr-app-name' }, me.name), h('small', { class: 'fr-app-about' }, me.about)),
-  h('span', { class: 'fr-chev' }, icon('chevron', 16)));
+  h('span', { class: 'fr-chev' }, icon('chevron', 20)));
   const panel = h('nav', { id: 'fr-apps', class: 'fr-apps', 'aria-label': 'Apps', hidden: true },
-    list.map((a) => {
+    list.filter((a) => a.id !== me.id).sort((x, y) => MENU.indexOf(x.id) - MENU.indexOf(y.id)).map((a) => {
       const inner = [
         h('span', { class: 'fr-glyph' }, icon(a.id)),
         h('span', { class: 'fr-apps-text' }, h('b', {}, a.name), h('small', {}, a.ready ? a.about : a.about + ' · em breve')),
-        h('span', { class: 'fr-keys' }, h('kbd', {}, 'G'), h('kbd', {}, a.key)),
       ];
       if (!a.ready) return h('span', { class: 'fr-apps-item', 'aria-disabled': 'true' }, inner);
       return h('a', {
         class: 'fr-apps-item',
         href: switchTo(me.id, a.id, location.pathname),
-        'aria-current': a.id === me.id ? 'page' : null,
       }, inner);
     }));
   const close = () => { panel.hidden = true; button.setAttribute('aria-expanded', 'false'); };
