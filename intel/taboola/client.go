@@ -44,7 +44,22 @@ type Client struct {
 
 // New returns a client for the given host (DefaultBase in production).
 func New(base, clientID, clientSecret string) *Client {
-	hc := &http.Client{Timeout: 2 * time.Minute, Transport: readOnly{http.DefaultTransport}}
+	return NewVia(base, clientID, clientSecret, nil)
+}
+
+// NewVia is New sending through via (a login's proxy client,
+// shared/taboola/logins), still read-only; nil sends direct.
+func NewVia(base, clientID, clientSecret string, via *http.Client) *Client {
+	next, timeout := http.DefaultTransport, 2*time.Minute
+	if via != nil {
+		if via.Transport != nil {
+			next = via.Transport
+		}
+		if via.Timeout > 0 {
+			timeout = via.Timeout
+		}
+	}
+	hc := &http.Client{Timeout: timeout, Transport: readOnly{next}}
 	c := &Client{api: api.New(base, clientID, clientSecret, hc), http: hc}
 	c.api.Wait = func(ctx context.Context, d time.Duration) error { return sleep(ctx, d) }
 	return c

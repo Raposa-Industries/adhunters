@@ -307,8 +307,13 @@ call the token, so Launch only keeps and shows it. The server's own login's
 accounts may each have a proxy in `launch.account_proxy`, sealed the same
 way and tied to the account. Logins added before proxies have none, so
 their accounts are refused until a person sets one on Contas (**···** >
-**Proxy**). Nothing new is needed in `launch-web.env`. Intel does not read these
-logins yet: their accounts have no numbers in Launch until it does.
+**Proxy**). Nothing new is needed in `launch-web.env`. Intel reads these logins
+through `launch_api.taboola_login_v1` (migration 0006, decision 0028) once
+`intel-collect.env` has the same `LAUNCH_LOGIN_KEY_BASE64`; until then their
+accounts have no numbers in Launch and no delivery status messages. The
+account proxies are published in `launch_api.taboola_account_proxy_v1`
+(same migration), and Intel reads those accounts only through them; without
+the key it does not read them at all.
 
 `launch.account_seen` (`migrations/sql/0005_account_seen.sql`, a new table)
 keeps the day Launch first listed each account of the server's own login, so

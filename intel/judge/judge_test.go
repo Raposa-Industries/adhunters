@@ -338,3 +338,19 @@ func TestSendSuggestions(t *testing.T) {
 		t.Fatalf("sent again")
 	}
 }
+
+// Taboola ids pass 2^31: an alert on such an item is recorded, not refused
+// (the 2026-10-02 rounds failed on item 4361729048).
+func TestAlertOnALargeItemID(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	found := []judge.Found{{Key: "item_rejected:4361729048", Kind: "item_rejected", Account: "a-sc",
+		Campaign: 4361729000, Item: 4361729048, Title: "t", Detail: "d", Numbers: map[string]any{}}}
+	if _, err := judge.Record(ctx, db, slog.New(slog.NewTextHandler(io.Discard, nil)), found, time.Now(), nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	var item int64
+	if err := db.QueryRow(ctx, `SELECT item_id FROM intel.alert`).Scan(&item); err != nil || item != 4361729048 {
+		t.Fatalf("item %d %v", item, err)
+	}
+}

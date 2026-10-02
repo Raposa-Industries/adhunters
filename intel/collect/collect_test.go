@@ -93,6 +93,28 @@ func TestTaboolaSettingsSpoolsEveryAnswer(t *testing.T) {
 	}
 }
 
+// A login from Launch's Contas page keeps to its chosen accounts, and leaves
+// out the ones another login already reads.
+func TestOnlyAndSkipKeepToTheChosenAccounts(t *testing.T) {
+	f := &accountsFake{body: `{"results":[{"account_id":"n","type":"NETWORK","time_zone_name":"UTC"},
+		{"account_id":"a-sc","type":"PARTNER","time_zone_name":"UTC"},
+		{"account_id":"b-sc","type":"PARTNER","time_zone_name":"UTC"},
+		{"account_id":"c-sc","type":"PARTNER","time_zone_name":"UTC"}]}`}
+	tb := &Taboola{Login: "contas-1", API: f, Spool: Spool{Dir: t.TempDir()}, Pace: &Pacer{disabled: true},
+		Log: slog.New(slog.NewTextHandler(io.Discard, nil)), Now: time.Now,
+		Only: map[string]bool{"a-sc": true, "b-sc": true}, Skip: func(a string) bool { return a == "b-sc" }}
+	accs, err := tb.Known(context.Background())
+	if err != nil || len(accs) != 1 || accs[0].ID != "a-sc" {
+		t.Fatalf("accounts %+v %v, want only a-sc", accs, err)
+	}
+}
+
+type accountsFake struct{ body string }
+
+func (f *accountsFake) Get(context.Context, string, url.Values) (*taboola.Response, error) {
+	return &taboola.Response{Status: 200, Body: []byte(f.body)}, nil
+}
+
 func TestRealtimeWindow(t *testing.T) {
 	// Taboola refuses 13:00 to 14:00 as "2 hours"; the span never starts on
 	// the hour unless it also ends in that hour.

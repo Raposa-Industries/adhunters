@@ -25,16 +25,16 @@ import (
 
 // ParseProxy reads a proxy address as people type it:
 // http://user:password@host:port, https://… or socks5://…, the user and
-// password optional.
+// password optional. Its errors are one pt-BR line, never the address.
 func ParseProxy(raw string) (*url.URL, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return nil, refuse("falta o proxy: http://usuario:senha@host:porta")
+		return nil, errors.New("falta o proxy: http://usuario:senha@host:porta")
 	}
 	if len(raw) > 500 {
-		return nil, refuse("proxy longo demais")
+		return nil, errors.New("proxy longo demais")
 	}
-	bad := refuse("proxy inválido: use http://usuario:senha@host:porta (http, https ou socks5)")
+	bad := errors.New("proxy inválido: use http://usuario:senha@host:porta (http, https ou socks5)")
 	u, err := url.Parse(raw)
 	if err != nil || u.Opaque != "" || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
 		return nil, bad
@@ -50,7 +50,7 @@ func ParseProxy(raw string) (*url.URL, error) {
 	}
 	port, err := strconv.Atoi(u.Port())
 	if err != nil || port < 1 || port > 65535 {
-		return nil, refuse("proxy sem porta: http://usuario:senha@host:porta")
+		return nil, errors.New("proxy sem porta: http://usuario:senha@host:porta")
 	}
 	u.Path = ""
 	return u, nil
@@ -65,19 +65,19 @@ func HostPort(u *url.URL) string {
 	return u.Host
 }
 
-// proxyClient is an HTTP client that sends every request through u and only
+// ProxyClient is an HTTP client that sends every request through u and only
 // through u: the transport's proxy is fixed (the environment's proxy
 // settings and NO_PROXY do not apply), and a failure is a ProxyError, never
 // a direct retry.
-func proxyClient(u *url.URL) *http.Client {
+func ProxyClient(u *url.URL) *http.Client {
 	tr := http.DefaultTransport.(*http.Transport).Clone()
 	tr.Proxy = http.ProxyURL(u)
 	return &http.Client{Timeout: 2 * time.Minute, Transport: &viaProxy{rt: tr, at: HostPort(u)}}
 }
 
-// blockedClient refuses every request with line: an account that must go
+// BlockedClient refuses every request with line: an account that must go
 // through a proxy it does not have (or that cannot be opened).
-func blockedClient(line string) *http.Client {
+func BlockedClient(line string) *http.Client {
 	return &http.Client{Transport: blocked(line)}
 }
 

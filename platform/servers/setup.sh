@@ -375,6 +375,11 @@ intel_box() {
     intel_pw=$(login intel)
     psql_su -d adhunters -c "GRANT CREATE ON DATABASE adhunters TO intel"
     psql_su -d adhunters -c "GRANT launch_api_read TO intel"
+    # The logins added on Launch's Contas page and its account proxies, sealed
+    # (decision 0028). Launch's migration grants them when the intel login is
+    # already there.
+    psql_su -d adhunters -c "DO \$\$ BEGIN IF to_regclass('launch_api.taboola_login_v1') IS NOT NULL THEN GRANT SELECT ON launch_api.taboola_login_v1 TO intel; END IF; END \$\$"
+    psql_su -d adhunters -c "DO \$\$ BEGIN IF to_regclass('launch_api.taboola_account_proxy_v1') IS NOT NULL THEN GRANT SELECT ON launch_api.taboola_account_proxy_v1 TO intel; END IF; END \$\$"
     url=FILL_ME
     [ -n "$intel_pw" ] && url="postgres://intel:$intel_pw@localhost:5432/adhunters?sslmode=require"
 

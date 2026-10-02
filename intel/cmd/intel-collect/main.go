@@ -12,6 +12,8 @@
 // It only reads: the Taboola client refuses anything but GETs (and its token
 // request), and the RedTrack transport refuses anything but GETs. Settings
 // come from the environment (see intel/deploy/intel-collect.env.example).
+// With LAUNCH_LOGIN_KEY_BASE64 it also reads the Taboola logins added on
+// Launch's Contas page, each through its own proxy (contas.go).
 package main
 
 import (
@@ -22,9 +24,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	_ "time/tzdata" // account time zones, whatever the box has installed
 
@@ -37,6 +41,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
+	"github.com/Raposa-Industries/adhunters/shared/taboola/logins"
 )
 
 // version is set at build time: -ldflags "-X main.version=…".
@@ -73,30 +78,50 @@ func usage() {
 
 type setup struct {
 	spool    collect.Spool
-	taboolas []*collect.Taboola
+	taboolas []*collect.Taboola // the env's logins, then the Contas ones
+	own      []*collect.Taboola // the env's logins (TABOOLA_LOGINS)
 	redtrack []*collect.RedTrack
+
+	envLogins        []envLogin
+	proxied          map[string]bool // accounts with a proxy on Contas: never read by the env's logins
+	kept             string          // where what Launch published is kept between starts
+	box              *logins.Box     // nil: LAUNCH_LOGIN_KEY_BASE64 unset, Contas logins not read
+	perMin, rtPerMin int
 }
+
+// envLogin is one Taboola login of intel-collect.env.
+type envLogin struct{ name, id, secret string }
 
 func build(log *slog.Logger) (*setup, error) {
 	dir := env("INTEL_SPOOL", "/var/lib/intel-collect/spool")
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return nil, err
 	}
-	s := &setup{spool: collect.Spool{Dir: dir}}
+	s := &setup{spool: collect.Spool{Dir: dir}, kept: env("INTEL_LAUNCH_KEPT", filepath.Join(filepath.Dir(dir), "launch.json"))}
 	perMin, _ := strconv.Atoi(env("INTEL_TABOOLA_PER_MINUTE", "40"))
 	rtPerMin, _ := strconv.Atoi(env("INTEL_TABOOLA_REALTIME_PER_MINUTE", "8"))
-	for _, login := range logins("TABOOLA_LOGINS") {
+	s.perMin, s.rtPerMin = perMin, rtPerMin
+	if key := strings.TrimSpace(os.Getenv("LAUNCH_LOGIN_KEY_BASE64")); key != "" {
+		box, _, err := logins.KeyFrom(key, "")
+		if err != nil {
+			return nil, fmt.Errorf("LAUNCH_LOGIN_KEY_BASE64: %w", err)
+		}
+		s.box = box
+	}
+	for _, login := range loginNames("TABOOLA_LOGINS") {
 		id, secret := secretFor("TABOOLA", login, "CLIENT_ID"), secretFor("TABOOLA", login, "CLIENT_SECRET")
 		if id == "" || secret == "" {
 			return nil, fmt.Errorf("taboola login %s: client id or secret missing", login)
 		}
+		s.envLogins = append(s.envLogins, envLogin{login, id, secret})
 		s.taboolas = append(s.taboolas, &collect.Taboola{
 			Login: login, API: taboola.New(taboola.DefaultBase, id, secret), Spool: s.spool,
 			Pace: &collect.Pacer{PerMinute: perMin, RealtimePerMinute: rtPerMin},
-			Log:  log.With("taboola_login", login), Now: time.Now,
+			Log:  log.With("taboola_login", login), Now: time.Now, Skip: s.hasProxy,
 		})
 	}
-	for _, login := range logins("REDTRACK_LOGINS") {
+	s.own = append([]*collect.Taboola(nil), s.taboolas...)
+	for _, login := range loginNames("REDTRACK_LOGINS") {
 		key := secretFor("REDTRACK", login, "API_KEY")
 		if key == "" {
 			return nil, fmt.Errorf("redtrack login %s: api key missing", login)
@@ -167,7 +192,7 @@ func runCmd() error {
 	srv := ops.New("intel-collect", version)
 	// The database may be away; collection is not. It connects lazily and
 	// the drain retries.
-	var db *pgxpool.Pool
+	var db lazyDB
 	srv.AddCheck("spool", func(ctx context.Context) error {
 		files, err := s.spool.Pending()
 		if err != nil {
@@ -181,27 +206,63 @@ func runCmd() error {
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)
 		go func() { opsDone <- srv.Serve(ctx, log, ops.Addr()) }()
-		jobs := s.jobs()
-		jobs = append(jobs, collect.Job{Name: "drain", Every: 15 * time.Second, Run: func(ctx context.Context) error {
-			if db == nil {
-				p, err := open(ctx)
-				if err != nil {
-					return err
-				}
-				db = p
+		jobCtx, stop := context.WithCancel(ctx)
+		defer stop()
+		changed := false
+		// What Launch published is read at start, so the proxied accounts'
+		// and the Contas logins' jobs are in the schedule; with the database
+		// away, the copy kept from the last read stands in, and the launch
+		// job reads it again.
+		start, cancel := context.WithTimeout(ctx, 15*time.Second)
+		fp := "unread"
+		r, err := s.readLaunchAt(start, &db)
+		if err != nil {
+			log.Warn("what Launch publishes not read yet; using the copy kept from the last read", "err", err)
+			if k, kerr := readKept(s.kept); kerr == nil {
+				r, fp = k, fingerprint(k)
 			}
-			n, err := s.spool.Drain(ctx, db)
+		} else {
+			fp = fingerprint(r)
+		}
+		cancel()
+		s.useLaunch(r, taboola.DefaultBase, log)
+		if s.box == nil {
+			log.Info("LAUNCH_LOGIN_KEY_BASE64 is not set: the logins added on Launch's Contas page are not read")
+		}
+		extra := []collect.Job{{Name: "launch", Every: 5 * time.Minute, Delay: time.Minute, Run: func(ctx context.Context) error {
+			r, err := s.readLaunchAt(ctx, &db)
+			if err != nil {
+				return err
+			}
+			if fingerprint(r) != fp {
+				log.Info("the Contas logins or account proxies changed: starting again", "logins", len(r.Logins), "proxies", len(r.Proxies))
+				changed = true
+				stop()
+			}
+			return nil
+		}}}
+		jobs := append(s.jobs(), extra...)
+		jobs = append(jobs, collect.Job{Name: "drain", Every: 15 * time.Second, Run: func(ctx context.Context) error {
+			pool, err := db.get(ctx)
+			if err != nil {
+				return err
+			}
+			n, err := s.spool.Drain(ctx, pool)
 			if n > 0 {
 				log.Debug("answers stored", "count", n)
 			}
 			return err
 		}})
 		log.Info("collect starting", "taboola_logins", len(s.taboolas), "redtrack_logins", len(s.redtrack))
-		collect.Schedule(ctx, log, srv.Tasks(), jobs)
-		if db != nil {
-			db.Close()
-		}
+		collect.Schedule(jobCtx, log, srv.Tasks(), jobs)
+		db.close()
 		log.Info("collect stopped")
+		if changed && ctx.Err() == nil {
+			// Ending cleanly lets systemd (Restart=always) start collection
+			// again at once with the new logins; the ops server goes with
+			// the process.
+			return nil
+		}
 		return <-opsDone
 	})
 }
@@ -213,6 +274,15 @@ func onceCmd(job string) error {
 		return err
 	}
 	ctx := context.Background()
+	var db lazyDB
+	defer db.close()
+	r, err := s.readLaunchAt(ctx, &db)
+	if err != nil {
+		if r, err = readKept(s.kept); err != nil {
+			return fmt.Errorf("what Launch publishes is not readable, so the accounts that only go through a proxy are unknown: %w", err)
+		}
+	}
+	s.useLaunch(r, taboola.DefaultBase, log)
 	var errs []error
 	for _, t := range s.taboolas {
 		switch job {
@@ -245,12 +315,11 @@ func onceCmd(job string) error {
 	if err := errors.Join(errs...); err != nil {
 		log.Error("job failed", "job", job, "err", err)
 	}
-	db, err := open(ctx)
+	pool, err := db.get(ctx)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
-	n, err := s.spool.Drain(ctx, db)
+	n, err := s.spool.Drain(ctx, pool)
 	fmt.Printf("%s: %d answers stored\n", job, n)
 	return err
 }
@@ -277,8 +346,8 @@ func env(k, def string) string {
 	return def
 }
 
-// logins reads a comma-separated list of login names ("zoltagroup,team").
-func logins(k string) []string {
+// loginNames reads a comma-separated list of login names ("zoltagroup,team").
+func loginNames(k string) []string {
 	var out []string
 	for _, l := range strings.Split(os.Getenv(k), ",") {
 		if l = strings.TrimSpace(strings.ToLower(l)); l != "" {
@@ -294,8 +363,53 @@ func secretFor(prefix, login, name string) string {
 	if v := os.Getenv(prefix + "_" + strings.ToUpper(strings.ReplaceAll(login, "-", "_")) + "_" + name); v != "" {
 		return v
 	}
-	if len(logins(prefix+"_LOGINS")) == 1 {
+	if len(loginNames(prefix+"_LOGINS")) == 1 {
 		return os.Getenv(prefix + "_" + name)
 	}
 	return ""
+}
+
+// readLaunchAt reads what Launch publishes and keeps a copy for the next
+// start.
+func (s *setup) readLaunchAt(ctx context.Context, db *lazyDB) (launchRows, error) {
+	pool, err := db.get(ctx)
+	if err != nil {
+		return launchRows{}, err
+	}
+	r, err := readLaunch(ctx, pool, s.box != nil)
+	if err != nil {
+		return r, err
+	}
+	if err := keep(s.kept, r); err != nil {
+		return r, fmt.Errorf("keep %s: %w", s.kept, err)
+	}
+	return r, nil
+}
+
+// lazyDB connects on first use and keeps the pool; the drain and the launch
+// job share it.
+type lazyDB struct {
+	mu   sync.Mutex
+	pool *pgxpool.Pool
+}
+
+func (d *lazyDB) get(ctx context.Context) (*pgxpool.Pool, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.pool == nil {
+		p, err := open(ctx)
+		if err != nil {
+			return nil, err
+		}
+		d.pool = p
+	}
+	return d.pool, nil
+}
+
+func (d *lazyDB) close() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.pool != nil {
+		d.pool.Close()
+	}
 }

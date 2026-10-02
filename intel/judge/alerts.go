@@ -286,7 +286,7 @@ func Record(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, found []Fou
 		keys = append(keys, f.Key)
 		b.Queue(`
 			INSERT INTO intel.alert (key, kind, account, campaign_id, item_id, title, detail, numbers, opened_at, seen_at)
-			VALUES ($1, $2, $3, NULLIF($4, 0), NULLIF($5, 0), $6, $7, $8, $9, $9)
+			VALUES ($1, $2, $3, NULLIF($4::bigint, 0), NULLIF($5::bigint, 0), $6, $7, $8, $9, $9)
 			ON CONFLICT (key) WHERE closed_at IS NULL DO UPDATE SET title = EXCLUDED.title, detail = EXCLUDED.detail,
 				numbers = EXCLUDED.numbers, seen_at = EXCLUDED.seen_at`,
 			f.Key, f.Kind, f.Account, f.Campaign, f.Item, f.Title, f.Detail, f.Numbers, now)

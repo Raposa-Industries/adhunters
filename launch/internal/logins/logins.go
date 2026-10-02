@@ -224,19 +224,6 @@ func (s *Service) accountClient(account string, sealed []byte) (*write.Client, s
 	return c, at, err
 }
 
-// bound ties a sealed secret to its login.
-func bound(network, clientID string) []byte { return []byte(network + "\x00" + clientID) }
-
-// proxyBound ties a login's sealed proxy to it (and apart from its secret).
-func proxyBound(network, clientID string) []byte {
-	return []byte(network + "\x00" + clientID + "\x00proxy")
-}
-
-// accountBound ties an account's sealed proxy to it.
-func accountBound(network, account string) []byte {
-	return []byte(network + "\x00account\x00" + account)
-}
-
 // List is the server's own login, then every added one, with their accounts
 // named as Taboola names them and the proxy each goes through. Each list is
 // asked of the client that serves those accounts, so through their proxy.
