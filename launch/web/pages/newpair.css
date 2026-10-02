@@ -139,10 +139,15 @@ details.more.box[open] { padding-bottom: 14px; }
   font: 600 10px/14px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .rv-ads th:nth-child(1) { width: 100px; padding-left: 17px; }
 .rv-ads th:nth-child(2) { width: 97px; padding-left: 0; }
-.rv-ads th:nth-child(3) { width: 360px; padding-left: 0; }
-.rv-ads th:nth-child(4) { width: 260px; padding-left: 0; }
-.rv-ads th:nth-child(6) { width: 82px; }
-.rv-ads th:nth-child(5) { padding-left: 0; }
+.rv-ads th:nth-child(3) { width: 320px; padding-left: 0; }
+.rv-ads th:nth-child(4) { width: 220px; padding-left: 0; }
+.rv-ads th:nth-child(5) { width: 172px; padding-left: 0; }
+.rv-ads th:nth-child(7) { width: 82px; }
+.rv-ads th:nth-child(6) { padding-left: 0; }
+.steps-page select.rv-cta { width: 150px; min-height: 28px; height: 28px; padding: 0 24px 0 8px; font-size: 12.5px; border-color: var(--line-strong); border-radius: 6px; }
+.mx-cta { margin-top: 6px; gap: 4px; }
+.mx-cta .cta-chip { min-height: 22px; padding: 0 7px; border-radius: 5px; font-size: 11.5px; }
+.steps-page .mx-cta select.cta-more { min-height: 22px; height: 22px; padding: 0 20px 0 7px; border-radius: 5px; font-size: 11.5px; }
 .rv-ads td { height: 56px; padding: 0; vertical-align: middle; border-bottom: 1px solid var(--line-subtle); font-size: 13.5px; }
 .rv-ads tbody tr:last-child td { border-bottom: 0; }
 .rv-ads td.rv-ad { padding-left: 17px; font: 500 12.5px var(--mono); color: var(--accent); }

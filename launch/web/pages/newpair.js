@@ -161,10 +161,11 @@ export async function newPair({ main, status }) {
     start: 'today', // or 'tomorrow'
     countries: ['US'],
     cols: [], // the matrix's pictures: {sha256, name, type, bytes, width, height, ai, library}
-    rows: [], // its headlines: {id, text, desc, library, ai}
+    rows: [], // its headlines: {id, text, desc, cta, library, ai}
     ticked: new Set(), // cell(row id, sha256)
-    cta: 'Learn More',
+    cta: 'Learn More', // the button the last row was given; a new row starts with it
     aiChosen: new Map(), // cell key → the AI label the person chose for that ad in Revisar
+    ctaChosen: new Map(), // cell key → the button the person chose for that ad in Revisar
   };
   let next = null; // the names for the chosen group, or the account's new group: actions.NextNames
   let accounts = [];
@@ -466,7 +467,6 @@ export async function newPair({ main, status }) {
   const counter = h('span', { class: 'faint' }, '');
   const fileIn = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif', multiple: true, hidden: true, onchange: (e) => { addFiles(e.target.files); e.target.value = ''; } });
   const upNote = h('div');
-  const ctaBox = h('div', { class: 'cta-chips', role: 'radiogroup', 'aria-label': 'Botão' });
   const namesLineEl = h('p', { class: 'faint names-line' }, '');
 
   function addCol(img) {
@@ -482,7 +482,7 @@ export async function newPair({ main, status }) {
   function addRow(text, extra = {}) {
     const t = clean(text || '').replace(/[\r\n]+/g, ' ').trim();
     if (!t || s.rows.some((r) => r.text.toLowerCase() === t.toLowerCase())) return null;
-    const r = { id: newId(), text: t, desc: '', ...extra };
+    const r = { id: newId(), text: t, desc: '', cta: s.cta, ...extra };
     s.rows.push(r);
     changed();
     return r;
@@ -534,6 +534,7 @@ export async function newPair({ main, status }) {
           h('th', { class: 'mx-row' },
             h('button', { type: 'button', class: 'mx-hl', title: 'Marcar ou desmarcar a linha toda (tire a headline clicando nela na biblioteca)', onclick: () => { toggle(s.ticked, s.cols.map((c) => cell(r.id, c.sha256))); changed(); } }, r.text),
             h('input', { type: 'text', class: 'mx-desc', value: r.desc || '', placeholder: 'Descrição (opcional)', 'aria-label': 'Descrição de ' + r.text, oninput: (e) => { r.desc = e.target.value; } }),
+            rowCTAs(r),
             w.map((x) => h('div', { class: 'warn-line' }, x))),
           ...s.cols.map((c, ci) => {
             const k = cell(r.id, c.sha256);
@@ -549,15 +550,27 @@ export async function newPair({ main, status }) {
     if (!s.rows.length && !s.cols.length) matrixBox.prepend(h('p', { class: 'faint mx-empty' }, 'Clique nas imagens e headlines da biblioteca ao lado: cada imagem vira uma coluna e cada headline uma linha. Depois marque as combinações.'));
   }
 
-  function drawCTAs() {
+  // rowCTAs is a row's Botão, under its description: it goes on every ad of
+  // the row (Revisar can still change one ad's).
+  function rowCTAs(r) {
     const more = moreCTAs(CTAS);
-    const inMore = more.includes(s.cta);
-    ctaBox.replaceChildren(...CHIPS.map(([v, label]) => h('button', { type: 'button', class: 'cta-chip' + (s.cta === v ? ' on' : ''), role: 'radio', 'aria-checked': String(s.cta === v),
-      onclick: () => { s.cta = v; drawCTAs(); update(); } }, label)),
-    select([['', 'Mais'], ...more.map((c) => [c, c])], inMore ? s.cta : '', { class: 'cta-more' + (inMore ? ' on' : ''), 'aria-label': 'Outros botões do Taboola',
-      onchange: (e) => { if (e.target.value) { s.cta = e.target.value; drawCTAs(); update(); } } }));
+    const inMore = more.includes(r.cta);
+    const pick = (v) => {
+      r.cta = v;
+      s.cta = v;
+      for (const c of s.cols) s.ctaChosen.delete(cell(r.id, c.sha256));
+      changed();
+    };
+    return h('div', { class: 'cta-chips mx-cta', role: 'radiogroup', 'aria-label': 'Botão de ' + r.text },
+      ...CHIPS.map(([v, label]) => h('button', { type: 'button', class: 'cta-chip' + (r.cta === v ? ' on' : ''), role: 'radio', 'aria-checked': String(r.cta === v),
+        onclick: () => pick(v) }, label)),
+      select([['', 'Mais'], ...more.map((c) => [c, c])], inMore ? r.cta : '', { class: 'cta-more' + (inMore ? ' on' : ''), 'aria-label': 'Outros botões do Taboola',
+        onchange: (e) => { if (e.target.value) pick(e.target.value); } }));
   }
   const ctaLabel = (c) => CHIPS.find(([v]) => v === c)?.[1] || c;
+  // ctaSelect is one ad's button in Revisar.
+  const ctaSelect = (a) => select([...CHIPS.map(([v, label]) => [v, label]), ...moreCTAs(CTAS).map((c) => [c, c])], a.cta,
+    { class: 'rv-cta', 'aria-label': 'Botão do AD' + pad(a.n), onchange: (e) => { s.ctaChosen.set(cell(a.row.id, a.img.sha256), e.target.value); update(); } });
 
   const adsCard = make === 'ads' ? h('section', { class: 'form-card' },
     h('div', { class: 'two' },
@@ -565,7 +578,6 @@ export async function newPair({ main, status }) {
       h('div', { class: 'field' }, fieldHead('Página de destino', 'obrigatória'), urlBox, urlWarn)),
     pickPop,
     h('div', { class: 'field' }, fieldHead('Combinações', counter), matrixBox, fileIn, upNote),
-    h('div', { class: 'field' }, fieldHead('Botão', 'o mesmo em todos estes anúncios'), ctaBox),
     namesLineEl) : null;
 
   // changed redraws what the matrix's parts show, then the rest.
@@ -769,7 +781,9 @@ export async function newPair({ main, status }) {
     const list = matrixAds(s.rows, s.cols, s.ticked).map((m) => {
       const r = s.rows[m.row];
       const img = s.cols[m.col];
-      return { n: m.n, col: m.col, img, row: r, title: clean(r.text), description: (r.desc || '').trim(), cta: s.cta, ai: adAI(r, img, s.aiChosen) };
+      const k = cell(r.id, img.sha256);
+      const cta = s.ctaChosen.has(k) ? s.ctaChosen.get(k) : r.cta ?? s.cta;
+      return { n: m.n, col: m.col, img, row: r, title: clean(r.text), description: (r.desc || '').trim(), cta, ai: adAI(r, img, s.aiChosen) };
     });
     return Promise.all(list.map(async (a) => ({ ...a, adId: await adId(a.img.sha256.slice(0, 10), a.title, '') })));
   }
@@ -868,9 +882,9 @@ export async function newPair({ main, status }) {
       h('div', { class: 'rv-summary' },
         fact('Campanhas', names.length ? names.join('  ·  ') : '—', 'mono'),
         fact('Página de destino', adUrl.value.trim().replace(/^https?:\/\//i, '') || '—'),
-        fact('Botão', ctaLabel(s.cta))),
+        fact('Botão', new Set(list.map((a) => a.cta)).size > 1 ? 'um por anúncio' : ctaLabel(list[0]?.cta ?? s.cta))),
       list.length ? h('div', { class: 'rv-ads' }, h('table', {},
-        h('thead', {}, h('tr', {}, ...['Anúncio', 'Imagem', 'Headline', 'Descrição', 'Rótulo', ''].map((x) => h('th', {}, x)))),
+        h('thead', {}, h('tr', {}, ...['Anúncio', 'Imagem', 'Headline', 'Descrição', 'Botão', 'Rótulo', ''].map((x) => h('th', {}, x)))),
         h('tbody', {}, list.map((a) => {
           const hw = headlineWarnings(a.title);
           if (portuguese(a.title)) hw.unshift('Parece português: as headlines vão sempre em inglês.');
@@ -880,6 +894,7 @@ export async function newPair({ main, status }) {
               a.img.ai ? h('span', { class: 'rv-ia', title: 'Imagem marcada como IA na biblioteca, ou que parece feita com IA' }, 'IA') : null)),
             h('td', { class: 'rv-title' }, h('span', {}, a.title), hw.map((x) => h('div', { class: 'warn-line' }, x))),
             h('td', { class: 'rv-desc', title: a.description || null }, a.description || '—'),
+            h('td', {}, ctaSelect(a)),
             h('td', {}, label(a)),
             h('td', { class: 'rv-out' }, h('button', { type: 'button', class: 'small', 'aria-label': 'Tirar o AD' + pad(a.n), onclick: () => { s.ticked.delete(cell(a.row.id, a.img.sha256)); changed(); } },
               svgIcon('x-icon', ['M4.5 4.5l7 7', 'M11.5 4.5l-7 7']), 'Tirar')));
@@ -1138,9 +1153,9 @@ export async function newPair({ main, status }) {
       gForm.set(b.group_fields);
     }
     s.cols = (b.images || []).filter((x) => x.on !== false);
-    s.rows = (b.headlines || []).filter((x) => x.on !== false && clean(x.text || '')).map((x) => ({ id: newId(), text: clean(x.text), desc: b.ad_desc || '' }));
-    for (const r of s.rows) for (const c of s.cols) s.ticked.add(cell(r.id, c.sha256));
     if ((b.ctas || []).length) s.cta = b.ctas[0];
+    s.rows = (b.headlines || []).filter((x) => x.on !== false && clean(x.text || '')).map((x) => ({ id: newId(), text: clean(x.text), desc: b.ad_desc || '', cta: s.cta }));
+    for (const r of s.rows) for (const c of s.cols) s.ticked.add(cell(r.id, c.sha256));
     // Old drafts kept one AI answer for every ad.
     if (b.ai === 'yes' || b.ai === 'no') for (const k of s.ticked) s.aiChosen.set(k, b.ai === 'yes');
     to.splice(0, to.length, ...(b.to || to));
@@ -1183,7 +1198,6 @@ export async function newPair({ main, status }) {
   if (draft) openDraft(draft);
   brandAndCap();
   drawCountries();
-  drawCTAs();
   drawMatrix();
   for (const st of steps) {
     st.el.addEventListener('input', () => update());
