@@ -17,10 +17,13 @@ export function inState(s, which) {
 // nest is the table's rows before drawing: each group ({id, name, status,
 // account}) with its campaigns ({id, name, status, device, group_id,
 // account}) that pass the filters f: state, device (all, desktop, mobile)
-// and text (lower case, or ''). A group shows when one of its campaigns
-// does, or, with no device asked, when it passes by itself; a group found
-// by its own name keeps all its campaigns that pass the state and device.
-// A campaign targeting several devices ("both") passes either device.
+// and text (lower case, or ''), and the groups and campaigns ticked in the
+// left column (f.groups holds "<account>/<group id>" keys, f.camps campaign
+// ids; empty or missing means all). A group shows when one of its campaigns
+// does, or, with no device or campaign ticked, when it passes by itself; a
+// group found by its own name keeps all its campaigns that pass the state
+// and device. A campaign targeting several devices ("both") passes either
+// device.
 export function nest(groups, campaigns, f) {
   const key = (acct, id) => acct + '/' + (id || '-');
   const inGroup = new Map();
@@ -31,13 +34,17 @@ export function nest(groups, campaigns, f) {
   }
   const text = (s) => !f.text || String(s || '').toLowerCase().includes(f.text);
   const device = (c) => f.device === 'all' || c.device === f.device || c.device === 'both';
+  const someGroups = f.groups?.size > 0;
+  const someCamps = f.camps?.size > 0;
   const out = [];
   for (const g of groups) {
-    const all = inGroup.get(key(g.account, g.id)) || [];
+    const k = key(g.account, g.id);
+    if (someGroups && !f.groups.has(k)) continue;
+    const all = inGroup.get(k) || [];
     const named = !!f.text && (text(g.name) || text(g.id));
-    const cs = all.filter((c) => inState(c.status, f.state) && device(c) && (named || text(c.name) || text(c.id)));
-    const self = f.device === 'all' && inState(g.status, f.state) && (text(g.name) || text(g.id));
-    if (cs.length || self) out.push({ g, key: key(g.account, g.id), cs });
+    const cs = all.filter((c) => inState(c.status, f.state) && device(c) && (!someCamps || f.camps.has(c.id)) && (named || text(c.name) || text(c.id)));
+    const self = f.device === 'all' && !someCamps && inState(g.status, f.state) && (text(g.name) || text(g.id));
+    if (cs.length || self) out.push({ g, key: k, cs });
   }
   return out;
 }

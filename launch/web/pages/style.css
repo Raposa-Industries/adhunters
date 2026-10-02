@@ -25,6 +25,12 @@ button.big { min-height: 42px; padding: 8px 20px; font-size: 14px; }
 .card-tools { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .link-button { min-height: 0; padding: 2px 2px; background: none; border: 0; color: var(--ink-3); font: inherit; cursor: pointer; }
 .link-button:hover { background: none; color: var(--ink-strong); }
+/* Campanhas' left column: the groups and campaigns to tick. */
+.check-list { display: flex; flex-direction: column; gap: 2px; }
+.check-row { display: flex; align-items: center; gap: 8px; min-height: 24px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.check-row:hover { color: var(--ink-strong); }
+.check-row .check-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.check-list .more { align-self: flex-start; color: var(--accent); }
 .cols-menu { position: relative; }
 .cols-menu > summary { list-style: none; display: inline-block; }
 .cols-menu > summary::-webkit-details-marker { display: none; }
