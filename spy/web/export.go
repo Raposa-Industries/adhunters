@@ -213,6 +213,10 @@ func rangeText(win map[string]any) string {
 func filtersText(r *http.Request) string {
 	q := r.URL.Query()
 	var out []string
+	if q.Get("category") == "none" {
+		out = append(out, "sem vertical")
+		q.Del("category")
+	}
 	for _, f := range [][2]string{{"q", "busca"}, {"category", "categoria"}, {"vertical", "vertical"}, {"operator", "operador"},
 		{"publisher", "publisher"}, {"network", "rede"}, {"account", "conta"}, {"tracker", "tracker"}, {"affiliate", "afiliado"},
 		{"device", "dispositivo"}, {"status", "situação"}, {"min_days", "dias ativos"}, {"sort", "ordem"}} {

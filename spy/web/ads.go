@@ -152,6 +152,12 @@ func (s *Server) adsUpTo(r *http.Request, max int) (any, error) {
 		p := w.arg(like(v))
 		w.conds = append(w.conds, fmt.Sprintf("(cs.headline ILIKE %[1]s OR b.name ILIKE %[1]s OR o.name ILIKE %[1]s OR o.display_name ILIKE %[1]s)", p))
 	}
+	// category=none: the creatives neither the rules nor the model could
+	// place, for a person to set by hand.
+	if q.Get("category") == "none" {
+		w.add("k.category_id IS NULL")
+		q.Del("category")
+	}
 	for _, f := range []struct{ param, cond string }{
 		{"category", "k.category_id = ?"},
 		{"vertical", "k.vertical_id = ?"},

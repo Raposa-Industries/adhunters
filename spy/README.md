@@ -249,7 +249,7 @@ and `refresh_prices` replaces a copied row when Tracks has one.
 
 | Page | Path | Shows |
 |---|---|---|
-| Anúncios | `/spy/` | Every creative in the range as a card with its sparkline; filters by text, category, vertical, status, device, network, publisher, tracker, affiliate network, days active, and hidden operators (left out unless asked); sorts by presence, momentum, share of voice, headline and more, either way round; **Exportar** downloads the first 100 of the list as one HTML file with each creative's image, headline, description, call to action, brand, operator, vertical and numbers |
+| Anúncios | `/spy/` | Every creative in the range as a card with its sparkline; filters by text, category (or **Sem vertical**: the creatives neither the rules nor the model could place, to set by hand), vertical, status, device, network, publisher, tracker, affiliate network, days active, and hidden operators (left out unless asked); sorts by presence, momentum, share of voice, headline and more, either way round; **Exportar** downloads the first 100 of the list as one HTML file with each creative's image, headline, description, call to action, brand, operator, vertical and numbers |
 | Anúncio | `/spy/ads/{creative}` | Numbers, direction, presence per day (the last 30 days, or each day of a chosen range, up to 120), hour of day (São Paulo) over the range's last 7 days, publishers, auction prices, its ads, links, campaigns with their brand, Raposa's investigations with the button to ask for one, **Corrigir vertical** (a vertical by hand), and **Criar variações**, a link to `/create/?from=spy&creative={creative}` that opens Create on a new session with this ad's image and headline |
 | Operadores | `/spy/operators/` and `/{id}` | Operators by presence, momentum, launches, hit rate or name (A–Z or Z–A), each with the creative it showed most in 7 days beside its vertical; watched, hidden or all. One operator: **Vigiar**, **Ocultar das listas** and a nickname, its watch notices, its volume per day (presence, sightings and creatives; the last 30 days, or each day of a chosen range, up to 120), creatives, campaigns with their brands, accounts and sites with the rule that put each in it, brands and publishers |
 | Publishers | `/spy/publishers/` and `/{id}` | Checks and sightings per publisher; its top operators and creatives |
@@ -276,7 +276,7 @@ two later.
 
 The JSON is under `/spy/api/` (`ads`, `ads/{id}`, `ads/{id}/hours`, `operators`,
 `publishers`, `pulse`, `search`, `events`, `verticals`, `facets`; `from=48h`,
-`vs=before` and `rev=1` work on every list); `ads/export` is the HTML file.
+`vs=before` and `rev=1` work on every list; `ads?category=none` lists the creatives with no vertical); `ads/export` is the HTML file.
 `POST /spy/api/ads/{id}/investigate` asks Raposa through
 `raposa_api.request_investigation_v1` and records who asked;
 `POST /spy/api/operators/{id}/mark` (`hidden`, `watched`, `nickname`) and
