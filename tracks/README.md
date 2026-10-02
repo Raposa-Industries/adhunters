@@ -339,9 +339,11 @@ tracks-loader first. The archive's keys are set as for
 `tracks-shipper`. Metrics: `tracks_walker_walks_total{outcome,step}`,
 `tracks_walker_walk_seconds`, `tracks_walker_due`,
 `tracks_walker_files_archived_total`, and, read once a minute,
-`tracks_walker_backlog` (ads seen in the last hour with a link that are due,
-never walked included) and `tracks_walker_oldest_overdue_seconds` (how long
-ago the most overdue of them fell due again). The unit is
+`tracks_walker_backlog` (the ads `walks_due` would hand the walker now, never
+walked included) and `tracks_walker_oldest_overdue_seconds` (the longest any
+of them walked before has waited: since it fell due, or since it was seen
+again after that if it had stopped running, so an ad back after a day away
+counts minutes, not a day). The unit is
 [`tracks-walker.service`](../platform/servers/units/tracks-walker.service),
 installed on the worker box by `setup.sh` (settings in
 `/etc/adhunters/tracks-walker.env`, ops on 9119).

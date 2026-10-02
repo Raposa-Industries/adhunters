@@ -37,20 +37,23 @@ func Dues(ctx context.Context, db *pgxpool.Pool, limit int, now time.Time) ([]Du
 	})
 }
 
-// Backlog is how far behind the walker is: the ads seen in the last hour
-// with a link that are due, never walked included, and how long ago the most
-// overdue of the walked ones fell due again (0 when none is).
+// Backlog is how far behind the walker is: the ads walks_due would hand it
+// now (seen in the last hour with a link it can follow, never walked or due
+// again), and the longest any walked one of them has waited for it. An ad
+// waits from when it fell due, or from when it was seen again after that if
+// it had stopped running: an ad back after a day away has waited minutes, not
+// a day. 0 when none waits.
 func Backlog(ctx context.Context, db *pgxpool.Pool, now time.Time) (int64, time.Duration, error) {
 	var n int64
 	var secs float64
 	err := db.QueryRow(ctx, `
-		WITH s AS (
-			SELECT DISTINCT ad_id FROM tracks.sighting
-			WHERE seen_at > $1::timestamptz - interval '1 hour' AND seen_at <= $1 AND link_id IS NOT NULL
-		)
-		SELECT count(*) FILTER (WHERE w.ad_id IS NULL OR w.next_at <= $1),
-		       COALESCE(extract(epoch FROM max($1 - w.next_at) FILTER (WHERE w.next_at <= $1)), 0)::float8
-		FROM s LEFT JOIN tracks.walk_state w ON w.ad_id = s.ad_id`, now).Scan(&n, &secs)
+		SELECT count(*), COALESCE(extract(epoch FROM max($1::timestamptz - GREATEST(w.next_at, f.back))), 0)::float8
+		FROM tracks.walks_due(2147483647, $1) d
+		LEFT JOIN tracks.walk_state w ON w.ad_id = d.ad_id
+		LEFT JOIN LATERAL (
+			SELECT min(x.seen_at) AS back FROM tracks.sighting x
+			WHERE x.ad_id = d.ad_id AND x.seen_at >= w.next_at AND x.seen_at <= $1
+		) f ON true`, now).Scan(&n, &secs)
 	return n, time.Duration(secs * float64(time.Second)), err
 }
 
