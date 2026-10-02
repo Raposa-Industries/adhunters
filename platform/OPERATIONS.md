@@ -35,6 +35,20 @@ lines are shared with the old collector (bigworker), and today's Spy reads
 only the old collector's database on prodbox. Grafana Alloy and observe-bot
 wait for their accounts (`FILL_ME`).
 
+### A neighbour on the data box: Draw Designer
+
+Another project, Draw Designer, runs on the data box since 2 Oct 2026. It is
+not ours and our setup and deploys leave it alone: `draw-designer.service`
+and `draw-designer-update.timer` (it pulls its own main every 30 s), the
+`drawdesigner` user, `/opt/draw-designer`, `/etc/draw-designer`,
+`/var/lib/draw-designer`, `127.0.0.1:8110`, and the tunnel route
+`draw.hunt-teste.fyi`, which the owner keeps in the Cloudflare dashboard
+beside ours. Edit the tunnel's routes there by adding or changing ours only.
+
+It runs on the box's own Node (`/usr/bin/node`, 22). setup.sh installs Node
+22 only on the worker (Raposa's browser runner) and never removes or
+downgrades it; keep it so on the data box too: never below 22.
+
 ## Accounts
 
 | What | Where | Notes |
