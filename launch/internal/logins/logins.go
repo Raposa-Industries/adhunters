@@ -363,6 +363,9 @@ func (s *Service) check(ctx context.Context, clientID, secret string, hc *http.C
 	list, err := c.Allowed(ctx)
 	var we *write.Error
 	if errors.As(err, &we) && (we.Status == http.StatusUnauthorized || we.Status == http.StatusBadRequest || we.Status == http.StatusForbidden) {
+		if !looksLikeKey(clientID) {
+			return nil, refuse("a Taboola recusou esse client ID e client secret (HTTP %d): o client ID é a chave de 32 letras e números da página de API do Backstage, e esse parece o nome de uma conta", we.Status)
+		}
 		return nil, refuse("a Taboola recusou esse client ID e client secret (HTTP %d); confira e tente de novo", we.Status)
 	}
 	if err != nil {
@@ -609,4 +612,17 @@ func (s *Service) serverAccounts() []string {
 		}
 	}
 	return out
+}
+
+// looksLikeKey is a client ID shaped like Taboola's: 32 hex characters.
+func looksLikeKey(s string) bool {
+	if len(s) != 32 {
+		return false
+	}
+	for _, r := range s {
+		if !strings.ContainsRune("0123456789abcdefABCDEF", r) {
+			return false
+		}
+	}
+	return true
 }

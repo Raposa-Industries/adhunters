@@ -251,6 +251,7 @@ func TestRefusals(t *testing.T) {
 	r := setup(t)
 	_, err := r.s.Check(ctx, "new-id-0123456789", "wrong", r.px.addr)
 	refused(t, err, "recusou esse client ID")
+	refused(t, err, "parece o nome de uma conta")
 	_, err = r.s.Check(ctx, "", "x", r.px.addr)
 	refused(t, err, "preencha")
 	_, err = r.s.Add(ctx, "", "", "new-id-0123456789", "4242", "new-secret", r.px.addr, []string{"new-1-sc"})
@@ -353,6 +354,14 @@ func TestKeyFromSetting(t *testing.T) {
 		}
 		if strings.Contains(err.Error(), bad) {
 			t.Fatalf("the error holds the setting: %v", err)
+		}
+	}
+}
+
+func TestLooksLikeKey(t *testing.T) {
+	for s, want := range map[string]bool{"91db8f12e9894b38b190c8aac0f9ec7d": true, "acme-network": false, "91DB8F12E9894B38B190C8AAC0F9EC7D": true, "91db8f12e9894b38b190c8aac0f9ec7z": false} {
+		if looksLikeKey(s) != want {
+			t.Errorf("%q: %v", s, !want)
 		}
 	}
 }
