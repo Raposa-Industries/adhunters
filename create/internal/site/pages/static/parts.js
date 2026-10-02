@@ -66,6 +66,16 @@ export function libraryItemFor(items, r) {
   return items.find((it) => it.origin === 'library' && it.kind === kind && it.state === 'done' && it.library_ref === String(r.id)) || null;
 }
 
+// shortText is a headline cut to its first words (at most n characters,
+// whole words) with "...", as the composer's chips show it.
+export function shortText(text, n = 26) {
+  const t = String(text || '').trim();
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n + 1);
+  const at = cut.lastIndexOf(' ');
+  return (at > 8 ? cut.slice(0, at) : t.slice(0, n)).replace(/[\s.,;:!?-]+$/, '') + '...';
+}
+
 // ---- turns and saves --------------------------------------------------------------
 
 // answerLabel is how an answer starts: "Create · 4 imagens e 3 headlines".
