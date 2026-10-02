@@ -272,3 +272,24 @@ type notFound struct{}
 
 func (notFound) Error() string  { return "drive: 404" }
 func (notFound) NotFound() bool { return true }
+
+// The platform picks the network letter; the counter stays the vertical's.
+func TestPlatformLetter(t *testing.T) {
+	s := newStore(t)
+	ctx := context.Background()
+	a, _, err := s.AddCreative(ctx, store.NewCreative{VerticalID: "tinnitus", Origin: store.OriginCreate, Platform: "newsbreak"}, pic(t, 1))
+	if err != nil || a.Name != "TINN1" {
+		t.Fatalf("newsbreak: %+v %v", a, err)
+	}
+	b, _, err := s.AddCreative(ctx, store.NewCreative{VerticalID: "tinnitus", Origin: store.OriginCreate, Platform: "taboola"}, pic(t, 2))
+	if err != nil || b.Name != "TINT2" {
+		t.Fatalf("taboola: %+v %v", b, err)
+	}
+	var bad store.BadInput
+	if _, _, err := s.AddCreative(ctx, store.NewCreative{VerticalID: "tinnitus", Origin: store.OriginCreate, Platform: "outbrain"}, pic(t, 3)); !errors.As(err, &bad) {
+		t.Fatalf("unknown platform: %v", err)
+	}
+	if _, err := s.AddSet(ctx, store.NewSet{Name: "x", VerticalID: "tinnitus", Platform: "outbrain"}); !errors.As(err, &bad) {
+		t.Fatalf("unknown set platform: %v", err)
+	}
+}

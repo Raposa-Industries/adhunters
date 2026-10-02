@@ -288,7 +288,10 @@ func isNotFound(err error) bool {
 }
 
 // folderFor is the Drive folder a creative or a set's headlines go in: the
-// set's folder inside the vertical's, the vertical's, or the library folder.
+// set's folder inside the vertical's (inside its platform's folder there,
+// <vertical>/<platform>/<set>, for a set made with a platform), the
+// vertical's, or the library folder. A set that already has its folder keeps
+// it wherever it is.
 func (s *Syncer) folderFor(ctx context.Context, vertID string, setID int64) (string, error) {
 	db := s.st.DB()
 	parent := s.root
@@ -310,15 +313,24 @@ func (s *Syncer) folderFor(ctx context.Context, vertID string, setID int64) (str
 		parent = f
 	}
 	if setID != 0 {
-		var name, setVert string
+		var name, setVert, platform string
 		var id *string
-		if err := db.QueryRow(ctx, `SELECT name, COALESCE(vertical_id, ''), drive_folder_id FROM library.set WHERE id = $1`, setID).Scan(&name, &setVert, &id); err != nil {
+		if err := db.QueryRow(ctx, `SELECT name, COALESCE(vertical_id, ''), drive_folder_id, COALESCE(platform, '') FROM library.set WHERE id = $1`,
+			setID).Scan(&name, &setVert, &id, &platform); err != nil {
 			return "", err
 		}
 		// A set of another vertical (a creative saved into two) keeps its
 		// own place; a creative goes under its first set only when they agree.
 		if setVert == vertID {
-			f, err := s.ensureFolder(ctx, id, parent, name, "set", strconv.FormatInt(setID, 10))
+			setParent := parent
+			if pf := store.PlatformFolder(platform); pf != "" && vertID != "" && !s.folderLive(ctx, id) {
+				f, err := s.ensureFolder(ctx, nil, parent, pf, "platform", vertID+"/"+platform)
+				if err != nil {
+					return "", err
+				}
+				setParent = f
+			}
+			f, err := s.ensureFolder(ctx, id, setParent, name, "set", strconv.FormatInt(setID, 10))
 			if err != nil {
 				return "", err
 			}
@@ -331,6 +343,16 @@ func (s *Syncer) folderFor(ctx context.Context, vertID string, setID int64) (str
 		}
 	}
 	return parent, nil
+}
+
+// folderLive reports whether the folder known by id is still in Drive.
+func (s *Syncer) folderLive(ctx context.Context, id *string) bool {
+	if id == nil || *id == "" {
+		return false
+	}
+	var gone bool
+	err := s.st.DB().QueryRow(ctx, `SELECT gone_at IS NOT NULL FROM library.drive_file WHERE file_id = $1`, *id).Scan(&gone)
+	return err == nil && !gone
 }
 
 // ensureFolder returns the folder known by id when it is still there, else a
@@ -569,7 +591,9 @@ func (s *Syncer) touch(ctx context.Context, f drive.File, kind string, dir folde
 
 // placeOf reads a vertical and a set from where a file sits: the top folder
 // names the vertical (by name or code), and the folder it is directly in,
-// when that is below the vertical's, names the set.
+// when that is below the vertical's, names the set. A platform's folder
+// (<vertical>/Taboola) is no set: the sets are the folders inside it, and
+// one a person made there by hand gets that platform.
 func (s *Syncer) placeOf(ctx context.Context, dir folderAt) (string, int64, error) {
 	if dir.path == "" {
 		return "", 0, nil
@@ -584,6 +608,14 @@ func (s *Syncer) placeOf(ctx context.Context, dir folderAt) (string, int64, erro
 	if dir.depth < 2 {
 		return vertID, 0, nil
 	}
+	parts := strings.Split(dir.path, "/")
+	if dir.depth == 2 && store.PlatformOfFolder(parts[len(parts)-1]) != "" {
+		return vertID, 0, nil
+	}
+	platform := ""
+	if len(parts) == 3 {
+		platform = store.PlatformOfFolder(parts[1])
+	}
 	var setID int64
 	err = db.QueryRow(ctx, `SELECT id FROM library.set WHERE drive_folder_id = $1`, dir.id).Scan(&setID)
 	if err == nil {
@@ -593,7 +625,8 @@ func (s *Syncer) placeOf(ctx context.Context, dir folderAt) (string, int64, erro
 		return "", 0, err
 	}
 	name := path.Base(dir.path)
-	set, err := s.st.AddSet(ctx, store.NewSet{Name: name, VerticalID: vertID, Origin: store.OriginDrive, OriginRef: "drive:" + dir.id})
+	set, err := s.st.AddSet(ctx, store.NewSet{Name: name, VerticalID: vertID, Origin: store.OriginDrive, OriginRef: "drive:" + dir.id,
+		Platform: platform})
 	if err != nil {
 		return "", 0, err
 	}

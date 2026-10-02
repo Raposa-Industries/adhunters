@@ -26,6 +26,11 @@ schemas.
   text is a new headline, because the ad id is made from it.
 - **Sets.** Creatives and headlines made or uploaded together: one session in
   Create, one folder in Drive. A creative or headline can be in several sets.
+  A set may say its platform (`taboola` or `newsbreak`, from Create's
+  session); its creatives are then minted with that platform's network
+  letter (`BPT43`, `BPN44`; the counter is the vertical's, shared by both),
+  and its folder goes under the platform's (below). Sets made without one
+  (all of them before 2 Oct 2026) keep the vertical's own letter and folder.
 - **Files, in Drive only.** A picture saved from an app waits in its row
   until the next Drive pass uploads it (seconds later), and then only Drive
   has its bytes; `/files/{id}` reads them back from there. Each creative's
@@ -57,7 +62,9 @@ a Google account the owner created. Every 5 minutes, and right after an app
 saves something, one pass:
 
 1. **Out.** Each creative not in Drive yet is uploaded to
-   `<vertical>/<set>/<name>.<ext>` (folders made as needed), and each set whose
+   `<vertical>/<set>/<name>.<ext>`, or `<vertical>/<platform>/<set>/…` for
+   a set with a platform (`Taboola`, `NewsBreak`; folders made as needed; a
+   set whose folder exists already keeps it where it is), and each set whose
    headlines changed gets its `Headlines.txt` written again (one per line,
    hidden ones left out). Our id rides on each file as a Drive app property,
    which only the library's own Google client can read.
@@ -65,7 +72,9 @@ saves something, one pass:
    `library.drive_page` first. A picture the library does not have is
    downloaded once, for its hash and thumbnail, and added, its bytes staying
    in that Drive file: its vertical from the top folder's name (or code), its set from
-   the folder it is directly in. Pictures are JPEG, PNG, WebP or GIF, up to
+   the folder it is directly in. A platform's folder is no set: a folder a
+   person makes inside it is a set of that platform, and a picture loose in
+   it belongs to the vertical only. Pictures are JPEG, PNG, WebP or GIF, up to
    40 MB; anything else is recorded and left alone.
 3. **Gone.** After a whole listing, a file that was not in it is marked gone.
    Its creative's row and thumbnail stay; its bytes went with the file.
@@ -109,8 +118,8 @@ continues after the last id of a page.
 - `GET /api/verticals`, `PATCH /api/verticals/{id}` (`name`, `code`,
   `network_letter`, `next_number`).
 - `GET /api/sets?vertical=`, `POST /api/sets` (`name`, `vertical_id`,
-  `vertical_name` for a new vertical, `origin`, `origin_ref`, `made_by`; a
-  name already used in the vertical gets " (2)"), `GET /api/sets/{id}` (the
+  `vertical_name` for a new vertical, `origin`, `origin_ref`, `made_by`,
+  optional `platform`; a name already used in the vertical gets " (2)"), `GET /api/sets/{id}` (the
   set, its creatives and headlines in order), `PATCH /api/sets/{id}`
   (`{"name": ...}`: a name another set of the vertical has is refused; the
   Drive folder is renamed on the next pass).
@@ -118,7 +127,8 @@ continues after the last id of a page.
   `GET /api/creatives/{id}`.
 - `POST /api/creatives`: multipart, `file` (the picture) and `meta` (JSON:
   `vertical_id`, `vertical_name`, `set_id`, `angle`, `idea`, `origin`,
-  `origin_ref`, `ai_label`, `made_by`, and `name` when there is no vertical).
+  `origin_ref`, `ai_label`, `made_by`, optional `platform` (else the set's,
+  else the vertical's letter), and `name` when there is no vertical).
   201 new, 200 when those bytes were kept already (then only added to the
   set).
 - `PATCH /api/creatives/{id}` and `PATCH /api/headlines/{id}`: `angle`,

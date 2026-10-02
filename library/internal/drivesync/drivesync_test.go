@@ -255,3 +255,73 @@ func TestRenamedSetRenamesItsFolder(t *testing.T) {
 		t.Errorf("third pass %+v %v", res, err)
 	}
 }
+
+// A set made with a platform goes in <vertical>/<platform>/<set> and its
+// creatives carry the platform's letter; a set made without one keeps
+// <vertical>/<set>. A picture a person drops in a set folder under a
+// platform's folder joins a set of that platform, never a set named after
+// the platform.
+func TestPlatformFolders(t *testing.T) {
+	ctx := context.Background()
+	fake := drivetest.New(t)
+	st := store.New(testdb.New(t))
+	sy := drivesync.New(st, drive.New(fake.App(), "refresh"), drivetest.Root, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	nb, err := st.AddSet(ctx, store.NewSet{Name: "Colher", VerticalID: "blood-pressure", Origin: store.OriginCreate, Platform: "newsbreak"})
+	if err != nil || nb.Platform != "newsbreak" {
+		t.Fatalf("set: %+v %v", nb, err)
+	}
+	old, _ := st.AddSet(ctx, store.NewSet{Name: "Copo", VerticalID: "blood-pressure", Origin: store.OriginCreate})
+	a, _, err := st.AddCreative(ctx, store.NewCreative{VerticalID: "blood-pressure", SetID: nb.ID, Origin: store.OriginCreate}, pic(t, 1))
+	if err != nil || a.Name != "BPN1" {
+		t.Fatalf("newsbreak creative: %+v %v", a, err)
+	}
+	b, _, err := st.AddCreative(ctx, store.NewCreative{VerticalID: "blood-pressure", SetID: old.ID, Origin: store.OriginCreate}, pic(t, 2))
+	if err != nil || b.Name != "BPT2" {
+		t.Fatalf("old set's creative: %+v %v", b, err)
+	}
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	where := func(name string) string {
+		up := fake.Find(name)
+		if len(up) != 1 {
+			t.Fatalf("%s uploaded %d times", name, len(up))
+		}
+		var parts []string
+		for id := up[0].Parents[0]; id != drivetest.Root; {
+			f, _ := fake.Get(id)
+			parts = append([]string{f.Name}, parts...)
+			id = f.Parents[0]
+		}
+		return strings.Join(parts, "/")
+	}
+	if p := where("BPN1.png"); p != "Blood Pressure/NewsBreak/Colher" {
+		t.Errorf("newsbreak set's creative is in %q", p)
+	}
+	if p := where("BPT2.png"); p != "Blood Pressure/Copo" {
+		t.Errorf("old set's creative is in %q", p)
+	}
+
+	// A person drops pictures under NewsBreak: one in a new folder, one loose.
+	plat := fake.Find("NewsBreak")[0].ID
+	mine := fake.Add(plat, "Garrafa", drive.FolderType, nil)
+	fake.Add(mine, "hand.png", "image/png", pic(t, 3))
+	fake.Add(plat, "loose.png", "image/png", pic(t, 4))
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	sets, err := st.Sets(ctx, "blood-pressure", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, x := range sets {
+		got[x.Name] = x.Platform
+	}
+	if p, ok := got["Garrafa"]; !ok || p != "newsbreak" {
+		t.Errorf("hand-made set: %v", got)
+	}
+	if _, ok := got["NewsBreak"]; ok {
+		t.Errorf("the platform's folder became a set: %v", got)
+	}
+}
