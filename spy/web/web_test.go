@@ -458,3 +458,16 @@ func TestTeamAsks(t *testing.T) {
 		}
 	}
 }
+
+func TestDaysRecentAtSaoPauloMidnight(t *testing.T) {
+	end := time.Date(2026, 10, 2, 3, 0, 0, 0, time.UTC) // 00:00 in São Paulo
+	w := Window{Recent: true, From: end.Add(-24 * time.Hour), To: end}
+	d0, d1 := w.days()
+	if !d0.Equal(time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)) || !d1.Equal(time.Date(2026, 10, 2, 0, 0, 0, 0, time.UTC)) {
+		t.Errorf("recent days %v to %v, want 10-01 to 10-02", d0, d1)
+	}
+	r := Window{From: end.Add(-24 * time.Hour), To: end} // the date 2026-10-01 picked
+	if d0, d1 := r.days(); !d0.Equal(time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)) || !d1.Equal(d0) {
+		t.Errorf("picked day %v to %v, want 10-01 only", d0, d1)
+	}
+}
