@@ -49,6 +49,11 @@ type Taboola struct {
 	Pace  *Pacer
 	Log   *slog.Logger
 	Now   func() time.Time
+	// Only, when set, keeps to these advertiser accounts (the ones chosen
+	// for a login on Launch's Contas page). Skip leaves out accounts another
+	// login already reads, so none is read twice.
+	Only map[string]bool
+	Skip func(account string) bool
 
 	mu        sync.Mutex
 	accounts  []TbAccount
@@ -75,6 +80,9 @@ func (t *Taboola) Accounts(ctx context.Context) error {
 	var out []TbAccount
 	for _, r := range body.Results {
 		if r.Type == "NETWORK" || r.AccountID == "" {
+			continue
+		}
+		if (t.Only != nil && !t.Only[r.AccountID]) || (t.Skip != nil && t.Skip(r.AccountID)) {
 			continue
 		}
 		loc, err := time.LoadLocation(r.TimeZone)

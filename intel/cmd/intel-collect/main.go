@@ -12,6 +12,8 @@
 // It only reads: the Taboola client refuses anything but GETs (and its token
 // request), and the RedTrack transport refuses anything but GETs. Settings
 // come from the environment (see intel/deploy/intel-collect.env.example).
+// With LAUNCH_LOGIN_KEY_BASE64 it also reads the Taboola logins added on
+// Launch's Contas page, each through its own proxy (contas.go).
 package main
 
 import (
@@ -25,6 +27,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	_ "time/tzdata" // account time zones, whatever the box has installed
 
@@ -37,6 +40,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
+	"github.com/Raposa-Industries/adhunters/shared/taboola/logins"
 )
 
 // version is set at build time: -ldflags "-X main.version=…".
@@ -73,8 +77,12 @@ func usage() {
 
 type setup struct {
 	spool    collect.Spool
-	taboolas []*collect.Taboola
+	taboolas []*collect.Taboola // the env's logins, then the Contas ones
+	own      []*collect.Taboola // the env's logins (TABOOLA_LOGINS)
 	redtrack []*collect.RedTrack
+
+	box              *logins.Box // nil: LAUNCH_LOGIN_KEY_BASE64 unset, Contas logins not read
+	perMin, rtPerMin int
 }
 
 func build(log *slog.Logger) (*setup, error) {
@@ -85,7 +93,15 @@ func build(log *slog.Logger) (*setup, error) {
 	s := &setup{spool: collect.Spool{Dir: dir}}
 	perMin, _ := strconv.Atoi(env("INTEL_TABOOLA_PER_MINUTE", "40"))
 	rtPerMin, _ := strconv.Atoi(env("INTEL_TABOOLA_REALTIME_PER_MINUTE", "8"))
-	for _, login := range logins("TABOOLA_LOGINS") {
+	s.perMin, s.rtPerMin = perMin, rtPerMin
+	if key := strings.TrimSpace(os.Getenv("LAUNCH_LOGIN_KEY_BASE64")); key != "" {
+		box, _, err := logins.KeyFrom(key, "")
+		if err != nil {
+			return nil, fmt.Errorf("LAUNCH_LOGIN_KEY_BASE64: %w", err)
+		}
+		s.box = box
+	}
+	for _, login := range loginNames("TABOOLA_LOGINS") {
 		id, secret := secretFor("TABOOLA", login, "CLIENT_ID"), secretFor("TABOOLA", login, "CLIENT_SECRET")
 		if id == "" || secret == "" {
 			return nil, fmt.Errorf("taboola login %s: client id or secret missing", login)
@@ -96,7 +112,8 @@ func build(log *slog.Logger) (*setup, error) {
 			Log:  log.With("taboola_login", login), Now: time.Now,
 		})
 	}
-	for _, login := range logins("REDTRACK_LOGINS") {
+	s.own = append([]*collect.Taboola(nil), s.taboolas...)
+	for _, login := range loginNames("REDTRACK_LOGINS") {
 		key := secretFor("REDTRACK", login, "API_KEY")
 		if key == "" {
 			return nil, fmt.Errorf("redtrack login %s: api key missing", login)
@@ -167,7 +184,7 @@ func runCmd() error {
 	srv := ops.New("intel-collect", version)
 	// The database may be away; collection is not. It connects lazily and
 	// the drain retries.
-	var db *pgxpool.Pool
+	var db lazyDB
 	srv.AddCheck("spool", func(ctx context.Context) error {
 		files, err := s.spool.Pending()
 		if err != nil {
@@ -181,27 +198,65 @@ func runCmd() error {
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)
 		go func() { opsDone <- srv.Serve(ctx, log, ops.Addr()) }()
-		jobs := s.jobs()
-		jobs = append(jobs, collect.Job{Name: "drain", Every: 15 * time.Second, Run: func(ctx context.Context) error {
-			if db == nil {
-				p, err := open(ctx)
+		jobCtx, stop := context.WithCancel(ctx)
+		defer stop()
+		changed := false
+		var extra []collect.Job
+		if s.box != nil {
+			// Read at start, so the Contas logins' jobs are in the schedule;
+			// a database away now is read again by the contas job.
+			fp := "unread"
+			start, cancel := context.WithTimeout(ctx, 15*time.Second)
+			if pool, err := db.get(start); err != nil {
+				log.Warn("Contas logins not read yet: the database is away", "err", err)
+			} else if ls, err := loadContas(start, pool); err != nil {
+				log.Warn("Contas logins not read yet", "err", err)
+			} else {
+				fp = fingerprint(ls)
+				s.taboolas = append(s.taboolas, contasCollectors(s.box, ls, taboola.DefaultBase, s, s.perMin, s.rtPerMin, log)...)
+			}
+			cancel()
+			extra = append(extra, collect.Job{Name: "contas", Every: 5 * time.Minute, Delay: time.Minute, Run: func(ctx context.Context) error {
+				pool, err := db.get(ctx)
 				if err != nil {
 					return err
 				}
-				db = p
+				ls, err := loadContas(ctx, pool)
+				if err != nil {
+					return fmt.Errorf("read launch_api.taboola_login_v1: %w", err)
+				}
+				if fingerprint(ls) != fp {
+					log.Info("the Contas logins changed: starting again", "logins", len(ls))
+					changed = true
+					stop()
+				}
+				return nil
+			}})
+		} else {
+			log.Info("LAUNCH_LOGIN_KEY_BASE64 is not set: the logins added on Launch's Contas page are not read")
+		}
+		jobs := append(s.jobs(), extra...)
+		jobs = append(jobs, collect.Job{Name: "drain", Every: 15 * time.Second, Run: func(ctx context.Context) error {
+			pool, err := db.get(ctx)
+			if err != nil {
+				return err
 			}
-			n, err := s.spool.Drain(ctx, db)
+			n, err := s.spool.Drain(ctx, pool)
 			if n > 0 {
 				log.Debug("answers stored", "count", n)
 			}
 			return err
 		}})
 		log.Info("collect starting", "taboola_logins", len(s.taboolas), "redtrack_logins", len(s.redtrack))
-		collect.Schedule(ctx, log, srv.Tasks(), jobs)
-		if db != nil {
-			db.Close()
-		}
+		collect.Schedule(jobCtx, log, srv.Tasks(), jobs)
+		db.close()
 		log.Info("collect stopped")
+		if changed && ctx.Err() == nil {
+			// Ending cleanly lets systemd (Restart=always) start collection
+			// again at once with the new logins; the ops server goes with
+			// the process.
+			return nil
+		}
 		return <-opsDone
 	})
 }
@@ -277,8 +332,8 @@ func env(k, def string) string {
 	return def
 }
 
-// logins reads a comma-separated list of login names ("zoltagroup,team").
-func logins(k string) []string {
+// loginNames reads a comma-separated list of login names ("zoltagroup,team").
+func loginNames(k string) []string {
 	var out []string
 	for _, l := range strings.Split(os.Getenv(k), ",") {
 		if l = strings.TrimSpace(strings.ToLower(l)); l != "" {
@@ -294,8 +349,36 @@ func secretFor(prefix, login, name string) string {
 	if v := os.Getenv(prefix + "_" + strings.ToUpper(strings.ReplaceAll(login, "-", "_")) + "_" + name); v != "" {
 		return v
 	}
-	if len(logins(prefix+"_LOGINS")) == 1 {
+	if len(loginNames(prefix+"_LOGINS")) == 1 {
 		return os.Getenv(prefix + "_" + name)
 	}
 	return ""
+}
+
+// lazyDB connects on first use and keeps the pool; the drain and the contas
+// job share it.
+type lazyDB struct {
+	mu   sync.Mutex
+	pool *pgxpool.Pool
+}
+
+func (d *lazyDB) get(ctx context.Context) (*pgxpool.Pool, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.pool == nil {
+		p, err := open(ctx)
+		if err != nil {
+			return nil, err
+		}
+		d.pool = p
+	}
+	return d.pool, nil
+}
+
+func (d *lazyDB) close() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.pool != nil {
+		d.pool.Close()
+	}
 }

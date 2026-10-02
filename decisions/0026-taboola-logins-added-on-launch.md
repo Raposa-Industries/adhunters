@@ -24,8 +24,7 @@ Launch uses.
   characters.
 - **Launch owns it.** Launch is the one app that writes to Taboola
   (launch/README.md), so the logins live in its schema. Intel
-  still reads only its own env logins; giving it the added ones is a later
-  change through `contract/`.
+  reads the added ones through `contract/` since decision 0028.
 
 **Why a key file and not an env setting:** it needs no step from the owner
 before the deploy, and a copy of the database alone (backups included)

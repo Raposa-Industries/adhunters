@@ -17,9 +17,34 @@ settings once.
 
 | Binary | Does | Ops port |
 |---|---|---|
-| `intel-collect run` | Reads every Taboola login and RedTrack account on a schedule and keeps each answer as received: first in its spool on disk, then in `intel.answer` ([decision 0016](../decisions/0016-intel-answers-in-postgres.md)). It parses nothing. `intel-collect once JOB` runs one job. | 9113 |
+| `intel-collect run` | Reads every Taboola login (its own in `intel-collect.env`, and those added on Launch's Contas page, see below) and RedTrack account on a schedule and keeps each answer as received: first in its spool on disk, then in `intel.answer` ([decision 0016](../decisions/0016-intel-answers-in-postgres.md)). It parses nothing. `intel-collect once JOB` runs one job. | 9113 |
 | `intel-numbers run` | Every 2 minutes: loads new answers into tables, links moved campaigns, works out results, keeps alerts and suggestions (each sent once to the ops group "AdHunters operation" on Telegram, `OPS_TELEGRAM_CHAT_ID`, or "AdHunters alerts" while that is empty; suggestions with their Launch link). `reload -from D -to D` parses a range of answers again; `status` prints counts. Never talks to Taboola or RedTrack. | 9114 |
 | `intel-web` | The pages under `/intel/`, in the Frame (`shared/frame`), on `INTEL_WEB_ADDR` (127.0.0.1:8096) behind Cloudflare Access. Its one write is "not now" on a suggestion. | 9115 |
+
+**Logins added on Contas** (decision 0028). With `LAUNCH_LOGIN_KEY_BASE64`
+in `intel-collect.env` (the same value as in `launch-web.env`),
+intel-collect reads `launch_api.taboola_login_v1` at start and every 5
+minutes, opens each login's sealed secret and proxy, and reads the accounts
+chosen for it on Contas like its own logins, named `contas-<id>` in
+`intel.answer`. Every request for them, the token included, goes through
+the login's proxy and never direct; a login with no proxy, or whose secret
+or proxy does not open with the key, is not read and the log says why. An
+account one of its own logins already reads is read once, by its own. When a
+login is added, removed or changed, intel-collect ends cleanly and systemd
+starts it again with the new set. To give it the key, from your computer:
+
+```
+ssh admin@adhunters-data sudo bash -s <<'EOF'
+set -e
+f=/etc/adhunters/intel-collect.env
+v=$(sed -n 's/^LAUNCH_LOGIN_KEY_BASE64=//p' /etc/adhunters/launch-web.env)
+[ -n "$v" ] || v=$(base64 -w0 /var/lib/launch-web/login.key)
+sed -i '/^LAUNCH_LOGIN_KEY_BASE64=/d' "$f"
+[ -z "$(tail -c1 "$f")" ] || echo >>"$f"
+echo "LAUNCH_LOGIN_KEY_BASE64=$v" >>"$f"
+systemctl restart intel-collect
+EOF
+```
 
 What intel-collect reads, per Taboola login (Intel keeps to 40 standard and 8
 realtime requests a minute of the login's 84 and 10, leaving the rest to
