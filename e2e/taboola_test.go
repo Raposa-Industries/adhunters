@@ -107,14 +107,14 @@ func (f *fakeTaboola) serve(w http.ResponseWriter, r *http.Request) {
 		answer(w, map[string]any{"results": nonNil(f.groups[parts[0]])})
 	case len(parts) == 2 && parts[1] == "campaigns_group" && r.Method == http.MethodPost:
 		g := copyMap(body)
-		g["id"], g["status"] = f.id(), "PAUSED"
+		g["id"], g["status"] = f.id(), status(g)
 		f.groups[parts[0]] = append(f.groups[parts[0]], g)
 		answer(w, g)
 	case len(parts) == 2 && parts[1] == "campaigns" && r.Method == http.MethodGet:
 		answer(w, map[string]any{"results": nonNil(f.camps[parts[0]])})
 	case len(parts) == 2 && parts[1] == "campaigns" && r.Method == http.MethodPost:
 		c := copyMap(body)
-		c["id"], c["status"], c["advertiser_id"] = f.id(), "PAUSED", parts[0]
+		c["id"], c["status"], c["advertiser_id"] = f.id(), status(c), parts[0]
 		f.camps[parts[0]] = append(f.camps[parts[0]], c)
 		answer(w, c)
 	case len(parts) == 3 && parts[1] == "campaigns":
@@ -194,4 +194,13 @@ func turnsOn(v any, at string) []string {
 		}
 	}
 	return out
+}
+
+// status is Taboola's status for something just made: RUNNING when it was
+// made active, PAUSED otherwise.
+func status(m map[string]any) string {
+	if m["is_active"] == true {
+		return "RUNNING"
+	}
+	return "PAUSED"
 }

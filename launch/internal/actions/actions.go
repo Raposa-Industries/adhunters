@@ -4,8 +4,10 @@
 // one place Launch's writes go through, so Intel's and Desk's requests
 // (later, through launch_api) get the same checks and the same History.
 //
-// Nothing here starts spending. Groups, campaigns and ads are made paused,
-// and only a person turns them on, in the network's own dashboard. A move's
+// New groups, campaigns and ads go up paused, or running when the network
+// client is set to (TABOOLA_CREATE_ACTIVE, the owner's word of 2026-10-02):
+// a person asking for a new campaign here is the go. Copies and moves are
+// always paused, and nothing here turns an existing campaign on. A move's
 // originals are paused when a person starts the copies (Watch), so the two
 // never spend at once.
 package actions
@@ -112,7 +114,7 @@ func (l *Launch) noteItems(ctx context.Context, net, account string, m network.M
 	}
 }
 
-// NewGroup makes a paused group. Without a name it gets the account's next
+// NewGroup makes a group. Without a name it gets the account's next
 // number (01, 02…).
 func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g network.NewGroup) (network.Group, error) {
 	n, err := l.Net(net)
@@ -132,7 +134,7 @@ func (l *Launch) NewGroup(ctx context.Context, who Who, net, account string, g n
 	}
 	l.record(ctx, store.Change{
 		Who: who.Person, AskedBy: who.asked(), Network: net, Account: account, GroupID: made.ID, Kind: "new_group",
-		Summary: "Criou o grupo " + made.Name + ", pausado, " + groupBudget(made),
+		Summary: "Criou o grupo " + made.Name + ", " + groupBudget(made),
 		After:   raw(made), Result: "done",
 	})
 	return made, nil
@@ -295,7 +297,7 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 			return res, nil
 		}
 		res.Group, res.GroupID = &g, g.ID
-		tell(0, "ok", "criado, pausado · "+g.ID)
+		tell(0, "ok", "criado · "+g.ID)
 	} else {
 		tell(0, "ok", "já existe · "+r.GroupID)
 	}
@@ -303,6 +305,7 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 	pair := store.Pair{Network: r.Network, Account: r.Account, GroupID: res.GroupID, Name: strings.TrimSpace(r.Name), PresetID: r.PresetID, MadeBy: who.Person}
 	up := &network.Uploads{Read: l.img.Get}
 	made := 0
+	state := "pausada" // the campaigns', as the network made them
 	type side struct {
 		dev  network.Device
 		name string
@@ -325,6 +328,9 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 		m, err := n.CreateCampaign(ctx, r.Account, network.NewCampaign{Name: side.name, GroupID: res.GroupID, Device: side.dev, Settings: set, Ads: r.Ads}, up)
 		if m.Campaign.ID != "" {
 			made++
+			if m.Campaign.Active {
+				state = "ativa"
+			}
 			l.noteItems(ctx, r.Network, r.Account, m)
 			mm := m
 			if side.dev == network.Desktop {
@@ -338,10 +344,10 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 			tell(i+1, "fail", l.Say(err))
 			res.Problems = append(res.Problems, side.name+": "+l.Say(err))
 		case err != nil:
-			tell(i+1, "fail", fmt.Sprintf("campanha %s criada, pausada; %d de %s: %s", m.Campaign.ID, len(m.Ads), ads(len(r.Ads)), l.Say(err)))
+			tell(i+1, "fail", fmt.Sprintf("campanha %s criada, %s; %d de %s: %s", m.Campaign.ID, onOff(m.Campaign.Active, "ativa", "pausada"), len(m.Ads), ads(len(r.Ads)), l.Say(err)))
 			res.Problems = append(res.Problems, side.name+": "+l.Say(err))
 		default:
-			tell(i+1, "ok", fmt.Sprintf("criada, pausada · %s · %s, pausados", m.Campaign.ID, ads(len(m.Ads))))
+			tell(i+1, "ok", fmt.Sprintf("criada, %s · %s · %s, %s", onOff(m.Campaign.Active, "ativa", "pausada"), m.Campaign.ID, ads(len(m.Ads)), adsState(m.Ads)))
 		}
 	}
 
@@ -359,9 +365,9 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 			res.Problems = append(res.Problems, "o par foi criado mas não foi anotado aqui; ele aparece como duas campanhas soltas")
 		}
 	}
-	summary := fmt.Sprintf("Criou %s e %s, pausadas: %d de 2 campanhas, %s em cada", sides[0].name, sides[len(sides)-1].name, made, ads(len(r.Ads)))
+	summary := fmt.Sprintf("Criou %s e %s, %ss: %d de 2 campanhas, %s em cada", sides[0].name, sides[len(sides)-1].name, state, made, ads(len(r.Ads)))
 	if len(sides) == 1 {
-		summary = fmt.Sprintf("Criou a campanha %s, pausada, com %s", sides[0].name, ads(len(r.Ads)))
+		summary = fmt.Sprintf("Criou a campanha %s, %s, com %s", sides[0].name, state, ads(len(r.Ads)))
 		if made == 0 {
 			summary = "Tentou criar a campanha " + sides[0].name
 		}
@@ -380,7 +386,7 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 		l.record(ctx, store.Change{
 			Who: who.Person, AskedBy: who.asked(), Network: r.Network, Account: r.Account, GroupID: res.GroupID,
 			CampaignID: pair.MobileID, Kind: "new_pair",
-			Summary: fmt.Sprintf("Criou %s, pausada, junto com %s", sides[1].name, sides[0].name), Result: res.Result,
+			Summary: fmt.Sprintf("Criou %s, %s, junto com %s", sides[1].name, state, sides[0].name), Result: res.Result,
 		})
 	}
 	if res.Result == "done" && r.DraftID != 0 {
@@ -579,7 +585,7 @@ func (l *Launch) Pause(ctx context.Context, who Who, net, account string, ids []
 	return out, nil
 }
 
-// AddAds makes the same new ads, paused, in each campaign (Realize's
+// AddAds makes the same new ads in each campaign (Realize's
 // "assign creatives"). A picture is uploaded once for all of them.
 func (l *Launch) AddAds(ctx context.Context, who Who, net, account string, campaigns []string, newAds []network.NewAd) ([]Done, error) {
 	n, err := l.Net(net)
@@ -612,7 +618,7 @@ func (l *Launch) AddAds(ctx context.Context, who Who, net, account string, campa
 			l.noteItems(ctx, net, account, m)
 		}
 		ch := store.Change{Who: who.Person, AskedBy: who.asked(), Network: net, Account: account, GroupID: c.GroupID, CampaignID: id,
-			Kind: "change", Summary: fmt.Sprintf("Adicionou %s, pausados, em %s", ads(len(m.Ads)), orID(c.Name, id)),
+			Kind: "change", Summary: fmt.Sprintf("Adicionou %s, %s, em %s", ads(len(m.Ads)), adsState(m.Ads), orID(c.Name, id)),
 			After: raw(m.Ads), Result: "done"}
 		if err != nil {
 			d.Error = l.Say(err)
@@ -805,4 +811,22 @@ func (l *Launch) CancelMove(ctx context.Context, who Who, id int64) error {
 		return nil
 	}
 	return &network.Refused{Message: "essa mudança não está mais esperando"}
+}
+
+// onOff is the word for running or paused.
+func onOff(on bool, running, paused string) string {
+	if on {
+		return running
+	}
+	return paused
+}
+
+// adsState says whether new ads went up running or paused.
+func adsState(made []network.Ad) string {
+	for _, a := range made {
+		if a.Active {
+			return "ativos"
+		}
+	}
+	return "pausados"
 }

@@ -104,6 +104,7 @@ async function loadStatus() {
   } catch {
     state.tb.status = { connected: false, reason: "Sem conexão com o Taboola neste servidor." };
   }
+  if (live()) $("tb-paused-note").innerHTML = "Tudo sobe <b>ativo</b>: campanhas e anúncios começam a gastar assim que o Taboola aprovar.";
   const on = state.status.generation;
   $("gen-status").textContent = on
     ? `OpenAI ${state.status.image_model}, cerca de ${money(state.status.image_cost_usd || 0)} por imagem.`
@@ -209,6 +210,11 @@ function dataURL(blob) {
 }
 
 // downscale keeps pictures small on the way to the server.
+// live: new campaigns and ads go up running (TABOOLA_CREATE_ACTIVE).
+function live() {
+  return !!state.tb.status?.create_active;
+}
+
 async function downscale(blob, max = 1536) {
   const bmp = await createImageBitmap(blob);
   const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
@@ -1123,6 +1129,7 @@ async function renderAds(list) {
     : `CRIAR ${plural(ads.length * Math.max(1, targets.length), "ANÚNCIO", "ANÚNCIOS")} NO TABOOLA`;
   $("create-note").textContent = state.creating ? "" : missing.length ? `Falta: ${missing.join("; ")}.`
     : sent ? "Estes anúncios já foram criados. Mude algo para criar de novo."
+    : live() ? "Tudo sobe ativo: começa a gastar assim que o Taboola aprovar."
     : "Tudo é criado pausado. Nada roda até você ligar no painel do Taboola.";
 
   const readyBundle = ads.length > 0 && !!aiAnswer();
@@ -1302,12 +1309,12 @@ $("create").addEventListener("click", async () => {
         $("create-note").textContent = "Criando o grupo de campanhas…";
         const group = await postJSON("api/taboola/groups", newGroup());
         body.group_id = String(group.id);
-        box.innerHTML += `<div class="result ok">Grupo criado: <b>${esc(group.name)}</b> (ID ${esc(group.id)}), pausado.</div>`;
+        box.innerHTML += `<div class="result ok">Grupo criado: <b>${esc(group.name)}</b> (ID ${esc(group.id)}), ${live() ? "ativo" : "pausado"}.</div>`;
       }
       $("create-note").textContent = "Criando a campanha…";
       const made = await postJSON("api/taboola/campaigns", body);
       campaigns = [String(made.id)];
-      box.innerHTML += `<div class="result ok">Campanha criada, pausada: <b>${esc(made.name)}</b> (ID ${esc(made.id)}).</div>`;
+      box.innerHTML += `<div class="result ok">Campanha criada, ${live() ? "ativa" : "pausada"}: <b>${esc(made.name)}</b> (ID ${esc(made.id)}).</div>`;
       await loadCampaigns();
       state.tb.mode = "existing";
       document.querySelector("input[name=tb-mode][value=existing]").checked = true;
@@ -1335,7 +1342,7 @@ $("create").addEventListener("click", async () => {
     const byId = new Map(state.tb.campaigns.map((c) => [String(c.id), c.name]));
     box.innerHTML += (out.results || []).map((r) => r.error
       ? `<div class="result fail"><b>${esc(byId.get(String(r.campaign_id)) || r.campaign_id)}</b>: ${esc(r.error)}${r.created?.length ? ` (${r.created.length} criados antes do erro)` : ""}</div>`
-      : `<div class="result ok"><b>${esc(byId.get(String(r.campaign_id)) || r.campaign_id)}</b>: ${plural(r.created.length, "anúncio criado", "anúncios criados")}, pausados e em revisão. Ligue no painel do Taboola quando quiser.</div>`).join("");
+      : `<div class="result ok"><b>${esc(byId.get(String(r.campaign_id)) || r.campaign_id)}</b>: ${plural(r.created.length, "anúncio criado", "anúncios criados")}, ${live() ? "ativos e em revisão: começam quando o Taboola aprovar." : "pausados e em revisão. Ligue no painel do Taboola quando quiser."}</div>`).join("");
     $("create-note").textContent = "";
   } catch (err) {
     box.innerHTML += `<div class="result fail">${fixesHTML({ text: `Não deu: ${err.message}`, fix: taboolaFixes(err.message) })}</div>`;

@@ -11,17 +11,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// ceiling is the owner's rule of 2026-10-01: a campaign never has more than
-// $20 a day nor $20 in all.
-const ceiling = 20.0
+// ceiling is the daily cap the box runs with (the owner, 2026-10-02: $500 a
+// day and no spending limit). A total typed by hand is at most 30 of it.
+const ceiling = 500.0
 
-// checkRules checks every request Launch sent to Taboola:
-//   - nothing is switched on: no is_active other than false, anywhere;
+// checkRules checks every request Launch sent to Taboola, run as the box is
+// (TABOOLA_CREATE_ACTIVE=1):
+//   - only a new group, campaign or ad is switched on; nothing else sends an
+//     is_active other than false;
 //   - only reads, the image upload, and POSTs that make or pause things;
 //     nothing deleted, nothing PUT;
-//   - every campaign made has a daily cap and a total (ENTIRE) spending
-//     limit, both above 0 and at most $20, and the page's tracking code;
-//   - every group and every ad is made paused.
+//   - every campaign made has a daily cap above 0 and at most $500, a total
+//     limit that is the team's (none, or at most 30 daily caps), and the
+//     page's tracking code.
 func checkRules(t *testing.T, reqs []tbRequest, tm team) {
 	t.Helper()
 	if len(reqs) == 0 {
@@ -29,7 +31,10 @@ func checkRules(t *testing.T, reqs []tbRequest, tm team) {
 	}
 	for _, r := range reqs {
 		where := r.Method + " " + r.Path
-		if on := turnsOn(r.Body, "body"); len(on) > 0 {
+		parts := strings.Split(strings.TrimSuffix(r.Path, "/"), "/")
+		made := r.Method == "POST" && (len(parts) == 2 && (parts[1] == "campaigns" || parts[1] == "campaigns_group") ||
+			len(parts) == 5 && parts[3] == "items" && parts[4] == "mass")
+		if on := turnsOn(r.Body, "body"); len(on) > 0 && !made {
 			t.Errorf("%s turns something on: %s", where, strings.Join(on, ", "))
 		}
 		switch r.Method {
@@ -48,13 +53,12 @@ func checkRules(t *testing.T, reqs []tbRequest, tm team) {
 			t.Errorf("%s: body is not a JSON object: %.200s", where, r.Raw)
 			continue
 		}
-		parts := strings.Split(strings.TrimSuffix(r.Path, "/"), "/")
 		switch {
 		case len(parts) == 2 && parts[1] == "campaigns":
 			checkCampaign(t, where, b, tm)
 		case len(parts) == 2 && parts[1] == "campaigns_group":
-			if b["is_active"] != false {
-				t.Errorf("%s: a group made without is_active false: %v", where, b["is_active"])
+			if b["is_active"] != true {
+				t.Errorf("%s: a group made without is_active true: %v", where, b["is_active"])
 			}
 		case len(parts) == 5 && parts[3] == "items" && parts[4] == "mass":
 			coll, _ := b["collection"].([]any)
@@ -63,8 +67,8 @@ func checkRules(t *testing.T, reqs []tbRequest, tm team) {
 			}
 			for i, x := range coll {
 				it, _ := x.(map[string]any)
-				if it["is_active"] != false {
-					t.Errorf("%s: ad %d made without is_active false", where, i)
+				if it["is_active"] != true {
+					t.Errorf("%s: ad %d made without is_active true", where, i)
 				}
 				if u, _ := it["url"].(string); strings.ContainsAny(u, "{}") {
 					t.Errorf("%s: ad %d link carries macros: %s", where, i, u)
@@ -75,9 +79,13 @@ func checkRules(t *testing.T, reqs []tbRequest, tm team) {
 			// campaign under the ceilings.
 			for k, v := range b {
 				switch k {
-				case "is_active", "spending_limit_model":
+				case "is_active":
+					if v != false {
+						t.Errorf("%s: turns on an existing campaign or ad", where)
+					}
+				case "spending_limit_model":
 				case "daily_cap", "spending_limit":
-					if f, _ := v.(float64); !(f > 0) || f > ceiling {
+					if f, _ := v.(float64); !(f > 0) || k == "daily_cap" && f > ceiling || f > 30*ceiling {
 						t.Errorf("%s: %s %v is over $%.0f", where, k, v, ceiling)
 					}
 				default:
@@ -93,16 +101,19 @@ func checkRules(t *testing.T, reqs []tbRequest, tm team) {
 func checkCampaign(t *testing.T, where string, b map[string]any, tm team) {
 	t.Helper()
 	name := fmt.Sprint(b["name"])
-	if b["is_active"] != false {
-		t.Errorf("%s %s: made without is_active false", where, name)
+	if b["is_active"] != true {
+		t.Errorf("%s %s: made without is_active true", where, name)
 	}
 	cap, _ := b["daily_cap"].(float64)
 	limit, _ := b["spending_limit"].(float64)
 	if !(cap > 0) || cap > ceiling {
 		t.Errorf("%s %s: daily cap %v, want above 0 and at most $%.0f", where, name, b["daily_cap"], ceiling)
 	}
-	if !(limit > 0) || limit > ceiling || b["spending_limit_model"] != "ENTIRE" {
-		t.Errorf("%s %s: spending limit %v (%v), want a total (ENTIRE) above 0 and at most $%.0f", where, name, b["spending_limit"], b["spending_limit_model"], ceiling)
+	switch {
+	case tm.SpendingLimit == 0 && (b["spending_limit_model"] != "NONE" || b["spending_limit"] != nil):
+		t.Errorf("%s %s: spending limit %v (%v), want none (the team's preset)", where, name, b["spending_limit"], b["spending_limit_model"])
+	case tm.SpendingLimit > 0 && (!(limit > 0) || limit > 30*ceiling || b["spending_limit_model"] != "ENTIRE"):
+		t.Errorf("%s %s: spending limit %v (%v), want a total (ENTIRE) above 0 and at most $%.0f", where, name, b["spending_limit"], b["spending_limit_model"], 30*ceiling)
 	}
 	if b["tracking_code"] != tm.TrackingCode {
 		t.Errorf("%s %s: tracking code %q, want the page's default %q", where, name, b["tracking_code"], tm.TrackingCode)

@@ -108,7 +108,7 @@ func serve(args []string) error {
 		return err
 	}
 	if tb.Available() {
-		log.Info("taboola connected", "accounts", len(tbSet.Accounts), "max_cpc", tbSet.MaxCPC, "max_daily_cap", tbSet.MaxDailyCap, "max_spend_limit", tbSet.MaxSpendLimit, "only_own", tbSet.OnlyOwn)
+		log.Info("taboola connected", "accounts", len(tbSet.Accounts), "max_cpc", tbSet.MaxCPC, "max_daily_cap", tbSet.MaxDailyCap, "max_spend_limit", tbSet.MaxSpendLimit, "create_active", tbSet.CreateActive, "only_own", tbSet.OnlyOwn)
 	} else {
 		log.Warn("taboola off", "reason", tb.Why())
 	}
@@ -117,7 +117,7 @@ func serve(args []string) error {
 	st := store.New(db)
 	l := actions.New(st, img, log, tbnet.Message, tbnet.New(tb))
 	a := api.New(ctx, l, img, log, classify)
-	a.Limits = map[string]any{"max_cpc": tbSet.MaxCPC, "max_daily_cap": tbSet.MaxDailyCap, "max_spend_limit": tbSet.MaxSpendLimit, "only_own": tbSet.OnlyOwn}
+	a.Limits = map[string]any{"max_cpc": tbSet.MaxCPC, "max_daily_cap": tbSet.MaxDailyCap, "max_spend_limit": tbSet.MaxSpendLimit, "only_own": tbSet.OnlyOwn, "create_active": tbSet.CreateActive}
 	if lib := envOr("LAUNCH_LIBRARY_URL", "http://127.0.0.1:8093"); lib != "off" {
 		a.Library = library.New(lib)
 	}

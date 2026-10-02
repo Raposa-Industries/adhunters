@@ -129,8 +129,7 @@ func (it NewItem) body() obj {
 		"url":           strings.TrimSpace(it.URL),
 		"title":         strings.TrimSpace(it.Title),
 		"thumbnail_url": it.ThumbnailURL,
-		// New items start active by default; an ad made here only runs once
-		// a person turns it on in Taboola's dashboard.
+		// New items start active by default; MassCreateItems sets it.
 		"is_active": false,
 	}
 	if d := strings.TrimSpace(it.Description); d != "" {
@@ -148,9 +147,10 @@ func (it NewItem) body() obj {
 	return b
 }
 
-// MassCreateItems makes paused items in one campaign, at most MassChunk per
-// call. Every item is checked before the first call. Each is sent with
-// is_active false, and any Taboola answers as not paused is paused at once
+// MassCreateItems makes items in one campaign, at most MassChunk per call.
+// Every item is checked before the first call. With CreateActive each is
+// sent with is_active true and left as Taboola makes it. Otherwise each is
+// sent with is_active false, and any Taboola answers as not paused is paused at once
 // (is_active false on an item waiting for approval pauses it once approved,
 // proven 2026-09-29). When a call fails, the items made before it are
 // returned with the error; an item that could not be paused is named in the
@@ -186,8 +186,9 @@ func (c *Client) MassCreateItems(ctx context.Context, account, campaign string, 
 		coll := make([]obj, len(part))
 		for i, it := range part {
 			coll[i] = it.body()
+			coll[i]["is_active"] = c.s.CreateActive
 		}
-		out, err := c.sendJSON(ctx, http.MethodPost, campaignPath(account, campaign)+"/items/mass", obj{"collection": coll}, false)
+		out, err := c.sendNew(ctx, http.MethodPost, campaignPath(account, campaign)+"/items/mass", obj{"collection": coll})
 		if err != nil {
 			if e, ok := err.(*Error); ok && chunks > 1 {
 				err = &Error{Status: e.Status, Message: "lote " + strconv.Itoa(n+1) + " de " + strconv.Itoa(chunks) + ": " + e.Message}
@@ -198,7 +199,7 @@ func (c *Client) MassCreateItems(ctx context.Context, account, campaign string, 
 		for _, r := range results(out) {
 			cd, _ := r["custom_data"].(obj)
 			it := Item{ID: str(r["id"]), Title: str(r["title"]), Status: str(r["status"]), CustomID: str(cd["custom_id"]), Paused: r["is_active"] == false}
-			if !it.Paused {
+			if !it.Paused && !c.s.CreateActive {
 				if err := c.pauseItem(ctx, account, campaign, it.ID); err != nil {
 					unpaused = append(unpaused, "anúncio "+orNone(it.ID)+" criado mas não pausado: "+Message(err))
 				} else {
