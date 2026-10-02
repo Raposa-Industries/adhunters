@@ -45,6 +45,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | heartbeat | The alert that always fires. Better Stack calls when it stops arriving, because then no other alert can be trusted. |
 | runbook | The file in `runbooks/` an alert links: what it means, what to check, how to fix it. |
 | daily check | Claude's once-a-day read of what fired and what failed (Sentry, and Grafana Cloud when the session can reach it), reported in the project's "Alerts that fire" thread, with fixes for what is Claude's to fix. |
+| deploy | Putting main's build on the boxes: setup.sh on each, data box first, and the previous build back on a box where a service does not come up. Every merge to main does one (decision 0027). |
 | series | One metric with one set of label values, as Grafana Cloud stores it. The free plan holds 10,000 and drops what goes over. |
 | keep-list | The metrics Alloy sends on to Grafana Cloud from one exporter, by name (`platform/observe/alloy/`): what shows a problem at a glance. A metric no keep-list names never leaves its box. |
 | credit | What is left on a prepaid service we pay for: proxy traffic, AI credit. observe-bot reads it where the service has an API, or estimates it from our own spending where it has none (`credits.conf`). |

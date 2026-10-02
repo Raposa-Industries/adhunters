@@ -101,6 +101,48 @@ what is missing.
 
 ## Build and deploy
 
+### Deploys
+
+Every merge to main deploys itself once its `ci` run passes (decision
+0027): the `deploy` workflow (`.github/workflows/deploy.yml`) builds main,
+joins the tailnet as `tag:ci` and runs `platform/servers/deploy.sh`. On each
+box, data box first, `deploy-box.sh` runs `setup.sh`, then checks that every
+service of ours that should run is running a minute later and not
+restarting. If one is not, it puts that box's previous build back, restarts
+the services and the deploy stops there, so the boxes after it keep what
+they have. Migrations are not undone (they only add) nor settings files.
+setup.sh's whole output stays on the box, in `/var/log/adhunters/`.
+
+To deploy a commit by hand, an older one too (a rollback): GitHub, Actions,
+deploy, Run workflow, with the commit. From a computer on the tailnet, after
+the build line below: `platform/servers/deploy.sh` (or `deploy.sh worker`
+for one box).
+
+What the deploy job needs, set once:
+
+- Tailscale (login.tailscale.com), Access controls: a `tag:ci` owned by the
+  admins, allowed to log in to `tag:server` as `admin` through Tailscale SSH.
+  The tailnet's grants already let every device reach every other (2 Oct
+  2026); if they are ever narrowed, keep `tag:ci` to `tag:server` on
+  `tcp:22`:
+
+  ```
+  "tagOwners": { "tag:ci": ["autogroup:admin"], ... },
+  "ssh": [ { "action": "accept", "src": ["tag:ci"], "dst": ["tag:server"], "users": ["admin"] }, ... ],
+  ```
+- Tailscale, Settings, Trust credentials (OAuth clients): a client with the
+  `auth_keys` write scope and tag `tag:ci`.
+- GitHub: an environment `production` that only `main` can deploy from,
+  holding the client's ID as `TS_OAUTH_CLIENT_ID` and its secret as
+  `TS_OAUTH_SECRET`, so no other branch's run can read them. The node each
+  run makes is ephemeral: Tailscale removes it when the run ends.
+
+The credential reaches every box as `admin`, who has sudo: Draw Designer's
+service on the data box too. If it may have leaked, delete the OAuth client
+and tell Draw Designer, which then changes its own keys.
+
+### By hand
+
 Build on your computer (Go 1.25), from the repository root:
 
 ```
@@ -294,8 +336,6 @@ then `sudo systemctl restart launch-web` (a later line in an env file wins).
 
 ## Not yet
 
-- Deploys from CI (build, migrate, copy over Tailscale, wait for healthy).
-  Until then, deploys are the commands above, run by hand.
 - A home for secrets (sops or similar): the `.env` files are written by hand.
 - The switch-over from the old collector (prodbox and bigworker keep running
   until the owner says otherwise). The plan and its commands are in
