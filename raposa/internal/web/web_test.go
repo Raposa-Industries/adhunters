@@ -76,22 +76,24 @@ func TestAskFollowWatchAndStop(t *testing.T) {
 		t.Fatalf("the list does not show it:\n%s", body)
 	}
 
-	w := post(t, ts, "/i/1/watch", url.Values{"notification": {"Raposa"}, "kind": {"dark_found", "bogus"}, "scope": {"creative"}}, "")
+	w := post(t, ts, "/i/1/watch", url.Values{"kind": {"dark_found", "bogus"}, "scope": {"creative"}, "by": {"vini"}}, "")
 	if w.StatusCode != http.StatusSeeOther {
 		t.Fatalf("watch answered %d", w.StatusCode)
 	}
 	var creative *int32
 	var kinds []string
-	if err := s.db.QueryRow(ctx, `SELECT creative_id, kinds FROM raposa.watch`).Scan(&creative, &kinds); err != nil {
+	var by string
+	if err := s.db.QueryRow(ctx, `SELECT creative_id, kinds, created_by FROM raposa.watch`).Scan(&creative, &kinds, &by); err != nil {
 		t.Fatal(err)
 	}
-	if creative == nil || *creative != 42 || len(kinds) != 1 || kinds[0] != "dark_found" {
-		t.Fatalf("watch stored as creative %v kinds %v", creative, kinds)
+	if creative == nil || *creative != 42 || len(kinds) != 1 || kinds[0] != "dark_found" || by != "vini" {
+		t.Fatalf("watch stored as creative %v kinds %v by %q", creative, kinds, by)
 	}
 
 	resp, body := get(t, ts, "/i/1")
 	if resp.StatusCode != 200 || !strings.Contains(body, "Investigation 1: creative 42") ||
-		!strings.Contains(body, "the creative") || !strings.Contains(body, "Stop it") {
+		!strings.Contains(body, "the creative") || !strings.Contains(body, "Stop it") ||
+		!strings.Contains(body, "AdHunters operation") || strings.Contains(body, "Pushcut") {
 		t.Fatalf("detail page (%d):\n%s", resp.StatusCode, body)
 	}
 

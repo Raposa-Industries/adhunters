@@ -14,7 +14,7 @@ and `browser/`), with the work held differently
 
 | Binary | Does | Listens |
 |---|---|---|
-| `raposa-engine run` | Claims due investigations one visit at a time (10 workers), keeps pages whole, delivers watches through Pushcut, and every 5 minutes refreshes burned lines, queues automatic quick investigations and queues the follow-up runs that are due. | ops on `OPS_ADDR` (9105) |
+| `raposa-engine run` | Claims due investigations one visit at a time (10 workers), keeps pages whole, posts watched events to the ops group on Telegram, and every 5 minutes refreshes burned lines, queues automatic quick investigations and queues the follow-up runs that are due. | ops on `OPS_ADDR` (9105) |
 | `raposa-web` | Plain pages: ask for an investigation, follow it day by day, read its visits, splits per step, whole funnels, video links and evidence, compare its days, list the cloaked ads, open stored pages, set watches, see burned lines. | `127.0.0.1:8090`, ops on 9106 |
 | `browser/runner.js` | Headless Chromium for the browser rungs and the keeper. See [browser/README.md](browser/README.md). | `127.0.0.1:8086` |
 
@@ -219,9 +219,12 @@ theirs. Investigations of that site skip it; a line burned for
 
 A watch follows one investigation (and its retries), every investigation of
 a creative, or everything, for some of `started`, `dark_found` and
-`finished`. Each event is sent once to the Pushcut notification the watch
-names, with 3 tries. Without `PUSHCUT_API_KEY` deliveries are recorded as
-skipped. System alerts never go through here; they go to Telegram.
+`finished`. Each event is posted once to the ops group "AdHunters operation"
+on Telegram (decision 0004), however many watches want it: its title, its
+text, who watches it and a link to the investigation under
+`RAPOSA_BASE_URL`. 3 tries. Without `TELEGRAM_BOT_TOKEN` and
+`OPS_TELEGRAM_CHAT_ID` deliveries are recorded as skipped. System alerts go
+to "AdHunters alerts", never here.
 
 ## Tests
 

@@ -20,6 +20,7 @@ import (
 
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
 	"github.com/Raposa-Industries/adhunters/shared/files"
+	"github.com/Raposa-Industries/adhunters/shared/telegram"
 )
 
 // Config is what one engine needs.
@@ -27,8 +28,11 @@ type Config struct {
 	Node        string // this box, as claims name it
 	Workers     int    // visits at once
 	BrowserAddr string
-	PushcutKey  string // empty: watches are recorded as skipped
-	KeepDir     string // where the runner writes the files of one keep
+	// Telegram posts watched events to the ops group; nil: they are recorded
+	// as skipped. BaseURL is where raposa-web's pages are, for the link.
+	Telegram *telegram.Client
+	BaseURL  string
+	KeepDir  string // where the runner writes the files of one keep
 }
 
 // Engine runs investigations, keeps pages whole and delivers watches.

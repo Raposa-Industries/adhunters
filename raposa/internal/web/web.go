@@ -296,7 +296,6 @@ type LogLine struct {
 // Watch is one watch that covers the investigation.
 type Watch struct {
 	ID           int64
-	Notification string
 	Kinds        []string
 	Creative     bool
 	By           string
@@ -382,7 +381,7 @@ func (s *Server) details(ctx context.Context, d *Detail) error {
 		return err
 	}
 	rows, _ = s.db.Query(ctx, `
-		SELECT w.id, w.pushcut_notification, w.kinds, w.investigation_id IS NULL, w.created_by,
+		SELECT w.id, w.kinds, w.investigation_id IS NULL, w.created_by,
 		       count(*) FILTER (WHERE dl.status = 'sent')::int, count(*) FILTER (WHERE dl.status = 'failed')::int,
 		       count(*) FILTER (WHERE dl.status = 'skipped')::int
 		FROM raposa.watch w
@@ -392,7 +391,7 @@ func (s *Server) details(ctx context.Context, d *Detail) error {
 		GROUP BY w.id ORDER BY w.id`, d.ID, d.RetryOf, d.CreativeID)
 	d.Watches, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (Watch, error) {
 		var x Watch
-		return x, r.Scan(&x.ID, &x.Notification, &x.Kinds, &x.Creative, &x.By, &x.Sent, &x.Failed, &x.Skipped)
+		return x, r.Scan(&x.ID, &x.Kinds, &x.Creative, &x.By, &x.Sent, &x.Failed, &x.Skipped)
 	})
 	return err
 }
@@ -410,11 +409,6 @@ func (s *Server) watch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	name := strings.TrimSpace(r.FormValue("notification"))
-	if name == "" {
-		http.Error(w, "name the Pushcut notification to send to", http.StatusBadRequest)
-		return
-	}
 	var kinds []string
 	for _, k := range r.Form["kind"] {
 		if watchKinds[k] {
@@ -426,16 +420,17 @@ func (s *Server) watch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// A watch on the creative covers every investigation of it, the retries
-	// and the ones asked for later.
+	// and the ones asked for later. Every watch posts to the ops group on
+	// Telegram, naming who set it.
 	var err error
 	if r.FormValue("scope") == "creative" {
 		_, err = s.db.Exec(r.Context(), `
-			INSERT INTO raposa.watch (creative_id, kinds, pushcut_notification, created_by)
-			SELECT creative_id, $2, $3, $4 FROM raposa.investigation WHERE id = $1`, id, kinds, name, who(r))
+			INSERT INTO raposa.watch (creative_id, kinds, created_by)
+			SELECT creative_id, $2, $3 FROM raposa.investigation WHERE id = $1`, id, kinds, who(r))
 	} else {
 		_, err = s.db.Exec(r.Context(), `
-			INSERT INTO raposa.watch (investigation_id, kinds, pushcut_notification, created_by)
-			VALUES ($1, $2, $3, $4)`, id, kinds, name, who(r))
+			INSERT INTO raposa.watch (investigation_id, kinds, created_by)
+			VALUES ($1, $2, $3)`, id, kinds, who(r))
 	}
 	if err != nil {
 		s.fail(w, err)

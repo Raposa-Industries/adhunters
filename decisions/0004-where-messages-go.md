@@ -11,8 +11,10 @@ events, later verticals rising). People talk on WhatsApp.
 delivery status changes and suggestions, Taboola policy changes, and Spy's
 watched operators) goes to a second Telegram group, the ops group "AdHunters
 operation", instead of "AdHunters alerts" and Pushcut. "AdHunters alerts"
-keeps pages, chat alerts, the digest and Sentry issues. Raposa's
-investigation watches stay on Pushcut.
+keeps pages, chat alerts, the digest and Sentry issues.
+
+**Changed:** 2 Oct 2026, by Marcos. Raposa's investigation watches go to the
+ops group too, so nothing is sent through Pushcut any more.
 
 **Why:** developer noise stays out of the phones of people who only care about
 what they chose to watch.
