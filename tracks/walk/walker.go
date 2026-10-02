@@ -68,10 +68,10 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 			Name: "tracks_walker_due", Help: "Ads due for a walk at the last read of the list (at most one batch).",
 		}),
 		Backlog: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "tracks_walker_backlog", Help: "Ads seen in the last hour with a link that are due for a walk, never walked included.",
+			Name: "tracks_walker_backlog", Help: "Ads the walker would be handed now (tracks.walks_due), never walked included.",
 		}),
 		OldestOverdue: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "tracks_walker_oldest_overdue_seconds", Help: "How long ago the most overdue of those ads fell due again (0: none).",
+			Name: "tracks_walker_oldest_overdue_seconds", Help: "The longest any of those ads walked before has waited, since it fell due or was seen again after that (0: none).",
 		}),
 	}
 	reg.MustRegister(m.Walks, m.Seconds, m.Due, m.Backlog, m.OldestOverdue)

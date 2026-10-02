@@ -277,27 +277,35 @@ func TestBacklog(t *testing.T) {
 	exec(`INSERT INTO tracks.publisher (id, network_id, name, first_seen_at, last_seen_at) VALUES (1, 1, 'foxnews', now(), now())`)
 	exec(`INSERT INTO tracks.creative (id, creative_key, image_url, first_seen_at, last_seen_at) VALUES (10, 'ck', '', now(), now())`)
 	exec(`INSERT INTO tracks.ad (id, creative_id, headline, first_seen_at, last_seen_at)
-		SELECT g, 10, 'h' || g, now(), now() FROM generate_series(100, 105) g`)
+		SELECT g, 10, 'h' || g, now(), now() FROM generate_series(100, 107) g`)
 	exec(`INSERT INTO tracks.link (id, link_key, host, path, sample_url, first_seen_at, last_seen_at)
-		VALUES (1, gen_random_uuid(), 'a.com', '/', 'https://a.com/', now(), now())`)
-	// 100 never walked, 101 not due yet, 102 due 2 hours ago, 103 due 30
-	// minutes ago; 104 due but not seen in the last hour, 105 seen without a link.
+		VALUES (1, gen_random_uuid(), 'a.com', '/', 'https://a.com/', now(), now()),
+		       (2, gen_random_uuid(), 'x', '/', 'javascript:void(0)', now(), now())`)
+	// 100 never walked, 101 not due yet, 102 due 2 hours ago and seen since
+	// (it has waited 115 minutes), 103 due 30 minutes ago; 104 due but not seen in the last hour, 105 seen without a
+	// link, 106 due 10 hours ago but its newest link can't be walked, 107
+	// due 14 hours ago but away until 15 minutes ago (it has waited 15
+	// minutes, not 14 hours).
 	exec(`INSERT INTO tracks.sighting (seen_at, scrape_id, ad_id, creative_id, publisher_id, device_id, link_id)
 		VALUES ($1, 1, 100, 10, 1, 1, 1), ($1, 1, 101, 10, 1, 1, 1), ($1 - interval '10 minutes', 1, 102, 10, 1, 1, 1),
-		       ($1 - interval '20 minutes', 1, 102, 10, 1, 1, 1), ($1 + interval '5 minutes', 1, 103, 10, 1, 1, 1),
-		       ($1 - interval '2 hours', 1, 104, 10, 1, 1, 1), ($1, 1, 105, 10, 1, 1, NULL)`, now.Add(-10*time.Minute))
+		       ($1 - interval '20 minutes', 1, 102, 10, 1, 1, 1), ($1 - interval '105 minutes', 1, 102, 10, 1, 1, 1),
+		       ($1 + interval '5 minutes', 1, 103, 10, 1, 1, 1),
+		       ($1 - interval '2 hours', 1, 104, 10, 1, 1, 1), ($1, 1, 105, 10, 1, 1, NULL), ($1, 1, 106, 10, 1, 1, 2),
+		       ($1 - interval '5 minutes', 1, 107, 10, 1, 1, 1), ($1 + interval '5 minutes', 1, 107, 10, 1, 1, 1)`, now.Add(-10*time.Minute))
 	exec(`INSERT INTO tracks.walk_state (ad_id, walked_at, next_at) VALUES
 		(101, $1::timestamptz - interval '1 hour', $1::timestamptz + interval '5 hours'),
 		(102, $1::timestamptz - interval '8 hours', $1::timestamptz - interval '2 hours'),
 		(103, $1::timestamptz - interval '1 hour', $1::timestamptz - interval '30 minutes'),
-		(104, $1::timestamptz - interval '9 hours', $1::timestamptz - interval '3 hours')`, now)
+		(104, $1::timestamptz - interval '9 hours', $1::timestamptz - interval '3 hours'),
+		(106, $1::timestamptz - interval '16 hours', $1::timestamptz - interval '10 hours'),
+		(107, $1::timestamptz - interval '20 hours', $1::timestamptz - interval '14 hours')`, now)
 
 	n, oldest, err := Backlog(ctx, db, now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n != 3 || oldest != 2*time.Hour {
-		t.Errorf("backlog %d, oldest overdue %v; want 3 and 2h", n, oldest)
+	if n != 4 || oldest != 115*time.Minute {
+		t.Errorf("backlog %d, oldest overdue %v; want 4 and 1h55m", n, oldest)
 	}
 	// The walker takes them never walked first, then most overdue first,
 	// though 103 was seen last.
@@ -309,12 +317,13 @@ func TestBacklog(t *testing.T) {
 	for _, d := range dues {
 		order = append(order, d.AdID)
 	}
-	if len(order) != 3 || order[0] != 100 || order[1] != 102 || order[2] != 103 {
-		t.Errorf("due order %v, want [100 102 103]", order)
+	if len(order) != 4 || order[0] != 100 || order[1] != 107 || order[2] != 102 || order[3] != 103 {
+		t.Errorf("due order %v, want [100 107 102 103]", order)
 	}
-	exec(`DELETE FROM tracks.walk_state WHERE ad_id IN (102, 103)`)
+	exec(`DELETE FROM tracks.walk_state WHERE ad_id IN (102, 103, 107)`)
 	exec(`INSERT INTO tracks.walk_state (ad_id, walked_at, next_at) VALUES (100, $1, $1::timestamptz + interval '6 hours'),
-		(102, $1, $1::timestamptz + interval '6 hours'), (103, $1, $1::timestamptz + interval '6 hours')`, now)
+		(102, $1, $1::timestamptz + interval '6 hours'), (103, $1, $1::timestamptz + interval '6 hours'),
+		(107, $1, $1::timestamptz + interval '6 hours')`, now)
 	if n, oldest, err := Backlog(ctx, db, now); err != nil || n != 0 || oldest != 0 {
 		t.Errorf("all walked: backlog %d, oldest %v, %v", n, oldest, err)
 	}
