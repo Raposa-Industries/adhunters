@@ -217,12 +217,37 @@ Accounts are not in `launch_api`: they are the network logins', read live
 `launch.login` (`migrations/sql/0003_login.sql`) holds each added login: name,
 client ID, the chosen accounts, who added it and when, and its secret sealed
 with AES-256-GCM (`internal/logins`), tied to its network and client ID. The
-key is a 32-byte file Launch makes at its first start, owner-only:
-`LAUNCH_LOGIN_KEY`, by default `login.key` in the data folder
-(`/var/lib/launch-web/login.key` on the data box). It is never in the
-database, so a database copy alone cannot open a secret. If the key file is
-lost, the added logins show "a chave do servidor mudou" and have to be added
-again; the server's own login is not affected. Intel does not read these
+key is 32 bytes, never in the database, so a database copy alone cannot
+open a secret. Launch reads it from `LAUNCH_LOGIN_KEY_BASE64` (the key in
+base64, in `/etc/adhunters/launch-web.env`); without that setting it uses the
+file `LAUNCH_LOGIN_KEY`, by default `login.key` in the data folder
+(`/var/lib/launch-web/login.key` on the data box), which it makes at its
+first start, owner-only. With the setting it neither reads nor makes the file;
+if a file holds another key, the log says so and the setting wins.
+
+Nothing backs up `/var/lib`, so the owner keeps the key in their password
+manager, like every other key (decision 0026). To move the key file into the
+setting and copy the key to the clipboard without showing it, run this from
+your computer, then paste the key into the password manager. No restart is
+needed: the key is the same.
+
+```
+ssh admin@adhunters-data sudo bash -s <<'EOF' | wl-copy
+set -e
+f=/etc/adhunters/launch-web.env k=/var/lib/launch-web/login.key
+v=$(base64 -w0 "$k")
+sed -i '/^LAUNCH_LOGIN_KEY_BASE64=/d' "$f"
+[ -z "$(tail -c1 "$f")" ] || echo >>"$f"
+echo "LAUNCH_LOGIN_KEY_BASE64=$v" >>"$f"
+if sed -n 's/^LAUNCH_LOGIN_KEY_BASE64=//p' "$f" | base64 -d | cmp -s - "$k"; then echo "== saved in $f, the same key as $k; it is in your clipboard" >&2; else echo "== the setting does not match $k" >&2; exit 1; fi
+printf %s "$v"
+EOF
+```
+
+On a rebuilt box, put the line `LAUNCH_LOGIN_KEY_BASE64=` with the key from
+the password manager back in `launch-web.env` and restart launch-web. If the
+key is lost, the added logins show "a chave do servidor mudou" and have to be
+added again; the server's own login is not affected. Intel does not read these
 logins yet: their accounts have no numbers in Launch until it does.
 
 ## Settings and running it
