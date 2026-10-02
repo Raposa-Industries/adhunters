@@ -1093,27 +1093,3 @@ function save(blob, name) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
-
-// drafts is the Rascunhos page: new campaigns, groups and ads saved to
-// finish later.
-export async function drafts({ main }) {
-  main.append(h('div', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Rascunhos'),
-    h('p', { class: 'lead muted' }, 'Campanhas, grupos e anúncios salvos para terminar depois. Um rascunho some quando o que ele guarda é criado.')),
-  h('div', { class: 'actions' }, h('a', { class: 'button primary', href: '/launch/new' }, 'Nova campanha'))));
-  const list = (await api('drafts')).drafts;
-  if (!list.length) {
-    main.append(h('p', { class: 'empty' }, 'Nenhum rascunho.'));
-    return;
-  }
-  main.append(h('div', { class: 'table-wrap' }, h('table', { class: 'list' },
-    h('thead', {}, h('tr', {}, h('th', {}, 'Rascunho'), h('th', {}, 'Conta'), h('th', {}, 'De'), h('th', {}, 'Mudado'), h('th', {}, ''))),
-    h('tbody', {}, list.map((d) => {
-      const out = h('span');
-      const del = h('button', { type: 'button', class: 'small ghost', onclick: () => {
-        if (!confirm(`Apagar o rascunho “${d.name}”?`)) return;
-        busy(del, out, async () => { await api('drafts/' + d.id, { method: 'DELETE' }); location.reload(); });
-      } }, 'Apagar');
-      return h('tr', {}, h('td', {}, h('a', { href: '/launch/new?draft=' + d.id }, d.name)), h('td', {}, d.account),
-        h('td', { class: 'muted' }, (d.made_by || '').split('@')[0]), h('td', { class: 'muted' }, date(d.changed_at)), h('td', {}, del, out));
-    })))));
-}

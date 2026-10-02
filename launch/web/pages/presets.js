@@ -2,8 +2,10 @@
 // holds a new group's budget and objective; a campaign preset holds a new
 // campaign's settings (bid, budget, excluded cities, delivery, link and
 // tracking code, brand, description). Nobody fixes them for the team: each person
-// saves their own, for one account or for all.
-import { api, h, note, field, input, select, segmented, busy, numberOf, money, date, plural } from './lib.js';
+// saves their own, for one account or for all, from the new-item steps
+// (presetBar); the Presets screen is gone (IMPLEMENT d587e1b829), the
+// presets and their API calls are kept.
+import { api, h, note, field, input, select, segmented, busy, numberOf, money } from './lib.js';
 import { TRACKERS, splitLink } from '/launch/_ads/tracking.js';
 import { urlWarnings } from '/launch/_ads/checks.js';
 
@@ -311,66 +313,5 @@ export function presetBar({ level, net, account, form, list, onUse }) {
     out.replaceChildren(h('div', { class: 'preset-save' }, name, account ? h('label', { class: 'check' }, onlyHere, 'só nesta conta') : null, ok), msg);
     name.focus();
   } }, 'Salvar como preset');
-  return h('div', { class: 'preset-bar' }, pick, save, h('a', { class: 'faint', href: '/launch/presets' }, 'Ver os presets'), out);
-}
-
-// presets is the Presets page.
-export async function presets({ main, status }) {
-  main.append(h('div', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Presets'),
-    h('p', { class: 'lead muted' }, 'Configurações que você salva e reaproveita. Salve um preset nos passos de + Novo ou aqui.'))));
-  const list = await loadPresets('taboola', '');
-  for (const [level, title, about] of [
-    ['group', 'Grupos', 'Orçamento e objetivo de um grupo novo. Todo grupo é para sempre, sem data de fim.'],
-    ['campaign', 'Campanhas', 'Lance, orçamento, cidades fora, entrega, link, tracking code, marca e descrição de uma campanha nova.'],
-  ]) {
-    const mine = list.filter((p) => p.level === level);
-    const editor = h('div');
-    const panel = h('section', { class: 'panel' }, h('div', { class: 'page-head' }, h('div', {}, h('h2', {}, title), h('p', { class: 'muted' }, about)),
-      h('div', { class: 'actions' }, h('button', { type: 'button', onclick: () => edit(level, null, editor, status) }, 'Novo preset'))),
-    editor,
-    mine.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'list' },
-      h('thead', {}, h('tr', {}, h('th', {}, 'Nome'), h('th', {}, 'Guarda'), h('th', {}, 'Conta'), h('th', {}, 'De'), h('th', { class: 'num' }, 'Usado'), h('th', {}, ''))),
-      h('tbody', {}, mine.map((p) => {
-        const out = h('span');
-        const del = h('button', { type: 'button', class: 'small ghost', onclick: () => {
-          if (!confirm(`Apagar o preset “${p.name}”?`)) return;
-          busy(del, out, async () => { await api('presets/' + p.id, { method: 'DELETE' }); location.reload(); });
-        } }, 'Apagar');
-        return h('tr', {},
-          h('td', {}, h('a', { href: '#', onclick: (e) => { e.preventDefault(); edit(level, p, editor, status); } }, p.name)),
-          h('td', { class: 'muted' }, summary(level, p.fields)),
-          h('td', {}, p.account || 'todas'),
-          h('td', { class: 'muted' }, (p.changed_by || p.made_by || '').split('@')[0], ' · ', date(p.changed_at || p.made_at)),
-          h('td', { class: 'num' }, plural(p.used || 0, 'par', 'pares')),
-          h('td', {}, del, out));
-      })))) : h('p', { class: 'empty' }, 'Nenhum preset de ' + title.toLowerCase() + ' ainda.'));
-    main.append(panel);
-  }
-}
-
-export function summary(level, f = {}) {
-  if (level === 'group') {
-    const per = { DAILY: '/dia', MONTHLY: '/mês', ENTIRE: ' total' }[f.budget_model];
-    return [per && f.budget ? money(f.budget) + per : 'orçamento por campanha', OBJECTIVES.find(([k]) => k === f.objective)?.[1], 'para sempre'].filter(Boolean).join(' · ');
-  }
-  const s = f.settings || {};
-  const bid = s.bid_strategy === 'MAX_CONVERSIONS' ? 'Max. conversões' + (s.target_cpa ? ' CPA ' + money(s.target_cpa) : '') : s.cpc ? 'CPC ' + money(s.cpc) : '';
-  return [bid, s.daily_cap ? money(s.daily_cap) + '/dia' : '', (s.exclude_cities || []).length ? plural(s.exclude_cities.length, 'cidade fora', 'cidades fora') : '', f.tracker ? TRACKERS[f.tracker]?.name : ''].filter(Boolean).join(' · ');
-}
-
-function edit(level, p, editor, status) {
-  const form = level === 'group' ? groupFields() : settingsForm({}, status.limits);
-  if (level === 'group') form.name.closest('label').remove();
-  if (p) form.set(p.fields);
-  const name = input({ value: p?.name || '', placeholder: 'nome do preset' });
-  const account = input({ value: p?.account || '', placeholder: 'vazio: todas as contas' });
-  const out = h('div');
-  const save = h('button', { type: 'button', class: 'primary', onclick: () => busy(save, out, async () => {
-    if (!name.value.trim()) throw new Error('Dê um nome ao preset.');
-    await api(p ? 'presets/' + p.id : 'presets', { method: p ? 'PUT' : 'POST', body: { level, network: 'taboola', account: account.value.trim(), name: name.value.trim(), fields: form.preset() } });
-    location.reload();
-  }) }, p ? 'Salvar mudanças' : 'Salvar preset');
-  editor.replaceChildren(h('div', { class: 'panel inner' },
-    h('div', { class: 'fields' }, field('Nome do preset', name), field('Conta', account, 'id da conta, ou vazio para todas')),
-    form.el, h('div', { class: 'actions' }, save, h('button', { type: 'button', class: 'ghost', onclick: () => editor.replaceChildren() }, 'Cancelar')), out));
+  return h('div', { class: 'preset-bar' }, pick, save, out);
 }

@@ -2,8 +2,9 @@
 
 Puts ads on the networks, and is the one app that changes anything there
 (AGENTS.md: Launch owns every write; Intel and Desk only read and suggest:
-their one-tap links open Launch with the change filled in, and Desk's
-requests wait in Launch for a person to confirm). Taboola today; NewsBreak
+their one-tap links open Launch with the change filled in; Desk's requests
+are taken and kept, but have no screen since Pedidos was removed, see
+Pages). Taboola today; NewsBreak
 later as a second adapter under `internal/network/`. The pages are in
 Portuguese, headlines always in English. It sits in the Frame
 (`shared/frame`) and uses the ad code it shares with create-web
@@ -21,9 +22,10 @@ choice, with a warning when pictures that look AI-made are marked "no".
 ## Pages
 
 All under `/launch/`; a link to any of them opens it. The tabs are
-Campanhas · Pedidos · Histórico · Rascunhos · Contas (Draw Designer batch
-126); Presets has no tab and opens from **Ver os presets** in the new-item
-steps.
+Campanhas · Contas (Draw Designer IMPLEMENT d587e1b829, "only Campanhas and
+Contas left"). The Pedidos, Pedido, Histórico, Presets and Rascunhos
+screens were removed then; their API calls and every row they showed are
+kept (see "Removed screens").
 
 | Path | Shows |
 |---|---|
@@ -38,13 +40,25 @@ steps.
 | `make=group` | **Novo grupo**: 1 · Grupo (account, name, objective, budget, duration: "Para sempre"; "Com data de fim" is shown, not offered yet). 2 · Revisar e **Criar grupo**, or **Criar e adicionar campanha**, which goes straight on to a campaign in it. |
 | `make=ads` (`&to=<ids>` picks campaigns) | **Novos anúncios**: 1 · Campanhas: a tree of every account's groups and campaigns with search (a group's box picks all its campaigns), and the landing page and description of the ads. 2 · Anúncios: pictures uploaded or from the library, English headlines, buttons, the AI label and the pairing: **Sortido**, **Par a par** (picture 1 with headline 1, 2 with 2, …, the shorter list starting over), **Escolher pares** (rows of one picture and one headline the person sets, starting par a par; each row is one ad per button) or **Todas as combinações**. 3 · Revisar e adicionar: every ad is a row where its picture (any picked or uploaded one), headline (from the list, or its text edited) or button can be changed, or the ad taken out. The first edit freezes the list (a note says so, and **Refazer pela combinação** goes back to the pairing's); the edited list is exactly what is sent. Repeated ads and headline warnings only warn. The same ads go into each campaign picked, through its own account (Realize's "assign creatives"). Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
 | `/launch/new?set=<id>` | Novos anúncios with one library set's creatives and headlines already in (Create links here after saving a set). |
-| `/launch/drafts` | **Rascunhos**: drafts saved before the steps lost **Salvar rascunho** (IMPLEMENT 43e7b65f44); opening one continues it in its steps. A draft goes away once what it holds is made. |
-| `/launch/presets` | **Presets**: group and campaign presets, made and changed here or saved from the steps. |
-| `/launch/accounts` | **Contas**: the Taboola logins Launch uses, each with its accounts. The server's own login (`TABOOLA_*`) is listed and changes only there. **Adicionar login** takes a name, client ID and client secret; **Verificar na Taboola** asks Taboola for a token and the login's account list (reads only: nothing is made or changed on Taboola), then the person ticks the advertiser accounts to use (the network account is shown, never pickable) and **Salvar login**. Those accounts then appear in the Conta picker, ⌘K and every table, and every call about one goes to its own login, with the same guards and ceilings. **Escolher contas** changes them (checking with Taboola again); **Remover** stops using the login. The secret is sealed before it is saved and no page, answer or log line shows it again; the page shows only the client ID's first and last four characters. An account two logins share belongs to the first (the server's own first). |
-| `/launch/requests` | **Pedidos**: changes Desk asked for, waiting ones first. |
-| `/launch/requests/<id>` | One request: what it asks, the campaigns as they are now, **Confirmar e enviar** or **Recusar**. Confirming makes the change as the person, with the request's origin as who asked. |
+| `/launch/accounts` | **Contas**: one row per Taboola account Launch uses (**Conta**, **ID** in mono with how its requests reach Taboola under it: "proxy host:porta", or "direto" for an account of the server's own login without one, **No Launch** "2 grupos · 5 campanhas" or "nenhum grupo" from each account's tree, **Adicionada** dd/mm, "—" for the server's own), then "N contas". **+ Novo** opens **Nova conta**: **Client ID**, **User ID**, **Client secret** (a password field) and **Proxy** (`http://usuario:senha@host:porta`, http, https or socks5), all required. **Conectar** asks Taboola through that proxy for a token and the login's account list (reads only: nothing is made or changed on Taboola or RedTrack); a green box says "Conectou: N contas vão entrar" with their names, and **Adicionar N contas** adds every advertiser account the login sees (the network account never; ones already in Launch are struck through and not counted). They then appear in the Conta picker, ⌘K, Novo grupo and every table, and every call about one goes to its own login through its proxy, with the same guards and ceilings. Each row's **···** menu: for an added login's account, **Proxy** (change the login's proxy, for all its accounts; checked through the new one first; it cannot be emptied), **Detalhes do acesso** (client ID's first and last four characters, user ID, which can be filled in or changed, proxy, accounts), **Escolher as contas deste acesso**, **Tirar esta conta do Launch** (its login's last account removes the login) and **Remover o acesso**; for an account of the server's own login, only **Proxy** (set, change or take away; without one it goes direct). The secret and the proxy are sealed before they are saved and no page, answer or log line shows them again. An account two logins share belongs to the first (the server's own first). |
+| `/launch/requests`, `/launch/requests/<id>`, `/launch/history`, `/launch/presets`, `/launch/drafts` | Removed screens: they open Campanhas, like `/launch/groups` and `/launch/ads`. |
 
 ⌘K finds any group or campaign by name or id in every connected account.
+
+### Removed screens
+
+IMPLEMENT d587e1b829 removed Pedidos, Pedido, Histórico, Presets and
+Rascunhos (`web/pages/route.js`, `GONE`). Nothing stored was dropped and the
+API is unchanged, but:
+
+- **Desk's requests** (`launch_api.new_request_v1`, the `launch.*` asks in
+  `contract/actions/launch.json`) are still taken and kept, and nobody can
+  confirm or refuse them: they wait. Desk's links to them
+  (`/launch/requests/<id>`, the asks' `link`) open Campanhas.
+- **History** shows only in a campaign's Histórico tab, not all at once.
+- **Presets** are still saved and used in the new-item steps (**Salvar como
+  preset**, **Usar um preset…**), but none can be changed or deleted.
+- **Drafts** already saved open only by address (`/launch/new?draft=<id>`).
 
 ## The team's defaults
 
@@ -134,8 +148,21 @@ or saved in a preset:
   time). Some ads of one campaign can be paused too (Intel's `pause-ads`).
   Turning on is never here.
 - **Requests.** Desk calls `launch_api.new_request_v1` (below); the
-  request waits until a person confirms or refuses it on its page. It is
-  decided once: a second press gets "já foi decidido".
+  request waits until a person confirms or refuses it. It is decided once:
+  a second press gets "já foi decidido". Since Pedidos was removed
+  (IMPLEMENT d587e1b829) no page confirms or refuses them: they are kept
+  and wait, and Desk's links to `/launch/requests/<id>` open Campanhas.
+- **Proxies.** Every request to Taboola for an account of a login added on
+  Contas goes through that login's proxy, and for an account of the
+  server's own login through its proxy when it has one (else direct): the
+  token, reads, writes and image uploads alike, each account with its own
+  client (`internal/logins`, `shared/taboola/write` `Settings.HTTP`). The
+  proxy is fixed in the transport, so the environment's proxy settings never
+  apply. When it fails the request fails with a pt-BR line naming its
+  host:port ("nada foi enviado direto à Taboola"); it never goes direct
+  instead. An added login without a usable proxy (one added before proxies,
+  or a key that changed) has every request refused until one is set on
+  Contas.
 - Every change goes to History with who did it, who asked (`?from=` on the
   API: `intel:…`, `desk:…`), before and after, and the result.
 
@@ -153,7 +180,7 @@ under `<data>/kept/<UTC day>/` before it is read (`kit/keep`).
 | `internal/network/taboola` | The Taboola adapter over `shared/taboola/write`, which holds the guards (allowed accounts, never a network account, ceilings, only-own on a lent login). |
 | `internal/actions` | Every write, its checks and its History. |
 | `internal/api` | `/launch/api/`, JSON for the pages. |
-| `internal/store`, `migrations` | The `launch` schema: presets, pairs, History, moves, drafts, the ads made (`item`), requests; and `launch_api`. Reads Intel's numbers from `intel_api` (the `launch` login is granted `intel_api_read`). |
+| `internal/store`, `migrations` | The `launch` schema: presets, pairs, History, moves, drafts, the ads made (`item`), requests, logins and proxies; and `launch_api`. Reads Intel's numbers from `intel_api` (the `launch` login is granted `intel_api_read`). |
 | `internal/library` | Reads the library (`library/`) on localhost. |
 | `internal/images` | Pictures kept by hash. |
 | `web` | The pages (`web/pages`), plain ES modules on the Frame. |
@@ -177,23 +204,26 @@ or failed, 503 not connected.
 | `POST {net}/{account}/move` `duplicate` `pause` `change` | `{campaigns, to_group, originals, change}`; one result per campaign. |
 | `POST moves/{id}/cancel` | Stops waiting on a move. |
 | `POST pairs` then `GET jobs/{id}` | A new campaign or pair (`actions.PairRequest` plus `key`; `devices` both, mobile or desktop; no `name` for the team's names; `desktop_name` or `mobile_name` names that campaign only; `ads` exactly as made, one entry per ad, or none (Nova campanha sends none: the campaigns go up empty); `desktop` or `mobile`, whole settings that replace `settings` for that device only); the job lists each step. |
-| `GET/POST presets`, `PUT/DELETE presets/{id}` | Presets. |
-| `GET history?network=&account=&campaign=&limit=` | History and waiting moves. |
-| `GET/POST drafts`, `GET/PUT/DELETE drafts/{id}` | Drafts. |
+| `GET/POST presets`, `PUT/DELETE presets/{id}` | Presets (the new-item steps use and save them; no screen lists them since IMPLEMENT d587e1b829). |
+| `GET history?network=&account=&campaign=&limit=` | History and waiting moves (a campaign's Histórico tab). |
+| `GET/POST drafts`, `GET/PUT/DELETE drafts/{id}` | Drafts (kept; no screen lists them since IMPLEMENT d587e1b829). |
 | `POST {net}/{account}/campaigns/{id}/pause-ads` | `{ads}`: pauses those ads of one campaign. |
 | `GET {net}/{account}/next` | The names the next group and campaign get: `{group, campaign, account_number, desktop, mobile}`. |
 | `POST {net}/{account}/add-ads` | `{campaigns, new_ads}`: the same ads, paused, in each campaign. |
 | `GET library/status` `verticals` `sets` `creatives` `headlines` | The library's lists, passed on (filters: `vertical`, `set`, `angle`, `origin`, `ai_label`, `q`, `limit`, `before`). |
 | `GET library/set?id=`, `GET library/thumb?id=` | One set with its creatives and headlines; a creative's thumbnail. |
 | `POST library/use?id=` | Copies a library creative's picture into Launch's pictures: `{image, creative}`. |
-| `GET requests`, `GET requests/{id}` | Requests. |
+| `GET requests`, `GET requests/{id}` | Requests (kept; no screen shows them since IMPLEMENT d587e1b829). |
 | `POST requests/{id}/confirm`, `POST requests/{id}/refuse` | Decides one, as the signed-in person. |
 | `POST images` (multipart `image`), `GET images/{sha}` | Pictures. |
 
-| `GET logins` | The logins for Contas: `{id, server, network, name, client_id` (first and last four characters only)`, accounts, added_by, added_at, problem}`. Never a secret. |
-| `POST logins/check` | `{client_id, client_secret}`: asks Taboola which accounts the login sees (a token and allowed-accounts, reads only): `{accounts: [{id, name, network}]}`. |
-| `POST logins` | `{name, client_id, client_secret, accounts}`: checks again, seals the secret, saves, and starts using the accounts. 400 when Taboola refuses the login, an account is not the login's or is its network account, or the login is already there. |
-| `GET logins/{id}/allowed`, `PUT logins/{id}`, `DELETE logins/{id}` | What an added login sees now; `{name, accounts}` to rename it and choose again; stop using it (nothing changes on Taboola). |
+| `GET logins` | The logins for Contas: `{id, server, network, name, client_id` (first and last four characters only)`, user_id, proxy` (host:port)`, accounts: [{id, name, proxy, problem}], added_by, added_at, problem}`; an account's `proxy` "" is direct. Each login's accounts are asked of Taboola through their proxy. Never a secret or a whole proxy. |
+| `POST logins/check` | `{client_id, client_secret, proxy}`: asks Taboola through the proxy which accounts the login sees (a token and allowed-accounts, reads only): `{accounts: [{id, name, network}]}`. |
+| `POST logins` | `{name, client_id, user_id, client_secret, proxy, accounts}`: checks again through the proxy, seals the secret and the proxy, saves, and starts using the accounts. 400 when the proxy is not a valid http, https or socks5 address, Taboola refuses the login, an account is not the login's or is its network account, or the login is already there. |
+| `GET logins/{id}/allowed`, `PUT logins/{id}`, `DELETE logins/{id}` | What an added login sees now (through its proxy); `{name, accounts}` to rename it and choose again; stop using it (nothing changes on Taboola). |
+| `PUT logins/{id}/proxy` | `{proxy}`: an added login's new proxy, checked through it first; never empty. |
+| `PUT logins/{id}/user-id` | `{user_id}`: an added login's Taboola user ID. Nothing is asked of Taboola. |
+| `PUT accounts/{net}/{account}/proxy` | `{proxy}`: the proxy of an account of the server's own login, checked through it first; `""` takes it away (direct again). |
 
 Every write takes `?from=intel:<id>` or `?from=desk:<id>` for History's
 "who asked"; anything else there is ignored.
@@ -250,7 +280,19 @@ EOF
 On a rebuilt box, put the line `LAUNCH_LOGIN_KEY_BASE64=` with the key from
 the password manager back in `launch-web.env` and restart launch-web. If the
 key is lost, the added logins show "a chave do servidor mudou" and have to be
-added again; the server's own login is not affected. Intel does not read these
+added again, and accounts with a proxy refuse every request until it is set
+again; the server's own login's accounts without a proxy are not affected.
+
+Since IMPLEMENT d587e1b829 (`migrations/sql/0004_proxy.sql`, add-only) each
+added login also holds its proxy, sealed with the same key and tied to the
+login apart from its secret, and its Taboola **user ID** (`user_id`, plain;
+'' for logins added before). No Taboola call needs the user ID: the token
+(`client_credentials`) takes only the client ID and secret, and every other
+call the token, so Launch only keeps and shows it. The server's own login's
+accounts may each have a proxy in `launch.account_proxy`, sealed the same
+way and tied to the account. Logins added before proxies have none, so
+their accounts are refused until a person sets one on Contas (**···** >
+**Proxy**). Nothing new is needed in `launch-web.env`. Intel does not read these
 logins yet: their accounts have no numbers in Launch until it does.
 
 ## Settings and running it
@@ -279,7 +321,7 @@ then open http://127.0.0.1:8094/launch/.
 
 ```
 cd launch && PG_TEST_URL=postgres://… go test -race ./...
-node --test launch/web/test/*.test.js   # from the repo root: pairs, edited ads, the mobile's own settings
+node --test launch/web/test/*.test.js   # from the repo root: pairs, edited ads, the mobile's own settings, routes, Contas' rows
 ```
 
 The API tests run every write against the fake network on a throwaway

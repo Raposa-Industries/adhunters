@@ -2,6 +2,7 @@ package taboola
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/Raposa-Industries/adhunters/launch/internal/network"
@@ -16,25 +17,40 @@ type Login struct {
 // Logins is every Taboola login Launch uses, as one network: the server's
 // own (TABOOLA_* in its environment) first, then those people added on the
 // Contas page. An account belongs to the first login that has it, and every
-// call about it goes to that login's client, with that client's guards.
+// call about it goes to that login's client, with that client's guards and
+// its HTTP client (an account's proxy, when it has one: launch/internal/
+// logins builds those clients).
 type Logins struct {
 	mu    sync.RWMutex
 	list  []Login
 	owner map[string]*Taboola
+	// all is the server's own login's accounts, as NewLogins got them.
+	all []string
 }
 
 // NewLogins starts with the server's own login.
 func NewLogins(server Login) *Logins {
-	l := &Logins{}
+	l := &Logins{all: server.Accounts}
 	l.set(server, nil)
 	return l
 }
 
-// Set replaces the added logins; the server's own stays first.
+// Set replaces the added logins; the server's own stays first, with all its
+// accounts.
 func (l *Logins) Set(added []Login) {
+	l.Use(l.all, added)
+}
+
+// Use replaces the added logins and says which of the server's own
+// accounts its client still serves (direct: those without a proxy). The
+// server's other accounts must come in added, each with its own client,
+// ahead of the logins people added; an account no login has falls to the
+// server's client, whose guard refuses it unless it is one of its own.
+func (l *Logins) Use(direct []string, added []Login) {
 	l.mu.Lock()
 	server := l.list[0]
 	l.mu.Unlock()
+	server.Accounts = direct
 	l.set(server, added)
 }
 
@@ -94,7 +110,9 @@ func (l *Logins) Accounts(ctx context.Context) ([]network.Account, error) {
 	seen := map[string]bool{}
 	var first error
 	for _, lg := range list {
-		if ok, _ := lg.T.Available(); !ok {
+		// A login that serves no account here is not asked: the server's
+		// own, when every one of its accounts has a proxy, never goes direct.
+		if ok, _ := lg.T.Available(); !ok || len(lg.Accounts) == 0 {
 			continue
 		}
 		accts, err := lg.T.Accounts(ctx)
@@ -105,6 +123,9 @@ func (l *Logins) Accounts(ctx context.Context) ([]network.Account, error) {
 			continue
 		}
 		for _, a := range accts {
+			if !slices.Contains(lg.Accounts, a.ID) {
+				continue // another login's client serves it
+			}
 			if !seen[a.ID] {
 				seen[a.ID] = true
 				out = append(out, a)
