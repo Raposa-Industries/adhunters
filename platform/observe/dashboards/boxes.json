@@ -86,7 +86,7 @@
       "id": 2,
       "type": "timeseries",
       "title": "Memory available",
-      "description": "",
+      "description": "The red line is where MemoryLow fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -99,7 +99,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -120,7 +138,7 @@
       "id": 3,
       "type": "timeseries",
       "title": "Disk free",
-      "description": "",
+      "description": "The red line is where DiskFilling fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -133,7 +151,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.15
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -324,7 +360,7 @@
       "id": 9,
       "type": "timeseries",
       "title": "Age of the newest archived WAL",
-      "description": "",
+      "description": "The red line is where WalArchiveFailing fires while archiving fails.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -337,7 +373,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -358,7 +412,7 @@
       "id": 10,
       "type": "timeseries",
       "title": "Age of the newest backup",
-      "description": "",
+      "description": "The red line is where BackupLate fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -371,7 +425,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 93600
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -426,7 +498,7 @@
       "id": 12,
       "type": "timeseries",
       "title": "Task freshness (share of the promise used)",
-      "description": "Over 100% means the task is late (TaskLate).",
+      "description": "Over 100% means the task is late (TaskLate). The red line is where TaskLate fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -439,7 +511,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -1051,8 +1141,8 @@
     {
       "id": 47,
       "type": "timeseries",
-      "title": "Series sent, by box",
-      "description": "Samples each box sends a minute: every scrape runs every 60 s, so these are the series it sends. Grafana Cloud's free plan holds 10,000 (README, Series).",
+      "title": "Series in Grafana Cloud, by kind",
+      "description": "What Grafana Cloud holds now: hosts (integrations/unix), our services (adhunters), Postgres, Alloy (integrations/self), the tunnel (cloudflared), and the alerts' own. The free plan holds 10,000 and drops what goes over; SeriesNearLimit fires over 9,000 (README, Series).",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -1065,7 +1155,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 9000
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -1077,8 +1185,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (box) (rate(prometheus_remote_storage_samples_total{box=~\"$box\"}[10m])) * 60",
-          "legendFormat": "{{box}}"
+          "expr": "label_replace(count by (job) ({__name__=~\".+\"}), \"job\", \"alerts\", \"job\", \"\")",
+          "legendFormat": "{{job}}"
         },
         {
           "refId": "B",
@@ -1086,10 +1194,11 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(prometheus_remote_storage_samples_total[10m])) * 60",
-          "legendFormat": "all boxes"
+          "expr": "count({__name__=~\".+\"})",
+          "legendFormat": "all"
         }
-      ]
+      ],
+      "interval": "5m"
     },
     {
       "id": 49,

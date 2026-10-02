@@ -2,11 +2,16 @@
 // sent to Grafana Cloud. Installed by platform/servers/setup.sh into
 // /etc/alloy/adhunters/; the settings come from /etc/adhunters/alloy.env.
 //
-// Scrapes run every 60 s: Grafana Cloud's free tier counts one sample a
-// minute per series, and a minute is fine-grained enough for every alert.
-// The free tier also holds at most 10,000 active series and drops the rest,
-// so every exporter here sends what a rule, a dashboard or a person reads,
-// not everything it can (README, Series).
+// Alloy reads every exporter every 60 s: Grafana Cloud's free tier counts one
+// sample a minute per series, and a minute is fine-grained enough for every
+// alert. Only Postgres's sizes and top queries, slow to change and costly to
+// read, are read every 4 minutes (postgres.alloy). A slower read saves the box
+// work but not Grafana room: a series counts the same whatever its pace. The
+// free tier holds at most 10,000 active series and drops the rest, so what
+// Alloy reads goes through a keep-list of what shows a problem at a glance:
+// what a rule, a dashboard or the daily check reads, nothing else (README,
+// Series). tests/keep_test.go fails when they read a metric no keep-list lets
+// through.
 
 // ---- where it all goes ------------------------------------------------------
 
@@ -45,23 +50,21 @@ loki.write "cloud" {
 // The host: CPU, memory and pressure, disks and filesystems, network (with
 // TCP retransmits, sockets and the connection-tracking table, which walks
 // and scrapes through proxies fill), file handles, processes and threads
-// (browsers left behind), the clock and its sync, and our units. Only these
-// collectors: the exporter's default set also sends hardware and kernel
-// internals, per core and per interface, that nothing reads.
+// (browsers left behind), the clock, and our units. Only these collectors:
+// the exporter's default set also reads hardware and kernel internals, per
+// core and per interface, that show no problem of ours.
 prometheus.exporter.unix "host" {
   set_collectors = [
     "conntrack", "cpu", "diskstats", "filefd", "filesystem", "loadavg",
-    "meminfo", "netdev", "netstat", "os", "pressure", "processes", "sockstat",
-    "stat", "systemd", "textfile", "time", "timex", "uname", "vmstat",
+    "meminfo", "netdev", "netstat", "pressure", "processes", "sockstat",
+    "stat", "systemd", "textfile", "timex", "vmstat",
   ]
 
-  // Every unit of ours: UnitFailed and PostgresRestarted read these. The list
-  // must cover every unit platform/servers/setup.sh runs (push.sh check
-  // tests it), and run-* covers one-off jobs started with systemd-run.
+  // Every unit of ours: UnitFailed reads these. The list must cover every
+  // unit platform/servers/setup.sh runs (push.sh check tests it), and run-*
+  // covers one-off jobs started with systemd-run.
   systemd {
     unit_include = "(tracks-.*|raposa-.*|spy-.*|intel-.*|funnels-.*|desk-.*|launch-.*|create|create-web|library|observe-bot|pgbackrest-.*|postgresql.*|alloy|cloudflared.*|tailscaled|run-.*)\\.service"
-    // node_systemd_unit_start_time_seconds: when each unit last started.
-    start_time = true
     // node_systemd_service_restart_total: how often systemd restarted it.
     enable_restarts = true
     // node_systemd_unit_tasks_current: its processes and threads.
@@ -86,12 +89,63 @@ prometheus.scrape "host" {
   job_name        = "node"
   targets         = prometheus.exporter.unix.host.targets
   scrape_interval = "60s"
-  forward_to      = [prometheus.remote_write.cloud.receiver]
+  forward_to      = [prometheus.relabel.host.receiver]
 }
 
-// Alloy's own health: its version and config, whether its sends to Grafana
-// Cloud fail, lag or drop, how many series this box sends, and its memory.
-// It exports about 600 series a box; only these go out.
+// What of the host goes out: 60 to 140 series a box, of the 380 to 650 it
+// reads.
+prometheus.relabel "host" {
+  forward_to = [prometheus.remote_write.cloud.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    action        = "keep"
+    regex         = string.join([
+      // Gone or rebooted (BoxGone), busy, short of memory, stalled (pressure),
+      // out-of-memory kills.
+      "node_boot_time_seconds", "node_load5", "node_cpu_seconds_total",
+      "node_memory_(MemAvailable|MemTotal)_bytes",
+      "node_pressure_(cpu_waiting|memory_stalled|io_stalled)_seconds_total",
+      "node_vmstat_oom_kill",
+      // Disks filling (DiskFilling, DiskFullSoon) and written.
+      "node_filesystem_(avail|size)_bytes", "node_disk_written_bytes_total",
+      // Network: traffic, errors and drops, retransmits, connections, the
+      // connection-tracking table, listen queue overflows.
+      "node_network_(receive|transmit)_(bytes|errs|drop)_total",
+      "node_netstat_(Tcp_CurrEstab|Tcp_RetransSegs|Tcp_OutSegs|TcpExt_ListenOverflows)",
+      "node_sockstat_TCP_tw", "node_nf_conntrack_entries(_limit)?",
+      // File handles, processes and threads, zombies, the clock.
+      "node_filefd_(allocated|maximum)", "node_processes_(pids|threads|state)",
+      "node_timex_offset_seconds",
+      // Our units: failed (UnitFailed), restarted by systemd, their threads.
+      "node_systemd_unit_state", "node_systemd_service_restart_total",
+      "node_systemd_unit_tasks_current",
+      // pgBackRest's state (textfile, data box).
+      "pgbackrest_.*",
+    ], "|")
+  }
+
+  // CPU busy is the share not idle, and the idle series count the cores:
+  // the other seven modes, per core, show nothing more.
+  rule {
+    source_labels = ["__name__", "mode"]
+    separator     = ";"
+    regex         = "node_cpu_seconds_total;(user|system|nice|iowait|irq|softirq|steal)"
+    action        = "drop"
+  }
+
+  // A unit's state is one series per state; only "failed" is a problem.
+  rule {
+    source_labels = ["__name__", "state"]
+    separator     = ";"
+    regex         = "node_systemd_unit_state;(active|activating|deactivating|inactive)"
+    action        = "drop"
+  }
+}
+
+// Alloy's own health: whether its sends to Grafana Cloud fail or lag, and
+// whether it drops log lines. It exports about 600 series a box; only these
+// go out.
 prometheus.exporter.self "alloy" { }
 
 prometheus.scrape "alloy" {
@@ -108,15 +162,59 @@ prometheus.relabel "alloy" {
     source_labels = ["__name__"]
     action        = "keep"
     regex         = string.join([
-      "up", "scrape_.*",
-      "alloy_build_info", "alloy_config_last_load_successful",
-      "alloy_component_controller_running_components",
-      "prometheus_remote_storage_(samples_total|samples_failed_total|samples_retried_total|samples_dropped_total|samples_pending|highest_timestamp_in_seconds|queue_highest_sent_timestamp_seconds|shards|bytes_total)",
-      "prometheus_remote_write_wal_storage_active_series",
-      "loki_write_(sent_entries_total|dropped_entries_total|sent_bytes_total|batch_retries_total)",
-      "loki_source_journal_target_(lines_total|parsing_errors_total)",
-      "process_(resident_memory_bytes|cpu_seconds_total|start_time_seconds)",
+      "prometheus_remote_storage_(samples_failed_total|highest_timestamp_in_seconds|queue_highest_sent_timestamp_seconds)",
+      "loki_write_dropped_entries_total",
     ], "|")
+  }
+}
+
+// ---- our services ------------------------------------------------------------
+
+// Each service's /metrics (kit/ops), read by services.alloy, which
+// platform/servers/setup.sh writes from the units enabled on the box. Every
+// service also exports Go's runtime internals (about 45 series each) and
+// metrics no rule or panel reads; only these go out.
+prometheus.relabel "services" {
+  forward_to = [prometheus.remote_write.cloud.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    action        = "keep"
+    regex         = string.join([
+      // Answering (ServiceDown), restarts, CPU, memory, leaks.
+      "up", "process_(start_time_seconds|cpu_seconds_total|resident_memory_bytes|open_fds)",
+      "go_goroutines",
+      // kit/ops and kit/pg, in every service: version, error lines, tasks,
+      // requests through create-web, calls to outside services, database
+      // pools, money spent and credit (observe-bot).
+      "adhunters_(build_info|log_errors_total|out_of_credit_total|spend_usd_total)",
+      "adhunters_task_(runs_total|last_success_timestamp_seconds|promise_seconds|last_duration_seconds|last_rows)",
+      "adhunters_http_(requests_total|requests_in_flight|request_seconds_bucket)",
+      "adhunters_outbound_(requests_total|request_seconds_bucket)",
+      "adhunters_db_pool_(connections|max_connections|waits_total|wait_seconds_total)",
+      "adhunters_(credit_remaining|credit_warn|credit_estimated|renewal_due_timestamp_seconds|renewal_remind_seconds)",
+      // Each service's own.
+      "tracks_capture_(scrapes_total|latency_seconds_bucket|last_write_timestamp_seconds|lines_cooling_down)",
+      "tracks_shipper_(bytes_total|oldest_unshipped_seconds)",
+      "tracks_loader_(scrapes_total|sightings_total|lag_seconds|files_quarantined|hour_close_seconds|last_closed_hour_timestamp_seconds)",
+      "tracks_bridge_(lag_seconds|files_quarantined)",
+      "tracks_walker_(walks_total|walk_seconds_bucket|backlog|due|oldest_overdue_seconds|files_archived_total)",
+      "raposa_(steps_total|step_seconds_bucket|visits_total|keeps_total|auto_queued_total|line_burns|watch_deliveries_total)",
+      // Not spy_numbers_*: spy-numbers' jobs report as tasks too, and its
+      // job time histogram alone was 104 series.
+      "funnels_edge_(page_requests_total|beacons_total|spool_failing)",
+      "funnels_loader_(events_total|beacons_total|files_pending|files_quarantined)",
+      "desk_(turns_total|model_calls_total)",
+    ], "|")
+  }
+
+  // A pool running short shows in its connections in use; the idle and
+  // constructing ones show nothing more.
+  rule {
+    source_labels = ["__name__", "state"]
+    separator     = ";"
+    regex         = "adhunters_db_pool_connections;(idle|constructing)"
+    action        = "drop"
   }
 }
 

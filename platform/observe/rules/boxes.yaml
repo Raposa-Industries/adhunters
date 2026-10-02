@@ -91,13 +91,14 @@ groups:
       # A restart too short for PostgresDown (4 s on 2 Oct 2026, when
       # unattended-upgrades updated libssl and needrestart restarted
       # everything using it). Every service loses its connections, so error
-      # lines around it are expected; this says why they happened.
+      # lines around it are expected; this says why they happened. Postgres
+      # says when it started (pg_postmaster_start_time()).
       - alert: PostgresRestarted
-        expr: changes(node_systemd_unit_start_time_seconds{name=~"postgresql@.+\\.service"}[70m]) > 0
+        expr: changes(pg_postmaster_start_time_seconds[70m]) > 0
         labels:
           tier: chat
         annotations:
-          summary: 'Postgres ({{ $labels.name }}) on the {{ $labels.box }} box restarted in the last hour. Services lost their connections for a few seconds and logged errors.'
+          summary: 'Postgres on the {{ $labels.box }} box restarted in the last hour. Services lost their connections for a few seconds and logged errors.'
           resolved: 'No Postgres restart on the {{ $labels.box }} box in the last hour.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/postgres-restarted.md
 
@@ -153,17 +154,18 @@ groups:
     rules:
       # Grafana Cloud's free plan holds 10,000 series and drops what goes
       # over, new metrics and the alerts that need them included
-      # (platform/observe/README.md, Series). Every scrape runs every 60 s,
-      # so the samples the boxes send in a minute are the series they send.
-      # Not prometheus_remote_write_wal_storage_active_series: it keeps a
-      # series a box stopped sending until the WAL is truncated, every 2
+      # (platform/observe/README.md, Series). This counts what Grafana holds
+      # now, every box's series and the alerts' own: a series read every 4
+      # minutes counts like one read every minute, as the plan counts it.
+      # Not Alloy's count of the series in its write-ahead log: it keeps a
+      # series a box stopped sending until the log is truncated, every 2
       # hours, and read 10,234 on the data box after the 2 Oct 2026 cut.
       - alert: SeriesNearLimit
-        expr: sum(rate(prometheus_remote_storage_samples_total[10m])) * 60 > 9000
+        expr: count({__name__=~".+"}) > 9000
         for: 30m
         labels:
           tier: chat
         annotations:
-          summary: 'Our boxes send {{ $value | printf "%.0f" }} series to Grafana Cloud. The free plan drops what goes over 10,000.'
-          resolved: 'The boxes send under 9,000 series to Grafana Cloud again.'
+          summary: 'Grafana Cloud holds {{ $value | printf "%.0f" }} of our series. The free plan drops what goes over 10,000.'
+          resolved: 'Grafana Cloud holds under 9,000 of our series again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/series-near-limit.md

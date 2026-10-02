@@ -1,20 +1,18 @@
-# Postgres metrics of our own, read by prometheus.exporter.postgres in
-# postgres.alloy (data box). platform/servers/setup.sh installs this file
-# next to it, in /etc/alloy/adhunters/. Statistics for every table were
-# 5,500 series, over half of what Grafana Cloud's free plan holds; these
-# keep what is worth watching in about 100.
+# Postgres metrics of our own, read every 4 minutes by the "db_slow"
+# prometheus.exporter.postgres in postgres.alloy (data box).
+# platform/servers/setup.sh installs this file next to it, in
+# /etc/alloy/adhunters/. Statistics for every table were 5,500 series, over
+# half of what Grafana Cloud's free plan holds; these keep what shows a
+# problem (a schema or table growing fast, vacuum falling behind) in about 50.
 
 # Each schema (one per service, and its _api views): disk used by its tables
-# with their indexes and TOAST, partitions included, and its rows.
+# with their indexes and TOAST, partitions included.
 pg_schema:
   query: |
     SELECT n.nspname AS schema,
-           sum(pg_total_relation_size(c.oid))::float8 AS size_bytes,
-           coalesce(sum(s.n_live_tup), 0)::float8 AS live_rows,
-           coalesce(sum(s.n_dead_tup), 0)::float8 AS dead_rows
+           sum(pg_total_relation_size(c.oid))::float8 AS size_bytes
     FROM pg_class c
     JOIN pg_namespace n ON n.oid = c.relnamespace
-    LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
     WHERE c.relkind IN ('r', 'm')
       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
       AND n.nspname !~ '^pg_toast'
@@ -26,14 +24,8 @@ pg_schema:
     - size_bytes:
         usage: GAUGE
         description: Disk used by the schema's tables, their indexes and TOAST
-    - live_rows:
-        usage: GAUGE
-        description: Rows, as Postgres estimates them
-    - dead_rows:
-        usage: GAUGE
-        description: Deleted or updated rows waiting for vacuum, as Postgres estimates them
 
-# The 20 biggest tables, each partitioned table with its partitions.
+# The 10 biggest tables, each partitioned table with its partitions.
 pg_table:
   query: |
     SELECT n.nspname AS schema, r.relname AS "table",
@@ -49,7 +41,7 @@ pg_table:
       AND n.nspname !~ '^pg_toast'
     GROUP BY n.nspname, r.relname
     ORDER BY size_bytes DESC
-    LIMIT 20
+    LIMIT 10
   metrics:
     - schema:
         usage: LABEL

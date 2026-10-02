@@ -1,17 +1,68 @@
 // Data box only: Postgres metrics through the read-only "observe" login
-// (pg_monitor), created by platform/servers/setup.sh: connections by state,
-// locks, transactions, cache hits, deadlocks and temporary files per
-// database, checkpoints, WAL, replication and archiving, the 20 queries that
-// took the most time (pg_stat_statements), and how big each schema and the
-// 20 biggest tables are (postgres-queries.yaml).
+// (pg_monitor), created by platform/servers/setup.sh.
+//
+// Every minute ("db"): whether it answers and when it last started,
+// connections by state and the longest open transaction, locks,
+// transactions, cache hits, deadlocks and temporary files, checkpoints, WAL
+// and archiving. Every 4 minutes ("db_slow"): how big the database, each
+// schema and the 10 biggest tables are (postgres-queries.yaml), and the 20
+// queries that took the most time (pg_stat_statements). Sizes change slowly
+// and are the costly reads; 4 minutes stays under the 5 minutes a Grafana
+// query looks back for a value, so panels show no gaps.
 //
 // Not the exporter's statistics for every table nor its copy of every
 // setting: with 221 tables they were most of its 6,936 series on 2 Oct 2026,
 // over half of what Grafana Cloud's free plan holds, and nothing read them.
 
 prometheus.exporter.postgres "db" {
+  data_source_names        = [sys.env("POSTGRES_MONITOR_URL")]
+  enabled_collectors       = ["locks", "postmaster", "stat_checkpointer", "stat_database", "wal"]
+  disable_settings_metrics = true
+}
+
+prometheus.scrape "postgres" {
+  job_name        = "postgres"
+  targets         = prometheus.exporter.postgres.db.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.postgres.receiver]
+}
+
+prometheus.relabel "postgres" {
+  forward_to = [prometheus.remote_write.cloud.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    action        = "keep"
+    regex         = string.join([
+      // Down (PostgresDown), restarted (PostgresRestarted), connections near
+      // the limit (PostgresConnections), transactions left open.
+      "pg_up", "pg_postmaster_start_time_seconds",
+      "pg_stat_activity_(count|max_tx_duration)",
+      // Load: locks, commits and rollbacks, cache hits, deadlocks, sorts
+      // spilled to disk, checkpoints forced by WAL (Postgres 17 counts them
+      // in pg_stat_checkpointer, no longer pg_stat_bgwriter).
+      "pg_locks_count",
+      "pg_stat_database_(xact_commit|xact_rollback|blks_hit|blks_read|deadlocks|temp_bytes)",
+      "pg_stat_checkpointer_num_(timed|requested)_total",
+      // WAL and archiving (WalArchiveFailing).
+      "pg_wal_size_bytes", "pg_stat_archiver_(failed_count|last_archive_age)",
+    ], "|")
+  }
+
+  // Each of these comes once per database; the template databases take no
+  // connections of ours.
+  rule {
+    source_labels = ["datname"]
+    regex         = "template0|template1"
+    action        = "drop"
+  }
+}
+
+// The slow reads. Its exporter also repeats the default metrics above, which
+// its keep-list leaves out, so no series comes from both.
+prometheus.exporter.postgres "db_slow" {
   data_source_names          = [sys.env("POSTGRES_MONITOR_URL")]
-  enabled_collectors         = ["database", "locks", "replication", "replication_slot", "stat_bgwriter", "stat_database", "stat_statements", "wal"]
+  enabled_collectors         = ["database", "stat_statements"]
   disable_settings_metrics   = true
   custom_queries_config_path = "/etc/alloy/adhunters/postgres-queries.yaml"
 
@@ -27,9 +78,30 @@ prometheus.exporter.postgres "db" {
   }
 }
 
-prometheus.scrape "postgres" {
+prometheus.scrape "postgres_slow" {
   job_name        = "postgres"
-  targets         = prometheus.exporter.postgres.db.targets
-  scrape_interval = "60s"
-  forward_to      = [prometheus.remote_write.cloud.receiver]
+  targets         = prometheus.exporter.postgres.db_slow.targets
+  scrape_interval = "4m"
+  forward_to      = [prometheus.relabel.postgres_slow.receiver]
+}
+
+prometheus.relabel "postgres_slow" {
+  forward_to = [prometheus.remote_write.cloud.receiver]
+
+  // Not up nor pg_up: "db" says whether Postgres answers.
+  rule {
+    source_labels = ["__name__"]
+    action        = "keep"
+    regex         = string.join([
+      "pg_database_size_bytes", "pg_schema_size_bytes",
+      "pg_table_(size_bytes|live_rows|dead_rows)",
+      "pg_stat_statements_(calls_total|seconds_total|rows_total|query_id)",
+    ], "|")
+  }
+
+  rule {
+    source_labels = ["datname"]
+    regex         = "template0|template1"
+    action        = "drop"
+  }
 }

@@ -8,14 +8,14 @@ itself works (decision 0009).
 
 | Piece | Where | What it does |
 |---|---|---|
-| Grafana Alloy | every box, `alloy/` here, installed by `platform/servers/setup.sh` | Reads every service's `/metrics`, the host and, on the data box, Postgres and the Cloudflare tunnel every 60 s; ships the journal of our units. Buffers on disk while Grafana Cloud is unreachable. Sends only what is worth watching (see Series). |
+| Grafana Alloy | every box, `alloy/` here, installed by `platform/servers/setup.sh` | Reads every service's `/metrics`, the host and, on the data box, Postgres and the Cloudflare tunnel every 60 s (Postgres's sizes and top queries every 4 minutes); ships the journal of our units. Buffers on disk while Grafana Cloud is unreachable. Sends only what shows a problem at a glance (see Series). |
 | Grafana Cloud | hosted (free tier) | Stores metrics and logs, runs the alert rules (`rules/`) and the Alertmanager (`alertmanager/`). |
 | Sentry | hosted (free tier), `kit/errs` | Every log line at error level and every panic becomes a Sentry event, grouped by service, message and the error's shape (its text with numbers, quoted text, URLs and ids masked), tied to the build. A process sends at most one event an hour per issue, 30 an hour in all, so a stuck error cannot use up the free plan's events; the real count is `adhunters_log_errors_total`. |
 | Telegram | the "AdHunters alerts" group | Pages (with sound, every 5 minutes until cleared), chat alerts (silent, at any hour), the digest and new Sentry issues: everything about the platform itself. Each alert links its runbook in `runbooks/`. |
 | Telegram | the ops group "AdHunters operation" | What the team acts on: Intel's alerts, delivery status changes and suggestions, and Taboola policy changes. Set by `OPS_TELEGRAM_CHAT_ID` in `observe-bot.env` and `intel-numbers.env`; while it is empty they go to "AdHunters alerts". |
 | Better Stack | hosted (free tier) | Receives the always-firing `Heartbeat` every minute and calls the owner when it stops. Later: outside checks of the apps. |
 | `observe-bot` | data box, `cmd/observe-bot` here | Sends the 08:00 digest (the last 24 hours in numbers, with the alerts that fired, the errors logged and the failed task runs; three lines on a quiet day) and posts each new Sentry issue to Telegram, silently, as it first appears (it asks Sentry every minute, tries a slow or failing answer three times, and logs a failed poll as a warning rather than reporting it to Sentry; `adhunters_task_runs_total{task="sentry_relay",result="error"}` counts them and `TaskLate` fires after 10 minutes without getting through). Reads what is left on each prepaid service every 15 minutes and knows when subscriptions renew (see Credits below). Crawls Taboola's policy pages every 6 hours and posts what changed (see Taboola policy watch below). |
-| Dashboards | `dashboards/`, uploaded by `push.sh` | "AdHunters · Services" (what fires now, errors by service and message with their log lines, tasks, processes, spend), "AdHunters · Web" (the Cloudflare tunnel, each app's requests through create-web, calls to outside services, landing sites), "AdHunters · Postgres" (connections, load, the queries that take the most time, space by schema and table, each app's pool), "AdHunters · Apps" (Raposa, Spy, Funnels, Desk), "AdHunters · Collection" (capture, shipper, loader, walker) and "AdHunters · Boxes" (hosts, network, processes and pressure, Postgres, backups, task freshness, what Alloy sends). |
+| Dashboards | `dashboards/`, uploaded by `push.sh` | "AdHunters · Services" (what fires now, errors by service and message with their log lines, tasks, processes, spend), "AdHunters · Web" (the Cloudflare tunnel, each app's requests through create-web, calls to outside services, landing sites), "AdHunters · Postgres" (connections, load, the queries that take the most time, space by schema and table, each app's pool), "AdHunters · Apps" (Raposa, Spy, Funnels, Desk), "AdHunters · Collection" (capture, shipper, loader, walker) and "AdHunters · Boxes" (hosts, network, processes and pressure, Postgres, backups, task freshness, what Grafana holds). A panel an alert watches draws the alert's line, red and dashed. |
 | Backups | data box, pgBackRest (`platform/servers/setup.sh`) | WAL archived every 60 s, a full backup on Sundays and a differential on other days, all to object storage; alerts when archiving fails or a backup is late. |
 
 ## What you sign up for
@@ -227,8 +227,7 @@ once, when it first appears; this is what keeps a repeating failure from
 going quiet after that. An error that is really "nothing to do" belongs at
 info or warn level, or it will fire.
 
-Alloy watches every unit of ours (`UnitFailed`, `PostgresRestarted`) and ships
-its journal. `push.sh check` fails when `platform/servers/setup.sh` runs a
+Alloy watches every unit of ours (`UnitFailed`) and ships its journal. `push.sh check` fails when `platform/servers/setup.sh` runs a
 unit that `alloy/common.alloy` does not cover.
 
 `rules/web.yaml` watches what the team opens: `TunnelDown` when the data box's
@@ -243,44 +242,58 @@ held from 22:00 to 08:00, and one that cleared before morning was never sent
 ## Series
 
 Grafana Cloud's free plan holds 10,000 series (a series is one metric with
-one set of label values) and drops what goes over; it bills nothing. On
-2 Oct 2026 we sent 12,859: Postgres 6,936 (statistics for each of its 221
-tables and a copy of every setting, which nothing read), the hosts 2,126,
-Alloy's own 1,869 and our services 1,820. Since then each exporter sends
-what a rule, a dashboard or a person reads, about 5,000 in all:
+one set of label values) and drops what goes over; it bills nothing. It
+counts a series the same whether it is read every minute or every 4 minutes,
+so reading slower saves the boxes work but no room in Grafana: only fewer
+series do. On 2 Oct 2026 we sent 12,859: Postgres 6,936 (statistics for each
+of its 221 tables and a copy of every setting, which nothing read), the hosts
+2,126, Alloy's own 1,869 and our services 1,820. A first cut brought it to
+4,284 the same morning.
 
-- Postgres (`alloy/postgres.alloy`): connections, locks, transactions,
-  cache hits, deadlocks and temporary files per database, checkpoints,
-  WAL, replication and archiving; the 20 queries that took the most time
-  (`pg_stat_statements_*`, with their text in `pg_stat_statements_query_id`);
-  and the size and rows of each schema and of the 20 biggest tables, a
-  partitioned table with its partitions (`pg_schema_*`, `pg_table_*`, from
-  `alloy/postgres-queries.yaml`). No statistics for every table.
-- The hosts (`alloy/common.alloy`): only the collectors listed there, which
-  add network errors and retransmits, sockets, the connection-tracking
+Since then everything Alloy reads goes through a keep-list in `alloy/` of
+what shows a problem at a glance: what an alert, a dashboard, observe-bot's
+digest or `daily-check.sh` reads, and nothing else. `go test ./tests/` (CI
+runs it) fails when one of them reads a metric no keep-list lets through,
+since that panel would stay empty and that alert would never fire. About
+1,400 in all, going by what each box served on 2 Oct 2026:
+
+- Our services (`common.alloy`, "services"): each service's own metrics that
+  a panel or an alert reads; from `kit/ops` and `kit/pg`, its version, error
+  lines, tasks, database pool (`adhunters_db_pool_*`, the connections in
+  use but not the idle ones), calls to outside services by provider and
+  status code (`adhunters_outbound_*`: Taboola, RedTrack, Telegram, OpenAI
+  and the other headline providers, Google Drive, and observe-bot's to
+  Sentry, Grafana Cloud, the balance checks and Taboola's help center) and
+  create-web's requests by app and status code (`adhunters_http_*`); and of
+  Go's runtime only what shows a leak or a restart: memory, CPU, open files,
+  goroutines and start time. Histograms send their buckets only.
+  spy-numbers' jobs show as its tasks; its own copies of the same
+  (`spy_numbers_*`) stay on the box.
+- The hosts (`common.alloy`, "host"): CPU (the idle time of each core),
+  memory, pressure, out-of-memory kills, disk space and writes, network
+  traffic, errors, retransmits, connections and the connection-tracking
   table, file handles, processes and threads, the clock, and each unit's
-  restarts and threads to what the alerts read.
-- Alloy and cloudflared: a short list each of the metrics worth keeping.
-- Our services (`kit/ops`, `kit/pg`): besides their own metrics, each
-  service with a database reports its pool (`adhunters_db_pool_*`), calls to
-  Taboola, RedTrack, Telegram, OpenAI and the other headline providers, Google
-  Drive, and observe-bot's to Sentry, Grafana Cloud, the balance checks
-  (`credits`) and Taboola's help center (`taboola-help`) are counted by
-  provider and status code (`adhunters_outbound_*`), and create-web counts
-  every request by app and status code (`adhunters_http_*`). About 600
-  series together.
+  failed state, restarts and threads.
+- Postgres (`postgres.alloy`): every minute, whether it answers and when it
+  started, connections, locks, transactions, cache hits, deadlocks,
+  temporary files, checkpoints, WAL and archiving. Every 4 minutes, since
+  they change slowly and cost the most to read: the size of the database, of
+  each schema and of the 10 biggest tables (`postgres-queries.yaml`), and the
+  20 queries that took the most time (`pg_stat_statements_*`, with their text
+  in `pg_stat_statements_query_id`). Four minutes stays under the 5 a Grafana
+  query looks back for a value, so panels show no gaps.
+- Alloy: whether its sends fail or lag, and whether it drops log lines.
+  cloudflared: its connections to Cloudflare and the requests it passes.
 
 Before adding a metric, count its series: each label multiplies them, so a
 label never holds an id, a URL or free text, only a short fixed set of
-values. Where we stand, in Grafana's Explore: `count({__name__=~".+"})`, and
-`count by (job) ({__name__=~".+"})` for who sends them. Every scrape runs
-every 60 s, so the samples a box sends in a minute are the series it sends:
-`sum by (box) (rate(prometheus_remote_storage_samples_total[10m])) * 60`,
-"Series sent, by box" on "AdHunters · Boxes". `SeriesNearLimit` (chat) fires
-when the boxes send over 9,000 together. Alloy's own
-`prometheus_remote_write_wal_storage_active_series` reads higher: it keeps a
-series a box stopped sending until the WAL is truncated, every 2 hours, so
-right after a cut it still counts what was cut.
+values. Then add it to its keep-list. Where we stand: "Series in Grafana
+Cloud, by kind" on "AdHunters · Boxes", or `count by (job)
+({__name__=~".+"})` in Grafana's Explore. `SeriesNearLimit` (chat) fires
+when Grafana holds over 9,000 of ours. It counts what Grafana holds, not
+what Alloy's write-ahead log holds: the log keeps a series a box stopped
+sending until it is truncated, every 2 hours, so right after a cut it still
+counts what was cut.
 
 ## Daily check
 

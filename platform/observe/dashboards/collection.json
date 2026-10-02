@@ -84,7 +84,7 @@
       "id": 2,
       "type": "stat",
       "title": "Loader lag",
-      "description": "",
+      "description": "Red over 10 minutes, where LoaderLag fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -97,7 +97,23 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 600
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       },
@@ -126,7 +142,7 @@
       "id": 3,
       "type": "stat",
       "title": "Quarantined raw files",
-      "description": "",
+      "description": "Red from the first one, when RawFileQuarantined fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -139,7 +155,23 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       },
@@ -270,7 +302,7 @@
       "id": 7,
       "type": "timeseries",
       "title": "Failed share by network",
-      "description": "",
+      "description": "The red line is where CaptureErrors fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -283,7 +315,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.3
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -381,7 +431,7 @@
       "id": 10,
       "type": "timeseries",
       "title": "Oldest raw file not archived",
-      "description": "",
+      "description": "The red line is where ShipperBehind fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -394,7 +444,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -483,7 +551,7 @@
       "id": 13,
       "type": "timeseries",
       "title": "Unparsed share (format drift)",
-      "description": "",
+      "description": "The red line is where FormatDrift fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -496,7 +564,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.02
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -551,7 +637,7 @@
       "id": 15,
       "type": "timeseries",
       "title": "Age of the newest closed hour",
-      "description": "",
+      "description": "The red line is where HourNotClosed fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -564,7 +650,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 9000
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -598,7 +702,7 @@
       "id": 18,
       "type": "timeseries",
       "title": "Walker: time to walk what waits",
-      "description": "WalkerBehind fires over 2 hours.",
+      "description": "WalkerBehind fires over 2 hours. The red line is where WalkerBehind fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -611,7 +715,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 7200
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
@@ -854,7 +976,7 @@
       "id": 32,
       "type": "timeseries",
       "title": "Bridge lag",
-      "description": "Only while tracks-bridge feeds today's Spy (BridgeBehind).",
+      "description": "Only while tracks-bridge feeds today's Spy (BridgeBehind). The red line is where BridgeBehind fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -867,7 +989,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },

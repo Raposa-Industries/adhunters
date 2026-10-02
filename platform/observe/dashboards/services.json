@@ -655,7 +655,7 @@
       "id": 15,
       "type": "timeseries",
       "title": "Task freshness (share of the promise used)",
-      "description": "100% is late (TaskLate).",
+      "description": "100% is late: the red line is where TaskLate fires.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -668,7 +668,25 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          }
         },
         "overrides": []
       },
