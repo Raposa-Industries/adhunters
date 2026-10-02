@@ -237,3 +237,27 @@ func TestBrowserURL(t *testing.T) {
 		}
 	}
 }
+
+// A quick investigation never climbs onto the residential line, even when a
+// residential rung is set to cost nothing.
+func TestQuickNeverClimbsOntoResidential(t *testing.T) {
+	ladder := []Disguise{
+		{Rung: 1, LineRole: "dc", IsBaseline: true},
+		{Rung: 2, LineRole: "isp"},
+		{Rung: 3, LineRole: "residential", CostKB: 0},
+		{Rung: 4, LineRole: "isp", CostKB: 0},
+		{Rung: 5, LineRole: "residential", CostKB: 60},
+	}
+	quick := &run{inv: &Investigation{Mode: "quick"}, ladder: ladder}
+	var got []int16
+	for d := quick.nextRung(0); d != nil; d = quick.nextRung(d.Rung) {
+		got = append(got, d.Rung)
+	}
+	if len(got) != 2 || got[0] != 2 || got[1] != 4 {
+		t.Fatalf("quick climbed %v, want [2 4]", got)
+	}
+	deep := &run{inv: &Investigation{Mode: "deep"}, ladder: ladder}
+	if d := deep.nextRung(2); d == nil || d.Rung != 3 {
+		t.Fatalf("deep after rung 2: %v, want rung 3", d)
+	}
+}

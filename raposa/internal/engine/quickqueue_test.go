@@ -7,8 +7,9 @@ import (
 	"github.com/Raposa-Industries/adhunters/raposa/internal/testdb"
 )
 
-// New ads that run now and whose landing page no visit has read whole
-// are queued as quick investigations, newest first, up to the queue depth.
+// New ads that run now, whose landing page tracks-walker could not get and
+// no visit has read whole, are queued as quick investigations, newest
+// first, up to the queue depth.
 func TestQueueQuick(t *testing.T) {
 	pool := testdb.New(t)
 	testdb.Tracks(t, pool)
@@ -31,6 +32,10 @@ func TestQueueQuick(t *testing.T) {
 		{10, 1, 2, 1},  // investigated 2 hours ago
 		{11, 1, 2, 3},  // stopped 2 hours ago: queued
 		{12, 1, 2, 2},  // has only a bot check page: queued
+		{13, 1, 2, 1},  // the walker read its landing page
+		{14, 1, 2, 1},  // the walker never tried it
+		{15, 1, 2, 1},  // the walker failed only once
+		{16, 1, 2, 1},  // failed twice, then read on another ad
 	}
 	for i, a := range ads {
 		mustExec(t, pool, `INSERT INTO tracks_api.creative_v1 (id, creative_key, first_seen_at) VALUES ($1, $2, now() - make_interval(days => $3))`,
@@ -38,6 +43,44 @@ func TestQueueQuick(t *testing.T) {
 		mustExec(t, pool, `INSERT INTO tracks_api.ad_v1 (id, creative_id, last_seen_at) VALUES ($1, $2, now() - make_interval(mins => $3))`,
 			100+i, a.creative, a.seenMin)
 		mustExec(t, pool, `INSERT INTO tracks_api.network_ad_v1 (network_id, ad_id) VALUES ($1, $2)`, a.network, 100+i)
+	}
+	// What tracks-walker got: a usable page, a bot check, and walks that
+	// got nothing.
+	mustExec(t, pool, `INSERT INTO tracks_api.page_version_v1 (hash, title, word_count) VALUES
+		(md5('good')::uuid, 'Seven habits', 300), (md5('bot')::uuid, 'Just a moment...', 300)`)
+	walk := func(ad int, creative int, version string) {
+		var hash any
+		if version != "" {
+			hash = version
+		}
+		mustExec(t, pool, `INSERT INTO tracks_api.walk_page_v1 (at, ad_id, creative_id, step, status, version_hash)
+			VALUES (now(), $1, $2, 0, CASE WHEN $3::uuid IS NULL THEN NULL ELSE 200 END, $3::uuid)`, ad, creative, hash)
+	}
+	hash := func(name string) string {
+		var h string
+		if err := pool.QueryRow(ctx, `SELECT md5($1)::uuid::text`, name).Scan(&h); err != nil {
+			t.Fatal(err)
+		}
+		return h
+	}
+	good, bot := hash("good"), hash("bot")
+	for i, a := range ads {
+		switch a.creative {
+		case 13:
+			walk(100+i, a.creative, "")
+			walk(100+i, a.creative, good)
+		case 14:
+		case 15:
+			walk(100+i, a.creative, "")
+		case 16:
+			walk(100+i, a.creative, "")
+			walk(100+i, a.creative, bot)
+			mustExec(t, pool, `INSERT INTO tracks_api.ad_v1 (id, creative_id, last_seen_at) VALUES (900, 16, now() - interval '3 days')`)
+			walk(900, a.creative, good)
+		default:
+			walk(100+i, a.creative, "")
+			walk(100+i, a.creative, bot)
+		}
 	}
 	mustExec(t, pool, `INSERT INTO raposa.page (content_hash, page_key, text_digest, url, host, path, title, word_count)
 		VALUES (md5('a')::uuid, 'a.com/', 'd1', 'https://a.com/', 'a.com', '/', 'Seven habits', 300),
@@ -76,6 +119,11 @@ func TestQueueQuick(t *testing.T) {
 	rows.Close()
 	if len(got) != 3 || got[0] != 5 || got[1] != 12 || got[2] != 11 {
 		t.Fatalf("queued creatives %v, want [5 12 11] (newest first)", got)
+	}
+	// One failed walk is enough once the setting says so.
+	mustExec(t, pool, `UPDATE raposa.setting SET value = '1' WHERE key = 'quick_walk_failures'`)
+	if n, err := s.QueueQuick(ctx); err != nil || n != 1 {
+		t.Fatalf("with one failure enough: queued %d, %v", n, err)
 	}
 	// Queued ones are waiting now, so nothing more.
 	if n, err := s.QueueQuick(ctx); err != nil || n != 0 {
