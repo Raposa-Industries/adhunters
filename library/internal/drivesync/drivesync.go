@@ -738,14 +738,16 @@ func HeadlineLines(raw []byte) (lines []string) {
 
 // typedHeadlines reads a person's headline file when it changed or moved:
 // its text is kept raw, each line becomes a headline of the folder it sits
-// in, and a line taken out takes its headline out of the lists.
+// in, and a line taken out takes its headline out of the lists. A file
+// whose last read left something out (an error) is read again.
 func (s *Syncer) typedHeadlines(ctx context.Context, f drive.File, dir folderAt) error {
 	db := s.st.DB()
 	var md5, parent string
 	var mod *time.Time
 	var read bool
 	err := db.QueryRow(ctx, `
-		SELECT f.md5, f.modified_at, f.parent_id, h.read_at IS NOT NULL AND f.gone_at IS NULL
+		SELECT f.md5, f.modified_at, f.parent_id,
+		       h.read_at IS NOT NULL AND f.gone_at IS NULL AND COALESCE(f.error, '') = ''
 		FROM library.drive_file f JOIN library.drive_headlines h USING (file_id) WHERE f.file_id = $1`, f.ID).
 		Scan(&md5, &mod, &parent, &read)
 	if err == nil && read && md5 == f.MD5 && parent == dir.id && mod != nil && mod.Equal(f.ModifiedTime) {
