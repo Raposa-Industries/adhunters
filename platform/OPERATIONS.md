@@ -121,17 +121,15 @@ for one box).
 What the deploy job needs, set once:
 
 - Tailscale (login.tailscale.com), Access controls: a `tag:ci` owned by the
-  admins, and `tag:ci` allowed to reach `tag:server` on port 22 and to log
-  in there as `admin` through Tailscale SSH:
+  admins, allowed to log in to `tag:server` as `admin` through Tailscale SSH.
+  The tailnet's grants already let every device reach every other (2 Oct
+  2026); if they are ever narrowed, keep `tag:ci` to `tag:server` on
+  `tcp:22`:
 
   ```
   "tagOwners": { "tag:ci": ["autogroup:admin"], ... },
-  "acls": [ { "action": "accept", "src": ["tag:ci"], "dst": ["tag:server:22"] }, ... ],
-  "ssh":  [ { "action": "accept", "src": ["tag:ci"], "dst": ["tag:server"], "users": ["admin"] }, ... ],
+  "ssh": [ { "action": "accept", "src": ["tag:ci"], "dst": ["tag:server"], "users": ["admin"] }, ... ],
   ```
-
-  (with `grants` instead of `acls`:
-  `{ "src": ["tag:ci"], "dst": ["tag:server"], "ip": ["tcp:22"] }`).
 - Tailscale, Settings, Trust credentials (OAuth clients): a client with the
   `auth_keys` write scope and tag `tag:ci`.
 - GitHub: an environment `production` that only `main` can deploy from,
