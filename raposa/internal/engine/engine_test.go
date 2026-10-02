@@ -21,6 +21,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
 	"github.com/Raposa-Industries/adhunters/raposa/internal/testdb"
 	"github.com/Raposa-Industries/adhunters/shared/files"
+	"github.com/Raposa-Industries/adhunters/shared/telegram"
 )
 
 // cloaker is a site that shows the white page to a link without the ad
@@ -551,46 +552,59 @@ func TestKeeperKeepsThePageWhole(t *testing.T) {
 	}
 }
 
-// Watches are delivered once to Pushcut, and recorded as skipped on a box
-// with no Pushcut key.
+// A watched event is posted to the ops group once, however many watches want
+// it, and recorded as skipped on a box with no Telegram settings.
 func TestNotifier(t *testing.T) {
 	f := newFixture(t)
 	ctx := context.Background()
 	var got atomic.Int32
-	var lastKey, lastPath string
-	push := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var lastPath, lastText, lastChat string
+	tg := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got.Add(1)
-		lastKey, lastPath = r.Header.Get("API-Key"), r.URL.Path
+		var m struct {
+			ChatID string `json:"chat_id"`
+			Text   string `json:"text"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&m)
+		lastPath, lastText, lastChat = r.URL.Path, m.Text, m.ChatID
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer push.Close()
-	old := pushcutURL
-	pushcutURL = push.URL + "/v1/notifications/"
-	defer func() { pushcutURL = old }()
+	defer tg.Close()
 
 	id, _ := f.e.store.Request(ctx, 5, "deep", nil, "test")
-	mustExec(t, f.pool, `INSERT INTO raposa.watch (investigation_id, pushcut_notification) VALUES ($1, 'Raposa Alert')`, id)
+	mustExec(t, f.pool, `INSERT INTO raposa.watch (investigation_id, created_by) VALUES ($1, 'ana')`, id)
+	mustExec(t, f.pool, `INSERT INTO raposa.watch (creative_id, created_by) VALUES (5, 'vini')`)
 	mustExec(t, f.pool, `SELECT raposa.emit($1, 'started', 'Raposa started', 'deep')`, id)
 
-	f.e.cfg.PushcutKey = ""
-	if n, err := f.e.NotifyOnce(ctx, http.DefaultClient); err != nil || n != 1 {
-		t.Fatalf("notify without a key: %d %v", n, err)
+	f.e.cfg.Telegram = nil
+	if n, err := f.e.NotifyOnce(ctx); err != nil || n != 2 {
+		t.Fatalf("notify without Telegram: %d %v", n, err)
 	}
-	var status string
-	_ = f.pool.QueryRow(ctx, `SELECT status FROM raposa.delivery`).Scan(&status)
-	if status != "skipped" || got.Load() != 0 {
-		t.Fatalf("without a key: status %s, %d sent", status, got.Load())
+	var skipped int
+	_ = f.pool.QueryRow(ctx, `SELECT count(*) FROM raposa.delivery WHERE status = 'skipped'`).Scan(&skipped)
+	if skipped != 2 || got.Load() != 0 {
+		t.Fatalf("without Telegram: %d skipped, %d sent", skipped, got.Load())
 	}
 
-	f.e.cfg.PushcutKey = "secret"
-	mustExec(t, f.pool, `SELECT raposa.emit($1, 'finished', 'Investigation finished', 'done')`, id)
-	if n, err := f.e.NotifyOnce(ctx, http.DefaultClient); err != nil || n != 1 {
+	f.e.cfg.Telegram = telegram.New("tok", "-100")
+	f.e.cfg.Telegram.API = tg.URL
+	f.e.cfg.BaseURL = "https://hunt-teste.fyi/raposa/"
+	mustExec(t, f.pool, `SELECT raposa.emit($1, 'finished', 'Investigation finished', 'done <ok>')`, id)
+	if n, err := f.e.NotifyOnce(ctx); err != nil || n != 2 {
 		t.Fatalf("notify: %d %v", n, err)
 	}
-	if n, _ := f.e.NotifyOnce(ctx, http.DefaultClient); n != 0 {
+	if n, _ := f.e.NotifyOnce(ctx); n != 0 {
 		t.Fatalf("delivered twice")
 	}
-	if got.Load() != 1 || lastKey != "secret" || lastPath != "/v1/notifications/Raposa%20Alert" && lastPath != "/v1/notifications/Raposa Alert" {
-		t.Fatalf("pushcut got %d calls, key %q, path %q", got.Load(), lastKey, lastPath)
+	var sent int
+	_ = f.pool.QueryRow(ctx, `SELECT count(*) FROM raposa.delivery WHERE status = 'sent'`).Scan(&sent)
+	if got.Load() != 1 || sent != 2 || lastPath != "/bottok/sendMessage" || lastChat != "-100" {
+		t.Fatalf("telegram got %d calls (%d deliveries sent), path %q, chat %q", got.Load(), sent, lastPath, lastChat)
+	}
+	for _, want := range []string{"<b>Investigation finished</b>", "done &lt;ok&gt;", "ana, vini",
+		fmt.Sprintf(`href="https://hunt-teste.fyi/raposa/i/%d"`, id)} {
+		if !strings.Contains(lastText, want) {
+			t.Fatalf("message %q lacks %q", lastText, want)
+		}
 	}
 }

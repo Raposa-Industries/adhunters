@@ -36,7 +36,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | bring back | Load an archived day's hour files into the database again because a page asked for it. They go again once nobody has asked for 3 days. |
 | live link | A click link seen in the last 15 minutes, with the values the ad network put in it. Raposa takes each one once. |
 | books balance | The loaded facts add up: each raw file's scrapes equal its rows, and each closed hour's counts equal its sightings. |
-| watch | Something a person follows in an app (an operator, an investigation). Raposa's watches notify through Pushcut; Spy's watched operators notify the ops group. |
+| watch | Something a person follows in an app (an operator, an investigation). Raposa's watches and Spy's watched operators notify the ops group. |
 | alert | A system or developer message. Alerts go to Telegram, never Pushcut. |
 | ops group | The Telegram group "AdHunters operation": what the team acts on (Intel's alerts, delivery status changes and suggestions, policy changes, watch notices). Everything about the platform itself stays in "AdHunters alerts". |
 | page | An alert that needs someone now: Telegram with sound, repeated every 5 minutes until it clears or is silenced. |

@@ -79,8 +79,8 @@ Asked {{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}.{{if .Completed
 
 <h2>Watches</h2>
 {{if .Watches}}
-<table><tr><th>Pushcut notification</th><th>Events</th><th>Covers</th><th>Sent</th><th></th></tr>
-{{range .Watches}}<tr><td>{{.Notification}}</td><td>{{range $i, $k := .Kinds}}{{if $i}}, {{end}}{{$k}}{{end}}</td>
+<table><tr><th>Events</th><th>Covers</th><th>Sent</th><th></th></tr>
+{{range .Watches}}<tr><td>{{range $i, $k := .Kinds}}{{if $i}}, {{end}}{{$k}}{{end}}</td>
 <td>{{if .Creative}}the creative{{else}}this investigation{{end}}{{with .By}}, by {{.}}{{end}}</td>
 <td>{{.Sent}} sent{{if .Failed}}, {{.Failed}} failed{{end}}{{if .Skipped}}, {{.Skipped}} skipped{{end}}</td>
 <td><form class="inline" method="post" action="{{base}}/watch/{{.ID}}/end"><input type="hidden" name="back" value="/i/{{$.ID}}"><button>End</button></form></td></tr>{{end}}
@@ -88,7 +88,7 @@ Asked {{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}.{{if .Completed
 {{end}}
 <form method="post" action="{{base}}/i/{{.ID}}/watch">
 <fieldset><legend>Watch</legend>
-<label>Pushcut notification <input name="notification" required size="16"></label>
+<p class="note">Each event you pick is posted to the Telegram group "AdHunters operation", with your name.</p>
 <label><input type="checkbox" name="kind" value="started" checked> started</label>
 <label><input type="checkbox" name="kind" value="dark_found" checked> dark page found</label>
 <label><input type="checkbox" name="kind" value="finished" checked> finished</label>

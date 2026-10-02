@@ -37,7 +37,7 @@ func newMetrics(reg prometheus.Registerer) *metrics {
 		}, []string{"result"}),
 		deliveries: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "raposa_watch_deliveries_total",
-			Help: "Watch events sent to Pushcut, by status.",
+			Help: "Watch deliveries to the ops group on Telegram, by status.",
 		}, []string{"status"}),
 		burns: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "raposa_line_burns",

@@ -17,6 +17,6 @@ groups:
         labels:
           tier: chat
         annotations:
-          summary: '{{ $value | humanize }} watch event(s) could not be sent to Pushcut in the last 30 minutes.'
-          resolved: 'Watch events reach Pushcut again.'
+          summary: '{{ $value | humanize }} watch event(s) could not be posted to the ops group on Telegram in the last 30 minutes.'
+          resolved: 'Watch events reach the ops group again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/watch-delivery-failing.md

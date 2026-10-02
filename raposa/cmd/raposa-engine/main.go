@@ -9,8 +9,10 @@
 //	raposa-engine import-old [-from URL] [-old-files s3://bucket/raposa] [-dry-run]
 //
 // The database URL comes from DATABASE_URL; the login reads tracks_api
-// (tracks_api_read). Watches need PUSHCUT_API_KEY; without it they are
-// recorded as skipped. An s3:// files store takes its keys from S3_ENDPOINT,
+// (tracks_api_read). Watched events go to the ops group "AdHunters operation"
+// on Telegram with TELEGRAM_BOT_TOKEN and OPS_TELEGRAM_CHAT_ID, linking the
+// investigation under RAPOSA_BASE_URL; without them they are recorded as
+// skipped. An s3:// files store takes its keys from S3_ENDPOINT,
 // S3_ACCESS_KEY and S3_SECRET_KEY. run stops cleanly on SIGTERM: the visit in
 // flight is dropped unwritten and runs again at the next claim.
 package main
@@ -39,6 +41,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/raposa/internal/lines"
 	"github.com/Raposa-Industries/adhunters/raposa/migrations"
 	"github.com/Raposa-Industries/adhunters/shared/files"
+	"github.com/Raposa-Industries/adhunters/shared/telegram"
 )
 
 // version is set at build time: -ldflags "-X main.version=…".
@@ -159,17 +162,21 @@ func runCmd(args []string) error {
 
 	srv := ops.New("raposa-engine", version)
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
-	e := engine.New(engine.Config{
+	cfg := engine.Config{
 		Node:        *node,
 		Workers:     *workers,
 		BrowserAddr: *browser,
-		PushcutKey:  os.Getenv("PUSHCUT_API_KEY"),
+		BaseURL:     os.Getenv("RAPOSA_BASE_URL"),
 		KeepDir:     *keepDir,
-	}, log, engine.NewStore(db), ls, targets, store, srv.Registry)
+	}
+	if tok, chat := os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("OPS_TELEGRAM_CHAT_ID"); tok != "" && chat != "" {
+		cfg.Telegram = telegram.New(tok, chat)
+	}
+	e := engine.New(cfg, log, engine.NewStore(db), ls, targets, store, srv.Registry)
 
 	log.Info("engine starting", "node", *node, "workers", *workers, "lines", len(ls.All()),
 		"targets", len(targets), "files", store.String(), "browser", *browser,
-		"watches", os.Getenv("PUSHCUT_API_KEY") != "")
+		"watches", cfg.Telegram != nil)
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)
 		go func() { opsDone <- srv.Serve(ctx, log, ops.Addr()) }()
