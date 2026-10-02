@@ -3,7 +3,6 @@ package judge
 import (
 	"context"
 	"fmt"
-	"html"
 	"log/slog"
 	"math"
 	"net/url"
@@ -280,7 +279,8 @@ func SendSuggestions(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, s 
 	}
 	maxAge := time.Duration(s.get("suggestion_alert_max_age_hours", 6) * float64(time.Hour))
 	rows, err := db.Query(ctx, `
-		SELECT s.id, s.account, s.campaign_id, COALESCE(c.name, ''), s.title, s.why, s.launch_url
+		SELECT s.id, s.campaign_id, COALESCE(c.name, ''), s.kind, COALESCE(cardinality(s.item_ids), 0),
+		       COALESCE(s.numbers->>'suggested', ''), s.title, s.launch_url
 		FROM intel.suggestion s LEFT JOIN intel.tb_campaign c ON c.campaign_id = s.campaign_id
 		WHERE s.state = 'open' AND s.sent_at IS NULL AND s.created_at >= $1
 		ORDER BY s.created_at, s.id
@@ -294,21 +294,22 @@ func SendSuggestions(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, s 
 	base := strings.TrimRight(baseURL, "/")
 	for rows.Next() {
 		var id, campaign int64
-		var account, name, title, why, link string
-		if err := rows.Scan(&id, &account, &campaign, &name, &title, &why, &link); err != nil {
+		var items int
+		var name, kind, suggested, title, link string
+		if err := rows.Scan(&id, &campaign, &name, &kind, &items, &suggested, &title, &link); err != nil {
 			return 0, err
 		}
 		ids = append(ids, id)
-		label := name
-		if label == "" {
-			label = fmt.Sprintf("campaign %d", campaign)
+		// The campaign's name, then the change linked: one tap opens Launch
+		// with it filled in. The why is on the Intel pages.
+		if name == "" {
+			name = fmt.Sprintf("campaign %d", campaign)
 		}
-		part := fmt.Sprintf("<b>%s</b>\n%s (%s · %d)\n%s", html.EscapeString(title), html.EscapeString(label),
-			html.EscapeString(account), campaign, html.EscapeString(why))
+		href := ""
 		if base != "" && link != "" {
-			part += fmt.Sprintf("\n<a href=\"%s\">Open in Launch</a>", html.EscapeString(base+link))
+			href = base + link
 		}
-		parts = append(parts, part)
+		parts = append(parts, "💡 <b>"+tgEsc(name)+"</b> · "+tgLink(suggestionWords(kind, items, suggested, title), href))
 	}
 	if err := rows.Err(); err != nil {
 		return 0, err
@@ -316,11 +317,7 @@ func SendSuggestions(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, s 
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	head := "Suggestion"
-	if len(ids) > 1 {
-		head = fmt.Sprintf("%d suggestions", len(ids))
-	}
-	msg := "<b>Intel · " + head + "</b>\n\n" + strings.Join(parts, "\n\n")
+	msg := strings.Join(parts, "\n")
 	if err := send.Send(ctx, msg, false); err != nil {
 		log.Error("suggestions not sent", "err", err, "count", len(ids))
 		return 0, nil
@@ -329,4 +326,23 @@ func SendSuggestions(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, s 
 		return 0, err
 	}
 	return len(ids), nil
+}
+
+// suggestionWords is a suggestion's change in a few words.
+func suggestionWords(kind string, items int, suggested, title string) string {
+	switch kind {
+	case "pause-campaign":
+		return "Pause campaign"
+	case "pause-ads":
+		if items == 1 {
+			return "Pause 1 ad"
+		}
+		return fmt.Sprintf("Pause %d ads", items)
+	case "set-daily-cap":
+		if suggested != "" {
+			return "Halve daily cap to $" + suggested
+		}
+		return "Halve daily cap"
+	}
+	return title
 }

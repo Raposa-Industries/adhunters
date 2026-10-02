@@ -87,6 +87,15 @@ How the numbers are judged:
   campaign so that small ads are not judged on luck.
 - **Alerts:** runaway, tracking gap, landing page gap, postback gap and
   rejected item, each open while it holds and sent once.
+- **On Telegram** every message is one line per campaign or ad, built to
+  read at a glance: a dot for its weight, its name (a link to its page), and
+  what happened in a few words, with no heading, account or id. Delivery
+  status shows the new status (🟢 running, 🟡 pending or scheduled, 🟠
+  depleted, 🔴 rejected or stopped by Taboola, ⚪ paused or ended, ⚫
+  deleted); alerts show 🔴 runaway or rejected ad (with Taboola's reason in
+  words), 🟠 tracking or page gap, 🟡 postback gap, all new ones of a round
+  in one message; suggestions show 💡, the campaign and the change, linked
+  to Launch.
 - **Delivery status:** every change of a campaign's status (Taboola's
   "Delivery Status": running, paused, pending approval, rejected,
   depleted…), in every account of every login, goes to the ops group,

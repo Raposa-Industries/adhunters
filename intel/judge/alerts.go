@@ -3,7 +3,6 @@ package judge
 import (
 	"context"
 	"fmt"
-	"html"
 	"log/slog"
 	"math"
 	"sort"
@@ -298,36 +297,51 @@ func Record(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, found []Fou
 	if send == nil {
 		return len(found), nil
 	}
-	rows, err := db.Query(ctx, `SELECT id, kind, account, COALESCE(campaign_id, 0), title, detail FROM intel.alert
-		WHERE closed_at IS NULL AND sent_at IS NULL ORDER BY id`)
+	// All new alerts go as one message, one line each; silent when they are
+	// all rejected ads.
+	rows, err := db.Query(ctx, `
+		SELECT a.id, a.kind, COALESCE(a.campaign_id, 0), COALESCE(NULLIF(i.title, ''), NULLIF(c.name, ''), ''), a.numbers
+		FROM intel.alert a
+		LEFT JOIN intel.tb_campaign c ON c.campaign_id = a.campaign_id
+		LEFT JOIN intel.tb_item i ON i.item_id = a.item_id
+		WHERE a.closed_at IS NULL AND a.sent_at IS NULL ORDER BY a.id LIMIT 50`)
 	if err != nil {
 		return len(found), err
 	}
-	type unsent struct {
-		id                       int64
-		kind, acc, title, detail string
-		campaign                 int64
-	}
-	var list []unsent
-	var u unsent
-	if _, err := pgx.ForEachRow(rows, []any{&u.id, &u.kind, &u.acc, &u.campaign, &u.title, &u.detail}, func() error {
-		list = append(list, u)
+	var ids []int64
+	var lines []string
+	silent := true
+	base := strings.TrimRight(baseURL, "/")
+	var (
+		id, campaign int64
+		kind, name   string
+		numbers      map[string]any
+	)
+	if _, err := pgx.ForEachRow(rows, []any{&id, &kind, &campaign, &name, &numbers}, func() error {
+		ids = append(ids, id)
+		if name == "" {
+			name = fmt.Sprintf("campaign %d", campaign)
+		}
+		href := ""
+		if base != "" && campaign != 0 {
+			href = fmt.Sprintf("%s/intel/alerts#a%d", base, id)
+		}
+		lines = append(lines, alertLine(kind, name, href, numbers))
+		silent = silent && kind == "item_rejected"
+		numbers = nil
 		return nil
 	}); err != nil {
 		return len(found), err
 	}
-	for _, u := range list {
-		msg := fmt.Sprintf("<b>Intel · %s</b>\n%s\n%s", html.EscapeString(kindWords[u.kind]), html.EscapeString(u.title), html.EscapeString(u.detail))
-		if baseURL != "" && u.campaign != 0 {
-			msg += fmt.Sprintf("\n%s/intel/alerts#a%d", strings.TrimRight(baseURL, "/"), u.id)
-		}
-		if err := send.Send(ctx, msg, u.kind == "item_rejected"); err != nil {
-			log.Error("alert not sent", "alert", u.id, "err", err)
-			continue
-		}
-		if _, err := db.Exec(ctx, `UPDATE intel.alert SET sent_at = $2 WHERE id = $1`, u.id, now); err != nil {
-			return len(found), err
-		}
+	if len(ids) == 0 {
+		return len(found), nil
+	}
+	if err := send.Send(ctx, strings.Join(lines, "\n"), silent); err != nil {
+		log.Error("alerts not sent", "count", len(ids), "err", err)
+		return len(found), nil
+	}
+	if _, err := db.Exec(ctx, `UPDATE intel.alert SET sent_at = $2 WHERE id = ANY($1)`, ids, now); err != nil {
+		return len(found), err
 	}
 	return len(found), nil
 }
