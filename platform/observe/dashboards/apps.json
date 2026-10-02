@@ -280,7 +280,7 @@
     {
       "id": 9,
       "type": "timeseries",
-      "title": "Numbers jobs by outcome, per hour",
+      "title": "Numbers jobs by result, per hour",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -306,15 +306,15 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (job, outcome) (increase(spy_numbers_runs_total[1h]))",
-          "legendFormat": "{{job}} {{outcome}}"
+          "expr": "sum by (task, result) (increase(adhunters_task_runs_total{service=\"spy-numbers\"}[1h]))",
+          "legendFormat": "{{task}} {{result}}"
         }
       ]
     },
     {
       "id": 10,
       "type": "timeseries",
-      "title": "Numbers job time (p95)",
+      "title": "Numbers job time, last run",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -340,8 +340,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, sum by (job, le) (rate(spy_numbers_seconds_bucket[1h])))",
-          "legendFormat": "{{job}}"
+          "expr": "adhunters_task_last_duration_seconds{service=\"spy-numbers\"}",
+          "legendFormat": "{{task}}"
         }
       ]
     },
@@ -374,8 +374,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "time() - spy_numbers_last_success_timestamp_seconds",
-          "legendFormat": "{{job}}"
+          "expr": "time() - adhunters_task_last_success_timestamp_seconds{service=\"spy-numbers\"}",
+          "legendFormat": "{{task}}"
         }
       ]
     },
@@ -408,8 +408,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "spy_numbers_rows",
-          "legendFormat": "{{job}}"
+          "expr": "adhunters_task_last_rows{service=\"spy-numbers\"}",
+          "legendFormat": "{{task}}"
         }
       ]
     },

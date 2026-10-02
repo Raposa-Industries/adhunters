@@ -255,18 +255,20 @@ what shows a problem at a glance: what an alert, a dashboard, observe-bot's
 digest or `daily-check.sh` reads, and nothing else. `go test ./tests/` (CI
 runs it) fails when one of them reads a metric no keep-list lets through,
 since that panel would stay empty and that alert would never fire. About
-1,600 in all:
+1,400 in all, going by what each box served on 2 Oct 2026:
 
 - Our services (`common.alloy`, "services"): each service's own metrics that
   a panel or an alert reads; from `kit/ops` and `kit/pg`, its version, error
-  lines, tasks, database pool (`adhunters_db_pool_*`), calls to outside
-  services by provider and status code (`adhunters_outbound_*`: Taboola,
-  RedTrack, Telegram, OpenAI and the other headline providers, Google Drive,
-  and observe-bot's to Sentry, Grafana Cloud, the balance checks and
-  Taboola's help center) and create-web's requests by app and status code
-  (`adhunters_http_*`); and of Go's runtime only what shows a leak or a
-  restart: memory, CPU, open files, goroutines and start time. Histograms
-  send their buckets only.
+  lines, tasks, database pool (`adhunters_db_pool_*`, the connections in
+  use but not the idle ones), calls to outside services by provider and
+  status code (`adhunters_outbound_*`: Taboola, RedTrack, Telegram, OpenAI
+  and the other headline providers, Google Drive, and observe-bot's to
+  Sentry, Grafana Cloud, the balance checks and Taboola's help center) and
+  create-web's requests by app and status code (`adhunters_http_*`); and of
+  Go's runtime only what shows a leak or a restart: memory, CPU, open files,
+  goroutines and start time. Histograms send their buckets only.
+  spy-numbers' jobs show as its tasks; its own copies of the same
+  (`spy_numbers_*`) stay on the box.
 - The hosts (`common.alloy`, "host"): CPU (the idle time of each core),
   memory, pressure, out-of-memory kills, disk space and writes, network
   traffic, errors, retransmits, connections and the connection-tracking

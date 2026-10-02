@@ -92,7 +92,8 @@ prometheus.scrape "host" {
   forward_to      = [prometheus.relabel.host.receiver]
 }
 
-// What of the host goes out: about 150 series a box of the 500 it reads.
+// What of the host goes out: 60 to 140 series a box, of the 380 to 650 it
+// reads.
 prometheus.relabel "host" {
   forward_to = [prometheus.remote_write.cloud.receiver]
 
@@ -199,11 +200,21 @@ prometheus.relabel "services" {
       "tracks_bridge_(lag_seconds|files_quarantined)",
       "tracks_walker_(walks_total|walk_seconds_bucket|backlog|due|oldest_overdue_seconds|files_archived_total)",
       "raposa_(steps_total|step_seconds_bucket|visits_total|keeps_total|auto_queued_total|line_burns|watch_deliveries_total)",
-      "spy_numbers_(runs_total|seconds_bucket|last_success_timestamp_seconds|rows)",
+      // Not spy_numbers_*: spy-numbers' jobs report as tasks too, and its
+      // job time histogram alone was 104 series.
       "funnels_edge_(page_requests_total|beacons_total|spool_failing)",
       "funnels_loader_(events_total|beacons_total|files_pending|files_quarantined)",
       "desk_(turns_total|model_calls_total)",
     ], "|")
+  }
+
+  // A pool running short shows in its connections in use; the idle and
+  // constructing ones show nothing more.
+  rule {
+    source_labels = ["__name__", "state"]
+    separator     = ";"
+    regex         = "adhunters_db_pool_connections;(idle|constructing)"
+    action        = "drop"
   }
 }
 

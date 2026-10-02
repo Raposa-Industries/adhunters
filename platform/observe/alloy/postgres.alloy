@@ -16,7 +16,7 @@
 
 prometheus.exporter.postgres "db" {
   data_source_names        = [sys.env("POSTGRES_MONITOR_URL")]
-  enabled_collectors       = ["locks", "postmaster", "stat_bgwriter", "stat_database", "wal"]
+  enabled_collectors       = ["locks", "postmaster", "stat_checkpointer", "stat_database", "wal"]
   disable_settings_metrics = true
 }
 
@@ -39,10 +39,11 @@ prometheus.relabel "postgres" {
       "pg_up", "pg_postmaster_start_time_seconds",
       "pg_stat_activity_(count|max_tx_duration)",
       // Load: locks, commits and rollbacks, cache hits, deadlocks, sorts
-      // spilled to disk, checkpoints forced by WAL.
+      // spilled to disk, checkpoints forced by WAL (Postgres 17 counts them
+      // in pg_stat_checkpointer, no longer pg_stat_bgwriter).
       "pg_locks_count",
       "pg_stat_database_(xact_commit|xact_rollback|blks_hit|blks_read|deadlocks|temp_bytes)",
-      "pg_stat_bgwriter_checkpoints_(timed|req)_total",
+      "pg_stat_checkpointer_num_(timed|requested)_total",
       // WAL and archiving (WalArchiveFailing).
       "pg_wal_size_bytes", "pg_stat_archiver_(failed_count|last_archive_age)",
     ], "|")

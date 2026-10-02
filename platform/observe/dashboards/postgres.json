@@ -621,7 +621,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(increase(pg_stat_bgwriter_checkpoints_timed_total[1h]))",
+          "expr": "sum(increase(pg_stat_checkpointer_num_timed_total[1h]))",
           "legendFormat": "on time"
         },
         {
@@ -630,7 +630,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(increase(pg_stat_bgwriter_checkpoints_req_total[1h]))",
+          "expr": "sum(increase(pg_stat_checkpointer_num_requested_total[1h]))",
           "legendFormat": "asked for (WAL full)"
         }
       ]
