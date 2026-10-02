@@ -20,3 +20,24 @@ td.ad img { border-radius: 4px; object-fit: cover; background: var(--surface-3);
 .win, .acct { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); text-decoration: none; }
 .acct { display: block; border: 0; border-radius: 6px; padding: 4px 8px; }
 .win.on, .acct.on { background: var(--ember-chip); border-color: var(--ember-chip-line); color: var(--ink-strong); }
+/* The overview's campaign table: each account on top, its campaigns under it. */
+.nested-accounts .name-cell { display: flex; align-items: center; gap: 7px; min-width: 0; margin-left: 1px; }
+.nested-accounts th:nth-child(1) { width: 15.1%; }
+.nested-accounts th:nth-child(2) { width: 10.4%; }
+.nested-accounts th:nth-child(3) { width: 10.3%; }
+.nested-accounts th:nth-child(4) { width: 10.2%; }
+.nested-accounts th:nth-child(5) { width: 9.6%; }
+.nested-accounts th:nth-child(6) { width: 10.6%; }
+.nested-accounts th:nth-child(7) { width: 8.9%; }
+.nested-accounts th:nth-child(8) { width: 6.2%; }
+.nested-accounts thead th { border-bottom: 0; }
+.nested-accounts .caret { flex: none; width: 10px; height: 20px; min-height: 0; padding: 0; display: grid; place-items: center; background: none; border: 0; color: var(--muted); cursor: pointer; }
+.nested-accounts .caret:hover { color: var(--ink-strong); }
+.nested-accounts .tri { display: inline-block; width: 0; height: 0; border-style: solid; border-width: 3.5px 0 3.5px 4px; border-color: transparent transparent transparent currentColor; transition: transform .12s; }
+.nested-accounts .caret.open .tri { transform: rotate(90deg); }
+.nested-accounts .tag-account { flex: none; font: 600 9px/14px var(--sans); letter-spacing: -.04em; text-transform: uppercase; padding: 1px 5px; border-radius: 4px; color: var(--accent); background: var(--ember-chip); border: 1px solid var(--ember-chip-line); }
+.nested-accounts tr.row-account td { padding-top: 6.5px; padding-bottom: 6.5px; border-bottom: 2px solid var(--line-subtle); background: color-mix(in srgb, var(--surface-2) 85%, var(--surface-3)); }
+.nested-accounts .acct-name { font-size: 13px; font-weight: 600; }
+.nested-accounts td.in { padding-left: 37px; }
+.nested-accounts tbody.account.closed tr.row-campaign { display: none; }
+.nested-accounts td.count { font-size: 12px; }

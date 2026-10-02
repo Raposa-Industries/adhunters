@@ -19,7 +19,7 @@ settings once.
 |---|---|---|
 | `intel-collect run` | Reads every Taboola login (its own in `intel-collect.env`, and those added on Launch's Contas page, see below) and RedTrack account on a schedule and keeps each answer as received: first in its spool on disk, then in `intel.answer` ([decision 0016](../decisions/0016-intel-answers-in-postgres.md)). It parses nothing. `intel-collect once JOB` runs one job. | 9113 |
 | `intel-numbers run` | Every 2 minutes: loads new answers into tables, links moved campaigns, works out results, keeps alerts and suggestions (each sent once to the ops group "AdHunters operation" on Telegram, `OPS_TELEGRAM_CHAT_ID`, or "AdHunters alerts" while that is empty; suggestions with their Launch link). `reload -from D -to D` parses a range of answers again; `status` prints counts. Never talks to Taboola or RedTrack. | 9114 |
-| `intel-web` | The pages under `/intel/`, in the Frame (`shared/frame`), on `INTEL_WEB_ADDR` (127.0.0.1:8096) behind Cloudflare Access. Its one write is "not now" on a suggestion. | 9115 |
+| `intel-web` | The pages under `/intel/`, in the Frame (`shared/frame`), on `INTEL_WEB_ADDR` (127.0.0.1:8096) behind Cloudflare Access. Its one write is "not now" on a suggestion. The overview's campaign table has each account on top (a CONTA row: how many campaigns, and their numbers summed; its caret opens and closes them) with its campaigns under it, each with its id; the left column's **Contas** list stays as it was. | 9115 |
 
 **Logins added on Contas** (decision 0028). With `LAUNCH_LOGIN_KEY_BASE64`
 in `intel-collect.env` (the same value as in `launch-web.env`),
