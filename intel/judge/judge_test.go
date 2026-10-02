@@ -130,14 +130,23 @@ func TestRound(t *testing.T) {
 	if _, err := judge.Record(ctx, db, slog.New(slog.NewTextHandler(io.Discard, nil)), found, now, sent, "https://app.example"); err != nil {
 		t.Fatal(err)
 	}
-	if len(sent.msgs) != len(found) {
-		t.Fatalf("sent %d, want %d", len(sent.msgs), len(found))
+	// One message, a line per alert, no ids or accounts.
+	if len(sent.msgs) != 1 || strings.Count(sent.msgs[0], "\n") != len(found)-1 {
+		t.Fatalf("sent %q, want one message of %d lines", sent.msgs, len(found))
+	}
+	for _, want := range []string{"🔴", "· Rejected", "spent today, no sale", `<a href="https://app.example/intel/alerts#a`} {
+		if !strings.Contains(sent.msgs[0], want) {
+			t.Errorf("no %q in\n%s", want, sent.msgs[0])
+		}
+	}
+	if strings.Contains(sent.msgs[0], "&#34;") || strings.Contains(sent.msgs[0], "Intel") {
+		t.Errorf("escaped quotes or a heading in\n%s", sent.msgs[0])
 	}
 	// A second round keeps them open and sends nothing again.
 	if _, err := judge.Record(ctx, db, slog.New(slog.NewTextHandler(io.Discard, nil)), found, now.Add(time.Minute), sent, ""); err != nil {
 		t.Fatal(err)
 	}
-	if len(sent.msgs) != len(found) {
+	if len(sent.msgs) != 1 {
 		t.Fatalf("resent: %d messages", len(sent.msgs))
 	}
 	// When a condition stops holding, its alert closes.
@@ -273,13 +282,13 @@ func TestStatusChanges(t *testing.T) {
 		t.Fatalf("sent %d, want 2: %v", n, err)
 	}
 	msg := sent.msgs[0]
-	for _, want := range []string{"2 changes", "BP &lt;mobile&gt; (acme-sc · 1): <b>Paused → Running</b>",
-		"https://app.example/intel/taboola/acme-sc/g/10/c/1", "campaign 2 (acme-sc · 2): <b>new, Pending approval</b>"} {
+	for _, want := range []string{`🟢 <a href="https://app.example/intel/taboola/acme-sc/g/10/c/1">BP &lt;mobile&gt;</a> · Running`,
+		`🟡 <a href="https://app.example/intel/taboola/acme-sc/g/-/c/2">campaign 2</a> · Pending approval`} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("no %q in\n%s", want, msg)
 		}
 	}
-	if strings.Contains(msg, "Depleted") {
+	if strings.Contains(msg, "Depleted") || strings.Contains(msg, "acme-sc ·") {
 		t.Errorf("sent a change older than the limit:\n%s", msg)
 	}
 	if n, _ := judge.SendStatusChanges(ctx, db, log, s, now, sent, ""); n != 0 || len(sent.msgs) != 1 {
@@ -290,7 +299,7 @@ func TestStatusChanges(t *testing.T) {
 	// way back does not.
 	exec(t, db, `INSERT INTO intel.tb_campaign_status VALUES (1, $1, 'acme-sc', 'DELETED')`, now.Add(10*time.Second))
 	judge.FindStatusChanges(ctx, db, now.Add(time.Minute))
-	if n, _ := judge.SendStatusChanges(ctx, db, log, s, now.Add(time.Minute), sent, ""); n != 1 || !strings.Contains(sent.msgs[1], "Running → Deleted") {
+	if n, _ := judge.SendStatusChanges(ctx, db, log, s, now.Add(time.Minute), sent, ""); n != 1 || sent.msgs[1] != "⚫ <b>BP &lt;mobile&gt;</b> · Deleted" {
 		t.Fatalf("deleted not sent: %d %q", n, sent.msgs)
 	}
 	exec(t, db, `INSERT INTO intel.tb_campaign_status VALUES (1, $1, 'acme-sc', 'RUNNING')`, now.Add(20*time.Second))
@@ -323,8 +332,8 @@ func TestSendSuggestions(t *testing.T) {
 		t.Fatalf("sent %d, want 1: %v", n, err)
 	}
 	msg := sent.msgs[0]
-	for _, want := range []string{"<b>Intel · Suggestion</b>", "<b>Pause 1 ad</b>", "BP &lt;mobile&gt; (acme-sc · 1)",
-		`<a href="https://hunt-teste.fyi/launch/taboola/acme-sc/g/10/c/1?do=pause-ads&amp;ads=11&amp;from=intel:1">Open in Launch</a>`} {
+	for _, want := range []string{
+		`💡 <b>BP &lt;mobile&gt;</b> · <a href="https://hunt-teste.fyi/launch/taboola/acme-sc/g/10/c/1?do=pause-ads&amp;ads=11&amp;from=intel:1">Pause 1 ad</a>`} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("no %q in\n%s", want, msg)
 		}

@@ -40,7 +40,10 @@ login leaves it out. When its proxy does not open (no key, another key) the
 account is not read at all and the log says why; it never goes direct.
 What Launch published is kept in `/var/lib/intel-collect/launch.json`
 (still sealed, `INTEL_LAUNCH_KEPT`), so a start with the database away
-still knows which accounts never go direct. To give it the key, from your
+still knows which accounts never go direct. At start it waits up to 2
+minutes for Launch's views, since a deploy starts it before launch-web has
+migrated a new one; otherwise the view appearing would restart it while the
+deploy checks it, and the deploy would roll the box back. To give it the key, from your
 computer:
 
 ```
@@ -87,6 +90,15 @@ How the numbers are judged:
   campaign so that small ads are not judged on luck.
 - **Alerts:** runaway, tracking gap, landing page gap, postback gap and
   rejected item, each open while it holds and sent once.
+- **On Telegram** every message is one line per campaign or ad, built to
+  read at a glance: a dot for its weight, its name (a link to its page), and
+  what happened in a few words, with no heading, account or id. Delivery
+  status shows the new status (🟢 running, 🟡 pending or scheduled, 🟠
+  depleted, 🔴 rejected or stopped by Taboola, ⚪ paused or ended, ⚫
+  deleted); alerts show 🔴 runaway or rejected ad (with Taboola's reason in
+  words), 🟠 tracking or page gap, 🟡 postback gap, all new ones of a round
+  in one message; suggestions show 💡, the campaign and the change, linked
+  to Launch.
 - **Delivery status:** every change of a campaign's status (Taboola's
   "Delivery Status": running, paused, pending approval, rejected,
   depleted…), in every account of every login, goes to the ops group,

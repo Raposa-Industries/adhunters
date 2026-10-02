@@ -3,7 +3,6 @@ package judge
 import (
 	"context"
 	"fmt"
-	"html"
 	"log/slog"
 	"net/url"
 	"strings"
@@ -106,19 +105,15 @@ func SendStatusChanges(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, 
 		if label == "" {
 			label = fmt.Sprintf("campaign %d", campaign)
 		}
-		change := StatusWord(old) + " → " + StatusWord(cur)
-		if old == "" {
-			change = "new, " + StatusWord(cur)
-		}
-		line := fmt.Sprintf("%s (%s · %d): <b>%s</b>", html.EscapeString(label), html.EscapeString(account), campaign, html.EscapeString(change))
+		href := ""
 		if base != "" && cur != "DELETED" {
 			g := "-"
 			if group != 0 {
 				g = fmt.Sprint(group)
 			}
-			line += fmt.Sprintf("\n%s/intel/taboola/%s/g/%s/c/%d", base, url.PathEscape(account), g, campaign)
+			href = fmt.Sprintf("%s/intel/taboola/%s/g/%s/c/%d", base, url.PathEscape(account), g, campaign)
 		}
-		lines = append(lines, line)
+		lines = append(lines, statusLine(label, cur, href))
 	}
 	if err := rows.Err(); err != nil {
 		return 0, err
@@ -126,11 +121,7 @@ func SendStatusChanges(ctx context.Context, db *pgxpool.Pool, log *slog.Logger, 
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	title := "Delivery status changed"
-	if len(ids) > 1 {
-		title = fmt.Sprintf("Delivery status: %d changes", len(ids))
-	}
-	msg := "<b>Intel · " + title + "</b>\n" + strings.Join(lines, "\n")
+	msg := strings.Join(lines, "\n")
 	if err := send.Send(ctx, msg, false); err != nil {
 		log.Error("status changes not sent", "err", err, "count", len(ids))
 		return 0, nil
