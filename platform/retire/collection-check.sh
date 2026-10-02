@@ -278,6 +278,44 @@ SELECT CASE WHEN ii.investigation_id IS NULL THEN 'raposa-engine' ELSE 'old rapo
 FROM raposa.visit v JOIN raposa.investigation i ON i.id = v.investigation_id
 LEFT JOIN raposa.imported_investigation ii ON ii.investigation_id = i.id
 WHERE v.started_at >= now() - interval '24 hours' AND v.outcome = 'error' GROUP BY 1, 2, 3 ORDER BY 1, 4 DESC LIMIT 20;
+\echo '== Raposa: raposa-engine''s own investigations, ever'
+SELECT i.origin, i.mode, count(*), to_char(min(i.requested_at), 'MM-DD HH24:MI') AS first_asked,
+       to_char(max(i.requested_at), 'MM-DD HH24:MI') AS last_asked
+FROM raposa.investigation i LEFT JOIN raposa.imported_investigation ii ON ii.investigation_id = i.id
+WHERE ii.investigation_id IS NULL GROUP BY 1, 2 ORDER BY 1, 2;
+\echo '== Raposa: the automatic quick queue now (raposa.queue_quick step by step; each column keeps what passed the one before)'
+WITH c AS (
+    SELECT a.creative_id
+    FROM tracks_api.ad_v1 a
+    JOIN tracks_api.network_ad_v1 na ON na.ad_id = a.id
+    JOIN tracks_api.network_v1 n ON n.id = na.network_id
+    WHERE a.last_seen_at > now() - interval '1 hour'
+      AND n.code = ANY (string_to_array(coalesce((SELECT value FROM raposa.setting WHERE key = 'quick_networks'), 'taboola'), ','))
+    GROUP BY 1),
+f AS (
+    SELECT c.creative_id, cr.first_seen_at > now() - make_interval(days => raposa.setting_int('quick_new_days', 7)) AS new,
+           wk.failed, wk.read,
+           EXISTS (SELECT 1 FROM raposa.investigation i JOIN raposa.visit v ON v.investigation_id = i.id
+                   JOIN raposa.page p ON p.id = v.landed_page_id
+                   WHERE i.creative_id = c.creative_id AND raposa.usable_page(p.title, p.word_count)) AS landed,
+           EXISTS (SELECT 1 FROM raposa.investigation i WHERE i.creative_id = c.creative_id
+                   AND (i.status IN ('waiting', 'running')
+                        OR (i.requested_at > now() - make_interval(hours => raposa.setting_int('quick_repeat_hours', 24))
+                            AND i.status <> 'stopped'))) AS recent
+    FROM c JOIN tracks_api.creative_v1 cr ON cr.id = c.creative_id
+    CROSS JOIN LATERAL (
+        SELECT count(*) FILTER (WHERE NOT raposa.usable_page(pv.title, pv.word_count)) AS failed,
+               count(*) FILTER (WHERE raposa.usable_page(pv.title, pv.word_count)) AS read
+        FROM tracks_api.ad_v1 ca JOIN tracks_api.walk_page_v1 w ON w.ad_id = ca.id AND w.step = 0
+        LEFT JOIN tracks_api.page_version_v1 pv ON pv.hash = w.version_hash
+        WHERE ca.creative_id = c.creative_id) wk),
+g AS (SELECT f.*, f.new AND f.read = 0 AND f.failed >= raposa.setting_int('quick_walk_failures', 2) AS failing FROM f)
+SELECT count(*) AS live_creatives, count(*) FILTER (WHERE new) AS new, count(*) FILTER (WHERE new AND read = 0) AS never_read,
+       count(*) FILTER (WHERE new AND read = 0 AND failed = 0) AS of_them_not_walked,
+       count(*) FILTER (WHERE failing) AS walks_failed, count(*) FILTER (WHERE failing AND NOT landed) AS raposa_never_landed,
+       count(*) FILTER (WHERE failing AND NOT landed AND NOT recent) AS would_queue,
+       count(*) FILTER (WHERE failing AND NOT landed AND recent) AS held_by_a_recent_one
+FROM g;
 SELECT key, value FROM raposa.setting WHERE key LIKE 'quick%' ORDER BY key;
 
 \echo
