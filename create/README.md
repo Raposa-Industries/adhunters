@@ -61,7 +61,7 @@ the chat in the middle, and the library on the right.
    two to a row, each with + Referenciar, Salvar and a button to see it big
    (and download it); headlines one to a row with their length,
    + Referenciar and Salvar. Every new item remembers what it came from. A
-   saved picture shows "✓ Salva em <pasta>", a saved headline only its
+   saved picture shows "✓ Salva em <pasta>" (a link that opens Novos anúncios in Launch with that folder, `/launch/new?set=<id>`), a saved headline only its
    length and "✓ Salva".
 5. **Save into a folder.** Salvar opens **Salvar na biblioteca**: a folder
    tree to search (vertical › platform › folder, four rows at a time), the

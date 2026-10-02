@@ -93,6 +93,7 @@ textarea::placeholder, input::placeholder { color: var(--placeholder); }
 .savedtag { display: inline-flex; align-items: center; gap: 7px; font: 600 10px/12px var(--mono); letter-spacing: .1em; color: var(--badge-gen-ink); background: #25150d; border: 1px solid #b4561a; border-radius: 5px; padding: 4px 9px; white-space: nowrap; }
 .savedtag svg { stroke-width: 2.2; }
 .pic .savedtag { position: absolute; top: 12px; right: 12px; }
+a.savedtag { text-decoration: none; }
 
 /* an answer's headlines: rows with their length */
 .hrows { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface-1); }

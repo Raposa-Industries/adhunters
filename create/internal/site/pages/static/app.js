@@ -638,6 +638,16 @@ async function chatPage(aside, id) {
     prompt.focus();
   }
 
+  // savedTag marks a saved picture; it opens Novos anúncios in Launch with
+  // the folder it went to (the e2e path follows this link).
+  function savedTag(it, savedAt) {
+    const label = [glyph('tick', 10), 'SALVA' + (savedAt ? ' EM ' + savedAt.toUpperCase() : '')];
+    const sv = [...(d?.saves || [])].reverse().find((v) => v.state === 'done' && v.library_set_id && (v.item_ids || []).includes(it.id));
+    return sv
+      ? h('a', { class: 'savedtag', href: `/launch/new?set=${sv.library_set_id}`, title: 'Usar no Launch' }, ...label)
+      : h('span', { class: 'savedtag' }, ...label);
+  }
+
   function picture(it, savedAt) {
     if (it.state !== 'done') {
       const retry = it.state === 'failed' && it.origin === 'made'
@@ -648,7 +658,7 @@ async function chatPage(aside, id) {
     const saveBtn = h('button', { type: 'button', class: 'small', onclick: () => saveItems([it], saveBtn) }, glyph('folder', 13), 'Salvar');
     return h('figure', { class: 'pic' + (savedAt != null ? ' saved' : '') },
       h('img', { src: it.image_url, alt: it.brief || 'imagem', loading: 'lazy', class: it.height > it.width ? 'portrait' : null, onclick: () => zoom(it) }),
-      savedAt != null ? h('span', { class: 'savedtag' }, glyph('tick', 10), 'SALVA' + (savedAt ? ' EM ' + savedAt.toUpperCase() : '')) : null,
+      savedAt != null ? savedTag(it, savedAt) : null,
       h('figcaption', { class: 'pic-tools' }, referenceBtn(it), saveBtn,
         h('button', { type: 'button', class: 'small icon', title: 'Ver grande', 'aria-label': 'Ver grande', onclick: () => zoom(it) }, glyph('expand', 13))));
   }
