@@ -2,10 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { rowsFrom, inLaunch, dayMonth, joining, loginName, goesVia } from '../pages/accountrows.js';
+import { rowsFrom, inLaunch, dayMonth, joining, loginName, goesVia, hasProxy } from '../pages/accountrows.js';
 
 const logins = [
-  { id: 0, server: true, network: 'taboola', name: 'x', accounts: [{ id: 'zoltagroup-1-sc', name: 'ZoltaGroup 1', proxy: '' }, { id: 'zoltagroup-2-sc', name: 'ZoltaGroup 2', proxy: 'zg.example:1080' }] },
+  { id: 0, server: true, network: 'taboola', name: 'x', accounts: [{ id: 'zoltagroup-1-sc', name: 'ZoltaGroup 1', proxy: '', added_at: '2026-10-02T12:00:00Z' }, { id: 'zoltagroup-2-sc', name: 'ZoltaGroup 2', proxy: 'zg.example:1080' }] },
   { id: 3, network: 'taboola', name: 'Acme', added_at: '2026-10-02T15:00:00Z', proxy: 'px.example:8080', accounts: [{ id: 'acme-health-1-sc', name: 'Acme Health 1', proxy: 'px.example:8080' }, { id: 'zoltagroup-2-sc', name: 'Shared', proxy: 'px.example:8080' }, { id: 'acme-health-2-sc', name: '', proxy: 'px.example:8080', problem: 'o proxy px.example:8080 não respondeu a tempo' }] },
   { id: 4, network: 'taboola', name: 'Broken', problem: 'a chave mudou', accounts: [] },
 ];
@@ -16,7 +16,8 @@ test('rowsFrom: one row per account, an account two logins share stays with the 
     ['zoltagroup-1-sc', 'ZoltaGroup 1', 0], ['zoltagroup-2-sc', 'ZoltaGroup 2', 0],
     ['acme-health-1-sc', 'Acme Health 1', 3], ['acme-health-2-sc', 'acme-health-2-sc', 3],
   ]);
-  assert.equal(rows[0].added_at, '');
+  assert.equal(rows[0].added_at, '2026-10-02T12:00:00Z', "a server account's own date");
+  assert.equal(rows[1].added_at, '');
   assert.equal(rows[3].problem, 'o proxy px.example:8080 não respondeu a tempo');
   assert.equal(rows[2].problem, '');
   assert.equal(rows[2].added_at, '2026-10-02T15:00:00Z');
@@ -64,4 +65,9 @@ test('loginName: the network account, else the accounts, at most 60 letters', ()
   assert.equal([...long].length, 60);
   assert.ok(long.endsWith('…'));
   assert.equal(loginName([]), 'Taboola');
+});
+
+test('hasProxy: whether an account goes through a proxy, never which', () => {
+  const rows = rowsFrom(logins);
+  assert.deepEqual(rows.map(hasProxy), [false, true, true, true]);
 });

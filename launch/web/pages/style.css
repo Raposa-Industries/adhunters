@@ -296,17 +296,27 @@ details.library summary { cursor: pointer; font-weight: 600; color: var(--ink); 
 ul.lib-sets, ul.lib-headlines { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
 button.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
 
-/* Contas: one row per account, + Novo opens Nova conta */
-.accounts-head { align-items: flex-start; }
-.accounts-head .lead { max-width: none; }
+/* Contas (Figma "Launch · Contas"): one row per account, + Novo opens Nova conta */
+.accounts-head { align-items: flex-end; margin: -6px 0 15px; }
+.accounts-head .new-btn { margin-bottom: 3px; }
+.accounts-head h1 { font-weight: 700; }
+.accounts-head .lead { max-width: none; margin-top: 6px; font-size: 13px; color: var(--ink-3); }
+.new-btn { min-height: 33px; padding: 0 14px 0 12px; gap: 6px; font-size: 13px; }
+.btn-icon { flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .accounts-card { overflow: visible; }
-table.accounts th, table.accounts td { padding: 16px 20px; }
-table.accounts th { padding-top: 14px; padding-bottom: 14px; }
-table.accounts .acct-name b { color: var(--ink-strong); font-weight: 600; font-size: 14px; }
-table.accounts td.mono { font-size: 13px; }
-table.accounts .acct-more { width: 56px; text-align: right; padding-right: 16px; }
-.acct-total { margin: 12px 0 0; font-size: 13px; }
-.acct-via { margin-top: 3px; font-size: 11.5px; }
+table.accounts { table-layout: fixed; }
+table.accounts th { padding: 11px 20px; font: 600 10px/14px var(--sans); letter-spacing: .12em; color: var(--muted); }
+table.accounts td { padding: 15px 20px; font-size: 13px; line-height: 21px; }
+table.accounts th.acct-name { width: 30.2%; }
+table.accounts th.acct-id { width: 27.3%; }
+table.accounts th.acct-count { width: 15.8%; }
+.acct-title { color: var(--ink-strong); font-size: 14px; font-weight: 500; }
+table.accounts td.acct-id { font: 400 12.5px/21px var(--mono); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+table.accounts td.acct-count { color: var(--ink); }
+table.accounts td.acct-when { color: var(--muted); }
+table.accounts .acct-more { width: 64px; text-align: right; padding-right: 28px; }
+table.accounts td.acct-more { padding-top: 13px; padding-bottom: 13px; }
+.acct-total { margin: 17px 0 0; font-size: 11.5px; color: var(--muted); }
 .acct-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 13px; }
 .acct-facts dt { color: var(--muted); }
 .acct-facts dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
@@ -319,21 +329,24 @@ table.accounts .acct-more { width: 56px; text-align: right; padding-right: 16px;
   background: var(--surface-1); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 16px 40px rgba(0, 0, 0, .55); display: flex; flex-direction: column; gap: 2px; }
 .row-menu .menu button { justify-content: flex-start; width: 100%; min-height: 34px; padding: 6px 10px; background: none; border: 0; border-radius: 7px; color: var(--ink); font-weight: 400; text-align: left; }
 .row-menu .menu button:hover, .row-menu .menu button:focus-visible { background: var(--surface-3); outline: none; }
-.dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; padding: 26px 28px 24px;
+.dialog { width: min(500px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; padding: 19px 24px 22px;
   background: var(--surface-1); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 30px 80px rgba(0, 0, 0, .6); }
 .dialog::backdrop { background: rgba(6, 6, 8, .7); }
-.dialog h2 { font-size: 22px; font-weight: 800; }
+.dialog h2 { font: 700 17.5px/1.3 var(--display); font-stretch: 125%; }
 .dialog h2 + form { margin-top: 16px; }
-.dialog > .lead { margin: 8px 0 18px; color: var(--ink-2); line-height: 1.5; }
-.fields-col { display: flex; flex-direction: column; gap: 16px; }
-.fields-col .field input { width: 100%; min-height: 40px; }
-.fields-col .field .hint { color: var(--faint); }
-.fields-col .actions { justify-content: flex-end; margin-top: 4px; }
+.dialog > .lead { margin: 5px 0 13px; font-size: 13px; color: var(--ink-3); line-height: 19px; }
+.fields-col { display: flex; flex-direction: column; gap: 15px; }
+.fields-col .field { gap: 3px; font-size: 13px; font-weight: 500; color: var(--ink-strong); }
+.fields-col .field input:not([type=radio]):not([type=checkbox]) { width: 100%; min-height: 39px; padding: 0 12px; }
+.fields-col .field input.mono:not([type=radio]):not([type=checkbox]) { font-family: var(--mono); font-size: 12.75px; }
+.fields-col .field input:focus { outline: none; border-color: var(--accent); }
+.fields-col .field .hint { margin-top: 2px; color: var(--faint); font-size: 12px; }
+.fields-col .actions { justify-content: flex-end; margin-top: 2px; }
 .fields-col > div:empty { display: none; }
-.joined { padding: 14px 16px; border-radius: 10px; background: var(--ok-surface); border: 1px solid var(--ok-line); }
-.joined b { color: var(--ok); font-weight: 500; }
-.joined .names { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.acct-chip { font-size: 13px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--ink); }
+.joined { margin-top: -2px; padding: 10px 14px 14px; border-radius: 10px; background: var(--ok-surface); border: 1px solid var(--ok-line); }
+.joined b { color: color-mix(in srgb, var(--ok) 50%, var(--ok-ink)); font-weight: 500; font-size: 13.5px; }
+.joined .names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.acct-chip { font-size: 12.5px; line-height: 20px; padding: 2px 10px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface-2); color: var(--ink); }
 .acct-chip.have { color: var(--faint); text-decoration: line-through; }
 .login-picks { border: 1px solid var(--line-subtle); border-radius: 10px; padding: 10px 12px; margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
 .login-picks legend { padding: 0 4px; }

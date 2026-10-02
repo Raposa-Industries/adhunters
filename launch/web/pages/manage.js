@@ -645,7 +645,7 @@ function word(n) {
 // NEW is what the "+ Novo" menu makes: a group, a campaign (a pair) or ads,
 // each with its letter (N then the letter opens it).
 const NEW = [
-  ['group', 'G', 'Grupo', 'Conta e nome; nasce sem campanhas'],
+  ['group', 'G', 'Grupo de campanha', 'Conta e nome; nasce sem campanhas'],
   ['campaign', 'C', 'Campanha', 'Mobile, desktop ou os dois, num grupo'],
   ['ads', 'A', 'Anúncios', 'Imagens e headlines da biblioteca'],
 ];

@@ -120,3 +120,44 @@ export function sheetName(campaigns, n) {
   const bases = [...new Set(campaigns.map((c) => split(String(c || '').trim())[0]))];
   return bases.length === 1 && bases[0] ? `${bases[0]}-AD${pad(n)}` : `AD${pad(n)}`;
 }
+
+// shortName is a campaign's name as a chip shows it: from CMP<nn> on,
+// without the -pp-bl ending (GRP01-CMP01-Desk-pp-bl is CMP01-Desk).
+export function shortName(name) {
+  const n = String(name || '').trim().replace(/-pp-bl$/i, '');
+  const m = /(?:^|-)(CMP\d+-.+)$/i.exec(n);
+  return m ? m[1] : n;
+}
+
+// ---- the library beside the matrix (library.js) ----
+
+// ORIGINS are the picture filters and the library's origins each keeps.
+export const ORIGINS = [['', 'Todas'], ['upload,drive', 'Originais'], ['create', 'Geradas']];
+
+// originLabel is a picture's badge: GERADA for one made in Create, else
+// ORIGINAL.
+export function originLabel(c) {
+  return c?.origin === 'create' ? 'Gerada' : 'Original';
+}
+
+// folderList turns the library's folders (GET /api/folders) into the
+// picker's choices: every vertical's platform folders ("Memory Loss ›
+// Taboola"), each followed by the vertical's sets of that platform.
+export function folderList(data) {
+  const out = [];
+  for (const v of data?.verticals || []) {
+    for (const p of v.platforms || []) {
+      out.push({ key: `p:${v.id}:${p.id}`, path: [v.name || v.id, p.name || p.id], q: { vertical: v.id, platform: p.id } });
+      for (const st of v.sets || []) {
+        if ((st.platform || '') !== p.id) continue;
+        out.push({ key: 's:' + st.id, path: [v.name || v.id, p.name || p.id, st.name || 'Pasta ' + st.id], q: { set: String(st.id) }, set: true });
+      }
+    }
+    // Sets without a platform folder still show, under their vertical.
+    for (const st of v.sets || []) {
+      if ((v.platforms || []).some((p) => p.id === (st.platform || ''))) continue;
+      out.push({ key: 's:' + st.id, path: [v.name || v.id, st.name || 'Pasta ' + st.id], q: { set: String(st.id) }, set: true });
+    }
+  }
+  return out;
+}
