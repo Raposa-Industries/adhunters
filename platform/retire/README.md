@@ -22,7 +22,7 @@ start and reuse that connection for 15 minutes.
 | `save-old-data.sh auto-creative` | Auto-Creative's database (`pg_dump`) and its MinIO volume (`tar`) into the bucket. |
 | `auto-creative-to-drive.sh [folder]` | The creatives the team kept in Auto-Creative, as `<vertical>/Auto-Creative/<name>.<ext>` on your computer, ready to drag into the library's Drive folder. Also raises the library's counters past Auto-Creative's, so new names never repeat old ones. |
 | `compare-collection.sh [day]` | One UTC day of Tracks next to the old collector: scrapes per hour and line, ads per scrape per publisher, which creatives each saw, and how many capture workers Tracks needs to match. |
-| `reconcile.sh` | Every old table next to its new home with counts on both sides: lookups by natural key (old keys missing in new), daily and hourly sums per day, the hours the collector never counted, creative pairs, Spy's copy, the walker's pages, Raposa, what the old database still writes, and what the archive bucket holds. Runs on the data box: `ssh admin@adhunters-data 'sudo bash -s' < platform/retire/reconcile.sh`. Only reads. |
+| `reconcile.sh` | Every old table next to its new home with counts on both sides: lookups by natural key (old keys missing in new), daily and hourly sums per day, the hours the collector never counted, creative pairs, Spy's copy, the walker's pages, Raposa (jobs, visits per job, and the pages and files jobs use, by content hash, with the file bytes), what the old database still writes, and what the archive bucket holds. Runs on the data box: `ssh admin@adhunters-data 'sudo bash -s' < platform/retire/reconcile.sh`. Only reads. |
 
 ## What lands in the bucket
 
