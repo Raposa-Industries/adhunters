@@ -189,6 +189,8 @@ type driveLoop struct {
 
 	mu  sync.Mutex
 	why string
+	// waiting are the Catch calls the next pass ends.
+	waiting []chan struct{}
 	// c is the client for the sign-in token was read from, kept so its
 	// access token is reused.
 	c     *drive.Client
@@ -218,6 +220,31 @@ func (l *driveLoop) Kick() {
 	case l.kick <- struct{}{}:
 	default:
 	}
+}
+
+// Catch asks for a pass and waits for it (web.Drive).
+func (l *driveLoop) Catch(ctx context.Context) bool {
+	done := make(chan struct{})
+	l.mu.Lock()
+	l.waiting = append(l.waiting, done)
+	l.mu.Unlock()
+	l.Kick()
+	select {
+	case <-done:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+// takeWaiting returns the Catch calls made so far, which the pass about to
+// start answers.
+func (l *driveLoop) takeWaiting() []chan struct{} {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	w := l.waiting
+	l.waiting = nil
+	return w
 }
 
 func (l *driveLoop) Folder() string { return l.folder }
@@ -263,6 +290,7 @@ func (l *driveLoop) run(ctx context.Context, every time.Duration, tasks *ops.Tas
 	t := time.NewTicker(every)
 	defer t.Stop()
 	for {
+		waiting := l.takeWaiting()
 		if token := l.refreshWhy(ctx); token != "" {
 			start := time.Now()
 			sy := drivesync.New(l.st, l.clientFor(token), l.folder, l.log)
@@ -279,6 +307,9 @@ func (l *driveLoop) run(ctx context.Context, every time.Duration, tasks *ops.Tas
 			} else if res.Written+res.Added+res.Gone > 0 {
 				l.log.Info("drive pass", "written", res.Written, "listed", res.Listed, "added", res.Added, "gone", res.Gone)
 			}
+		}
+		for _, done := range waiting {
+			close(done)
 		}
 		select {
 		case <-ctx.Done():

@@ -27,6 +27,9 @@ import (
 type Drive interface {
 	// Kick asks for a pass now; it does not wait for it.
 	Kick()
+	// Catch asks for a pass and waits until one that started after the
+	// call has ended, or ctx ends; it reports whether one ended.
+	Catch(ctx context.Context) bool
 	// Folder is the library folder's id, "" when Drive is off.
 	Folder() string
 	// Why is the reason Drive is off, "" when it is on.
@@ -209,7 +212,18 @@ func (a *API) changeVertical(w http.ResponseWriter, r *http.Request) {
 
 // folders is the library as the pages show it: verticals, their platforms'
 // folders and their sets, with counts.
+// FreshWait is how long ?fresh=1 waits for a Drive pass.
+const FreshWait = 20 * time.Second
+
+// folders is the folder tree; with ?fresh=1 it first waits (FreshWait at
+// most) for a Drive pass that started after the call, so a page that just
+// opened shows what Drive holds now.
 func (a *API) folders(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("fresh") == "1" && a.drive.Why() == "" {
+		ctx, cancel := context.WithTimeout(r.Context(), FreshWait)
+		a.drive.Catch(ctx)
+		cancel()
+	}
 	f, err := a.st.Folders(r.Context())
 	if err != nil {
 		a.fail(w, r, err)
