@@ -14,8 +14,9 @@ type App struct {
 	Addr   string // "127.0.0.1:8094"
 }
 
-// Apps are the apps behind create-web on the data box, as the tunnel routed
-// them before the sign-in (platform/OPERATIONS.md has each one's port).
+// Apps are the apps behind create-web, as the tunnel routed them before the
+// sign-in (platform/OPERATIONS.md has each one's port). All are on the data
+// box except Raposa's pages, on the worker's private address.
 var Apps = []App{
 	{"/launch", "127.0.0.1:8094"},
 	{"/create", "127.0.0.1:8095"},
@@ -23,6 +24,10 @@ var Apps = []App{
 	{"/spy", "127.0.0.1:8097"},
 	{"/funnels", "127.0.0.1:8099"},
 	{"/desk", "127.0.0.1:8092"},
+	// raposa-web stays on adhunters-worker and listens on its private
+	// address; it strips /raposa itself (RAPOSA_WEB_BASE), so the prefix is
+	// passed through like every other app's.
+	{"/raposa", "10.20.1.10:8090"},
 }
 
 // Site sends each request to the app whose prefix it starts with, and every

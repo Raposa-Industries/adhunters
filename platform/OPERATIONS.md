@@ -161,10 +161,11 @@ request to hunt-teste.fyi reaches it through a Cloudflare Tunnel
 It asks for the team's sign-in (one username and password, a 30-day cookie;
 create/README.md), then sends each request to the app whose path it starts
 with (`web.Apps` in create/web: `/launch`, `/create`, `/intel`, `/spy`,
-`/funnels`, `/desk`) and every other path to `/launch/`. The sign-in is what
-stops strangers spending OpenAI credit or touching Taboola: the apps
-themselves listen only on localhost and trust whoever create-web lets
-through. The sign-in replaced Cloudflare Access on 2026-10-01 (owner's
+`/funnels`, `/desk`, `/raposa`) and every other path to `/launch/`. The
+sign-in is what stops strangers spending OpenAI credit or touching Taboola:
+the apps themselves listen only on localhost (raposa-web on the worker's
+private address, `10.20.1.10:8090`, with `RAPOSA_WEB_BASE=/raposa`) and
+trust whoever create-web lets through. The sign-in replaced Cloudflare Access on 2026-10-01 (owner's
 word); there is no Access application any more.
 
 Set up once, in the Cloudflare dashboard (Zero Trust):
