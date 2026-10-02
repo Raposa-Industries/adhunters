@@ -293,3 +293,114 @@ func TestPlatformLetter(t *testing.T) {
 		t.Fatalf("unknown set platform: %v", err)
 	}
 }
+
+// Create's library pages: tags, the original and generated filters, sorting,
+// refiling between sets (with a record of where an item was) and the folder
+// tree with its counts.
+func TestTagsRefileAndFolders(t *testing.T) {
+	s := newStore(t)
+	ctx := context.Background()
+	a, err := s.AddSet(ctx, store.NewSet{Name: "Colher", VerticalID: "memory-loss", Origin: store.OriginCreate, Platform: "taboola"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := s.AddSet(ctx, store.NewSet{Name: "Sofa", VerticalID: "memory-loss", Origin: store.OriginCreate, Platform: "taboola"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := s.AddSet(ctx, store.NewSet{Name: "Other", VerticalID: "blood-pressure", Origin: store.OriginCreate})
+	if err != nil {
+		t.Fatal(err)
+	}
+	made, _, err := s.AddCreative(ctx, store.NewCreative{VerticalID: "memory-loss", SetID: a.ID, Origin: store.OriginCreate,
+		Tags: []string{"#Cozinha", "cozinha", " Colher "}, MadeBy: "mari"}, pic(t, 10))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(made.Tags) != 2 || made.Tags[0] != "colher" || made.Tags[1] != "cozinha" {
+		t.Fatalf("tags = %v", made.Tags)
+	}
+	up, _, err := s.AddCreative(ctx, store.NewCreative{VerticalID: "memory-loss", SetID: a.ID, Origin: store.OriginUpload}, pic(t, 11))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The same bytes with a new tag: the tag goes on the creative kept.
+	again, created, err := s.AddCreative(ctx, store.NewCreative{VerticalID: "memory-loss", Origin: store.OriginCreate, Tags: []string{"mesa"}}, pic(t, 10))
+	if err != nil || created || again.ID != made.ID || len(again.Tags) != 3 {
+		t.Fatalf("again = %+v created=%v err=%v", again, created, err)
+	}
+	if _, err := s.AddHeadlines(ctx, []store.NewHeadline{{Text: "A Calm Morning Habit", VerticalID: "memory-loss", SetID: a.ID,
+		Origin: store.OriginCreate, Tags: []string{"Manhã"}}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Originals are everything not made in Create.
+	orig, err := s.Creatives(ctx, store.Filter{Origin: "upload,drive"})
+	if err != nil || len(orig) != 1 || orig[0].ID != up.ID {
+		t.Fatalf("originals = %+v %v", orig, err)
+	}
+	gen, _ := s.Creatives(ctx, store.Filter{Origin: "create"})
+	if len(gen) != 1 || gen[0].ID != made.ID {
+		t.Fatalf("generated = %+v", gen)
+	}
+	// A tag filters and is found by the search.
+	if l, _ := s.Creatives(ctx, store.Filter{Tag: "Cozinha"}); len(l) != 1 || l[0].ID != made.ID {
+		t.Fatalf("tag filter = %+v", l)
+	}
+	if l, _ := s.Creatives(ctx, store.Filter{Search: "mes"}); len(l) != 1 {
+		t.Fatalf("search by tag = %+v", l)
+	}
+	if l, _ := s.Headlines(ctx, store.Filter{Search: "manhã"}); len(l) != 1 || l[0].Tags[0] != "manhã" {
+		t.Fatalf("headline tag = %+v", l)
+	}
+	// Oldest first, and the platform's folder.
+	if l, _ := s.Creatives(ctx, store.Filter{Sort: "old"}); len(l) != 2 || l[0].ID != made.ID {
+		t.Fatalf("oldest first = %+v", l)
+	}
+	if l, _ := s.Creatives(ctx, store.Filter{VerticalID: "memory-loss", Platform: "newsbreak"}); len(l) != 0 {
+		t.Fatalf("newsbreak = %+v", l)
+	}
+
+	// Refile: out of a, into b, with a record; another vertical's set is refused.
+	moved, err := s.ChangeCreative(ctx, made.ID, store.Change{RefileTo: b.ID, By: "mari", RemoveTags: []string{"mesa"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(moved.SetIDs) != 1 || moved.SetIDs[0] != b.ID || len(moved.Tags) != 2 {
+		t.Fatalf("refiled = %+v", moved)
+	}
+	var from []int64
+	if err := s.DB().QueryRow(ctx, `SELECT from_sets FROM library.refile WHERE kind = 'creative' AND item_id = $1`, made.ID).Scan(&from); err != nil ||
+		len(from) != 1 || from[0] != a.ID {
+		t.Fatalf("refile record = %v %v", from, err)
+	}
+	if _, err := s.ChangeCreative(ctx, made.ID, store.Change{RefileTo: other.ID}); err == nil {
+		t.Fatal("refiled into another vertical's set")
+	}
+	hidden := true
+	if _, err := s.ChangeCreative(ctx, up.ID, store.Change{Hidden: &hidden}); err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := s.Folders(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Totals.Creatives != 1 || f.Totals.Generated != 1 || f.Totals.Original != 0 || f.Totals.Headlines != 1 {
+		t.Fatalf("totals = %+v", f.Totals)
+	}
+	var ml *store.VerticalFolder
+	for i := range f.Verticals {
+		if f.Verticals[i].ID == "memory-loss" {
+			ml = &f.Verticals[i]
+		}
+	}
+	if ml == nil || ml.Creatives != 1 || len(ml.Platforms) != 1 || ml.Platforms[0].Name != "Taboola" || ml.Platforms[0].Creatives != 1 ||
+		len(ml.Sets) != 2 || ml.Sets[0].ID != a.ID || ml.Sets[0].Creatives != 0 || ml.Sets[1].Creatives != 1 {
+		t.Fatalf("memory loss folder = %+v", ml)
+	}
+	tags, err := s.Tags(ctx, "memory-loss")
+	if err != nil || len(tags) != 3 {
+		t.Fatalf("tags = %+v %v", tags, err)
+	}
+}

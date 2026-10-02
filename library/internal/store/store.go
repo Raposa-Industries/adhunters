@@ -116,6 +116,8 @@ type Creative struct {
 	CreatedAt  time.Time `json:"created_at"`
 	// SetIDs are the sets it is in.
 	SetIDs []int64 `json:"set_ids"`
+	// Tags are the tags people put on it, in alphabetical order.
+	Tags []string `json:"tags"`
 }
 
 // Headline is one headline as the apps see it.
@@ -132,6 +134,7 @@ type Headline struct {
 	Hidden     bool      `json:"hidden"`
 	CreatedAt  time.Time `json:"created_at"`
 	SetIDs     []int64   `json:"set_ids"`
+	Tags       []string  `json:"tags"`
 }
 
 // Set is creatives and headlines kept together.
@@ -461,6 +464,10 @@ func (s *Store) Sets(ctx context.Context, vertical string, limit int) ([]Set, er
 	if limit <= 0 || limit > 500 {
 		limit = 200
 	}
+	return s.sets(ctx, vertical, limit)
+}
+
+func (s *Store) sets(ctx context.Context, vertical string, limit int) ([]Set, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT s.id, s.name, COALESCE(s.vertical_id, ''), s.origin, s.origin_ref, s.made_by, s.created_at,
 		       (SELECT count(*) FROM library.set_creative sc JOIN library.creative c ON c.id = sc.creative_id
@@ -529,6 +536,8 @@ type NewCreative struct {
 	// the minted name. Without it the set's platform does, and without
 	// either the vertical's own letter.
 	Platform string `json:"platform"`
+	// Tags are put on it (on the creative kept already, for the same bytes).
+	Tags []string `json:"tags"`
 	// DriveFileID is set by the Drive sync for a picture read from Drive:
 	// that file already holds the bytes, so none wait for an upload.
 	DriveFileID string `json:"-"`
@@ -539,6 +548,22 @@ type NewCreative struct {
 // them (added to the set, when one is given) and created false; when that
 // creative's Drive file was deleted, these bytes take its place.
 func (s *Store) AddCreative(ctx context.Context, n NewCreative, b []byte) (Creative, bool, error) {
+	tags, err := cleanTags(n.Tags)
+	if err != nil {
+		return Creative{}, false, err
+	}
+	c, created, err := s.addCreative(ctx, n, b)
+	if err != nil || len(tags) == 0 {
+		return c, created, err
+	}
+	if err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error { return tagTx(ctx, tx, "creative", c.ID, tags, n.MadeBy) }); err != nil {
+		return Creative{}, false, err
+	}
+	c, err = s.Creative(ctx, c.ID)
+	return c, created, err
+}
+
+func (s *Store) addCreative(ctx context.Context, n NewCreative, b []byte) (Creative, bool, error) {
 	info, err := picture.Read(b)
 	if err != nil {
 		return Creative{}, false, BadInput(err.Error())
@@ -725,12 +750,13 @@ func (s *Store) creativeBySHA(ctx context.Context, sum string) (Creative, error)
 
 const creativeCols = `c.id, c.name, COALESCE(c.vertical_id, ''), c.angle, c.idea, c.origin, c.origin_ref, c.ai_label,
 	c.made_by, c.sha256, c.media_type, c.width, c.height, c.bytes, c.drive_state, c.hidden_at IS NOT NULL, c.created_at,
-	ARRAY(SELECT set_id FROM library.set_creative WHERE creative_id = c.id ORDER BY set_id)`
+	ARRAY(SELECT set_id FROM library.set_creative WHERE creative_id = c.id ORDER BY set_id),
+	ARRAY(SELECT tag FROM library.creative_tag WHERE creative_id = c.id ORDER BY tag)`
 
 func scanCreative(r pgx.CollectableRow) (Creative, error) {
 	var c Creative
 	err := r.Scan(&c.ID, &c.Name, &c.VerticalID, &c.Angle, &c.Idea, &c.Origin, &c.OriginRef, &c.AILabel,
-		&c.MadeBy, &c.SHA256, &c.MediaType, &c.Width, &c.Height, &c.Bytes, &c.DriveState, &c.Hidden, &c.CreatedAt, &c.SetIDs)
+		&c.MadeBy, &c.SHA256, &c.MediaType, &c.Width, &c.Height, &c.Bytes, &c.DriveState, &c.Hidden, &c.CreatedAt, &c.SetIDs, &c.Tags)
 	return c, err
 }
 
@@ -752,16 +778,59 @@ type Filter struct {
 	VerticalID string
 	SetID      int64
 	Angle      string
-	Origin     string
-	AILabel    string
-	// Search matches the name, idea or angle (creatives) or the text
-	// (headlines), ignoring case.
+	// Origin is one origin, or several joined by commas (upload,drive: the
+	// originals).
+	Origin  string
+	AILabel string
+	// Search matches the name, idea, angle or a tag (creatives) or the text
+	// or a tag (headlines), ignoring case.
 	Search string
+	// Tag keeps those with this tag.
+	Tag string
+	// Platform keeps those in a set of this platform (taboola, newsbreak).
+	Platform string
+	// Sort is new (newest first, the default; set order when a set is
+	// given), old (oldest first) or name. Before works with the default only.
+	Sort string
 	// Hidden lists the hidden ones instead.
 	Hidden bool
 	// Before is the id to continue after, from the end of the last page.
 	Before int64
 	Limit  int
+}
+
+// origins is the Origin filter as a list, nil for none.
+func (f Filter) origins() []string {
+	var out []string
+	for _, o := range strings.Split(f.Origin, ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+// order is the ORDER BY of a list: col is the name column ("" for
+// headlines, sorted by text), setOrder the order inside a set.
+func (f Filter) order(alias, col, setOrder string) string {
+	switch f.Sort {
+	case "old":
+		return alias + ".id"
+	case "name":
+		return "lower(" + alias + "." + col + "), " + alias + ".id"
+	}
+	if f.SetID != 0 {
+		return setOrder
+	}
+	return alias + ".id DESC"
+}
+
+// before is Before, which only the default order pages with.
+func (f Filter) before() int64 {
+	if f.Sort == "old" || f.Sort == "name" {
+		return 0
+	}
+	return f.Before
 }
 
 func (f Filter) limit() int {
@@ -773,23 +842,25 @@ func (f Filter) limit() int {
 
 // Creatives lists creatives, newest first (in set order when a set is given).
 func (s *Store) Creatives(ctx context.Context, f Filter) ([]Creative, error) {
-	order := "c.id DESC"
-	if f.SetID != 0 {
-		order = "(SELECT position FROM library.set_creative WHERE set_id = $2 AND creative_id = c.id), c.id"
-	}
+	order := f.order("c", "name", "(SELECT position FROM library.set_creative WHERE set_id = $2 AND creative_id = c.id), c.id")
 	rows, err := s.db.Query(ctx, `
 		SELECT `+creativeCols+` FROM library.creative c
 		WHERE ($1 = '' OR c.vertical_id = $1)
 		  AND ($2 = 0 OR EXISTS (SELECT 1 FROM library.set_creative WHERE set_id = $2 AND creative_id = c.id))
 		  AND ($3 = '' OR c.angle = $3)
-		  AND ($4 = '' OR c.origin = $4)
+		  AND ($4::text[] IS NULL OR c.origin = ANY ($4))
 		  AND ($5 = '' OR c.ai_label = $5)
-		  AND ($6 = '' OR c.name ILIKE '%' || $6 || '%' OR c.idea ILIKE '%' || $6 || '%' OR c.angle ILIKE '%' || $6 || '%')
+		  AND ($6 = '' OR c.name ILIKE '%' || $6 || '%' OR c.idea ILIKE '%' || $6 || '%' OR c.angle ILIKE '%' || $6 || '%'
+		       OR EXISTS (SELECT 1 FROM library.creative_tag t WHERE t.creative_id = c.id AND t.tag ILIKE '%' || $6 || '%'))
 		  AND (c.hidden_at IS NOT NULL) = $7
 		  AND ($8 = 0 OR c.id < $8)
+		  AND ($10 = '' OR EXISTS (SELECT 1 FROM library.creative_tag t WHERE t.creative_id = c.id AND t.tag = lower($10)))
+		  AND ($11 = '' OR EXISTS (SELECT 1 FROM library.set_creative sc JOIN library.set s ON s.id = sc.set_id
+		                            WHERE sc.creative_id = c.id AND s.platform = $11))
 		ORDER BY `+order+`
 		LIMIT $9`,
-		f.VerticalID, f.SetID, f.Angle, f.Origin, f.AILabel, likeEscape(f.Search), f.Hidden, f.Before, f.limit())
+		f.VerticalID, f.SetID, f.Angle, f.origins(), f.AILabel, likeEscape(f.Search), f.Hidden, f.before(), f.limit(),
+		strings.TrimSpace(f.Tag), f.Platform)
 	if err != nil {
 		return nil, err
 	}
@@ -807,15 +878,282 @@ type Change struct {
 	Hidden  *bool   `json:"hidden"`
 	// AddToSet puts it in one more set.
 	AddToSet int64 `json:"add_to_set"`
+	// RefileTo puts it in this set and takes it out of every other
+	// (GLOSSARY: refile), keeping a record of where it was. The set must be
+	// of its vertical. Its Drive file stays where it is.
+	RefileTo int64 `json:"refile_to"`
+	// AddTags puts these tags on it.
+	AddTags []string `json:"add_tags"`
+	// RemoveTags takes these tags off it.
+	RemoveTags []string `json:"remove_tags"`
+	// By is who asked, for the record of a refile or a tag.
+	By string `json:"by"`
 }
 
-func (c Change) check() error {
+func (c *Change) check() error {
 	if c.AILabel != nil {
 		if _, err := checkAI(*c.AILabel); err != nil || *c.AILabel == "" {
 			return BadInput("ai_label must be unset, ai or not_ai")
 		}
 	}
+	var err error
+	if c.AddTags, err = cleanTags(c.AddTags); err != nil {
+		return err
+	}
+	c.RemoveTags, err = cleanTags(c.RemoveTags)
+	return err
+}
+
+// ---- tags --------------------------------------------------------------------
+
+// MaxTags is the most tags one change or new item may carry.
+const MaxTags = 20
+
+// CleanTag is a tag as kept: one line, lower case, without a leading #.
+func CleanTag(t string) string {
+	return strings.ToLower(strings.TrimSpace(strings.TrimLeft(text.CleanLine(t), "#")))
+}
+
+// cleanTags cleans tags, drops empty and repeated ones, and refuses too many
+// or too long.
+func cleanTags(in []string) ([]string, error) {
+	if len(in) > MaxTags {
+		return nil, BadInput(fmt.Sprintf("%d tags at most", MaxTags))
+	}
+	var out []string
+	seen := map[string]bool{}
+	for _, t := range in {
+		t = CleanTag(t)
+		if t == "" || seen[t] {
+			continue
+		}
+		if len([]rune(t)) > 40 {
+			return nil, BadInput("a tag is 40 characters at most")
+		}
+		seen[t] = true
+		out = append(out, t)
+	}
+	return out, nil
+}
+
+// tagTx puts tags on a creative or headline (kind), once each.
+func tagTx(ctx context.Context, tx pgx.Tx, kind string, id int64, tags []string, by string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO library.`+kind+`_tag (`+kind+`_id, tag, added_by)
+		SELECT $1, t, $3 FROM unnest($2::text[]) t ON CONFLICT DO NOTHING`, id, tags, by)
+	return err
+}
+
+func untagTx(ctx context.Context, tx pgx.Tx, kind string, id int64, tags []string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+	_, err := tx.Exec(ctx, `DELETE FROM library.`+kind+`_tag WHERE `+kind+`_id = $1 AND tag = ANY ($2)`, id, tags)
+	return err
+}
+
+// Tag is one tag and how many creatives and headlines (not hidden) carry it.
+type Tag struct {
+	Tag       string `json:"tag"`
+	Creatives int    `json:"creatives"`
+	Headlines int    `json:"headlines"`
+}
+
+// Tags lists the tags in use, the most used first, of one vertical when it
+// is given.
+func (s *Store) Tags(ctx context.Context, vertical string) ([]Tag, error) {
+	rows, err := s.db.Query(ctx, `
+		WITH t AS (
+			SELECT ct.tag, 1 AS c, 0 AS h FROM library.creative_tag ct JOIN library.creative c ON c.id = ct.creative_id
+			WHERE c.hidden_at IS NULL AND ($1 = '' OR c.vertical_id = $1)
+			UNION ALL
+			SELECT ht.tag, 0, 1 FROM library.headline_tag ht JOIN library.headline h ON h.id = ht.headline_id
+			WHERE h.hidden_at IS NULL AND ($1 = '' OR h.vertical_id = $1))
+		SELECT tag, sum(c)::int, sum(h)::int FROM t GROUP BY tag ORDER BY sum(c) + sum(h) DESC, tag LIMIT 200`, vertical)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (Tag, error) {
+		var t Tag
+		err := r.Scan(&t.Tag, &t.Creatives, &t.Headlines)
+		return t, err
+	})
+}
+
+// ---- refile ------------------------------------------------------------------
+
+// refileTx puts a creative or headline (kind) in set to and takes it out of
+// every other set, recording where it was. The set must be of the item's
+// vertical; an item without one takes the set's.
+func refileTx(ctx context.Context, tx pgx.Tx, kind string, id, to int64, by string) error {
+	var setVert string
+	err := tx.QueryRow(ctx, `SELECT COALESCE(vertical_id, '') FROM library.set WHERE id = $1`, to).Scan(&setVert)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return BadInput(fmt.Sprintf("set %d does not exist", to))
+	}
+	if err != nil {
+		return err
+	}
+	table, link := "library."+kind, "library.set_"+kind
+	var vert string
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(vertical_id, '') FROM `+table+` WHERE id = $1 FOR UPDATE`, id).Scan(&vert); err != nil {
+		return err
+	}
+	switch {
+	case vert == "" && setVert != "":
+		if _, err := tx.Exec(ctx, `UPDATE `+table+` SET vertical_id = $2, updated_at = now() WHERE id = $1`, id, setVert); err != nil {
+			return err
+		}
+	case vert != "" && setVert != "" && vert != setVert:
+		return BadInput("refile into a set of the same vertical")
+	}
+	var from []int64
+	var pos []int32
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(array_agg(set_id ORDER BY set_id), '{}'), COALESCE(array_agg(position ORDER BY set_id), '{}')
+		FROM `+link+` WHERE `+kind+`_id = $1 AND set_id <> $2`, id, to).Scan(&from, &pos); err != nil {
+		return err
+	}
+	var already bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM `+link+` WHERE `+kind+`_id = $1 AND set_id = $2)`, id, to).Scan(&already); err != nil {
+		return err
+	}
+	if already && len(from) == 0 {
+		return nil
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO library.refile (kind, item_id, from_sets, from_positions, to_set, refiled_by)
+		VALUES ($1, $2, $3, $4, $5, $6)`, kind, id, from, pos, to, by); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM `+link+` WHERE `+kind+`_id = $1 AND set_id <> $2`, id, to); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO `+link+` (set_id, `+kind+`_id, position)
+		VALUES ($1, $2, (SELECT COALESCE(max(position), 0) + 1 FROM `+link+` WHERE set_id = $1))
+		ON CONFLICT DO NOTHING`, to, id); err != nil {
+		return err
+	}
+	if kind == "headline" {
+		// The sets' headline files change.
+		_, err := tx.Exec(ctx, `UPDATE library.set SET headlines_changed_at = now() WHERE id = $1 OR id = ANY ($2)`, to, from)
+		return err
+	}
 	return nil
+}
+
+// ---- folders -----------------------------------------------------------------
+
+// Counts are how many creatives and headlines (not hidden) a folder holds.
+type Counts struct {
+	Creatives int `json:"creatives"`
+	Headlines int `json:"headlines"`
+}
+
+// PlatformFolderInfo is a platform's folder inside a vertical's.
+type PlatformFolderInfo struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Counts
+}
+
+// VerticalFolder is a vertical's folder: its counts, its platforms' folders
+// and its sets (each with its platform, "" for one directly in it).
+type VerticalFolder struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Counts
+	Platforms []PlatformFolderInfo `json:"platforms"`
+	Sets      []Set                `json:"sets"`
+}
+
+// Folders is the library as folders, the way the pages show it: every
+// vertical, its platforms and its sets, with counts, and the whole
+// library's counts by origin (original: uploaded or from Drive; generated:
+// made in Create).
+type Folders struct {
+	Totals struct {
+		Creatives int `json:"creatives"`
+		Original  int `json:"original"`
+		Generated int `json:"generated"`
+		Headlines int `json:"headlines"`
+	} `json:"totals"`
+	Verticals []VerticalFolder `json:"verticals"`
+}
+
+// Folders reads the folder tree.
+func (s *Store) Folders(ctx context.Context) (Folders, error) {
+	var f Folders
+	err := s.db.QueryRow(ctx, `SELECT
+		(SELECT count(*) FROM library.creative WHERE hidden_at IS NULL),
+		(SELECT count(*) FROM library.creative WHERE hidden_at IS NULL AND origin <> 'create'),
+		(SELECT count(*) FROM library.creative WHERE hidden_at IS NULL AND origin = 'create'),
+		(SELECT count(*) FROM library.headline WHERE hidden_at IS NULL)`).
+		Scan(&f.Totals.Creatives, &f.Totals.Original, &f.Totals.Generated, &f.Totals.Headlines)
+	if err != nil {
+		return f, err
+	}
+	rows, err := s.db.Query(ctx, `
+		SELECT v.id, v.name,
+		       (SELECT count(*) FROM library.creative c WHERE c.vertical_id = v.id AND c.hidden_at IS NULL),
+		       (SELECT count(*) FROM library.headline h WHERE h.vertical_id = v.id AND h.hidden_at IS NULL)
+		FROM library.vertical v ORDER BY v.name`)
+	if err != nil {
+		return f, err
+	}
+	f.Verticals, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (VerticalFolder, error) {
+		v := VerticalFolder{Platforms: []PlatformFolderInfo{}, Sets: []Set{}}
+		err := r.Scan(&v.ID, &v.Name, &v.Creatives, &v.Headlines)
+		return v, err
+	})
+	if err != nil {
+		return f, err
+	}
+	at := map[string]int{}
+	for i, v := range f.Verticals {
+		at[v.ID] = i
+	}
+	rows, err = s.db.Query(ctx, `
+		SELECT s.vertical_id, s.platform,
+		       (SELECT count(DISTINCT c.id) FROM library.set_creative sc JOIN library.set x ON x.id = sc.set_id
+		          JOIN library.creative c ON c.id = sc.creative_id
+		         WHERE x.vertical_id = s.vertical_id AND x.platform = s.platform AND c.hidden_at IS NULL),
+		       (SELECT count(DISTINCT h.id) FROM library.set_headline sh JOIN library.set x ON x.id = sh.set_id
+		          JOIN library.headline h ON h.id = sh.headline_id
+		         WHERE x.vertical_id = s.vertical_id AND x.platform = s.platform AND h.hidden_at IS NULL)
+		FROM library.set s WHERE s.vertical_id IS NOT NULL AND s.platform IS NOT NULL
+		GROUP BY s.vertical_id, s.platform ORDER BY s.vertical_id, s.platform DESC`)
+	if err != nil {
+		return f, err
+	}
+	type plat struct {
+		vert string
+		p    PlatformFolderInfo
+	}
+	ps, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (plat, error) {
+		var x plat
+		err := r.Scan(&x.vert, &x.p.ID, &x.p.Creatives, &x.p.Headlines)
+		x.p.Name = PlatformFolder(x.p.ID)
+		return x, err
+	})
+	if err != nil {
+		return f, err
+	}
+	for _, x := range ps {
+		if i, ok := at[x.vert]; ok {
+			f.Verticals[i].Platforms = append(f.Verticals[i].Platforms, x.p)
+		}
+	}
+	sets, err := s.sets(ctx, "", 5000)
+	if err != nil {
+		return f, err
+	}
+	for i := len(sets) - 1; i >= 0; i-- { // oldest first, as folders are read
+		if j, ok := at[sets[i].VerticalID]; ok {
+			f.Verticals[j].Sets = append(f.Verticals[j].Sets, sets[i])
+		}
+	}
+	return f, nil
 }
 
 // ChangeCreative edits a creative.
@@ -842,9 +1180,19 @@ func (s *Store) ChangeCreative(ctx context.Context, id int64, c Change) (Creativ
 			if err := setExists(ctx, tx, c.AddToSet); err != nil {
 				return err
 			}
-			return addToSetTx(ctx, tx, c.AddToSet, id)
+			if err := addToSetTx(ctx, tx, c.AddToSet, id); err != nil {
+				return err
+			}
 		}
-		return nil
+		if c.RefileTo != 0 {
+			if err := refileTx(ctx, tx, "creative", id, c.RefileTo, c.By); err != nil {
+				return err
+			}
+		}
+		if err := tagTx(ctx, tx, "creative", id, c.AddTags, c.By); err != nil {
+			return err
+		}
+		return untagTx(ctx, tx, "creative", id, c.RemoveTags)
 	})
 	if err != nil {
 		return Creative{}, err
@@ -901,6 +1249,8 @@ type NewHeadline struct {
 	OriginRef    string `json:"origin_ref"`
 	AILabel      string `json:"ai_label"`
 	MadeBy       string `json:"made_by"`
+	// Tags are put on it (on the headline kept already, for the same text).
+	Tags []string `json:"tags"`
 }
 
 // MaxHeadline is the longest headline kept, in characters. Taboola's hard
@@ -943,6 +1293,10 @@ func (s *Store) AddHeadlines(ctx context.Context, in []NewHeadline) ([]Headline,
 			if err != nil {
 				return err
 			}
+			tags, err := cleanTags(h.Tags)
+			if err != nil {
+				return err
+			}
 			if err := ensureVertical(ctx, tx, h.VerticalID, h.VerticalName); err != nil {
 				return err
 			}
@@ -959,6 +1313,9 @@ func (s *Store) AddHeadlines(ctx context.Context, in []NewHeadline) ([]Headline,
 				SELECT id FROM ins UNION ALL SELECT id FROM library.headline WHERE sha256 = $2 LIMIT 1`,
 				t, HeadlineSHA(t), h.VerticalID, text.CleanLine(h.Angle), h.Origin, h.OriginRef, label, h.MadeBy).Scan(&id)
 			if err != nil {
+				return err
+			}
+			if err := tagTx(ctx, tx, "headline", id, tags, h.MadeBy); err != nil {
 				return err
 			}
 			if h.SetID != 0 {
@@ -992,12 +1349,13 @@ func (s *Store) AddHeadlines(ctx context.Context, in []NewHeadline) ([]Headline,
 
 const headlineCols = `h.id, h.text, h.sha256, COALESCE(h.vertical_id, ''), h.angle, h.origin, h.origin_ref, h.ai_label,
 	h.made_by, h.hidden_at IS NOT NULL, h.created_at,
-	ARRAY(SELECT set_id FROM library.set_headline WHERE headline_id = h.id ORDER BY set_id)`
+	ARRAY(SELECT set_id FROM library.set_headline WHERE headline_id = h.id ORDER BY set_id),
+	ARRAY(SELECT tag FROM library.headline_tag WHERE headline_id = h.id ORDER BY tag)`
 
 func scanHeadline(r pgx.CollectableRow) (Headline, error) {
 	var h Headline
 	err := r.Scan(&h.ID, &h.Text, &h.SHA256, &h.VerticalID, &h.Angle, &h.Origin, &h.OriginRef, &h.AILabel,
-		&h.MadeBy, &h.Hidden, &h.CreatedAt, &h.SetIDs)
+		&h.MadeBy, &h.Hidden, &h.CreatedAt, &h.SetIDs, &h.Tags)
 	return h, err
 }
 
@@ -1016,23 +1374,25 @@ func (s *Store) Headline(ctx context.Context, id int64) (Headline, error) {
 
 // Headlines lists headlines, newest first (in set order when a set is given).
 func (s *Store) Headlines(ctx context.Context, f Filter) ([]Headline, error) {
-	order := "h.id DESC"
-	if f.SetID != 0 {
-		order = "(SELECT position FROM library.set_headline WHERE set_id = $2 AND headline_id = h.id), h.id"
-	}
+	order := f.order("h", "text", "(SELECT position FROM library.set_headline WHERE set_id = $2 AND headline_id = h.id), h.id")
 	rows, err := s.db.Query(ctx, `
 		SELECT `+headlineCols+` FROM library.headline h
 		WHERE ($1 = '' OR h.vertical_id = $1)
 		  AND ($2 = 0 OR EXISTS (SELECT 1 FROM library.set_headline WHERE set_id = $2 AND headline_id = h.id))
 		  AND ($3 = '' OR h.angle = $3)
-		  AND ($4 = '' OR h.origin = $4)
+		  AND ($4::text[] IS NULL OR h.origin = ANY ($4))
 		  AND ($5 = '' OR h.ai_label = $5)
-		  AND ($6 = '' OR h.text ILIKE '%' || $6 || '%')
+		  AND ($6 = '' OR h.text ILIKE '%' || $6 || '%'
+		       OR EXISTS (SELECT 1 FROM library.headline_tag t WHERE t.headline_id = h.id AND t.tag ILIKE '%' || $6 || '%'))
 		  AND (h.hidden_at IS NOT NULL) = $7
 		  AND ($8 = 0 OR h.id < $8)
+		  AND ($10 = '' OR EXISTS (SELECT 1 FROM library.headline_tag t WHERE t.headline_id = h.id AND t.tag = lower($10)))
+		  AND ($11 = '' OR EXISTS (SELECT 1 FROM library.set_headline sh JOIN library.set s ON s.id = sh.set_id
+		                            WHERE sh.headline_id = h.id AND s.platform = $11))
 		ORDER BY `+order+`
 		LIMIT $9`,
-		f.VerticalID, f.SetID, f.Angle, f.Origin, f.AILabel, likeEscape(f.Search), f.Hidden, f.Before, f.limit())
+		f.VerticalID, f.SetID, f.Angle, f.origins(), f.AILabel, likeEscape(f.Search), f.Hidden, f.before(), f.limit(),
+		strings.TrimSpace(f.Tag), f.Platform)
 	if err != nil {
 		return nil, err
 	}
@@ -1070,6 +1430,17 @@ func (s *Store) ChangeHeadline(ctx context.Context, id int64, c Change) (Headlin
 				ON CONFLICT DO NOTHING`, c.AddToSet, id); err != nil {
 				return err
 			}
+		}
+		if c.RefileTo != 0 {
+			if err := refileTx(ctx, tx, "headline", id, c.RefileTo, c.By); err != nil {
+				return err
+			}
+		}
+		if err := tagTx(ctx, tx, "headline", id, c.AddTags, c.By); err != nil {
+			return err
+		}
+		if err := untagTx(ctx, tx, "headline", id, c.RemoveTags); err != nil {
+			return err
 		}
 		// Hiding or adding changes what the set's headline file says.
 		_, err = tx.Exec(ctx, `UPDATE library.set SET headlines_changed_at = now()

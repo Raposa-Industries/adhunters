@@ -38,8 +38,20 @@ schemas.
   its row, name and thumbnail stay, `/files/{id}` answers 410, and saving the
   same bytes again brings it back.
 
-Nothing is deleted. Hiding a creative or headline takes it out of the lists;
-anything that points at it still finds it.
+- **Tags.** Words people put on creatives and headlines ("cozinha"), kept
+  in lower case without a leading `#`; up to 20 at a time. The search (`q`)
+  finds them too.
+- **Originals and generated.** A creative made in Create (origin `create`)
+  is generated; one uploaded or found in Drive (`upload`, `drive`) is an
+  original. Create's pages show them as GERADA and ORIGINAL.
+- **Refiles.** Putting a creative or headline in another set (GLOSSARY:
+  refile; Mover in Create's pages) takes it out of every set it was in and
+  records where it was (`library.refile`). Only into a set of its own
+  vertical. Its Drive file stays where it is: the library still never moves
+  anything in Drive.
+
+Nothing is deleted. Hiding a creative or headline takes it out of the lists
+(Apagar in Create's pages); anything that points at it still finds it.
 
 The verticals are our fixed list's ids (shared/verticals/verticals.yaml). The team's nine
 must-haves start with codes (Blood Pressure `BP`, Memory Loss `MM`, Weight
@@ -120,25 +132,36 @@ continues after the last id of a page.
 - `POST /api/drive/sync`: a pass now (202).
 - `GET /api/verticals`, `PATCH /api/verticals/{id}` (`name`, `code`,
   `network_letter`, `next_number`).
+- `GET /api/folders`: the library as the pages show it: every vertical with
+  its platforms' folders and its sets, each with how many creatives and
+  headlines (not hidden) it holds, and the whole library's counts
+  (`creatives`, `original`, `generated`, `headlines`).
+- `GET /api/tags?vertical=`: the tags in use, the most used first.
 - `GET /api/sets?vertical=`, `POST /api/sets` (`name`, `vertical_id`,
   `vertical_name` for a new vertical, `origin`, `origin_ref`, `made_by`,
   optional `platform`; a name already used in the vertical gets " (2)"), `GET /api/sets/{id}` (the
   set, its creatives and headlines in order), `PATCH /api/sets/{id}`
   (`{"name": ...}`: a name another set of the vertical has is refused; the
   Drive folder is renamed on the next pass).
-- `GET /api/creatives?vertical=&set=&angle=&origin=&ai_label=&q=&hidden=1&limit=&before=`,
-  `GET /api/creatives/{id}`.
+- `GET /api/creatives?vertical=&set=&angle=&origin=&ai_label=&q=&tag=&platform=&sort=&hidden=1&limit=&before=`,
+  `GET /api/creatives/{id}`. `origin` takes several, joined by commas
+  (`upload,drive`: the originals); `platform` keeps those in a set of that
+  platform; `sort` is `new` (the default), `old` or `name` (`before` pages
+  the default only). Each creative carries its `tags`.
 - `POST /api/creatives`: multipart, `file` (the picture) and `meta` (JSON:
   `vertical_id`, `vertical_name`, `set_id`, `angle`, `idea`, `origin`,
   `origin_ref`, `ai_label`, `made_by`, optional `platform` (else the set's,
-  else the vertical's letter), and `name` when there is no vertical).
+  else the vertical's letter), optional `tags`, and `name` when there is no
+  vertical).
   201 new, 200 when those bytes were kept already (then only added to the
   set).
 - `PATCH /api/creatives/{id}` and `PATCH /api/headlines/{id}`: `angle`,
-  `ai_label`, `hidden`, `add_to_set`.
+  `ai_label`, `hidden`, `add_to_set`, `refile_to` (a set of its vertical),
+  `add_tags`, `remove_tags`, and `by` (who, for the record).
 - `GET /api/headlines?...` (the same filters), `POST /api/headlines`
   (`{"headlines": [{text, vertical_id, set_id, angle, origin, origin_ref,
-  ai_label, made_by}]}`; a text kept already returns that headline).
+  ai_label, made_by, tags}]}`; a text kept already returns that headline,
+  with the tags added).
 - `GET /files/{id}`, `GET /thumbs/{id}`: the picture (from Drive once
   uploaded) and its thumbnail (JPEG). Cached for good: an id's bytes never
   change.
@@ -146,7 +169,9 @@ continues after the last id of a page.
 The same rows are published for reading in `library_api`
 (contract/sql/library): `vertical_v1`, `creative_v1`, `headline_v1`,
 `set_v1`, `set_creative_v1`, `set_headline_v1`. `sha256` is there for the ad
-id: `ah-` + the creative's first 10 + `-` + the headline's first 10.
+id: `ah-` + the creative's first 10 + `-` + the headline's first 10. Tags,
+a set's platform and refiles are not published there yet (a new view
+version in `contract/` would); the HTTP API carries them.
 
 ## Settings
 

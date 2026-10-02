@@ -109,6 +109,10 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | safe copy | Retired (decision 0020): the library's own copy of a picture's bytes. The library keeps files in Drive only. |
 | minted name | A creative's name from its vertical's code, the network letter and a counter that only goes up (`BPT43`), given when an app saves it. Never given twice. |
 | hidden | Taken out of lists by a person: a library item out of the library's, an operator (with its creatives) out of Spy's. Nothing is deleted. |
+| tag | A word a person puts on a library creative or headline ("cozinha"), in lower case, to find it again. One item can have several. |
+| original | A library creative the team brought in (uploaded, or put in Drive by hand): origin `upload` or `drive`. Shown as ORIGINAL. |
+| generated | A library creative made in Create and saved there: origin `create`. Shown as GERADA. |
+| refile | Putting a library creative or headline in another set of its vertical (Mover in the pages): it leaves the sets it was in, and the library records where it was. Its Drive file stays where it is. (Not "move", Launch's word for a campaign.) |
 
 ## Launch
 

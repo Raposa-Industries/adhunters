@@ -52,6 +52,8 @@ func (a *API) Handler() http.Handler {
 	mux.HandleFunc("POST /api/drive/sync", a.kick)
 	mux.HandleFunc("GET /api/verticals", a.verticals)
 	mux.HandleFunc("PATCH /api/verticals/{id}", a.changeVertical)
+	mux.HandleFunc("GET /api/folders", a.folders)
+	mux.HandleFunc("GET /api/tags", a.tags)
 	mux.HandleFunc("GET /api/sets", a.sets)
 	mux.HandleFunc("POST /api/sets", a.addSet)
 	mux.HandleFunc("GET /api/sets/{id}", a.set)
@@ -204,6 +206,27 @@ func (a *API) changeVertical(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, v)
 }
 
+// folders is the library as the pages show it: verticals, their platforms'
+// folders and their sets, with counts.
+func (a *API) folders(w http.ResponseWriter, r *http.Request) {
+	f, err := a.st.Folders(r.Context())
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, f)
+}
+
+// tags lists the tags in use (?vertical=), the most used first.
+func (a *API) tags(w http.ResponseWriter, r *http.Request) {
+	ts, err := a.st.Tags(r.Context(), r.URL.Query().Get("vertical"))
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tags": ts})
+}
+
 func (a *API) sets(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	ss, err := a.st.Sets(r.Context(), r.URL.Query().Get("vertical"), limit)
@@ -282,6 +305,7 @@ func filter(r *http.Request) store.Filter {
 		VerticalID: q.Get("vertical"), SetID: num("set"), Angle: q.Get("angle"), Origin: q.Get("origin"),
 		AILabel: q.Get("ai_label"), Search: q.Get("q"), Hidden: q.Get("hidden") == "1",
 		Before: num("before"), Limit: int(num("limit")),
+		Tag: q.Get("tag"), Platform: q.Get("platform"), Sort: q.Get("sort"),
 	}
 }
 
