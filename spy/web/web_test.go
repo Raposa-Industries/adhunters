@@ -76,9 +76,12 @@ func newSite(t *testing.T) *site {
 		exec(`INSERT INTO tracks_api.closed_hour_v1 (hour, closed_at) VALUES ($1, $1)`, hr)
 	}
 	exec(`INSERT INTO tracks_api.link_v1 (id, host, path, tracker, sample_url) VALUES (1, 'slim.example', '/lp', 'redtrack', 'https://slim.example/lp')`)
-	exec(`INSERT INTO tracks_api.creative_link_daily_v1 VALUES ($1::date, 10, 1, 7, $1::timestamptz, $1::timestamptz)`, today)
+	// The ad page reads the days of the last 24 closed hours: from 01:00 to
+	// 02:00 UTC the last closed hour is still yesterday's.
+	lastDay := now.Truncate(time.Hour).Add(-time.Hour).Truncate(24 * time.Hour)
+	exec(`INSERT INTO tracks_api.creative_link_daily_v1 VALUES ($1::date, 10, 1, 7, $1::timestamptz, $1::timestamptz)`, lastDay)
 	exec(`INSERT INTO tracks_api.campaign_v1 (id, external_id, name, account_id) VALUES (1, 'c-1', 'Belly US', 500)`)
-	exec(`INSERT INTO tracks_api.creative_campaign_daily_v1 VALUES ($1::date, 10, 1, 7, $1::timestamptz, $1::timestamptz)`, today)
+	exec(`INSERT INTO tracks_api.creative_campaign_daily_v1 VALUES ($1::date, 10, 1, 7, $1::timestamptz, $1::timestamptz)`, lastDay)
 	exec(`INSERT INTO tracks_api.auction_v1 (seen_at, ad_id, publisher_id, device_id, auction_id, clearing_price, bid_value, is_rtb)
 		VALUES ($1, 100, 1, 2, 'a1', 0.25::real, 0.3::real, false)`, now.Add(-2*time.Hour))
 
