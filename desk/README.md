@@ -43,8 +43,10 @@ reads as down. Units and example settings are in [deploy/](deploy/).
      transaction that records the call and moves the step, with
      `desk:step:<id>` as the origin, so a step never calls twice. Then it
      follows the app's view until one of the action's done or failed
-     states. An ask ends when a person confirms it on the app's own screen
-     (Launch's Pedidos, "Confirmar e enviar"); Desk never confirms anything.
+     states. An ask carries the person's OK of the plan: Launch carries
+     it out on arrival as that person, within its own limits (owner,
+     2 Oct 2026: "Desk confirms its request by conversation").
+     Launch's Pedidos screen, where people used to confirm, is gone.
    - **Choice**: shows the rows with the ones Desk would pick and why (one
      more call to Claude), puts "Escolher" on the person's to-do list, and
      waits for their pick.
@@ -61,8 +63,7 @@ its `create.items`, and `create.save_items` with the ids the person picked,
 which puts them in the session's library folder for Launch. "Pausa as
 campanhas que perderam dinheiro ontem" reads `intel.campaign_results` at
 once, then proposes one step, `launch.pause_campaigns` with those campaigns;
-after the OK the request waits in Launch's Pedidos until a person confirms it
-there, and only then does Launch pause them.
+after the OK Launch pauses them within seconds, as the person who OK'd.
 
 A step that waits is looked at again every 30 s; a pick or a to-do marked
 done moves it at once. An app that refuses a call (its own check, a
@@ -77,10 +78,10 @@ minute later.
   publishes. Confirming and turning a campaign or ad on (starting,
   resuming, unpausing) are never listed, and the catalog refuses an entry
   that would turn something on, so Desk can never be given them; a change
-  of bid or cap is only ever an ask, which a person confirms on Launch's
-  page.
-- **Taboola.** Every Taboola write goes through Launch, where a person
-  confirms it; campaigns and ads are always made paused and only a person
+  of bid or cap is only ever an ask, made in a plan the person OK'd and
+  held to Launch's ceilings.
+- **Taboola.** Every Taboola write goes through Launch, asked in a plan
+  the person OK'd; campaigns and ads are always made paused and only a person
   turns them on, in Taboola (decided 1 Oct 2026: "never run a campaign
   without me giving the go"). Desk never asks an app or a person to turn one
   on. Headlines are always in English. Taboola's
@@ -178,8 +179,8 @@ list (Launch asking a person to start a pair in Taboola, say).
   Frame (`shared/frame/assets/core.js`).
 - **Open decisions** (asked 2026-09-30; Desk is built on the first answer
   of each): its own app, not a panel in every app nor inside Launch; a
-  person confirms what Desk asks of Launch on Launch's own page, not in
-  the chat;
+  person confirms what Desk asks of Launch in the chat (answered by the
+  owner 2 Oct 2026; Launch carries the asks out on arrival);
   one to-do list for people and Desk; who confirms raising spend in Launch
   (Launch's rule; Desk never confirms).
 
