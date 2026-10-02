@@ -64,7 +64,7 @@ func TestAPI(t *testing.T) {
 	_ = png.Encode(&pic, image.NewRGBA(image.Rect(0, 0, 40, 30)))
 	meta := `{"vertical_id":"tinnitus","set_id":` + itoa(setID) + `,"origin":"create","ai_label":"ai","angle":"Garrafa"}`
 	code, c := upload(t, h, meta, pic.Bytes())
-	if code != http.StatusCreated || c["name"] != "TNT1" {
+	if code != http.StatusCreated || c["name"] != "TINT1" {
 		t.Fatalf("creative: %d %v", code, c)
 	}
 	if code, _ := upload(t, h, meta, pic.Bytes()); code != http.StatusOK {

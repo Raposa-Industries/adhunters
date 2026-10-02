@@ -138,6 +138,9 @@ ol.headlines li.off { opacity: .55; }
 .hl-row input[type=text] { flex: 1; }
 img.mini { width: 72px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 5px; display: block; background: var(--surface-3); }
 .ads-preview { margin-top: 12px; max-height: 480px; overflow-y: auto; }
+.ads-preview select, .manual-pairs select { max-width: 260px; }
+.ads-preview td input[type=text] { width: 100%; min-width: 220px; margin-top: 4px; }
+.field .static { display: block; padding: 7px 0; }
 ol.steps { list-style: none; padding: 0; margin: 14px 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
 ol.steps .mark { display: inline-block; width: 16px; }
 ol.steps .step-ok .mark { color: var(--ok-ink); }

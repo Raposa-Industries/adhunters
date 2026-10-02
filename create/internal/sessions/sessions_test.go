@@ -64,6 +64,7 @@ func (f *fakeAI) Image(_ context.Context, r openai.ImageRequest) (openai.Image, 
 }
 
 type fakeLib struct {
+	saved     []string
 	sets      []library.NewSet
 	creatives []library.CreativeMeta
 	headlines []library.NewHeadline
@@ -83,6 +84,8 @@ func (f *fakeLib) AddCreative(_ context.Context, m library.CreativeMeta, _ strin
 	f.creatives = append(f.creatives, m)
 	return library.Creative{ID: int64(100 + len(f.creatives))}, nil
 }
+
+func (f *fakeLib) Headlines(context.Context, string, int) ([]string, error) { return f.saved, nil }
 
 func (f *fakeLib) AddHeadlines(_ context.Context, hs []library.NewHeadline) error {
 	f.headlines = append(f.headlines, hs...)
@@ -129,15 +132,15 @@ func TestIterate(t *testing.T) {
 	st, w, ai, lib := setup(t)
 	ctx := context.Background()
 
-	s, err := st.NewSession(ctx, "Colher de manhã", "tinnitus", "Tinnitus", "mari@example.com")
+	s, err := st.NewSession(ctx, "Colher de manhã", "tinnitus", "Tinnitus", "", "mari@example.com")
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := st.NewSession(ctx, "colher de manhã ", "tinnitus", "Tinnitus", "vini@example.com")
+	again, err := st.NewSession(ctx, "colher de manhã ", "tinnitus", "Tinnitus", "", "vini@example.com")
 	if err != nil || again.ID != s.ID {
 		t.Fatalf("the same name in the same vertical should open the same session: %v %+v", err, again)
 	}
-	other, err := st.NewSession(ctx, "Colher de manhã", "memory-loss", "Memory Loss", "")
+	other, err := st.NewSession(ctx, "Colher de manhã", "memory-loss", "Memory Loss", "", "")
 	if err != nil || other.ID == s.ID {
 		t.Fatalf("another vertical is another session: %v", err)
 	}
@@ -247,11 +250,11 @@ func TestIterate(t *testing.T) {
 func TestRefusals(t *testing.T) {
 	st, w, ai, _ := setup(t)
 	ctx := context.Background()
-	s, err := st.NewSession(ctx, "Sessão", "tinnitus", "Tinnitus", "")
+	s, err := st.NewSession(ctx, "Sessão", "tinnitus", "Tinnitus", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	other, _ := st.NewSession(ctx, "Outra", "tinnitus", "Tinnitus", "")
+	other, _ := st.NewSession(ctx, "Outra", "tinnitus", "Tinnitus", "", "")
 	up, err := st.AddPicture(ctx, other.ID, "upload", "", pic(40, 40))
 	if err != nil {
 		t.Fatal(err)
@@ -272,7 +275,7 @@ func TestRefusals(t *testing.T) {
 		t.Errorf("no session: %v", err)
 	}
 	for _, name := range []string{"", "a/b"} {
-		if _, err := st.NewSession(ctx, name, "tinnitus", "Tinnitus", ""); !errors.As(err, &bad) {
+		if _, err := st.NewSession(ctx, name, "tinnitus", "Tinnitus", "", ""); !errors.As(err, &bad) {
 			t.Errorf("name %q: %v", name, err)
 		}
 	}
@@ -301,7 +304,7 @@ func TestRefusals(t *testing.T) {
 func TestRestart(t *testing.T) {
 	st, w, _, _ := setup(t)
 	ctx := context.Background()
-	s, _ := st.NewSession(ctx, "S", "tinnitus", "Tinnitus", "")
+	s, _ := st.NewSession(ctx, "S", "tinnitus", "Tinnitus", "", "")
 	if _, err := st.Send(ctx, s.ID, Send{Prompt: "x", Images: 3}, ""); err != nil {
 		t.Fatal(err)
 	}

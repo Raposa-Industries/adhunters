@@ -279,10 +279,18 @@ func TestFirstCampaignPath(t *testing.T) {
 		Mobile  string `json:"mobile"`
 	}
 	mustCall(t, "GET", launch+"/launch/api/taboola/"+accounts[0]+"/next", nil, &next)
+	// The mobile half has its own daily budget and start (the page's
+	// "Mobile com valores próprios"); everything else is the desktop's.
+	mobile := map[string]any{}
+	for k, v := range settings {
+		mobile[k] = v
+	}
+	mobileCap := team.DailyCap / 2
+	mobile["daily_cap"], mobile["start_date"] = mobileCap, "2030-01-05"
 	pair := map[string]any{
 		"network": "taboola", "account": accounts[0], "devices": "both", "group_id": "",
 		"new_group": map[string]any{"name": "", "budget": 0, "budget_model": "", "objective": team.Objective},
-		"settings":  settings, "ads": ads, "key": "e2e-first-pair",
+		"settings":  settings, "mobile": mobile, "ads": ads, "key": "e2e-first-pair",
 	}
 	result := sendPair(t, launch, pair)
 	if result.Result != "done" || result.Desktop == nil || result.Mobile == nil {
@@ -301,6 +309,10 @@ func TestFirstCampaignPath(t *testing.T) {
 		switch {
 		case r.Method == "POST" && r.Path == accounts[0]+"/campaigns_group/":
 			groups++
+			// No end date sent: Taboola's default, 9999-12-31, is no end.
+			if _, ok := b["end_date"]; ok {
+				t.Errorf("group sent with an end date: %v", b["end_date"])
+			}
 		case r.Method == "POST" && r.Path == accounts[0]+"/campaigns/":
 			camps++
 			if g, _ := b["campaign_group_id"].(string); g != result.GroupID || g == "" {
@@ -309,6 +321,14 @@ func TestFirstCampaignPath(t *testing.T) {
 			pt, _ := b["platform_targeting"].(map[string]any)
 			vals, _ := pt["value"].([]any)
 			platforms[fmt.Sprint(vals)] = true
+			// The mobile campaign carries its own daily budget and start.
+			wantCap, wantStart := team.DailyCap, any(nil)
+			if fmt.Sprint(vals) == "[PHON TBLT]" {
+				wantCap, wantStart = mobileCap, "2030-01-05"
+			}
+			if b["daily_cap"] != wantCap || b["start_date"] != wantStart {
+				t.Errorf("campaign %v (%v): daily cap %v, start %v; want %v and %v", b["name"], vals, b["daily_cap"], b["start_date"], wantCap, wantStart)
+			}
 		case r.Method == "POST" && strings.HasSuffix(r.Path, "/items/mass"):
 			coll, _ := b["collection"].([]any)
 			massAds += len(coll)
@@ -317,8 +337,8 @@ func TestFirstCampaignPath(t *testing.T) {
 	if groups != 1 || camps != 2 || massAds != 2*len(ads) {
 		t.Errorf("Launch sent %d groups, %d campaigns, %d ads; want 1, 2 and %d", groups, camps, massAds, 2*len(ads))
 	}
-	if !platforms["[DESK]"] || !platforms["[PHON]"] {
-		t.Errorf("devices: %v, want one desktop (DESK) and one mobile (PHON) campaign", platforms)
+	if !platforms["[DESK]"] || !platforms["[PHON TBLT]"] {
+		t.Errorf("devices: %v, want one desktop (DESK) and one mobile (PHON and TBLT) campaign", platforms)
 	}
 
 	// Asking for more than $20 is refused before anything reaches Taboola.

@@ -78,6 +78,36 @@ function verticalSelect(cats, value) {
   return sel;
 }
 
+// The platforms (ad networks) a session can be for; the server sends the
+// same list in its status.
+const PLATFORMS = [{ id: 'taboola', name: 'Taboola' }, { id: 'newsbreak', name: 'NewsBreak' }];
+function platformName(id) { return (PLATFORMS.find((p) => p.id === id) || PLATFORMS[0]).name; }
+
+function platformSelect(value) {
+  return h('select', { 'aria-label': 'Plataforma' }, PLATFORMS.map((p) => h('option', { value: p.id, selected: p.id === (value || 'taboola') }, p.name)));
+}
+
+// Quick edits (GLOSSARY): one click adds a short English instruction to the
+// prompt, for changing picked pictures faithfully; several combine, and a
+// second click takes it out again.
+const QUICK_EDITS = [
+  ['Câmera 15° à direita', 'Move the camera 15 degrees to the right and slightly up; keep everything else exactly the same.'],
+  ['Espelhar', 'Mirror the whole picture horizontally; change nothing else.'],
+  ['Cor da mesa', 'Change only the colour of the table; keep everything else exactly the same.'],
+  ['Trocar as pessoas', 'Swap the people for different people of the same age and look, keeping the same facial expression and pose.'],
+  ['Cor da roupa', 'Change only the colour of the clothes; keep everything else exactly the same.'],
+  ['Rearrumar a mesa', 'Rearrange the items on the table, keeping every item, the people and the scene faithful to the original.'],
+  ['Pose de pés e braços', 'Change only the position of the feet and arms; keep the person, the expression and the scene the same.'],
+  ['Distância entre pessoas', 'Change only the distance between the people; keep everyone and everything else the same.'],
+];
+
+// toggleLine adds line to text on a line of its own, or takes it out.
+function toggleLine(text, line) {
+  if (text.includes(line)) return text.replace(line, '').replace(/\n{3,}/g, '\n\n').trim();
+  const t = text.trim();
+  return t ? t + '\n' + line : line;
+}
+
 // swap puts alt in place of a blocked word, in its case (the server's
 // checks name the word; the person chose the alternative).
 function swap(text, blocked, alt) {
@@ -138,13 +168,15 @@ async function sessionColumn(aside, verticalID, currentID) {
   const sel = verticalSelect(cats, verticalID);
   const list = h('nav', { class: 'sessions', 'aria-label': 'Sessões' });
   const name = h('input', { type: 'text', placeholder: 'Nome da sessão', maxlength: 120 });
+  const platform = platformSelect(remember('create.platform'));
+  platform.addEventListener('change', () => remember('create.platform', platform.value));
   const start = h('button', { type: 'submit', class: 'primary small' }, 'Nova sessão');
   const form = h('form', { class: 'new-session', onsubmit: async (e) => {
     e.preventDefault();
     if (!sel.value) { toast('Escolha a vertical'); sel.focus(); return; }
-    const s = await run(() => api('POST', '/create/api/sessions', { name: name.value, vertical_id: sel.value }));
+    const s = await run(() => api('POST', '/create/api/sessions', { name: name.value, vertical_id: sel.value, platform: platform.value }));
     if (s) location.href = `/create/s/${s.id}`;
-  } }, name, start);
+  } }, platform, name, start);
 
   async function load() {
     remember('create.vertical', sel.value);
@@ -152,14 +184,14 @@ async function sessionColumn(aside, verticalID, currentID) {
     const { sessions } = await api('GET', `/create/api/sessions${q}`);
     list.replaceChildren(sessions.length
       ? h('ul', {}, sessions.map((s) => h('li', {}, h('a', { href: `/create/s/${s.id}`, 'aria-current': s.id === currentID ? 'page' : null },
-        h('b', {}, s.name), h('small', {}, (sel.value ? '' : s.vertical_name + ' · ') + `${s.images} img · ${s.headlines} hl` + (s.making ? ' · fazendo' : ''))))))
+        h('b', {}, s.name), h('small', {}, (sel.value ? '' : s.vertical_name + ' · ') + (s.platform && s.platform !== 'taboola' ? platformName(s.platform) + ' · ' : '') + `${s.images} img · ${s.headlines} hl` + (s.making ? ' · fazendo' : ''))))))
       : h('p', { class: 'faint' }, sel.value ? 'Nenhuma sessão nesta vertical.' : 'Nenhuma sessão ainda.'));
   }
   sel.addEventListener('change', () => run(load));
   aside.replaceChildren(...[keep].filter(Boolean),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Vertical'), sel),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Nova sessão'), form,
-      h('p', { class: 'hint' }, 'A sessão vira uma pasta dentro da pasta da vertical na biblioteca.')),
+      h('p', { class: 'hint' }, 'Vertical, plataforma e nome: a sessão vira a pasta vertical › plataforma › sessão na biblioteca.')),
     h('div', { class: 'filter-group' }, h('span', { class: 'fr-label' }, 'Sessões'), list));
   await load();
   return { sel, name, reload: () => run(load) };
@@ -185,7 +217,7 @@ async function spyStart(aside, creative) {
   const got = await api('GET', `/create/api/spy/${creative}`).catch((e) => { main.append(h('div', { class: 'note fail' }, e.message)); return null; });
   if (!got) return;
   const open = async (body) => {
-    const r = await run(() => api('POST', `/create/api/spy/${creative}/session`, body));
+    const r = await run(() => api('POST', `/create/api/spy/${creative}/session`, { platform: remember('create.platform') || 'taboola', ...body }));
     if (!r) return;
     if (r.warning) { try { sessionStorage.setItem('create.toast', r.warning); } catch { /* the toast is a nicety */ } }
     location.replace(`/create/s/${r.session.id}?pick=${r.picked.join(',')}`);
@@ -206,11 +238,13 @@ async function spyStart(aside, creative) {
   const cats = await getCategories();
   const sel = verticalSelect(cats, '');
   const name = h('input', { type: 'text', value: got.name, maxlength: 120, 'aria-label': 'Nome da sessão' });
+  const platform = platformSelect(remember('create.platform'));
   card.append(h('form', { class: 'new-session', onsubmit: (e) => {
     e.preventDefault();
     if (!sel.value) { toast('Escolha a vertical'); sel.focus(); return; }
-    open({ vertical_id: sel.value, name: name.value });
-  } }, h('p', { class: 'hint' }, 'O Spy ainda não sabe a vertical deste anúncio.'), sel, name,
+    remember('create.platform', platform.value);
+    open({ vertical_id: sel.value, name: name.value, platform: platform.value });
+  } }, h('p', { class: 'hint' }, 'O Spy ainda não sabe a vertical deste anúncio.'), sel, platform, name,
   h('button', { type: 'submit', class: 'primary' }, 'Abrir sessão')));
   sel.focus();
 }
@@ -241,6 +275,14 @@ async function sessionPage(id, aside) {
   } catch { /* the toast is a nicety */ }
   let counts = null; // the person's own counts, once they touch them
   let ai = true;
+  // The picture size and headline model of the next send, remembered per
+  // session and per person.
+  const sizes = status.sizes && status.sizes.length ? status.sizes : [{ id: 'landscape', label: '16:9 horizontal' }];
+  let size = remember(`create.size.${id}`) || sizes[0].id;
+  if (!sizes.some((x) => x.id === size)) size = sizes[0].id;
+  const models = status.headline_models || [];
+  let model = remember('create.headline_model') || 'openai';
+  if (!models.some((x) => x.id === model)) model = 'openai';
   let polling = null;
   const byID = () => new Map(d.items.map((it) => [it.id, it]));
 
@@ -272,6 +314,7 @@ async function sessionPage(id, aside) {
     title.addEventListener('keydown', (e) => { if (e.key === 'Enter') rename(); });
     head.replaceChildren(...[
       h('div', { class: 'crumbs' }, h('span', {}, 'Biblioteca'), h('span', { class: 'sep' }, '›'), h('span', {}, s.vertical_name), h('span', { class: 'sep' }, '›'),
+        h('span', { title: 'Plataforma da sessão' }, platformName(s.platform)), h('span', { class: 'sep' }, '›'),
         h('span', { 'aria-current': 'page' }, s.library_set_id ? 'pasta da sessão' : 'pasta criada no primeiro salvar')),
       h('div', { class: 'spread' }, title,
         h('div', { class: 'actions' },
@@ -285,9 +328,11 @@ async function sessionPage(id, aside) {
     const on = picked.includes(it.id);
     const n = on ? picked.indexOf(it.id) + 1 : 0;
     if (it.kind === 'image') {
+      const retry = it.state === 'failed' && it.origin === 'made'
+        ? h('button', { type: 'button', class: 'small', onclick: (e) => { e.stopPropagation(); retryItem(it); } }, 'Tentar de novo') : null;
       const pic = it.state === 'done'
-        ? h('img', { src: it.image_url, alt: it.brief || 'imagem', loading: 'lazy' })
-        : h('div', { class: 'wait' + (it.state === 'failed' ? ' failed' : '') }, it.state === 'failed' ? (it.error || 'Falhou') : it.state === 'making' ? 'Fazendo…' : 'Na fila');
+        ? h('img', { src: it.image_url, alt: it.brief || 'imagem', loading: 'lazy', class: it.height > it.width ? 'portrait' : null })
+        : h('div', { class: 'wait' + (it.state === 'failed' ? ' failed' : '') }, h('span', {}, it.state === 'failed' ? (it.error || 'Falhou') : it.state === 'making' ? 'Fazendo…' : 'Na fila'), retry);
       const fig = h('figure', { class: 'thumb tile' + (on ? ' chosen' : '') + (it.state === 'failed' ? ' failed' : ''), dataset: { item: it.id } },
         it.state === 'done'
           ? h('button', { type: 'button', class: 'cover', 'aria-pressed': String(on), title: on ? 'Tirar da escolha' : 'Escolher', onclick: () => toggle(it) }, pic)
@@ -375,19 +420,28 @@ async function sessionPage(id, aside) {
       }
       const t = ev.turn;
       const asked = [t.images ? plural(t.images, 'imagem', 'imagens') : '', t.headlines ? plural(t.headlines, 'headline', 'headlines') : ''].filter(Boolean).join(' e ');
+      const sizeLabel = t.images && t.size && t.size !== 'landscape' ? (sizes.find((x) => x.id === t.size) || { label: t.size }).label : '';
+      const modelLabel = t.headlines && t.headline_model ? (models.find((x) => x.id === t.headline_model) || { name: t.headline_model }).name : '';
       kids.push(h('div', { class: 'msg you' }, h('div', { class: 'bubble' },
         t.picked.length ? pickedChips(t.picked) : null,
         t.prompt ? h('p', {}, t.prompt) : h('p', { class: 'faint' }, 'Variações, sem pedido escrito'),
-        h('small', { class: 'faint' }, `${asked} · ${when(t.created_at)}${t.made_by ? ' · ' + t.made_by : ''}`))));
+        h('small', { class: 'faint' }, [asked, sizeLabel, modelLabel ? 'headlines: ' + modelLabel : ''].filter(Boolean).join(' · ') + ` · ${when(t.created_at)}${t.made_by ? ' · ' + t.made_by : ''}`))));
       const its = byTurn.get(t.id) || [];
       const out = h('div', { class: 'msg out' });
-      if (t.state === 'failed' && !its.some((it) => it.state === 'done')) out.append(h('div', { class: 'note fail' }, 'Não saiu nada: ' + (t.error || 'falhou')));
+      if (t.interrupted_at) out.append(h('div', { class: 'note warn' }, 'Interrompida: o que não tinha começado não foi feito.' + (its.some((it) => it.state === 'making') ? ' A imagem que já estava sendo feita aparece aqui se chegar.' : '')));
+      else if (t.state === 'making') out.append(h('div', { class: 'actions' }, h('button', { type: 'button', class: 'ghost small', onclick: () => interrupt(t) }, 'Parar')));
+      if (t.state === 'failed' && !t.interrupted_at && !its.some((it) => it.state === 'done')) out.append(h('div', { class: 'note fail' }, 'Não saiu nada: ' + (t.error || 'falhou')));
+      else if (t.state === 'done' && t.error && !t.interrupted_at) out.append(h('div', { class: 'note warn' }, t.error));
       else if (t.state === 'making' && !its.length) out.append(h('div', { class: 'making' }, 'Escrevendo…'));
       out.append(...results(its).filter(Boolean));
       kids.push(out);
     }
+    // Redrawing keeps the person where they were (a retry or a poll
+    // never jumps to the bottom).
+    const y = window.scrollY;
     log.replaceChildren(...kids);
     drawComposer();
+    window.scrollTo({ top: y });
   }
 
   // groupLoose puts items added one after another into one message.
@@ -412,7 +466,42 @@ async function sessionPage(id, aside) {
   const prompt = h('textarea', { rows: 3, maxlength: 4000, 'aria-label': 'Pedido' });
   prompt.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } });
   prompt.value = remember(`create.draft.${id}`);
-  prompt.addEventListener('input', () => remember(`create.draft.${id}`, prompt.value));
+  prompt.addEventListener('input', () => {
+    remember(`create.draft.${id}`, prompt.value);
+    // The quick edits show which lines the prompt holds (redrawing the
+    // composer here would take the focus away).
+    for (const btn of composer.querySelectorAll('.quick-edits button')) {
+      const on = prompt.value.includes(btn.title);
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', String(on));
+    }
+  });
+
+  // uploadFiles adds pictures from the computer, picked, as the file button
+  // and Ctrl+V do.
+  async function uploadFiles(files) {
+    let added = 0;
+    for (const f of files) {
+      const fd = new FormData();
+      fd.append('file', f, f.name || 'colado.png');
+      const it = await run(() => api('POST', `/create/api/sessions/${id}/items`, fd));
+      if (it) { d.items.push(it); picked.push(it.id); added++; }
+    }
+    draw();
+    if (added) scrollEnd();
+  }
+
+  // Ctrl+V of a picture (a screenshot) anywhere on the page adds it like a
+  // file picked from the computer; pasted text goes where it always went.
+  document.addEventListener('paste', (e) => {
+    const files = [...((e.clipboardData && e.clipboardData.items) || [])]
+      .filter((x) => x.kind === 'file' && /^image\/(png|jpeg|gif)$/.test(x.type)).map((x) => x.getAsFile()).filter(Boolean);
+    if (!files.length) return;
+    if (document.querySelector('dialog[open]')) return;
+    e.preventDefault();
+    toast(files.length === 1 ? 'Imagem colada' : `${files.length} imagens coladas`, 'ok');
+    uploadFiles(files);
+  });
 
   function defaultCounts() {
     const all = byID();
@@ -463,24 +552,40 @@ async function sessionPage(id, aside) {
       h('span', { class: 'hint' }, `Vai para ${d.session.vertical_name} › ${d.session.name}`)) : null;
 
     const upload = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/gif', multiple: true, hidden: true });
-    upload.addEventListener('change', async () => {
-      for (const f of upload.files) {
-        const fd = new FormData();
-        fd.append('file', f);
-        const it = await run(() => api('POST', `/create/api/sessions/${id}/items`, fd));
-        if (it) { d.items.push(it); picked.push(it.id); }
-      }
-      draw();
-      scrollEnd();
-    });
-    const busy = d.turns.some((t) => t.state === 'making');
+    upload.addEventListener('change', () => uploadFiles([...upload.files]));
+    const making = d.turns.filter((t) => t.state === 'making' && !t.interrupted_at);
+    const busy = making.length > 0;
+    const sizeSel = h('select', { class: 'small', 'aria-label': 'Tamanho das imagens', title: 'Tamanho das imagens' },
+      sizes.map((x) => h('option', { value: x.id, selected: x.id === size }, x.label)));
+    sizeSel.addEventListener('change', () => { size = sizeSel.value; remember(`create.size.${id}`, size); });
+    let modelSel = null;
+    if (models.length > 1) {
+      modelSel = h('select', { class: 'small', 'aria-label': 'Modelo das headlines', title: 'Modelo das headlines' },
+        models.map((x) => h('option', { value: x.id, selected: x.id === model }, 'Headlines: ' + x.name)));
+      modelSel.addEventListener('change', () => { model = modelSel.value; remember('create.headline_model', model); });
+    }
+    const quick = pics ? h('div', { class: 'quick-edits', role: 'group', 'aria-label': 'Edições rápidas' },
+      h('span', { class: 'hint' }, 'Edições rápidas:'),
+      QUICK_EDITS.map(([label, line]) => {
+        const on = prompt.value.includes(line);
+        return h('button', { type: 'button', class: 'ghost small' + (on ? ' on' : ''), 'aria-pressed': String(on), title: line, onclick: () => {
+          prompt.value = toggleLine(prompt.value, line);
+          remember(`create.draft.${id}`, prompt.value);
+          drawComposer();
+          prompt.focus();
+        } }, label);
+      })) : null;
     composer.replaceChildren(...[
       chips,
+      quick,
       h('div', { class: 'compose-row' }, prompt,
         h('div', { class: 'compose-side' },
           stepper('Imagens', 'images', r.max_images),
           stepper('Headlines', 'headlines', r.max_headlines),
-          h('button', { type: 'button', class: 'primary', disabled: !!status.openai_why || (c.images + c.headlines === 0), onclick: send, title: 'Ctrl+Enter' }, busy ? 'Enviar (fazendo outra)' : 'Enviar'))),
+          h('div', { class: 'compose-picks' }, sizeSel, modelSel),
+          h('div', { class: 'compose-send' },
+            h('button', { type: 'button', class: 'primary', disabled: !!status.openai_why || (c.images + c.headlines === 0), onclick: send, title: 'Ctrl+Enter' }, busy ? 'Enviar (fazendo outra)' : 'Enviar'),
+            busy ? h('button', { type: 'button', class: 'small', title: 'Parar o que está sendo feito', onclick: () => Promise.all(making.map(interrupt)) }, 'Parar') : null))),
       h('div', { class: 'compose-tools' },
         h('button', { type: 'button', class: 'ghost small', onclick: () => upload.click() }, '+ Imagem do computador'),
         h('button', { type: 'button', class: 'ghost small', onclick: () => fromLibrary() }, '+ Da biblioteca'),
@@ -492,7 +597,8 @@ async function sessionPage(id, aside) {
 
   async function send() {
     const c = counts || defaultCounts();
-    const body = { prompt: prompt.value, picked, images: c.images, headlines: c.headlines };
+    const body = { prompt: prompt.value, picked, images: c.images, headlines: c.headlines, size };
+    if (model !== 'openai') body.model = model;
     const t = await run(() => api('POST', `/create/api/sessions/${id}/turns`, body));
     if (!t) return;
     prompt.value = '';
@@ -501,6 +607,20 @@ async function sessionPage(id, aside) {
     counts = null;
     await refresh();
     scrollEnd();
+  }
+
+  // interrupt stops a turn: its pictures not started are not made.
+  async function interrupt(t) {
+    const res = await run(() => api('POST', `/create/api/turns/${t.id}/interrupt`));
+    if (res) await refresh();
+  }
+
+  // retryItem makes one failed picture again, where it is on the page.
+  async function retryItem(it) {
+    const res = await run(() => api('POST', `/create/api/items/${it.id}/retry`));
+    if (!res) return;
+    Object.assign(it, res);
+    await refresh();
   }
 
   async function save() {
@@ -569,7 +689,7 @@ async function sessionPage(id, aside) {
         it.cost_usd ? [h('dt', {}, 'Custo'), h('dd', {}, money(it.cost_usd))] : null),
       h('div', { class: 'actions' },
         h('button', { type: 'button', class: 'primary', onclick: (e) => { if (!picked.includes(it.id)) toggle(it); e.target.closest('dialog').close(); prompt.focus(); } }, 'Escolher para variar'),
-        h('a', { class: 'button', href: it.image_url, download: `create-${it.id}` }, 'Baixar'))), 'wide');
+        h('a', { class: 'button', href: it.image_url, download: `create-${it.id}`, title: `O arquivo como foi feito, ${it.width} × ${it.height}` }, 'Baixar'))), 'wide');
   }
 
   function scrollEnd() { window.scrollTo({ top: document.body.scrollHeight }); }
@@ -591,7 +711,10 @@ async function sessionPage(id, aside) {
   }
 
   function poll() {
-    const busy = d.turns.some((t) => t.state === 'making') || d.saves.some((v) => v.state === 'waiting' || v.state === 'saving');
+    // A picture being made when its turn was interrupted still shows up if
+    // it arrives, so the page keeps asking while any picture is under way.
+    const busy = d.turns.some((t) => t.state === 'making') || d.items.some((it) => it.state === 'making' || it.state === 'waiting') ||
+      d.saves.some((v) => v.state === 'waiting' || v.state === 'saving');
     clearTimeout(polling);
     if (busy) polling = setTimeout(refresh, 2000);
   }
@@ -702,7 +825,7 @@ async function rulesPage() {
     h('p', { class: 'lead' }, 'O que o Create segue ao escrever e o que ele marca. As regras do Taboola só avisam: quem decide é você.'))));
   main.append(h('section', { class: 'panel' }, h('h2', {}, 'Sempre'),
     h('ul', {},
-      h('li', {}, 'Imagens e headlines feitas com a OpenAI. Headlines sempre em inglês.'),
+      h('li', {}, 'Imagens feitas com a OpenAI; headlines com a OpenAI ou, quando ligados no servidor, Grok, DeepSeek ou Kimi. Headlines sempre em inglês.'),
       h('li', {}, 'Pessoas espontâneas, sem olhar para a câmera, foto com cara de real, a menos que o pedido diga outra coisa.'),
       h('li', {}, 'Sem texto, logo, antes e depois, celebridades ou close de partes do corpo nas imagens.'),
       h('li', {}, 'Headlines de 34 a 45 caracteres (nunca mais de 60), sem palavras em maiúsculas, sem "!!", sintomas e não doenças, sem promessa de cura, sem valores.'),

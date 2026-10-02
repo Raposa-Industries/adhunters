@@ -24,12 +24,24 @@ type AI interface {
 	Why() string
 }
 
+// Headliner is another text model that may write a turn's headlines
+// (decision 0024): an *openai.Client made by openai.NewCompat.
+type Headliner interface {
+	Plan(ctx context.Context, r openai.PlanRequest) (openai.Plan, error)
+}
+
 // Library is what the worker needs of the library (*library.Client).
 type Library interface {
 	AddSet(ctx context.Context, s library.NewSet) (library.Set, error)
 	AddCreative(ctx context.Context, meta library.CreativeMeta, filename string, data []byte) (library.Creative, error)
 	AddHeadlines(ctx context.Context, hs []library.NewHeadline) error
+	// Headlines are the library's headline texts of a vertical, newest first.
+	Headlines(ctx context.Context, vertical string, limit int) ([]string, error)
 }
+
+// memoryLines is the most headlines of each kind (the session's, the
+// library's) read for the headline memory; openai trims them to its budget.
+const memoryLines = 400
 
 // Worker runs Create's work: a turn (its headlines and the briefs of its
 // pictures, in one text call), each picture (one call each, so one failing
@@ -50,6 +62,8 @@ type Worker struct {
 	WorkTimeout time.Duration
 	// Done, when set, is told of each finished piece of work.
 	Done func(kind string, start time.Time, err error)
+	// Headliners are the other headline models that are on, by id.
+	Headliners map[string]Headliner
 }
 
 // NewWorker returns a worker. Store.New's kick should be w.Kick.
@@ -340,17 +354,31 @@ func (w *Worker) turn(ctx context.Context, j work) error {
 	// says. None: one picture is the prompt itself; several get a brief each
 	// from the text call, so they differ.
 	needBriefs := len(pics) == 0 && t.Images > 1
+	var other Headliner
+	if t.HeadlineModel != "" && t.Headlines > 0 {
+		h, ok := w.Headliners[t.HeadlineModel]
+		if !ok {
+			return BadInput("o modelo " + t.HeadlineModel + " não está ligado no servidor")
+		}
+		other = h
+	}
 	var plan openai.Plan
 	if t.Headlines > 0 || needBriefs {
-		var avoid []string
-		if t.Headlines > 0 {
-			if avoid, err = w.sessionHeadlines(ctx, t.SessionID); err != nil {
-				return err
-			}
-		}
 		req := openai.PlanRequest{
 			Prompt: t.Prompt, Vertical: sess.VerticalName, Language: "en",
-			Headlines: t.Headlines, HeadlineExamples: pickedHeadlines, Avoid: avoid,
+			Headlines: t.Headlines, HeadlineExamples: pickedHeadlines,
+		}
+		if t.Headlines > 0 {
+			// The headline memory: the session's own and the library's,
+			// newest first, beside every team example (openai trims).
+			req.LongMemory = true
+			if req.Avoid, err = w.sessionHeadlines(ctx, t.SessionID); err != nil {
+				return err
+			}
+			if req.Saved, err = w.lib.Headlines(ctx, sess.VerticalID, memoryLines); err != nil {
+				w.log.Warn("library headlines not read for the memory", "session", t.SessionID, "err", err)
+				req.Saved = nil
+			}
 		}
 		if needBriefs {
 			req.Images = t.Images
@@ -358,12 +386,41 @@ func (w *Worker) turn(ctx context.Context, j work) error {
 		if len(refs) > 0 && t.Headlines > 0 {
 			req.Winners, req.ForPictures = refs, true
 		}
-		if plan, err = w.ai.Plan(ctx, req); err != nil {
-			return err
+		if other != nil {
+			// Headlines from the other model, briefs (if any) from OpenAI.
+			hreq := req
+			hreq.Images = 0
+			hplan, herr := other.Plan(ctx, hreq)
+			w.spent(ctx, t.SessionID, hplan.Cost)
+			if herr != nil && t.Images == 0 {
+				return herr
+			}
+			if herr != nil {
+				// The pictures go on: a headline model never fails them.
+				w.log.Warn("other headline model failed", "turn", t.ID, "model", t.HeadlineModel, "err", herr)
+				if _, err := w.st.db.Exec(ctx, `UPDATE create_app.turn SET error = $2 WHERE id = $1`, t.ID, "headlines: "+say(herr)); err != nil {
+					return err
+				}
+			}
+			plan.Headlines = hplan.Headlines
+			if needBriefs {
+				breq := req
+				breq.Headlines, breq.LongMemory, breq.Avoid, breq.Saved, breq.Winners, breq.ForPictures = 0, false, nil, nil, nil, false
+				bplan, err := w.ai.Plan(ctx, breq)
+				if err != nil {
+					return err
+				}
+				w.spent(ctx, t.SessionID, bplan.Cost)
+				plan.Briefs = bplan.Briefs
+			}
+		} else {
+			if plan, err = w.ai.Plan(ctx, req); err != nil {
+				return err
+			}
+			w.spent(ctx, t.SessionID, plan.Cost)
 		}
-		w.spent(ctx, t.SessionID, plan.Cost)
 		if t.Headlines > 0 && len(plan.Headlines) == 0 && t.Images == 0 {
-			return BadInput("a OpenAI não devolveu headlines novas; tente outro pedido")
+			return BadInput("o modelo não devolveu headlines novas; tente outro pedido")
 		}
 	}
 	var briefs []openai.Brief
@@ -381,6 +438,15 @@ func (w *Worker) turn(ctx context.Context, j work) error {
 	}
 	fromIDs := t.Picked
 	err = pgx.BeginFunc(ctx, w.st.db, func(tx pgx.Tx) error {
+		// Interrupted while the text call ran: its headlines (paid for) are
+		// kept, no picture is queued.
+		var interrupted bool
+		if err := tx.QueryRow(ctx, `SELECT interrupted_at IS NOT NULL FROM create_app.turn WHERE id = $1 FOR UPDATE`, t.ID).Scan(&interrupted); err != nil {
+			return err
+		}
+		if interrupted {
+			briefs = nil
+		}
 		for _, h := range plan.Headlines {
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO create_app.item (session_id, turn_id, kind, origin, from_ids, text, state, finished_at)
@@ -410,10 +476,11 @@ func (w *Worker) turn(ctx context.Context, j work) error {
 	return nil
 }
 
-// sessionHeadlines are the headlines the session already has, so new ones
-// bring new ideas.
+// sessionHeadlines are the headlines the session already has, newest
+// first, so new ones bring new ideas.
 func (w *Worker) sessionHeadlines(ctx context.Context, sessionID int64) ([]string, error) {
-	rows, err := w.st.db.Query(ctx, `SELECT text FROM create_app.item WHERE session_id = $1 AND kind = 'headline' ORDER BY id DESC LIMIT 60`, sessionID)
+	rows, err := w.st.db.Query(ctx, `SELECT text FROM create_app.item WHERE session_id = $1 AND kind = 'headline' ORDER BY id DESC LIMIT $2`,
+		sessionID, memoryLines)
 	if err != nil {
 		return nil, err
 	}
@@ -465,7 +532,17 @@ func (w *Worker) image(ctx context.Context, j work) error {
 			return err
 		}
 	}
-	img, err := w.ai.Image(ctx, openai.ImageRequest{Brief: it.Brief, References: refs})
+	size := openai.Sizes[0]
+	if it.TurnID != nil {
+		t, err := w.st.Turn(ctx, *it.TurnID)
+		if err != nil {
+			return err
+		}
+		if s, ok := openai.SizeByID(t.Size); ok {
+			size = s
+		}
+	}
+	img, err := w.ai.Image(ctx, openai.ImageRequest{Brief: it.Brief, References: refs, Size: size})
 	if err != nil {
 		return err
 	}
@@ -507,7 +584,7 @@ func (w *Worker) save(ctx context.Context, j work) error {
 		setID = *sess.LibrarySetID
 	} else {
 		set, err := w.lib.AddSet(ctx, library.NewSet{Name: sess.Name, VerticalID: sess.VerticalID, VerticalName: sess.VerticalName,
-			Origin: "create", OriginRef: fmt.Sprintf("create:session:%d", sess.ID), MadeBy: madeBy})
+			Origin: "create", OriginRef: fmt.Sprintf("create:session:%d", sess.ID), MadeBy: madeBy, Platform: sess.Platform})
 		if err != nil {
 			return err
 		}
@@ -539,7 +616,7 @@ func (w *Worker) save(ctx context.Context, j work) error {
 		}
 		c, err := w.lib.AddCreative(ctx, library.CreativeMeta{VerticalID: sess.VerticalID, VerticalName: sess.VerticalName,
 			Name: fmt.Sprintf("create-%d", it.ID), SetID: setID, Angle: it.Angle, Idea: it.Brief, Origin: "create",
-			OriginRef: ref, AILabel: aiLabel(it, v.AILabel), MadeBy: madeBy}, fmt.Sprintf("item-%d%s", it.ID, ext), data)
+			OriginRef: ref, AILabel: aiLabel(it, v.AILabel), MadeBy: madeBy, Platform: sess.Platform}, fmt.Sprintf("item-%d%s", it.ID, ext), data)
 		if err != nil {
 			return err
 		}

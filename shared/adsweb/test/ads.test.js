@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { mixed, every, uses, seeded, mixedN, everyN, usesN } from "../assets/pairing.js";
+import { mixed, every, uses, seeded, mixedN, everyN, usesN, pairwiseN } from "../assets/pairing.js";
 import { clean, hasHidden, headlineWarnings, blockedWords, blockedWarnings, blockedHits, swapBlocked, imageWarnings, urlWarnings, looksAIMade } from "../assets/checks.js";
 import { zip, concat, crc32, unzip, inflate } from "../assets/zip.js";
 import { AD_COLUMNS, CTAS, adRows, campaignIds, ctaType, safeName, uniqueNames, adId, tsv } from "../assets/sheet.js";
@@ -43,6 +43,14 @@ test("mixed: shuffled rounds keep every item used and no pair twice", () => {
     assert.ok(u.headlines.every((n) => n >= 2 && n <= 3), `seed ${seed}: ${u.headlines}`);
     assert.equal(new Set(pairs.map((p) => p.join(":"))).size, pairs.length);
   }
+});
+
+test("pairwise: image k with headline k, the shorter list starting over in order", () => {
+  assert.deepEqual(pairwiseN([3, 3, 1]), [[0, 0, 0], [1, 1, 0], [2, 2, 0]]);
+  assert.deepEqual(pairwiseN([4, 2, 1]), [[0, 0, 0], [1, 1, 0], [2, 0, 0], [3, 1, 0]]);
+  assert.deepEqual(pairwiseN([2, 3, 2]), [[0, 0, 0], [1, 1, 1], [0, 2, 0]]);
+  assert.deepEqual(pairwiseN([2, 0, 1]), []);
+  assert.deepEqual(pairwiseN([]), []);
 });
 
 test("mixed and every with an empty list make nothing", () => {

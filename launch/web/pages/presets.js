@@ -58,7 +58,10 @@ export function groupFields(values = {}) {
     field('Nome do grupo', name, 'vazio: o próximo número da conta'),
     field('Objetivo', objective, 'as campanhas do grupo têm o mesmo'),
     field('Orçamento', model, 'por campanha: cada campanha tem o seu (padrão)'),
-    budgetBox);
+    budgetBox,
+    // Backstage gives a group with no end_date its default, 9999-12-31: no
+    // end. Launch never sends one, so every group runs until someone ends it.
+    field('Duração', h('span', { class: 'static' }, 'Para sempre'), 'sem data de fim: o grupo segue até alguém pausar'));
   return {
     el,
     name,
@@ -280,7 +283,7 @@ export async function presets({ main, status }) {
     h('p', { class: 'lead muted' }, 'Configurações que você salva e reaproveita. Salve um preset em Novo par ou aqui.'))));
   const list = await loadPresets('taboola', '');
   for (const [level, title, about] of [
-    ['group', 'Grupos', 'Orçamento e objetivo de um grupo novo.'],
+    ['group', 'Grupos', 'Orçamento e objetivo de um grupo novo. Todo grupo é para sempre, sem data de fim.'],
     ['campaign', 'Campanhas', 'Lance, orçamento, cidades fora, entrega, link, tracking code, marca e descrição de uma campanha nova.'],
   ]) {
     const mine = list.filter((p) => p.level === level);
@@ -311,7 +314,7 @@ export async function presets({ main, status }) {
 export function summary(level, f = {}) {
   if (level === 'group') {
     const per = { DAILY: '/dia', MONTHLY: '/mês', ENTIRE: ' total' }[f.budget_model];
-    return [per && f.budget ? money(f.budget) + per : 'orçamento por campanha', OBJECTIVES.find(([k]) => k === f.objective)?.[1]].filter(Boolean).join(' · ');
+    return [per && f.budget ? money(f.budget) + per : 'orçamento por campanha', OBJECTIVES.find(([k]) => k === f.objective)?.[1], 'para sempre'].filter(Boolean).join(' · ');
   }
   const s = f.settings || {};
   const bid = s.bid_strategy === 'MAX_CONVERSIONS' ? 'Max. conversões' + (s.target_cpa ? ' CPA ' + money(s.target_cpa) : '') : s.cpc ? 'CPC ' + money(s.cpc) : '';

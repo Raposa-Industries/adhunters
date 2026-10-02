@@ -18,9 +18,10 @@ import (
 	"time"
 )
 
-// ImageSize is the one canvas Create asks for: 16:9, Taboola's preferred
+// ImageSize is the default canvas (Sizes[0]): 16:9, Taboola's preferred
 // thumbnail shape, both edges multiples of 16 as the endpoint requires, and
-// above the 1200x674 Taboola recommends.
+// above the 1200x674 Taboola recommends. A request may ask for another of
+// Sizes.
 const ImageSize = "1600x896"
 
 // Qualities are the image qualities a call may ask for.
@@ -56,6 +57,8 @@ type ImageRequest struct {
 	// Quality is low, medium or high; empty means the setting.
 	Quality    string
 	References []Reference
+	// Size is the picture's size; zero means the default (landscape).
+	Size Size
 }
 
 // Image is one picture made and kept.
@@ -108,12 +111,15 @@ func (c *Client) EstimateImageCost(quality string) float64 {
 
 // imageKept is the sidecar kept beside each picture.
 type imageKept struct {
-	Kind            string          `json:"kind"`
-	Time            time.Time       `json:"time"`
-	Endpoint        string          `json:"endpoint"`
-	Model           string          `json:"model"`
-	Quality         string          `json:"quality"`
-	Size            string          `json:"size"`
+	Kind     string    `json:"kind"`
+	Time     time.Time `json:"time"`
+	Endpoint string    `json:"endpoint"`
+	Model    string    `json:"model"`
+	Quality  string    `json:"quality"`
+	Size     string    `json:"size"`
+	// FitTo is the size the kept picture was then cut to, when the model
+	// could not make it itself; the picture kept here is the model's own.
+	FitTo           string          `json:"fit_to,omitempty"`
 	Brief           string          `json:"brief"`
 	Prompt          string          `json:"prompt"`
 	References      int             `json:"references"`
@@ -136,19 +142,24 @@ func (c *Client) Image(ctx context.Context, r ImageRequest) (Image, error) {
 	if quality == "" {
 		quality = c.s.ImageQuality
 	}
-	prompt := imagePrompt(r.Brief, len(r.References))
+	size := r.Size
+	if size.Width == 0 || size.Height == 0 {
+		size = Sizes[0]
+	}
+	native := size.Native()
+	prompt := imagePrompt(r.Brief, len(r.References), size)
 
 	var path, contentType string
 	var body []byte
 	var err error
 	if len(r.References) > 0 {
 		path = "/v1/images/edits"
-		body, contentType, err = c.editBody(prompt, quality, r.References)
+		body, contentType, err = c.editBody(prompt, quality, native.String(), r.References)
 	} else {
 		path = "/v1/images/generations"
 		contentType = "application/json"
 		body, err = json.Marshal(map[string]any{
-			"model": c.s.ImageModel, "prompt": prompt, "n": 1, "size": ImageSize,
+			"model": c.s.ImageModel, "prompt": prompt, "n": 1, "size": native.String(),
 			"quality": quality, "output_format": "jpeg", "output_compression": 90,
 		})
 	}
@@ -193,9 +204,13 @@ func (c *Client) Image(ctx context.Context, r ImageRequest) (Image, error) {
 	for i, ref := range r.References {
 		refSums[i] = sha256hex(ref.Data)
 	}
+	fitTo := ""
+	if native != size {
+		fitTo = size.String()
+	}
 	kept, err := c.keep.Image(data, ext, imageKept{
 		Kind: "image", Time: time.Now().UTC(), Endpoint: path, Model: c.s.ImageModel,
-		Quality: quality, Size: ImageSize, Brief: r.Brief, Prompt: prompt,
+		Quality: quality, Size: native.String(), FitTo: fitTo, Brief: r.Brief, Prompt: prompt,
 		References: len(r.References), ReferenceSHA256: refSums,
 		Usage: reply.Usage, CostUSD: cost, CostEstimated: estimated,
 		MIME: img.MIME, Width: img.Width, Height: img.Height, SHA256: sha256hex(data),
@@ -209,6 +224,15 @@ func (c *Client) Image(ctx context.Context, r ImageRequest) (Image, error) {
 	if img.MIME != "image/jpeg" && img.MIME != "image/png" {
 		return Image{}, &Error{Status: http.StatusOK, Message: "a OpenAI devolveu um arquivo que não é imagem"}
 	}
+	// A size the model cannot make is cut from the model's picture, which
+	// is kept above as it came.
+	if fitTo != "" {
+		fitted, err := fit(data, size.Width, size.Height)
+		if err != nil {
+			return Image{}, &Error{Status: http.StatusOK, Message: "não deu para cortar a imagem em " + fitTo + ": " + truncate(err.Error(), 120)}
+		}
+		img.Data, img.MIME, img.Width, img.Height = fitted, "image/jpeg", size.Width, size.Height
+	}
 	c.log.Info("image made", "model", img.Model, "quality", quality, "references", len(r.References),
 		"cost_usd", cost, "cost_estimated", estimated, "kept", kept)
 	return img, nil
@@ -217,11 +241,11 @@ func (c *Client) Image(ctx context.Context, r ImageRequest) (Image, error) {
 // editBody is /v1/images/edits' multipart form. The pictures go in as
 // repeated image[] parts in the order they were chosen, so a brief can say
 // "the first one".
-func (c *Client) editBody(prompt, quality string, refs []Reference) ([]byte, string, error) {
+func (c *Client) editBody(prompt, quality, size string, refs []Reference) ([]byte, string, error) {
 	var buf bytes.Buffer
 	form := multipart.NewWriter(&buf)
 	fields := [][2]string{
-		{"model", c.s.ImageModel}, {"prompt", prompt}, {"n", "1"}, {"size", ImageSize},
+		{"model", c.s.ImageModel}, {"prompt", prompt}, {"n", "1"}, {"size", size},
 		{"quality", quality}, {"output_format", "jpeg"}, {"output_compression", "90"},
 	}
 	for _, f := range fields {

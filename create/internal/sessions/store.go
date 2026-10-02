@@ -75,15 +75,17 @@ func (s *Store) DB() *pgxpool.Pool { return s.db }
 
 // Session is one session.
 type Session struct {
-	ID           int64     `json:"id"`
-	Name         string    `json:"name"`
-	VerticalID   string    `json:"vertical_id"`
-	VerticalName string    `json:"vertical_name"`
-	LibrarySetID *int64    `json:"library_set_id"`
-	CostUSD      float64   `json:"cost_usd"`
-	MadeBy       string    `json:"made_by"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	VerticalID   string `json:"vertical_id"`
+	VerticalName string `json:"vertical_name"`
+	LibrarySetID *int64 `json:"library_set_id"`
+	// Platform is the ad network its pictures are for: taboola or newsbreak.
+	Platform  string    `json:"platform"`
+	CostUSD   float64   `json:"cost_usd"`
+	MadeBy    string    `json:"made_by"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 	// Images and Headlines count its done items; Making its open turns.
 	Images    int `json:"images"`
 	Headlines int `json:"headlines"`
@@ -102,6 +104,12 @@ type Turn struct {
 	Error     string    `json:"error"`
 	MadeBy    string    `json:"made_by"`
 	CreatedAt time.Time `json:"created_at"`
+	// Size is its pictures' size (openai.Sizes), HeadlineModel the model
+	// that writes its headlines ("" is OpenAI's), and InterruptedAt when a
+	// person interrupted it.
+	Size          string     `json:"size"`
+	HeadlineModel string     `json:"headline_model"`
+	InterruptedAt *time.Time `json:"interrupted_at"`
 }
 
 // Item is one picture or headline of a session.
@@ -183,9 +191,12 @@ func apiError(err error) error {
 
 // ---- sessions --------------------------------------------------------------
 
-// NewSession opens a session; a name already used in the vertical opens
-// that one again.
-func (s *Store) NewSession(ctx context.Context, name, verticalID, verticalName, who string) (Session, error) {
+// Platforms are the ad networks a session can be for, the default first.
+var Platforms = []string{"taboola", "newsbreak"}
+
+// NewSession opens a session for a platform ("" is taboola); a name already
+// used in the vertical opens that one again, with the platform it has.
+func (s *Store) NewSession(ctx context.Context, name, verticalID, verticalName, platform, who string) (Session, error) {
 	name = openai.CleanLine(name)
 	switch {
 	case name == "":
@@ -197,22 +208,46 @@ func (s *Store) NewSession(ctx context.Context, name, verticalID, verticalName, 
 	case verticalID == "" || verticalName == "":
 		return Session{}, BadInput("escolha a vertical")
 	}
+	if platform == "" {
+		platform = Platforms[0]
+	}
+	if !validPlatform(platform) {
+		return Session{}, BadInput("a plataforma é Taboola ou NewsBreak")
+	}
 	var id int64
-	err := s.db.QueryRow(ctx, `SELECT create_api.new_session_v1($1, $2, $3, $4, '')`, name, verticalID, verticalName, who).Scan(&id)
+	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx, `SELECT create_api.new_session_v1($1, $2, $3, $4, '')`, name, verticalID, verticalName, who).Scan(&id); err != nil {
+			return err
+		}
+		// Only a session made by this call takes the platform (its
+		// created_at is this transaction's now()); one opened again keeps
+		// its own, and so its library folder.
+		_, err := tx.Exec(ctx, `UPDATE create_app.session SET platform = $2 WHERE id = $1 AND created_at = now()`, id, platform)
+		return err
+	})
 	if err != nil {
 		return Session{}, apiError(err)
 	}
 	return s.Session(ctx, id)
 }
 
-const sessionCols = `s.id, s.name, s.vertical_id, s.vertical_name, s.library_set_id, s.cost_usd::float8, s.made_by, s.created_at, s.updated_at,
+func validPlatform(p string) bool {
+	for _, v := range Platforms {
+		if p == v {
+			return true
+		}
+	}
+	return false
+}
+
+const sessionCols = `s.id, s.name, s.vertical_id, s.vertical_name, s.library_set_id, s.platform, s.cost_usd::float8, s.made_by, s.created_at, s.updated_at,
 	(SELECT count(*) FROM create_app.item i WHERE i.session_id = s.id AND i.state = 'done' AND i.kind = 'image'),
 	(SELECT count(*) FROM create_app.item i WHERE i.session_id = s.id AND i.state = 'done' AND i.kind = 'headline'),
 	(SELECT count(*) FROM create_app.turn t WHERE t.session_id = s.id AND t.state = 'making')`
 
 func scanSession(row pgx.Row) (Session, error) {
 	var v Session
-	err := row.Scan(&v.ID, &v.Name, &v.VerticalID, &v.VerticalName, &v.LibrarySetID, &v.CostUSD, &v.MadeBy, &v.CreatedAt, &v.UpdatedAt,
+	err := row.Scan(&v.ID, &v.Name, &v.VerticalID, &v.VerticalName, &v.LibrarySetID, &v.Platform, &v.CostUSD, &v.MadeBy, &v.CreatedAt, &v.UpdatedAt,
 		&v.Images, &v.Headlines, &v.Making)
 	return v, err
 }
@@ -313,11 +348,12 @@ func (s *Store) Detail(ctx context.Context, id int64) (Detail, error) {
 
 // ---- turns -----------------------------------------------------------------
 
-const turnCols = `id, session_id, prompt, picked, images, headlines, state, error, made_by, created_at`
+const turnCols = `id, session_id, prompt, picked, images, headlines, state, error, made_by, created_at, size, headline_model, interrupted_at`
 
 func scanTurn(row pgx.Row) (Turn, error) {
 	var t Turn
-	err := row.Scan(&t.ID, &t.SessionID, &t.Prompt, &t.Picked, &t.Images, &t.Headlines, &t.State, &t.Error, &t.MadeBy, &t.CreatedAt)
+	err := row.Scan(&t.ID, &t.SessionID, &t.Prompt, &t.Picked, &t.Images, &t.Headlines, &t.State, &t.Error, &t.MadeBy, &t.CreatedAt,
+		&t.Size, &t.HeadlineModel, &t.InterruptedAt)
 	return t, err
 }
 
@@ -336,6 +372,11 @@ type Send struct {
 	Picked    []int64 `json:"picked"`
 	Images    int     `json:"images"`
 	Headlines int     `json:"headlines"`
+	// Size is the pictures' size (openai.Sizes; "" is landscape).
+	Size string `json:"size,omitempty"`
+	// Model is the headline model ("" or openai is OpenAI's); the caller
+	// checks it is one that is on.
+	Model string `json:"model,omitempty"`
 }
 
 // Send starts a turn.
@@ -350,6 +391,13 @@ func (s *Store) Send(ctx context.Context, sessionID int64, in Send, who string) 
 	if in.Picked == nil {
 		in.Picked = []int64{}
 	}
+	size, ok := openai.SizeByID(in.Size)
+	if !ok {
+		return Turn{}, BadInput("tamanho de imagem desconhecido")
+	}
+	if in.Model == "openai" {
+		in.Model = ""
+	}
 	if in.Images > 0 && in.Prompt == "" {
 		var pics int
 		if err := s.db.QueryRow(ctx, `SELECT count(*) FROM create_app.item WHERE id = ANY ($1) AND kind = 'image'`, in.Picked).Scan(&pics); err != nil {
@@ -360,13 +408,105 @@ func (s *Store) Send(ctx context.Context, sessionID int64, in Send, who string) 
 		}
 	}
 	var id int64
-	err := s.db.QueryRow(ctx, `SELECT create_api.send_turn_v1($1, $2, $3, $4, $5, $6, '')`,
-		sessionID, in.Prompt, in.Picked, in.Images, in.Headlines, who).Scan(&id)
+	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx, `SELECT create_api.send_turn_v1($1, $2, $3, $4, $5, $6, '')`,
+			sessionID, in.Prompt, in.Picked, in.Images, in.Headlines, who).Scan(&id); err != nil {
+			return err
+		}
+		// In the same transaction, so the worker never sees the turn
+		// without them.
+		_, err := tx.Exec(ctx, `UPDATE create_app.turn SET size = $2, headline_model = $3 WHERE id = $1`, id, size.ID, in.Model)
+		return err
+	})
 	if err != nil {
 		return Turn{}, apiError(err)
 	}
 	s.kick()
 	return s.Turn(ctx, id)
+}
+
+// Interrupted is the line a picture interrupted before it started shows.
+const Interrupted = "interrompida antes de começar"
+
+// Interrupt stops a turn a person no longer wants (GLOSSARY: interrupted):
+// its work not started yet is not done, and the turn stops waiting for the
+// work already running. That work still finishes, and what it brings (it
+// was paid for) is kept and shows up.
+func (s *Store) Interrupt(ctx context.Context, turnID int64) (Turn, error) {
+	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+		var state string
+		var at *time.Time
+		err := tx.QueryRow(ctx, `SELECT state, interrupted_at FROM create_app.turn WHERE id = $1 FOR UPDATE`, turnID).Scan(&state, &at)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if state != "making" || at != nil {
+			return BadInput("esse pedido já terminou")
+		}
+		if _, err := tx.Exec(ctx, `UPDATE create_app.turn SET interrupted_at = now() WHERE id = $1`, turnID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `
+			WITH w AS (
+				UPDATE create_app.work SET state = 'failed', error = $2, finished_at = now()
+				WHERE turn_id = $1 AND state = 'waiting' RETURNING item_id)
+			UPDATE create_app.item SET state = 'failed', error = $2, finished_at = now()
+			WHERE id IN (SELECT item_id FROM w WHERE item_id IS NOT NULL)`, turnID, Interrupted); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `SELECT create_app.settle_turn($1)`, turnID); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, `UPDATE create_app.turn SET error = 'interrompida' WHERE id = $1 AND error = ''`, turnID)
+		return err
+	})
+	if err != nil {
+		return Turn{}, err
+	}
+	return s.Turn(ctx, turnID)
+}
+
+// Retry makes a failed picture again, alone, as its turn asked (the
+// rate-limit case): the item waits again and one piece of work is queued.
+func (s *Store) Retry(ctx context.Context, itemID int64) (Item, error) {
+	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+		var kind, origin, state string
+		var turn *int64
+		var session int64
+		err := tx.QueryRow(ctx, `SELECT kind, origin, state, turn_id, session_id FROM create_app.item WHERE id = $1 FOR UPDATE`, itemID).
+			Scan(&kind, &origin, &state, &turn, &session)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if kind != "image" || origin != "made" || turn == nil || state != "failed" {
+			return BadInput("só uma imagem feita aqui que falhou pode ser tentada de novo")
+		}
+		if _, err := tx.Exec(ctx, `UPDATE create_app.item SET state = 'waiting', error = '', finished_at = NULL WHERE id = $1`, itemID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO create_app.work (session_id, kind, turn_id, item_id) VALUES ($1, 'image', $2, $3)`,
+			session, *turn, itemID); err != nil {
+			return err
+		}
+		// A turn that had failed for want of this picture is no longer.
+		if _, err := tx.Exec(ctx, `UPDATE create_app.turn SET error = '' WHERE id = $1 AND state = 'failed' AND interrupted_at IS NULL`,
+			*turn); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, `SELECT create_app.settle_turn($1)`, *turn)
+		return err
+	})
+	if err != nil {
+		return Item{}, err
+	}
+	s.kick()
+	return s.Item(ctx, itemID)
 }
 
 // ---- items -----------------------------------------------------------------

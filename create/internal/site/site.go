@@ -37,6 +37,15 @@ var pagesFS embed.FS
 type Status interface {
 	// OpenAIWhy is why making is off, "" when it is on.
 	OpenAIWhy() string
+	// HeadlineModels are the other headline models that are on (decision
+	// 0024); OpenAI's is always there and not listed.
+	HeadlineModels() []HeadlineModel
+}
+
+// HeadlineModel is a text model that may write a turn's headlines.
+type HeadlineModel struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // Library is what the site needs of the library beyond its reads: a
@@ -149,6 +158,8 @@ func (s *Site) Handler() http.Handler {
 	mux.HandleFunc("POST /create/api/sessions/{id}/items", s.addItem)
 	mux.HandleFunc("POST /create/api/sessions/{id}/saves", s.save)
 	mux.HandleFunc("PATCH /create/api/items/{id}", s.editItem)
+	mux.HandleFunc("POST /create/api/items/{id}/retry", s.retry)
+	mux.HandleFunc("POST /create/api/turns/{id}/interrupt", s.interrupt)
 	mux.HandleFunc("GET /create/api/saves/{id}", s.getSave)
 	mux.HandleFunc("GET /create/files/items/{id}", s.itemFile)
 	return sameSite(mux)
@@ -179,8 +190,15 @@ func who(r *http.Request) string {
 	return strings.TrimSpace(r.Header.Get("Cf-Access-Authenticated-User-Email"))
 }
 
+// headlineModels is OpenAI's, then the others that are on.
+func (s *Site) headlineModels() []HeadlineModel {
+	return append([]HeadlineModel{{ID: "openai", Name: "OpenAI"}}, s.status.HeadlineModels()...)
+}
+
 func (s *Site) getStatus(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"user": who(r), "openai_why": s.status.OpenAIWhy(), "version": s.version})
+	writeJSON(w, http.StatusOK, map[string]any{"user": who(r), "openai_why": s.status.OpenAIWhy(), "version": s.version,
+		"headline_models": s.headlineModels(), "sizes": openai.Sizes, "platforms": []map[string]string{
+			{"id": "taboola", "name": "Taboola"}, {"id": "newsbreak", "name": "NewsBreak"}}})
 }
 
 func (s *Site) rules(w http.ResponseWriter, _ *http.Request) {
@@ -207,6 +225,8 @@ func (s *Site) newSession(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Name       string `json:"name"`
 		VerticalID string `json:"vertical_id"`
+		// Platform is taboola (the default) or newsbreak.
+		Platform string `json:"platform"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -216,7 +236,7 @@ func (s *Site) newSession(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "escolha uma vertical da lista")
 		return
 	}
-	v, err := s.st.NewSession(r.Context(), in.Name, in.VerticalID, name, who(r))
+	v, err := s.st.NewSession(r.Context(), in.Name, in.VerticalID, name, in.Platform, who(r))
 	if s.fail(w, err) {
 		return
 	}
@@ -317,6 +337,7 @@ func (s *Site) spySession(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		VerticalID string `json:"vertical_id"`
 		Name       string `json:"name"`
+		Platform   string `json:"platform"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -343,7 +364,7 @@ func (s *Site) spySession(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(name) == "" {
 		name = spyName(a)
 	}
-	v, err := s.st.NewSession(ctx, name, vert, vname, who(r))
+	v, err := s.st.NewSession(ctx, name, vert, vname, in.Platform, who(r))
 	if s.fail(w, err) {
 		return
 	}
@@ -392,6 +413,16 @@ func (s *Site) send(w http.ResponseWriter, r *http.Request) {
 	var in sessions.Send
 	if !readJSON(w, r, &in) {
 		return
+	}
+	if in.Model != "" {
+		on := false
+		for _, m := range s.headlineModels() {
+			on = on || m.ID == in.Model
+		}
+		if !on {
+			writeError(w, http.StatusBadRequest, "esse modelo de headlines não está ligado")
+			return
+		}
 	}
 	t, err := s.st.Send(r.Context(), id, in, who(r))
 	if s.fail(w, err) {
@@ -479,6 +510,32 @@ func (s *Site) editItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, it)
+}
+
+// retry makes one failed picture again.
+func (s *Site) retry(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	it, err := s.st.Retry(r.Context(), id)
+	if s.fail(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusAccepted, it)
+}
+
+// interrupt stops a turn: what has not started is not made.
+func (s *Site) interrupt(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	t, err := s.st.Interrupt(r.Context(), id)
+	if s.fail(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, t)
 }
 
 func (s *Site) save(w http.ResponseWriter, r *http.Request) {

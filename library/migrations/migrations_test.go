@@ -1,10 +1,15 @@
 package migrations_test
 
 import (
+	"context"
+	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Raposa-Industries/adhunters/kit/migrate"
 	"github.com/Raposa-Industries/adhunters/library/internal/testdb"
@@ -49,4 +54,45 @@ func TestContractMatchesMigrations(t *testing.T) {
 
 func TestApply(t *testing.T) {
 	testdb.New(t) // fails the test if a migration does not apply
+}
+
+// Tinnitus's code becomes TIN only where it is still TN (migration 0005).
+func TestTinnitusCode(t *testing.T) {
+	migs, err := migrations.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	code := func(db *pgxpool.Pool) string {
+		var c string
+		if err := db.QueryRow(ctx, `SELECT code FROM library.vertical WHERE id = 'tinnitus'`).Scan(&c); err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+	if c := code(testdb.New(t)); c != "TIN" {
+		t.Fatalf("fresh database: tinnitus code %q, want TIN", c)
+	}
+
+	// Changed by hand before 0005: it stays.
+	db := testdb.Empty(t)
+	var before []migrate.Migration
+	for _, m := range migs {
+		if m.Version < 5 {
+			before = append(before, m)
+		}
+	}
+	if _, err := migrate.Up(ctx, db, log, migrations.Schema, before); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(ctx, `UPDATE library.vertical SET code = 'TNS' WHERE id = 'tinnitus'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := migrate.Up(ctx, db, log, migrations.Schema, migs); err != nil {
+		t.Fatal(err)
+	}
+	if c := code(db); c != "TNS" {
+		t.Fatalf("a hand-set code was changed to %q", c)
+	}
 }

@@ -145,6 +145,38 @@ type Set struct {
 	CreatedAt  time.Time `json:"created_at"`
 	Creatives  int       `json:"creatives"`
 	Headlines  int       `json:"headlines"`
+	// Platform is the ad network the set is for (taboola, newsbreak), or ""
+	// for a set made without one: those keep <vertical>/<set> in Drive.
+	Platform string `json:"platform,omitempty"`
+}
+
+// Platforms: the ad networks a set can be for, with the network letter
+// their minted names carry and their folder's name in Drive.
+var platforms = map[string]struct{ Letter, Folder string }{
+	"taboola":   {"T", "Taboola"},
+	"newsbreak": {"N", "NewsBreak"},
+}
+
+// PlatformFolder is the Drive folder name of a platform, "" when p is none.
+func PlatformFolder(p string) string { return platforms[p].Folder }
+
+// PlatformOfFolder is the platform a Drive folder's name stands for, "" when
+// it is no platform's folder.
+func PlatformOfFolder(name string) string {
+	for p, v := range platforms {
+		if strings.EqualFold(strings.TrimSpace(name), v.Folder) {
+			return p
+		}
+	}
+	return ""
+}
+
+func checkPlatform(p string) (string, error) {
+	p = strings.ToLower(strings.TrimSpace(p))
+	if _, ok := platforms[p]; ok || p == "" {
+		return p, nil
+	}
+	return "", BadInput(fmt.Sprintf("platform must be taboola or newsbreak, not %q", p))
 }
 
 func checkOrigin(o string) error {
@@ -336,6 +368,10 @@ type NewSet struct {
 	Origin       string `json:"origin"`
 	OriginRef    string `json:"origin_ref"`
 	MadeBy       string `json:"made_by"`
+	// Platform is optional: taboola or newsbreak. A set with one goes in
+	// Drive under <vertical>/<platform>/<set>, and its creatives are minted
+	// with that platform's network letter.
+	Platform string `json:"platform"`
 }
 
 // AddSet makes a set. A name already used in the vertical gets " (2)", " (3)"
@@ -354,8 +390,12 @@ func (s *Store) AddSet(ctx context.Context, n NewSet) (Set, error) {
 	if err := checkOrigin(n.Origin); err != nil {
 		return Set{}, err
 	}
+	platform, err := checkPlatform(n.Platform)
+	if err != nil {
+		return Set{}, err
+	}
 	var out Set
-	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
+	err = pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
 		if err := ensureVertical(ctx, tx, n.VerticalID, n.VerticalName); err != nil {
 			return err
 		}
@@ -372,11 +412,11 @@ func (s *Store) AddSet(ctx context.Context, n NewSet) (Set, error) {
 			name = fmt.Sprintf("%s (%d)", n.Name, i)
 		}
 		return tx.QueryRow(ctx, `
-			INSERT INTO library.set (name, vertical_id, origin, origin_ref, made_by)
-			VALUES ($1, NULLIF($2, ''), $3, $4, $5)
-			RETURNING id, name, COALESCE(vertical_id, ''), origin, origin_ref, made_by, created_at`,
-			name, n.VerticalID, n.Origin, n.OriginRef, n.MadeBy).
-			Scan(&out.ID, &out.Name, &out.VerticalID, &out.Origin, &out.OriginRef, &out.MadeBy, &out.CreatedAt)
+			INSERT INTO library.set (name, vertical_id, origin, origin_ref, made_by, platform)
+			VALUES ($1, NULLIF($2, ''), $3, $4, $5, NULLIF($6, ''))
+			RETURNING id, name, COALESCE(vertical_id, ''), origin, origin_ref, made_by, created_at, COALESCE(platform, '')`,
+			name, n.VerticalID, n.Origin, n.OriginRef, n.MadeBy, platform).
+			Scan(&out.ID, &out.Name, &out.VerticalID, &out.Origin, &out.OriginRef, &out.MadeBy, &out.CreatedAt, &out.Platform)
 	})
 	return out, err
 }
@@ -426,7 +466,8 @@ func (s *Store) Sets(ctx context.Context, vertical string, limit int) ([]Set, er
 		       (SELECT count(*) FROM library.set_creative sc JOIN library.creative c ON c.id = sc.creative_id
 		         WHERE sc.set_id = s.id AND c.hidden_at IS NULL),
 		       (SELECT count(*) FROM library.set_headline sh JOIN library.headline h ON h.id = sh.headline_id
-		         WHERE sh.set_id = s.id AND h.hidden_at IS NULL)
+		         WHERE sh.set_id = s.id AND h.hidden_at IS NULL),
+		       COALESCE(s.platform, '')
 		FROM library.set s
 		WHERE $1 = '' OR s.vertical_id = $1
 		ORDER BY s.created_at DESC, s.id DESC
@@ -436,7 +477,7 @@ func (s *Store) Sets(ctx context.Context, vertical string, limit int) ([]Set, er
 	}
 	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (Set, error) {
 		var x Set
-		err := r.Scan(&x.ID, &x.Name, &x.VerticalID, &x.Origin, &x.OriginRef, &x.MadeBy, &x.CreatedAt, &x.Creatives, &x.Headlines)
+		err := r.Scan(&x.ID, &x.Name, &x.VerticalID, &x.Origin, &x.OriginRef, &x.MadeBy, &x.CreatedAt, &x.Creatives, &x.Headlines, &x.Platform)
 		return x, err
 	})
 }
@@ -447,9 +488,10 @@ func (s *Store) GetSet(ctx context.Context, id int64) (Set, error) {
 	err := s.db.QueryRow(ctx, `
 		SELECT s.id, s.name, COALESCE(s.vertical_id, ''), s.origin, s.origin_ref, s.made_by, s.created_at,
 		       (SELECT count(*) FROM library.set_creative WHERE set_id = s.id),
-		       (SELECT count(*) FROM library.set_headline WHERE set_id = s.id)
+		       (SELECT count(*) FROM library.set_headline WHERE set_id = s.id),
+		       COALESCE(s.platform, '')
 		FROM library.set s WHERE s.id = $1`, id).
-		Scan(&x.ID, &x.Name, &x.VerticalID, &x.Origin, &x.OriginRef, &x.MadeBy, &x.CreatedAt, &x.Creatives, &x.Headlines)
+		Scan(&x.ID, &x.Name, &x.VerticalID, &x.Origin, &x.OriginRef, &x.MadeBy, &x.CreatedAt, &x.Creatives, &x.Headlines, &x.Platform)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Set{}, ErrNotFound
 	}
@@ -483,6 +525,10 @@ type NewCreative struct {
 	OriginRef    string `json:"origin_ref"`
 	AILabel      string `json:"ai_label"`
 	MadeBy       string `json:"made_by"`
+	// Platform, when given (taboola, newsbreak), picks the network letter of
+	// the minted name. Without it the set's platform does, and without
+	// either the vertical's own letter.
+	Platform string `json:"platform"`
 	// DriveFileID is set by the Drive sync for a picture read from Drive:
 	// that file already holds the bytes, so none wait for an upload.
 	DriveFileID string `json:"-"`
@@ -504,6 +550,9 @@ func (s *Store) AddCreative(ctx context.Context, n NewCreative, b []byte) (Creat
 		return Creative{}, false, err
 	}
 	if n.AILabel, err = checkAI(n.AILabel); err != nil {
+		return Creative{}, false, err
+	}
+	if n.Platform, err = checkPlatform(n.Platform); err != nil {
 		return Creative{}, false, err
 	}
 	if existing, err := s.creativeBySHA(ctx, info.SHA256); err == nil {
@@ -555,6 +604,17 @@ func (s *Store) AddCreative(ctx context.Context, n NewCreative, b []byte) (Creat
 				UPDATE library.vertical SET next_number = next_number + 1 WHERE id = $1
 				RETURNING code, network_letter, next_number - 1`, n.VerticalID).Scan(&code, &letter, &next); err != nil {
 				return err
+			}
+			// The counter is the vertical's, whatever the network: a number
+			// is never given twice.
+			platform := n.Platform
+			if platform == "" && n.SetID != 0 {
+				if err := tx.QueryRow(ctx, `SELECT COALESCE(platform, '') FROM library.set WHERE id = $1`, n.SetID).Scan(&platform); err != nil {
+					return err
+				}
+			}
+			if p, ok := platforms[platform]; ok {
+				letter = p.Letter
 			}
 			name = fmt.Sprintf("%s%s%d", code, letter, next)
 			number = &next

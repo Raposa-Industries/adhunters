@@ -78,10 +78,14 @@ func (l *lib) AddCreative(context.Context, library.CreativeMeta, string, []byte)
 	return library.Creative{ID: 1}, nil
 }
 func (l *lib) AddHeadlines(context.Context, []library.NewHeadline) error { return nil }
+func (l *lib) Headlines(context.Context, string, int) ([]string, error)  { return nil, nil }
 
 type on struct{}
 
 func (on) OpenAIWhy() string { return "" }
+func (on) HeadlineModels() []site.HeadlineModel {
+	return []site.HeadlineModel{{ID: "grok", Name: "Grok"}}
+}
 
 func call(t *testing.T, h http.Handler, method, path, ct string, body io.Reader, out any) int {
 	t.Helper()
@@ -270,4 +274,66 @@ func TestSite(t *testing.T) {
 func itoa(n int64) string {
 	b, _ := json.Marshal(n)
 	return string(b)
+}
+
+// The feedback's server side: the status lists the headline models, sizes
+// and platforms; a session takes its platform; a send takes a size and an
+// on model only; a turn is interrupted; a failed picture is tried again.
+func TestFeedbackAPI(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	st := sessions.New(testdb.New(t), &files.Dir{Root: t.TempDir()}, func() {})
+	l := &lib{}
+	web, err := site.New(st, l, &spy{}, http.NotFoundHandler(), on{}, log, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := web.Handler()
+	var status struct {
+		HeadlineModels []site.HeadlineModel `json:"headline_models"`
+		Sizes          []openai.Size
+		Platforms      []map[string]string
+	}
+	if code := call(t, h, "GET", "/create/api/status", "", nil, &status); code != 200 || len(status.HeadlineModels) != 2 ||
+		status.HeadlineModels[0].ID != "openai" || status.HeadlineModels[1].ID != "grok" || len(status.Sizes) != 3 || len(status.Platforms) != 2 {
+		t.Fatalf("status: %d %+v", code, status)
+	}
+	var sess sessions.Session
+	if code := call(t, h, "POST", "/create/api/sessions", "application/json",
+		strings.NewReader(`{"name":"NB","vertical_id":"tinnitus","platform":"newsbreak"}`), &sess); code != 201 || sess.Platform != "newsbreak" {
+		t.Fatalf("session: %d %+v", code, sess)
+	}
+	id := itoa(sess.ID)
+	if code := call(t, h, "POST", "/create/api/sessions/"+id+"/turns", "application/json",
+		strings.NewReader(`{"prompt":"x","headlines":1,"model":"kimi"}`), nil); code != 400 {
+		t.Errorf("a model that is not on: %d", code)
+	}
+	var turn sessions.Turn
+	if code := call(t, h, "POST", "/create/api/sessions/"+id+"/turns", "application/json",
+		strings.NewReader(`{"prompt":"x","images":2,"headlines":1,"model":"grok","size":"vertical"}`), &turn); code != 202 ||
+		turn.Size != "vertical" || turn.HeadlineModel != "grok" {
+		t.Fatalf("send: %d %+v", code, turn)
+	}
+	if code := call(t, h, "POST", "/create/api/turns/"+itoa(turn.ID)+"/interrupt", "application/json", nil, &turn); code != 200 || turn.InterruptedAt == nil {
+		t.Fatalf("interrupt: %d %+v", code, turn)
+	}
+	if code := call(t, h, "POST", "/create/api/turns/"+itoa(turn.ID)+"/interrupt", "application/json", nil, nil); code != 400 {
+		t.Errorf("interrupt twice: %d", code)
+	}
+	if code := call(t, h, "POST", "/create/api/turns/999999/interrupt", "application/json", nil, nil); code != 404 {
+		t.Errorf("interrupt a turn that is not there: %d", code)
+	}
+	// A picture that failed (here: made failed by hand) is tried again.
+	var item int64
+	if err := st.DB().QueryRow(context.Background(), `
+		INSERT INTO create_app.item (session_id, turn_id, kind, origin, brief, state, error)
+		VALUES ($1, $2, 'image', 'made', 'b', 'failed', 'muitas requisições') RETURNING id`, sess.ID, turn.ID).Scan(&item); err != nil {
+		t.Fatal(err)
+	}
+	var it sessions.Item
+	if code := call(t, h, "POST", "/create/api/items/"+itoa(item)+"/retry", "application/json", nil, &it); code != 202 || it.State != "waiting" {
+		t.Fatalf("retry: %d %+v", code, it)
+	}
+	if code := call(t, h, "POST", "/create/api/items/"+itoa(item)+"/retry", "application/json", nil, nil); code != 400 {
+		t.Errorf("retry a waiting picture: %d", code)
+	}
 }

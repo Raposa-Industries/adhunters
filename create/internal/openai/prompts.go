@@ -180,7 +180,13 @@ func planUser(r PlanRequest, language string) string {
 	} else {
 		b.WriteString("No product pictures go to the picture generator: each brief describes the whole scene on its own.\n\n")
 	}
-	if len(r.HeadlineExamples) > 0 {
+	if len(r.HeadlineExamples) > 0 && r.LongMemory {
+		b.WriteString("HEADLINES TO VARY (the person picked these; they weigh the most: make each new headline a minimal variation of one of them, keeping its structure, length, idea and most of its words and changing only a few words; never copy one, never use a blocked word from them; the memory below is only for tone and to avoid repeats):\n")
+		for _, h := range r.HeadlineExamples {
+			b.WriteString("- " + h + "\n")
+		}
+		b.WriteString("\n")
+	} else if len(r.HeadlineExamples) > 0 {
 		b.WriteString("THE PERSON'S REFERENCE HEADLINES (weigh the most: most headlines should read as siblings of these; never copy one, never use a blocked word from them):\n")
 		for _, h := range r.HeadlineExamples {
 			b.WriteString("- " + h + "\n")
@@ -197,6 +203,13 @@ func planUser(r PlanRequest, language string) string {
 	if len(r.Avoid) > 0 {
 		b.WriteString("ALREADY SHOWN (do not repeat these or close rewordings of them; bring new ideas):\n")
 		for _, a := range r.Avoid {
+			b.WriteString("- " + a + "\n")
+		}
+		b.WriteString("\n")
+	}
+	if len(r.Saved) > 0 {
+		b.WriteString("THE TEAM'S HEADLINES SAVED IN THE LIBRARY FOR THIS VERTICAL (newest first; learn their tone, never repeat one or a close rewording, never use a blocked word from them):\n")
+		for _, a := range r.Saved {
 			b.WriteString("- " + a + "\n")
 		}
 		b.WriteString("\n")
@@ -243,9 +256,18 @@ func attachedClause(n int) string {
 		"never a collage or a side-by-side."
 }
 
+// shapeClause tells the model the frame's shape when it is not the usual
+// wide one, so the scene is composed for it rather than cut from it.
+func shapeClause(size Size) string {
+	if size.Height > size.Width {
+		return " The picture is a tall vertical frame (9:16): compose the scene for it, with the subject in the middle."
+	}
+	return ""
+}
+
 // imagePrompt is what the images endpoints are sent: the house rules as
 // labelled blocks, then the brief word for word.
-func imagePrompt(brief string, references int) string {
+func imagePrompt(brief string, references int, size Size) string {
 	var b strings.Builder
 	if references > 0 {
 		b.WriteString(attachedClause(references))
@@ -254,6 +276,7 @@ func imagePrompt(brief string, references int) string {
 		b.WriteString(" ")
 		b.WriteString(houseStyle)
 	}
+	b.WriteString(shapeClause(size))
 	b.WriteString("\n\nBRIEF:\n")
 	b.WriteString(brief)
 	return b.String()

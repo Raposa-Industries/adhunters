@@ -79,13 +79,19 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | blocked words | The team's list of words and phrases Taboola has blocked for them in titles (a few in descriptions too). Create avoids them, warns about them and offers other words in their place; it never refuses them. |
 | analysis | What the performing ads share, aspect by aspect: what to keep and what can vary. Create writes it when it reads them; the person edits it before making options. |
 | save | Picked items written into the library, in their session's set (folder), with the person's AI label for made pictures. |
-| pairing | How the chosen creatives, headlines and CTAs become ads. Mixed: the longest list once each, the shorter ones repeated in turn until it runs out (10 images, 5 headlines and 2 CTAs make 10 ads). One to one: the person picks each pair. Every combination: each creative with each headline and each CTA. |
+| pairing | How the chosen creatives, headlines and CTAs become ads. Mixed: the longest list once each, the shorter ones repeated in turn until it runs out (10 images, 5 headlines and 2 CTAs make 10 ads). Pair by pair ("Par a par"): creative k with headline k, the shorter list starting over in order. One to one ("Escolher pares"): the person picks each pair. Every combination: each creative with each headline and each CTA. |
 | CTA | The button on an ad ("Read More", "Learn More"). Taboola takes one per item, from its own list; a person may pick several and pairing spreads them. |
 | ad id | Our own id for an ad: `ah-`, then the first 10 hex characters of the creative's SHA-256, a dash, and the first 10 of the headline's. It goes in Taboola's Custom ID (30 characters at most), so results can come back to the ad. |
 | bulk sheet | Realize's own template for Create › Bulk Upload, with our ads written into its Ads tab (one row per ad, its campaign ids together in one cell), plus a ZIP of the images named in "Image File Name". |
 | campaign group | Taboola's level above a campaign, which can hold a budget shared by its campaigns. Taboola makes an "AutoGen" one for a campaign made without a group, and a campaign's group is set only when it is made. |
 | paused | Made but not running: a group, campaign or item with Taboola's `is_active` false. Everything Create makes on Taboola is paused; only a person turns it on, in Taboola's own dashboard. (Not "stopped", which is Spy's word for a creative no longer seen.) |
 | lent account | A Taboola login someone else owns that we may use for tests (ZoltaGroup). create-web runs it only-own: it lists and touches only the groups and campaigns it made, as recorded in its state file. |
+| platform | The ad network a session's pictures are for: Taboola (the default) or NewsBreak, chosen when the session starts. It gives the network letter of its minted names (T, N) and the folder between the vertical's and the set's in Drive (`<vertical>/<platform>/<set>`). |
+| picture size | The canvas a turn's pictures are made in: landscape 16:9 (1600x896), vertical 9:16 (896x1600) or NewsBreak's 1504x786. A size the picture model does not make is made at its closest shape and cut to the exact size on Create's server; the model's own picture is kept first. |
+| interrupted | A turn a person stopped with Parar: its pictures not started are not made, and the page stops waiting for the ones being made. What was already paid for is kept, and still shows up if it arrives. (Not "stopped", Spy's word, nor "paused".) |
+| quick edit | A one-click instruction the composer adds to the prompt for changing picked pictures faithfully ("mirror it horizontally", "change only the table's colour"). Several can go in one prompt. (Not a preset, which is Launch's saved settings.) |
+| headline memory | What a headline call learns from: every team example headline of the vertical, the session's headlines and the library's for the vertical, newest first up to a budget, with the blocked words and Taboola's rules. |
+| headline model | The text model that writes a turn's headlines: OpenAI's by default, or Grok, DeepSeek or Kimi when their keys are set (decision 0024). Pictures are always OpenAI's. |
 
 ## Library
 
@@ -102,7 +108,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | Word | Means |
 |---|---|
 | group | Short for campaign group, in Launch's tree (Network > Account > Group > Campaign > Ads). On NewsBreak, its campaign. |
-| pair | One desktop and one mobile campaign Launch made together (a new campaign for both devices), with the same settings and the same ads, in one group. Named with the team's names (CMP<n>-<account>-Desktop-pp-bl and CMP<n>-<account>-Mobile-pp-bl) or "<name> · Desktop" and "<name> · Mobile". Mobile means phones only. |
+| pair | One desktop and one mobile campaign Launch made together (a new campaign for both devices), with the same settings (the mobile one may have its own bid, daily budget and start date) and the same ads, in one group. Named with the team's names (CMP<n>-<account>-Desktop-pp-bl and CMP<n>-<account>-Mobile-pp-bl) or "<name> · Desktop" and "<name> · Mobile". Mobile means phones and tablets (Taboola PHON and TBLT); desktop, computers only (DESK). |
 | preset | Settings a person saved to reuse, at one of two levels: a group preset (budget and objective) or a campaign preset (bid, caps, countries, link and tracking code, brand, description). For one account or all. Nobody fixes them for the team. |
 | copy | A new, paused campaign with another's settings and ads (Taboola's duplicate with its items; the ads get new ids and go through review again). It has its own id. |
 | move | Putting a campaign in another group. Taboola fixes a campaign's group when it is made, so a move is a copy in the new group; the original is paused when a person starts the copy (or at once, or never, as the person chose). |

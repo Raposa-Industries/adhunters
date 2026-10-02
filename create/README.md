@@ -15,23 +15,43 @@ Pages under `/create/` on the shared shell (the Frame), in Portuguese;
 headlines are always in English. Tabs: **Criar**, **Biblioteca**, **Regras**.
 Create is a chat, as auto-creative was, with iteration added (decision 0019):
 
-1. **A session.** Pick the vertical (our fixed list, `shared/verticals`) and
+1. **A session.** Pick the vertical (our fixed list, `shared/verticals`),
+   then the platform (Taboola, the default, or NewsBreak; remembered), and
    name the session in the left column, or open one already there. The
-   vertical and the name are the library folders what it saves goes in
-   (`<vertical>/<session>`); a name used before in that vertical opens that
-   session again. Click the name to rename it; once saved, its library
+   vertical, the platform and the name are the library folders what it saves
+   goes in (`<vertical>/<platform>/<session>`), and the platform gives the
+   network letter of its minted names (`BPT…`, `BPN…`); a name used before
+   in that vertical opens that session again, with the platform it has. Click the name to rename it; once saved, its library
    folder (and the Drive folder) takes the new name too.
 2. **Send.** Write what you want, set how many pictures (up to 8) and
-   headlines (up to 20), and press Enviar (Ctrl+Enter). One text call writes
-   the headlines and, for several pictures from words alone, one brief per
-   picture so they differ; then each picture is its own call, three at a
-   time. A picture that fails fails alone.
+   headlines (up to 20), the picture size (16:9 horizontal 1600x896, 9:16
+   vertical 896x1600, or NewsBreak 1504x786; remembered per session) and,
+   when other headline models are on, which one writes the headlines; press
+   Enviar (Ctrl+Enter). One text call writes the headlines and, for several
+   pictures from words alone, one brief per picture so they differ; then
+   each picture is its own call, three at a time. A picture that fails fails
+   alone, and its tile has **Tentar de novo**, which makes just that picture
+   again (the rate-limit case) without moving the page. **Parar** (on the
+   turn, and beside Enviar while something is being made) interrupts a turn:
+   pictures not started are not made and the turn shows as interrupted; a
+   picture already being made was paid for, so it is kept and still shows
+   up if it arrives. A size the picture model cannot make (NewsBreak's: 786
+   is not a multiple of 16) is made at its closest shape (1504x784), kept as
+   it came, and cut to the exact size on the server; downloads are the file
+   as made, never cut by the page. Ctrl+V of a picture (a screenshot)
+   anywhere on the page adds it like + Imagem do computador, picked.
 3. **Pick and iterate.** Click any picture or headline to pick it (the
    number is the order picked; a prompt can say "the first"). Send again:
    picked pictures go to the picture model and are changed as the prompt
-   says, or varied when the prompt is empty; picked headlines are varied,
-   and picked pictures are what new headlines are written for. Every new
-   item remembers what it came from. Repeat as long as you like.
+   says, or varied when the prompt is empty; picked headlines are varied
+   minimally (same structure, a few words changed), and picked pictures are
+   what new headlines are written for. Every new item remembers what it
+   came from. Repeat as long as you like. With pictures picked, **quick
+   edits** above the prompt add a short English instruction each (camera 15°
+   to the right and slightly up, mirror, only the table's colour, other
+   people with the same expression, only the clothes' colour, rearrange the
+   table faithfully, feet and arms, distance between people); several
+   combine, and a second click takes one out.
 4. **Bring your own.** + Imagem do computador, + Da biblioteca (pictures and
    headlines of the session's vertical) and + Escrever headline add items
    that can be picked like any other.
@@ -57,16 +77,39 @@ words.
 
 ### How it works
 
-Rows are in `create_app` (`create` is a reserved word in SQL): sessions,
-turns, items, saves (`session_save`) and the worker's queue (`work`). Every
+Rows are in `create_app` (`create` is a reserved word in SQL): sessions
+(with their platform), turns (with their picture size, headline model and
+when they were interrupted), items, saves (`session_save`) and the worker's
+queue (`work`). Every
 send and save goes through the same `create_api` functions Desk calls and
 queues work; a worker in the same binary runs it, `CREATE_WORKERS` at a
 time, and the page asks again every 2 seconds while something runs. At a
 start, a picture left running by a stop is failed (it may have been paid
 for), anything else runs again. Every OpenAI reply is kept on disk as it
 came (`CREATE_KEEP_DIR`) before it is read; uploads and pictures are kept in
-`CREATE_FILES`. A session's first save makes its set in the library and
-remembers the id at once, so every later save adds to the same folder.
+`CREATE_FILES`. A session's first save makes its set in the library, with
+the session's platform, and remembers the id at once, so every later save
+adds to the same folder. Sessions are Taboola's unless made for NewsBreak;
+sets saved before 2 Oct 2026 keep their folder.
+
+**Headline memory.** A turn that asks for headlines shows the text model
+every team example headline of the vertical (`internal/openai/rules`), then
+the session's own headlines and the library's for the vertical (newest
+first), up to about 16,000 tokens (`openai.MemoryTokens`; what does not fit
+is left out, oldest first), with the blocked words and Taboola's rules as
+before. A new headline that repeats one of them word for word is dropped.
+Picked headlines weigh the most: each new one is a minimal variation of one
+of them. (It was a random 40 of the team's examples.)
+
+**Other headline models** (decision 0024). Grok, DeepSeek and Kimi, each
+off until its key is set (Settings). They write only headlines, through the
+same OpenAI-compatible chat-completions request, rules, blocked words and
+memory, always in English; they are not shown pictures, and they get the
+answer's shape in words instead of a JSON schema. Their replies are kept
+raw like OpenAI's (`provider` in the kept file) and their cost is counted
+under their own name. If one fails while the turn also makes pictures, the
+pictures go on and the turn says what happened to the headlines. Pictures,
+and the briefs of several pictures from words alone, are always OpenAI's.
 
 The brief pages of decision 0015 are gone; their tables (`brief`,
 `reference`, `option`, `save`, `job`, `event`) and rows stay, untouched, and
@@ -94,16 +137,22 @@ Under `/create/api/`, JSON, errors `{"error": "<pt-BR line>"}`. The person
 is Cloudflare Access's `Cf-Access-Authenticated-User-Email`; a change sent
 from another site's page is refused.
 
-- `GET status`, `GET rules`, `GET verticals` (the fixed list by category).
-- `GET sessions?vertical=&limit=`, `POST sessions` (`{"name", "vertical_id"}`),
+- `GET status` (with `headline_models`, `sizes`, `platforms`), `GET rules`,
+  `GET verticals` (the fixed list by category).
+- `GET sessions?vertical=&limit=`, `POST sessions` (`{"name", "vertical_id",
+  "platform"}`; platform optional, taboola by default),
   `GET sessions/{id}` (the session, turns, items with warnings, saves),
   `PATCH sessions/{id}` (`{"name"}`; renames the library set too, and a
   name the library refuses puts the old one back).
 - `GET spy/{creative}` (the ad, its vertical's name and the session name it
-  would get), `POST spy/{creative}/session` (`{"vertical_id", "name"}`, both
-  optional when Spy knows the vertical): `{"session", "picked", "warning"}`;
+  would get), `POST spy/{creative}/session` (`{"vertical_id", "name",
+  "platform"}`, all optional when Spy knows the vertical): `{"session", "picked", "warning"}`;
   the page opens `/create/s/<id>?pick=<ids>`.
-- `POST sessions/{id}/turns` (`{"prompt", "picked", "images", "headlines"}`).
+- `POST sessions/{id}/turns` (`{"prompt", "picked", "images", "headlines",
+  "size", "model"}`; `size` is `landscape` (default), `vertical` or
+  `newsbreak`; `model` is a headline model that is on, OpenAI's by default).
+  `POST turns/{id}/interrupt`: interrupts a turn still making (400 when it
+  is not). `POST items/{id}/retry`: makes a failed picture again (202).
 - `POST sessions/{id}/items`: a multipart `file`, or `{"headline"}`,
   `{"library_creative": id}`, `{"library_headline": id, "headline"}`.
   `PATCH items/{id}` (`{"text"}`, a headline not yet saved).
@@ -118,7 +167,14 @@ runs the migrations on start), `OPENAI_API_KEY` (empty: the pages work and
 making is off), `CREATE_ADDR` (`127.0.0.1:8095`), `OPS_ADDR`
 (`127.0.0.1:9112`), `CREATE_FILES`, `CREATE_KEEP_DIR`, `LIBRARY_URL`
 (`http://127.0.0.1:8093`), `CREATE_WORKERS` (3), and the same model and
-price settings as create-web (below).
+price settings as create-web (below). Other headline models, each off until
+its key is set: `CREATE_GROK_API_KEY`, `CREATE_DEEPSEEK_API_KEY`,
+`CREATE_KIMI_API_KEY`, each with `_BASE_URL` (defaults `https://api.x.ai/v1`,
+`https://api.deepseek.com/v1`, `https://api.moonshot.ai/v1`), `_MODEL`
+(defaults `grok-4`, `deepseek-chat`, `kimi-k2-0905-preview`; check the
+provider's current name) and `_PRICE_IN`/`_PRICE_OUT` (USD per million
+tokens, 0 by default, so their cost is not counted until set). The library
+must be the one that takes `platform` (deploy it first).
 
 ### Run it
 
@@ -340,7 +396,8 @@ the full list in `cmd/create-web/main.go`):
 | `TABOOLA_STATE_FILE` | `<keep dir>/taboola-state.json` | What this server made, for only-own. |
 | `TABOOLA_BASE_URL` | the real API | A local fake. |
 
-OpenAI is the only generator (the clients require it for images).
+OpenAI is create-web's only generator (the clients require it for images).
+Create's chat may use other models for headlines (decision 0024).
 
 The only Taboola keys we hold today are the lent ZoltaGroup login's. The
 owner allowed paused tests there (2026-09-29), so on that login create-web
