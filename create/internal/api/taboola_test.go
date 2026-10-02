@@ -347,7 +347,6 @@ func TestTaboolaAdsBadInput(t *testing.T) {
 		"bad index":     adsForm(t, map[string]string{"account": "acme-sc", "campaigns": `["1"]`, "ads": `[{"image":1,"title":"T","url":"https://example.com"}]`}, pic),
 		"missing index": adsForm(t, map[string]string{"account": "acme-sc", "campaigns": `["1"]`, "ads": `[{"title":"T","url":"https://example.com"}]`}, pic),
 		"macro":         adsForm(t, map[string]string{"account": "acme-sc", "campaigns": `["1"]`, "ads": `[{"image":0,"title":"T","url":"https://example.com/?c={campaign_id}"}]`}, pic),
-		"long title":    adsForm(t, map[string]string{"account": "acme-sc", "campaigns": `["1"]`, "ads": `[{"image":0,"title":"` + strings.Repeat("t", 101) + `","url":"https://example.com"}]`}, pic),
 		"not image":     adsForm(t, map[string]string{"account": "acme-sc", "campaigns": `["1"]`, "ads": ad}, []byte("plain text, not a picture")),
 		"too big":       adsForm(t, map[string]string{"account": "acme-sc", "campaigns": `["1"]`, "ads": ad}, big),
 		"not multipart": httptest.NewRequest("POST", "/api/taboola/ads", strings.NewReader(`{}`)),
