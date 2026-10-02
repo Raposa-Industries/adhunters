@@ -1,7 +1,7 @@
 // Launch's pages. Every page path gets index.html; route draws the page the
 // path names inside the Frame (shared/frame): the Campaign Groups, Campaigns
 // and Ads tables, a campaign, the new-item steps, presets, History, drafts
-// and other services' requests.
+// other services' requests and the Taboola logins (Contas).
 import { mountFrame } from '/launch/_frame/frame.js';
 import { api, h, note } from './lib.js';
 import { manage, where, href } from './manage.js';
@@ -10,6 +10,7 @@ import { newPair, drafts } from './newpair.js';
 import { presets } from './presets.js';
 import { history } from './history.js';
 import { requests, request } from './requests.js';
+import { accounts } from './accounts.js';
 
 // TABS are Realize's three levels, then Launch's own pages. The three levels
 // keep the account and period the person picked.
@@ -24,6 +25,7 @@ function tabs() {
     { id: 'history', label: 'Histórico', href: '/launch/history' },
     { id: 'presets', label: 'Presets', href: '/launch/presets' },
     { id: 'drafts', label: 'Rascunhos', href: '/launch/drafts' },
+    { id: 'accounts', label: 'Contas', href: '/launch/accounts' },
   ];
 }
 
@@ -36,7 +38,7 @@ export function route(pathname) {
   if (!first) return { page: 'manage', tab: 'campaigns', level: 'campaigns' };
   if (LEVEL_PAGES.includes(first) && parts.length === 1) return { page: 'manage', tab: first, level: first };
   if (first === 'new' && parts.length === 1) return { page: 'new', tab: 'campaigns' };
-  if (['presets', 'history', 'drafts', 'requests'].includes(first) && parts.length === 1) {
+  if (['presets', 'history', 'drafts', 'requests', 'accounts'].includes(first) && parts.length === 1) {
     return { page: first, tab: first };
   }
   if (first === 'requests' && parts.length === 2 && /^\d+$/.test(parts[1])) return { page: 'request', tab: 'requests', id: parts[1] };
@@ -102,6 +104,7 @@ async function start() {
       case 'drafts': await drafts(ctx); break;
       case 'requests': await requests(ctx); break;
       case 'request': await request(ctx); break;
+      case 'accounts': await accounts(ctx); break;
       default:
         main.append(h('h1', {}, 'Página não encontrada'), h('p', {}, h('a', { href: '/launch/campaigns' }, 'Voltar para as campanhas')));
     }

@@ -201,3 +201,19 @@ table.numbers tfoot td { border-top: 1px solid var(--line-strong); background: v
 .ad-text { display: flex; flex-direction: column; gap: 3px; min-width: 200px; font-size: 12.5px; }
 .ad-text b { color: var(--ink-strong); font-size: 13px; }
 .cta-chip { align-self: flex-end; padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--ink-2); font-size: 11.5px; }
+
+/* Contas: one panel per Taboola login */
+.logins { display: flex; flex-direction: column; gap: 14px; }
+.panel + .panel.login { margin-top: 0; }
+.login-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
+.login-head .actions { margin: 0; }
+.login-title { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.login-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; }
+.login .hint { margin: 10px 0 0; font-size: 12px; }
+.login-add { margin-bottom: 14px; }
+.login-add > p { margin: 6px 0 14px; max-width: 75ch; }
+.login-add .note, .login-edit .note { margin-top: 12px; }
+.login-edit { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line-subtle); display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
+.login-picks { border: 1px solid var(--line-subtle); border-radius: 10px; padding: 10px 12px; margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.login-picks legend { padding: 0 4px; }
+.login-pick { flex-wrap: wrap; }
