@@ -139,8 +139,8 @@ details.more.box[open] { padding-bottom: 14px; }
   font: 600 10px/14px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .rv-ads th:nth-child(1) { width: 100px; padding-left: 17px; }
 .rv-ads th:nth-child(2) { width: 97px; padding-left: 0; }
-.rv-ads th:nth-child(3) { width: 320px; padding-left: 0; }
-.rv-ads th:nth-child(4) { width: 220px; padding-left: 0; }
+.rv-ads th:nth-child(3) { width: 260px; padding-left: 0; }
+.rv-ads th:nth-child(4) { width: 190px; padding-left: 0; }
 .rv-ads th:nth-child(5) { width: 172px; padding-left: 0; }
 .rv-ads th:nth-child(7) { width: 82px; }
 .rv-ads th:nth-child(6) { padding-left: 0; }
