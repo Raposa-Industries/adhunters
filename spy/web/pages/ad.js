@@ -58,11 +58,12 @@ async function draw() {
       actions));
 
   const series = out.series || [];
-  const trend = h('section', { class: 'panel' }, h('h3', {}, 'Presença por dia, 30 dias'),
+  const trend = h('section', { class: 'panel' }, h('h3', {}, out.window.recent ? 'Presença por dia, 30 dias' : 'Presença por dia no período'),
     spark(series.map((s) => s.presence), 600, 70),
     h('p', { class: 'faint' }, series.length ? day(series[0].day) + ' a ' + day(series[series.length - 1].day) : ''));
 
-  const hours = drawHours(out.hours);
+  const hours = drawHours(out.hours, out.hours_state);
+  if (out.hours_state !== 'database') waitForHours(hours);
 
   const pubs = h('section', { class: 'panel' }, h('h3', {}, 'Onde aparece'), table([
     ['Publisher', (r) => link('/spy/publishers/' + r.id + keepRange(), r.name)],
@@ -125,17 +126,40 @@ async function draw() {
     raposa.panel ? h('div', { style: 'margin-top:14px' }, raposa.panel) : null);
 }
 
-// drawHours is the hour of day (São Paulo) the ad shows, last 7 days.
-function drawHours(rows) {
+// drawHours is the hour of day (São Paulo) the ad shows, the last 7 days of
+// the range. Hours older than Tracks keeps come back from its archive.
+function drawHours(rows, state) {
   const by = new Array(24).fill(0);
   for (const r of rows || []) by[r.hour] += Number(r.sightings) || 0;
   const max = Math.max(1, ...by);
   const devices = {};
   for (const r of rows || []) devices[r.device] = (devices[r.device] || 0) + Number(r.sightings);
+  const note = { coming: 'Trazendo as horas destes dias do arquivo; aparecem aqui em um ou dois minutos.',
+    archive: 'As horas destes dias estão no arquivo e não voltaram agora. Abra a página de novo mais tarde.' }[state];
   return h('section', { class: 'panel' }, h('h3', {}, 'Hora do dia (São Paulo), últimos 7 dias'),
+    note ? h('p', { class: 'muted' }, note) : null,
     h('div', { class: 'sp-hours' }, by.map((v, i) => h('span', { title: i + 'h: ' + num(v), style: `height:${(100 * v / max).toFixed(1)}%` }))),
     h('div', { class: 'sp-hours-axis' }, by.map((_, i) => h('span', {}, i % 6 === 0 ? i + 'h' : ''))),
     Object.keys(devices).length ? h('div', { style: 'margin-top:12px' }, bars(Object.entries(devices).map(([k, v]) => ({ label: k, value: v })))) : null);
+}
+
+// waitForHours asks again every 15 s while Tracks brings the hours back,
+// and redraws the panel when they are in.
+async function waitForHours(panel) {
+  for (let i = 0; i < 12; i++) {
+    await new Promise((r) => setTimeout(r, 15000));
+    if (!panel.isConnected) return;
+    let res;
+    try {
+      res = await api('ads/' + id + '/hours', rangeParams());
+    } catch (err) {
+      continue;
+    }
+    if (res.state === 'coming') continue;
+    const next = drawHours(res.hours, res.state);
+    panel.replaceWith(next);
+    return;
+  }
 }
 
 const STATUS = { waiting: 'esperando', running: 'rodando', completed: 'pronta', failed: 'falhou', stopped: 'parada' };
