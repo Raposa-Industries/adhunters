@@ -1,0 +1,69 @@
+name: deploy
+
+# Every merge to main whose ci run passed goes to the boxes, data box first
+# (decision 0027). platform/servers/deploy.sh does the work: it installs the
+# build with setup.sh on each box and puts the previous build back on a box
+# where a service does not come up. "Run workflow" on this page deploys a
+# chosen commit by hand, an older one too (a rollback).
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, tag or branch to deploy
+        default: main
+
+# One deploy at a time; a newer merge waits for the running one, and only the
+# newest of those waiting runs.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    environment: production
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || inputs.ref }}
+          fetch-depth: 0
+      # ci runs can finish out of order: a merge that is no longer main's
+      # newest commit is left to the newer one's deploy.
+      - name: newest on main
+        id: newest
+        run: |
+          if [ "${{ github.event_name }}" = workflow_run ] && [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "$(git rev-parse --short HEAD) is no longer main's newest commit; its deploy is skipped"
+            echo "skip=1" >>"$GITHUB_OUTPUT"
+          fi
+      - uses: useblacksmith/setup-go@v6
+        if: steps.newest.outputs.skip != '1'
+        with:
+          go-version-file: go.work
+      - name: build
+        if: steps.newest.outputs.skip != '1'
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(git rev-parse --short HEAD)" \
+            -o bin/ ./tracks/cmd/... ./raposa/cmd/... ./create/cmd/... ./library/cmd/... ./desk/cmd/... ./intel/cmd/... ./launch/cmd/... ./spy/cmd/... ./funnels/cmd/... ./platform/observe/cmd/...
+      # Joins the tailnet as tag:ci for this run only; the tailnet policy lets
+      # tag:ci reach the boxes (tag:server) on SSH and nothing else
+      # (platform/OPERATIONS.md, "Deploys").
+      - uses: tailscale/github-action@v3
+        if: steps.newest.outputs.skip != '1'
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      # Tailscale SSH lets tag:ci in as admin (the tailnet policy's "ssh"
+      # rules), so no SSH key is kept here. A box's host key is taken on first
+      # sight: the connection runs inside Tailscale, which already proved the
+      # box is ours.
+      - name: deploy
+        if: steps.newest.outputs.skip != '1'
+        run: DEPLOY_SSH_OPTS="-o StrictHostKeyChecking=accept-new" platform/servers/deploy.sh

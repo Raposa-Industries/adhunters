@@ -10,6 +10,11 @@ sudo ./setup.sh --bin DIR [--role worker|data|standby]
 
 How to get onto a box and copy the build there: [../OPERATIONS.md](../OPERATIONS.md).
 
+A deploy runs `deploy.sh` (every box, data box first), which runs
+`deploy-box.sh` on each box: setup.sh, then a check that our services run
+and are not restarting, and the previous build put back if not. Every merge
+to main deploys this way (`.github/workflows/deploy.yml`, decision 0027).
+
 `DIR` holds the binaries, built on any machine from the repository root:
 
 ```
