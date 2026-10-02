@@ -145,7 +145,7 @@ func serve(args []string) error {
 	st := sessions.New(db, store0, func() { worker.Kick() })
 	worker = sessions.NewWorker(st, ai, lib, log)
 	worker.Workers = *workers
-	// Other headline models, each on only when its key is set (decision 0023).
+	// Other headline models, each on only when its key is set (decision 0024).
 	status := openAIStatus{c: ai}
 	worker.Headliners = map[string]sessions.Headliner{}
 	for _, cp := range compat {

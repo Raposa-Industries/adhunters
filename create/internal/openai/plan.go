@@ -137,7 +137,7 @@ func (c *Client) plan(ctx context.Context, r PlanRequest) (Plan, error) {
 	system := planSystem
 	if c.compat {
 		// Headlines only, from words: these models get no pictures and no
-		// JSON schema (decision 0023).
+		// JSON schema (decision 0024).
 		r.Winners, r.ForPictures, r.Images, r.Language = nil, false, 0, "en"
 		system += compatSystem
 	}

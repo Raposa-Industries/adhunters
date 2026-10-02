@@ -101,7 +101,7 @@ before. A new headline that repeats one of them word for word is dropped.
 Picked headlines weigh the most: each new one is a minimal variation of one
 of them. (It was a random 40 of the team's examples.)
 
-**Other headline models** (decision 0023). Grok, DeepSeek and Kimi, each
+**Other headline models** (decision 0024). Grok, DeepSeek and Kimi, each
 off until its key is set (Settings). They write only headlines, through the
 same OpenAI-compatible chat-completions request, rules, blocked words and
 memory, always in English; they are not shown pictures, and they get the
@@ -397,7 +397,7 @@ the full list in `cmd/create-web/main.go`):
 | `TABOOLA_BASE_URL` | the real API | A local fake. |
 
 OpenAI is create-web's only generator (the clients require it for images).
-Create's chat may use other models for headlines (decision 0023).
+Create's chat may use other models for headlines (decision 0024).
 
 The only Taboola keys we hold today are the lent ZoltaGroup login's. The
 owner allowed paused tests there (2026-09-29), so on that login create-web

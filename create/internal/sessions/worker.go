@@ -25,7 +25,7 @@ type AI interface {
 }
 
 // Headliner is another text model that may write a turn's headlines
-// (decision 0023): an *openai.Client made by openai.NewCompat.
+// (decision 0024): an *openai.Client made by openai.NewCompat.
 type Headliner interface {
 	Plan(ctx context.Context, r openai.PlanRequest) (openai.Plan, error)
 }

@@ -91,7 +91,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | interrupted | A turn a person stopped with Parar: its pictures not started are not made, and the page stops waiting for the ones being made. What was already paid for is kept, and still shows up if it arrives. (Not "stopped", Spy's word, nor "paused".) |
 | quick edit | A one-click instruction the composer adds to the prompt for changing picked pictures faithfully ("mirror it horizontally", "change only the table's colour"). Several can go in one prompt. (Not a preset, which is Launch's saved settings.) |
 | headline memory | What a headline call learns from: every team example headline of the vertical, the session's headlines and the library's for the vertical, newest first up to a budget, with the blocked words and Taboola's rules. |
-| headline model | The text model that writes a turn's headlines: OpenAI's by default, or Grok, DeepSeek or Kimi when their keys are set (decision 0023). Pictures are always OpenAI's. |
+| headline model | The text model that writes a turn's headlines: OpenAI's by default, or Grok, DeepSeek or Kimi when their keys are set (decision 0024). Pictures are always OpenAI's. |
 
 ## Library
 

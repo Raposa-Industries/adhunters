@@ -1,4 +1,4 @@
-# 0023 · Other text models may write headlines; pictures stay OpenAI's
+# 0024 · Other text models may write headlines; pictures stay OpenAI's
 
 **Decided:** 2 Oct 2026, from the team's Create feedback (the leader asked
 to try xAI's Grok, DeepSeek and Moonshot's Kimi for headlines). Changes

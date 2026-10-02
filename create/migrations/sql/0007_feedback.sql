@@ -9,7 +9,7 @@ ALTER TABLE create_app.session
 
 -- A turn's picture size (landscape 1600x896, vertical 896x1600, newsbreak
 -- 1504x786), the model that writes its headlines ('' is OpenAI's, decision
--- 0023), and when a person interrupted it.
+-- 0024), and when a person interrupted it.
 ALTER TABLE create_app.turn
     ADD COLUMN size TEXT NOT NULL DEFAULT 'landscape' CHECK (size IN ('landscape', 'vertical', 'newsbreak')),
     ADD COLUMN headline_model TEXT NOT NULL DEFAULT '',

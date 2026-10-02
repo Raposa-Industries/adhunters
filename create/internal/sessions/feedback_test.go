@@ -211,7 +211,7 @@ func (f *fakeHeadliner) Plan(_ context.Context, r openai.PlanRequest) (openai.Pl
 	return p, nil
 }
 
-// Headlines from another model (decision 0023) learn from the same memory;
+// Headlines from another model (decision 0024) learn from the same memory;
 // pictures and their briefs stay OpenAI's, and a failing headline model
 // never fails the pictures.
 func TestOtherHeadlineModel(t *testing.T) {

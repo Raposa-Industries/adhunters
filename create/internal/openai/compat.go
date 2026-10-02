@@ -12,7 +12,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/keep"
 )
 
-// Other text models may write headlines (decision 0023): xAI's Grok,
+// Other text models may write headlines (decision 0024): xAI's Grok,
 // DeepSeek and Moonshot's Kimi all speak OpenAI's chat-completions dialect,
 // so one Client serves them, in compat mode. Pictures stay OpenAI's.
 

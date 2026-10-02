@@ -38,7 +38,7 @@ type Status interface {
 	// OpenAIWhy is why making is off, "" when it is on.
 	OpenAIWhy() string
 	// HeadlineModels are the other headline models that are on (decision
-	// 0023); OpenAI's is always there and not listed.
+	// 0024); OpenAI's is always there and not listed.
 	HeadlineModels() []HeadlineModel
 }
 
