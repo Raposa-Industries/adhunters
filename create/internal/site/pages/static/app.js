@@ -68,6 +68,13 @@ async function getFolders(fresh = false) {
   return foldersCache;
 }
 
+// catchUp reads the folders after a Drive pass (the library waits for one
+// that started after the call), then runs redraw: each time the library
+// opens, what was added or deleted in Drive shows.
+function catchUp(redraw) {
+  api('GET', `${LIB}/api/folders?fresh=1`).then((f) => { foldersCache = f; return redraw(); }).catch(() => { /* the first lists stay */ });
+}
+
 function remember(key, value) {
   try {
     if (value === undefined) return localStorage.getItem(key) || '';
@@ -492,6 +499,7 @@ async function libraryColumn({ folder, isOn, toggle }) {
   }
   drawHead();
   await load();
+  catchUp(async () => { folders = await getFolders(); drawHead(); await load(); });
   return { el, redraw: draw, folder: () => view.folder, chooseFolder: () => folderBtn.click(), refresh: async () => { folders = await getFolders(true); drawHead(); await load(); } };
 }
 
@@ -1455,6 +1463,7 @@ async function libraryPage(aside) {
 
   drawAside();
   await load();
+  catchUp(async () => { folders = await getFolders(); drawAside(); await load(); });
   const open = qs.get('open');
   if (open && /^c\d+$/.test(open)) {
     const c = creatives.find((x) => x.id === Number(open.slice(1))) || await api('GET', `${LIB}/api/creatives/${open.slice(1)}`).catch(() => null);

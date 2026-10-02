@@ -20,7 +20,7 @@ var libraryLists = map[string][]string{
 	"verticals": nil,
 	// folders is the library as Create shows it: each vertical with its
 	// platforms' folders and its sets (Novos anúncios' folder picker).
-	"folders":   nil,
+	"folders":   {"fresh"},
 	"sets":      {"vertical", "limit", "before"},
 	"creatives": {"vertical", "set", "angle", "origin", "ai_label", "q", "platform", "limit", "before"},
 	"headlines": {"vertical", "set", "angle", "origin", "ai_label", "q", "platform", "limit", "before"},

@@ -94,6 +94,13 @@ export function libraryPanel({ letterOf, hasHeadline, pickImage, pickHeadline })
       return;
     }
     await list();
+    // Then once more after a Drive pass, so what changed in Drive shows.
+    try {
+      folders = [ALL, ...folderList(await api('library/folders?fresh=1'))];
+      folder = folders.find((f) => f.key === folder.key) || ALL;
+      drawFolder();
+      await list();
+    } catch { /* the first lists stay */ }
   }
 
   async function list() {

@@ -85,7 +85,10 @@ The same ad again opens the same conversation. The picture is downloaded by
 Create's server from public addresses only.
 
 **Biblioteca** (`/create/library`) is the library Launch makes ads from,
-the same one the right column shows. On the left: ORIGEM (Tudo, Originais:
+the same one the right column shows. Each time either opens, it draws what
+the library has, asks the library for a Drive pass (`/api/folders?fresh=1`)
+and draws again when it ends, so what was added or deleted in Drive shows.
+On the left: ORIGEM (Tudo, Originais:
 uploaded or from Drive, Geradas: saved from Criar, with counts), PASTAS (the
 folder tree with counts, + Nova) and NO LAUNCH (Todas, Em anúncios, Nunca
 usadas; shown only when Create may read `launch_api`, below). In the main

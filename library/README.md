@@ -152,7 +152,10 @@ continues after the last id of a page.
 - `GET /api/folders`: the library as the pages show it: every vertical with
   its platforms' folders and its sets, each with how many creatives and
   headlines (not hidden) it holds, and the whole library's counts
-  (`creatives`, `original`, `generated`, `headlines`).
+  (`creatives`, `original`, `generated`, `headlines`). With `?fresh=1` it
+  first waits (20 s at most) for a Drive pass that started after the call:
+  Create's and Launch's Biblioteca ask for it each time they open, then
+  draw again, so what was added or deleted in Drive shows.
 - `GET /api/tags?vertical=`: the tags in use, the most used first.
 - `GET /api/sets?vertical=`, `POST /api/sets` (`name`, `vertical_id`,
   `vertical_name` for a new vertical, `origin`, `origin_ref`, `made_by`,

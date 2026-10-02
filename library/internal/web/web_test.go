@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"image"
 	"image/png"
@@ -20,9 +21,10 @@ import (
 
 type offDrive struct{ kicks int }
 
-func (d *offDrive) Kick()          { d.kicks++ }
-func (d *offDrive) Folder() string { return "" }
-func (d *offDrive) Why() string    { return "not signed in" }
+func (d *offDrive) Kick()                      { d.kicks++ }
+func (d *offDrive) Catch(context.Context) bool { d.kicks++; return true }
+func (d *offDrive) Folder() string             { return "" }
+func (d *offDrive) Why() string                { return "not signed in" }
 
 func do(t *testing.T, h http.Handler, method, path, contentType string, body io.Reader) (int, map[string]any) {
 	t.Helper()
@@ -176,5 +178,23 @@ func TestFoldersTagsAndRefile(t *testing.T) {
 	code, tg := do(t, h, http.MethodGet, "/api/tags?vertical=memory-loss", "", nil)
 	if code != http.StatusOK || len(tg["tags"].([]any)) != 2 {
 		t.Fatalf("tags: %d %v", code, tg)
+	}
+}
+
+type onDrive struct{ caught int }
+
+func (d *onDrive) Kick()                      {}
+func (d *onDrive) Catch(context.Context) bool { d.caught++; return true }
+func (d *onDrive) Folder() string             { return "folder" }
+func (d *onDrive) Why() string                { return "" }
+
+func TestFoldersFreshWaitsForAPass(t *testing.T) {
+	d := &onDrive{}
+	h := web.New(store.New(testdb.New(t)), d, slog.New(slog.NewTextHandler(io.Discard, nil))).Handler()
+	if code, _ := do(t, h, "GET", "/api/folders", "", nil); code != 200 || d.caught != 0 {
+		t.Fatalf("plain: %d, caught %d", code, d.caught)
+	}
+	if code, _ := do(t, h, "GET", "/api/folders?fresh=1", "", nil); code != 200 || d.caught != 1 {
+		t.Fatalf("fresh: %d, caught %d", code, d.caught)
 	}
 }
