@@ -7,6 +7,7 @@
 //	tracks-loader status [-books]
 //	tracks-loader import-old -before 2026-10-01T00:00:00Z [-from 2026-06-01T00:00:00Z]
 //	tracks-loader hourly status|check|drop [-month 2026-09] [-keep 35]
+//	tracks-loader walks check|drop
 //
 // The database URL comes from DATABASE_URL and the archive's keys from
 // S3_ENDPOINT, S3_ACCESS_KEY and S3_SECRET_KEY (see archive.Open). run stops
@@ -17,6 +18,8 @@
 // shows where each month's hourly counts are, checks a month against its
 // hour files in the archive, and drops its partitions when every hour
 // matches (decision 0023); the archive comes from -archive or ARCHIVE.
+// walks compares the old walk_page table with its copy, where each URL is
+// kept once, and drops it when every row matches (decision 0025).
 package main
 
 import (
@@ -40,6 +43,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/shared/archive"
 	"github.com/Raposa-Industries/adhunters/tracks/load"
 	"github.com/Raposa-Industries/adhunters/tracks/migrations"
+	"github.com/Raposa-Industries/adhunters/tracks/walk"
 )
 
 // version is set at build time: -ldflags "-X main.version=…".
@@ -63,6 +67,8 @@ func main() {
 		err = importOldCmd(os.Args[2:])
 	case "hourly":
 		err = hourlyCmd(os.Args[2:])
+	case "walks":
+		err = walksCmd(os.Args[2:])
 	case "version":
 		fmt.Println(version)
 	default:
@@ -75,7 +81,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: tracks-loader run|migrate|replay|status|import-old|hourly|version [flags]")
+	fmt.Fprintln(os.Stderr, "usage: tracks-loader run|migrate|replay|status|import-old|hourly|walks|version [flags]")
 	os.Exit(2)
 }
 
@@ -334,6 +340,64 @@ func hourlyCmd(args []string) error {
 		return errors.New("the month does not match its hour files yet")
 	}
 	return nil
+}
+
+// walksCmd checks the old walk_page table against walk_step and page_url,
+// and with drop removes it when every row matches (decision 0025, step 3).
+func walksCmd(args []string) error {
+	if len(args) != 1 || (args[0] != "check" && args[0] != "drop") {
+		return errors.New("usage: tracks-loader walks check|drop")
+	}
+	ctx := context.Background()
+	db, err := open(ctx, pg.JobStatementTimeout, 1)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	var o walk.OldPages
+	var dropErr error
+	if args[0] == "check" {
+		if o, err = walk.CheckOldPages(ctx, db); err != nil {
+			return err
+		}
+	} else {
+		o, dropErr = walk.DropOldPages(ctx, db)
+	}
+	fmt.Printf("Walk pages: the old walk_page table against walk_step, where each URL is kept once, every value compared\n\n")
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.AlignRight)
+	fmt.Fprintln(w, "\trows\tsize\t")
+	if o.Gone {
+		fmt.Fprintln(w, "walk_page\tdropped\t\t")
+	} else {
+		fmt.Fprintf(w, "walk_page\t%s\t%s\t\n", num(o.Rows), gb(o.OldBytes))
+		fmt.Fprintf(w, "  with a copy\t%s\t\t\n", num(o.Copied))
+		fmt.Fprintf(w, "  different from it\t%s\t\t\n", num(o.Differ))
+	}
+	fmt.Fprintf(w, "walk_step (new walks too)\t%s\t%s\t\n", num(o.Steps), gb(o.StepBytes))
+	fmt.Fprintf(w, "page_url\t%s\t%s\t\n", num(o.URLs), gb(o.URLBytes))
+	_ = w.Flush()
+	switch {
+	case args[0] == "drop" && dropErr == nil:
+		fmt.Printf("\nDROPPED: walk_page is gone (%s freed). tracks_api.walk_page_v1 reads walk_step and page_url.\n", gb(o.OldBytes))
+		return nil
+	case args[0] == "drop":
+		fmt.Println()
+		for _, p := range o.Problems() {
+			fmt.Println("  - " + p)
+		}
+		return dropErr
+	case o.OK():
+		fmt.Printf("\nMATCH: every walk_page row has an equal copy. tracks-loader walks drop frees %s.\n", gb(o.OldBytes))
+		return nil
+	case o.Gone:
+		fmt.Println("\nwalk_page was dropped already.")
+		return nil
+	}
+	fmt.Println("\nDIFFERENT, nothing may go yet:")
+	for _, p := range o.Problems() {
+		fmt.Println("  - " + p)
+	}
+	return errors.New("walk_page does not match its copy yet")
 }
 
 // printCheck prints a month's check the way platform/retire/reconcile.sh

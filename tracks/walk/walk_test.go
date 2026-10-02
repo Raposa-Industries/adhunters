@@ -216,7 +216,7 @@ func TestWalkerSavesAndReplays(t *testing.T) {
 	if len(left) != 0 {
 		t.Errorf("local files left: %v", left)
 	}
-	exec(`DELETE FROM tracks.walk_page`)
+	exec(`DELETE FROM tracks.walk_step`)
 	exec(`UPDATE tracks.walk SET outcome = 'error'`)
 	r, err := Replay(ctx, db, store, now.Add(-time.Hour), now.Add(time.Hour))
 	if err != nil || r.Files != 1 || r.Walks != 1 {

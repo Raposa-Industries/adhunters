@@ -141,15 +141,18 @@ func ImportOld(ctx context.Context, db, old *pgxpool.Pool) (OldWalks, error) {
 		 SELECT o.record_id, o.at, o.ad_id, o.creative_id, ad.account_id, o.link_id, 'ok', 0
 		 FROM old_walk o JOIN tracks.ad ad ON ad.id = o.ad_id`,
 		// The collector stored a version only for a page that answered.
-		`INSERT INTO tracks.walk_page (walk_id, step, url, final_url, host, status, hops, version_hash, page_type,
+		`INSERT INTO tracks.walk_step (walk_id, step, url_id, final_url_id, host, status, hops, version_hash, page_type,
 		                               checkout_platform, seller_account)
-		 SELECT w.id, 0, v.final_url, v.final_url, v.host, 200, v.hops, v.hash, v.page_type, v.checkout_platform, v.seller_account
-		 FROM tracks.walk w JOIN old_walk o ON o.record_id = w.record_id JOIN old_version v ON v.old_id = o.version_id
-		 UNION ALL
-		 SELECT w.id, 1, v.s1_url, v.s1_final_url, v.s1_host, v.s1_status, v.s1_hops, NULL, v.s1_page_type,
-		        v.s1_checkout_platform, v.s1_seller_account
-		 FROM tracks.walk w JOIN old_walk o ON o.record_id = w.record_id JOIN old_version v ON v.old_id = o.version_id
-		 WHERE v.s1_url IS NOT NULL`,
+		 SELECT x.walk_id, x.step, tracks.url_id(x.url), tracks.url_id(x.final_url), x.host, x.status, x.hops, x.hash,
+		        x.page_type, x.checkout_platform, x.seller_account
+		 FROM (SELECT w.id AS walk_id, 0 AS step, v.final_url AS url, v.final_url, v.host, 200 AS status, v.hops, v.hash,
+		              v.page_type, v.checkout_platform, v.seller_account
+		       FROM tracks.walk w JOIN old_walk o ON o.record_id = w.record_id JOIN old_version v ON v.old_id = o.version_id
+		       UNION ALL
+		       SELECT w.id, 1, v.s1_url, v.s1_final_url, v.s1_host, v.s1_status, v.s1_hops, NULL, v.s1_page_type,
+		              v.s1_checkout_platform, v.s1_seller_account
+		       FROM tracks.walk w JOIN old_walk o ON o.record_id = w.record_id JOIN old_version v ON v.old_id = o.version_id
+		       WHERE v.s1_url IS NOT NULL) x`,
 	}
 	for _, q := range steps {
 		if _, err := tx.Exec(ctx, q); err != nil {

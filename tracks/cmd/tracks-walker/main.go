@@ -271,12 +271,21 @@ func walkCmd(args []string) error {
 	return enc.Encode(map[string]any{"pages": rec.Pages, "parsed": parsed})
 }
 
+// openDB opens the database, once it has walk_step (walk.Ready).
 func openDB(app string) (*pgxpool.Pool, error) {
 	u, err := load.UTC(os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return nil, err
 	}
-	return pg.Open(context.Background(), pg.Config{URL: u, AppName: app, StatementTimeout: pg.JobStatementTimeout, MaxConns: 4})
+	db, err := pg.Open(context.Background(), pg.Config{URL: u, AppName: app, StatementTimeout: pg.JobStatementTimeout, MaxConns: 4})
+	if err != nil {
+		return nil, err
+	}
+	if err := walk.Ready(context.Background(), db); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return db, nil
 }
 
 func split(s string) []string {
