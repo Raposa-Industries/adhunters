@@ -3,6 +3,7 @@ package walk
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -36,9 +37,9 @@ func Dues(ctx context.Context, db *pgxpool.Pool, limit int, now time.Time) ([]Du
 	})
 }
 
-// Save writes one walk and what its pages said. A walk saved again (a
-// replay) replaces its pages; a page version already known only gets its
-// times widened.
+// Save writes one walk and what its pages said, each URL kept once
+// (tracks.url_id). A walk saved again (a replay) replaces its pages; a page
+// version already known only gets its times widened.
 func Save(ctx context.Context, db *pgxpool.Pool, rec *Record, parsed []Parsed) error {
 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
 		var id int64
@@ -52,7 +53,7 @@ func Save(ctx context.Context, db *pgxpool.Pool, rec *Record, parsed []Parsed) e
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM tracks.walk_page WHERE walk_id = $1`, id); err != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM tracks.walk_step WHERE walk_id = $1`, id); err != nil {
 			return err
 		}
 		for _, p := range parsed {
@@ -64,9 +65,10 @@ func Save(ctx context.Context, db *pgxpool.Pool, rec *Record, parsed []Parsed) e
 				}
 			}
 			if _, err := tx.Exec(ctx, `
-				INSERT INTO tracks.walk_page (walk_id, step, url, final_url, host, status, hops, version_hash, page_type,
+				INSERT INTO tracks.walk_step (walk_id, step, url_id, final_url_id, host, status, hops, version_hash, page_type,
 				                              checkout_platform, seller_account)
-				VALUES ($1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), NULLIF($6, 0), $7, $8, NULLIF($9, ''), NULLIF($10, ''), NULLIF($11, ''))`,
+				VALUES ($1, $2, tracks.url_id($3), tracks.url_id(NULLIF($4, '')), NULLIF($5, ''), NULLIF($6, 0), $7, $8,
+				        NULLIF($9, ''), NULLIF($10, ''), NULLIF($11, ''))`,
 				id, p.Step, p.URL, p.FinalURL, p.Host, p.Status, p.Hops, hash, p.PageType, p.Checkout, p.Seller); err != nil {
 				return err
 			}
@@ -87,6 +89,20 @@ func saveVersion(ctx context.Context, tx pgx.Tx, v *Version, at time.Time) error
 		v.Hash, v.Title, v.WordCount, j(v.Headings), j(v.Meta), v.FaviconURL, j(v.Pixels), v.Emails, v.Phones,
 		v.Companies, v.Disclaimers, j(v.VSL), v.Text, at)
 	return err
+}
+
+// Ready says whether the database has walk_step (tracks migration 12, which
+// tracks-loader applies on the data box). A walker on this code writes only
+// there, so it waits for it rather than lose walks to failed saves.
+func Ready(ctx context.Context, db *pgxpool.Pool) error {
+	var ok bool
+	if err := db.QueryRow(ctx, `SELECT to_regclass('tracks.walk_step') IS NOT NULL`).Scan(&ok); err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("tracks.walk_step is missing: update tracks-loader on the data box first (it applies tracks migration 12)")
+	}
+	return nil
 }
 
 // Walked records when an ad was walked and when to walk it again: after

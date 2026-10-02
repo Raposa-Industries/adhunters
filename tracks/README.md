@@ -102,6 +102,7 @@ tracks-loader replay -from 2026-09-20T00:00:00Z -to 2026-09-21T00:00:00Z [-netwo
 tracks-loader status [-books]
 tracks-loader import-old -before 2026-10-01T00:00:00Z [-from 2026-06-01T00:00:00Z]
 tracks-loader hourly status|check|drop [-month 2026-09] [-keep 35]
+tracks-loader walks check|drop
 ```
 
 `run` does, in a loop:
@@ -180,7 +181,8 @@ targets file.
 | `ad_daily`, `ad_account_daily`, `placement_daily`, `campaign_daily`, `creative_link_daily`, `creative_campaign_daily` | forever |
 | lookups (`publisher`, `placement`, `brand`, `account`, `campaign`, `creative`, `ad`, `link`, `network_ad`, `proxy_line`) | forever |
 | `live_link` (unlogged) | 15 minutes |
-| `walk`, `walk_page`, `page_version`, `walk_file`, `walk_state` | forever for now (a walk's pages are a few hundred bytes; bodies live only in the archive) |
+| `walk`, `walk_step`, `page_url`, `page_version`, `walk_file`, `walk_state` | forever (a walk's pages take about 150 bytes each, each URL kept once; bodies live only in the archive) |
+| `walk_page` | the walk pages as they were kept before 2 Oct 2026, with their URLs in full, until `tracks-loader walks drop` (see Walk pages below) |
 
 Anything dropped comes back by replay from the archive ([decision
 0007](../decisions/0007-keep-times.md)). What other services may read is
@@ -235,6 +237,33 @@ a day a replay closed again waits for its new hour file. Daily counts and
 `tracks_loader_hour_files_total{outcome}`, `tracks_loader_hour_days_waiting`,
 `tracks_loader_hours_brought_back_total{outcome}`.
 
+### Walk pages
+
+Each page of a walk is a `walk_step` row whose two URLs point at `page_url`,
+where each URL is kept once ([decision 0025](../decisions/0025-walk-urls-kept-once.md)):
+the same links come back walk after walk, and in full they were two thirds
+of each row. Tracks migration 12 copied every saved walk page out of the old
+`walk_page` table, and until that table goes, a trigger copies anything still
+written to it (a tracks-walker not updated yet). Migration 13 points
+`tracks_api.walk_page_v1` at the copy: same columns, rows and values.
+
+```
+tracks-loader walks check
+tracks-loader walks drop
+```
+
+`check` compares every `walk_page` row with its copy, every value, the URLs
+as text (about 15 s for a million rows), and prints the rows, the rows
+copied, the rows that differ and each table's size. It exits non-zero
+unless every row matches. `drop` runs the same check while holding
+`walk_page`'s writers back and, only when everything matches and the view
+reads the copy, drops `walk_page` and its trigger and prints the space
+freed. A person runs it, on the data box:
+
+```
+sudo bash -c 'set -a; . /etc/adhunters/tracks-loader.env; /opt/adhunters/bin/tracks-loader walks check'
+```
+
 ## tracks-walker
 
 ```
@@ -262,9 +291,9 @@ Every 30 seconds it uploads sealed files to the archive under `walk/` and
 lists them in `tracks.walk_file`. `replay` parses a range of those files again
 and replaces what they wrote, so a parser change reaches old walks.
 
-What parsing keeps: `walk` (one per walk, by the record's ULID), `walk_page`
-(each step's final address, status, redirects, page type, checkout platform
-and seller), and `page_version` (each distinct content once: title, headings,
+What parsing keeps: `walk` (one per walk, by the record's ULID), `walk_step`
+(each step's address and final address, as ids in `page_url`, where each URL
+is kept once; status, redirects, page type, checkout platform and seller), and `page_version` (each distinct content once: title, headings,
 meta, favicon, pixels, emails, phones, company names, disclaimers, VSL, and
 the visible text up to 20,000 characters). `walk_state` holds when each ad may
 be walked again. Published as `tracks_api.walk_page_v1` and
@@ -297,8 +326,10 @@ cd ~/adhunters && sudo bash -c 'set -a; . /etc/adhunters/tracks-loader.env; . /e
 ```
 
 `DATABASE_URL` is the `tracks_walker` login: it reads `sighting`, `link` and
-`publisher` and writes only the walk tables (grants in `0010_walks.sql`,
-applied when the role exists). The archive's keys are set as for
+`publisher` and writes only the walk tables (grants in `0010_walks.sql` and
+`0012_walk_urls_once.sql`, applied when the role exists). It does not start
+before the data box's tracks-loader has applied migration 12: update
+tracks-loader first. The archive's keys are set as for
 `tracks-shipper`. Metrics: `tracks_walker_walks_total{outcome,step}`,
 `tracks_walker_walk_seconds`, `tracks_walker_due`,
 `tracks_walker_files_archived_total`. The unit is

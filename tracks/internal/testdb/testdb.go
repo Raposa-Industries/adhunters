@@ -25,6 +25,14 @@ import (
 // New creates a database, migrates it, and drops it when the test ends.
 func New(t testing.TB) *pgxpool.Pool {
 	t.Helper()
+	return NewUpTo(t, 0)
+}
+
+// NewUpTo is New with the migrations up to version only (0: all of them),
+// for a test of a migration over rows saved before it; Migrate applies the
+// rest.
+func NewUpTo(t testing.TB, version int) *pgxpool.Pool {
+	t.Helper()
 	base := os.Getenv("PG_TEST_URL")
 	if base == "" {
 		t.Skip("PG_TEST_URL not set")
@@ -58,12 +66,32 @@ func New(t testing.TB) *pgxpool.Pool {
 		_, _ = admin.Exec(ctx, "DROP DATABASE IF EXISTS "+name+" WITH (FORCE)")
 		_ = admin.Close(ctx)
 	})
+	migrateUpTo(t, pool, version)
+	return pool
+}
+
+// Migrate applies the migrations not applied yet.
+func Migrate(t testing.TB, pool *pgxpool.Pool) {
+	t.Helper()
+	migrateUpTo(t, pool, 0)
+}
+
+func migrateUpTo(t testing.TB, pool *pgxpool.Pool, version int) {
+	t.Helper()
 	migs, err := migrations.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := migrate.Up(ctx, pool, slog.New(slog.NewTextHandler(io.Discard, nil)), migrations.Schema, migs); err != nil {
+	if version > 0 {
+		var upTo []migrate.Migration
+		for _, m := range migs {
+			if m.Version <= version {
+				upTo = append(upTo, m)
+			}
+		}
+		migs = upTo
+	}
+	if _, err := migrate.Up(context.Background(), pool, slog.New(slog.NewTextHandler(io.Discard, nil)), migrations.Schema, migs); err != nil {
 		t.Fatal(err)
 	}
-	return pool
 }
