@@ -227,7 +227,7 @@ and `refresh_prices` replaces a copied row when Tracks has one.
 | Page | Path | Shows |
 |---|---|---|
 | Anúncios | `/spy/` | Every creative in the range as a card with its sparkline; filters by text, category, vertical, status, device, network, publisher, tracker, affiliate network, days active; sorts by presence, momentum, share of voice and more |
-| Anúncio | `/spy/ads/{creative}` | Numbers, direction, presence per day, hour of day (São Paulo), publishers, auction prices, its ads, links, campaigns, Raposa's investigations with the button to ask for one, and **Criar variações**, a link to `/create/?from=spy&creative={creative}` that opens Create on a new session with this ad's image and headline |
+| Anúncio | `/spy/ads/{creative}` | Numbers, direction, presence per day (the last 30 days, or each day of a chosen range, up to 120), hour of day (São Paulo) over the range's last 7 days, publishers, auction prices, its ads, links, campaigns, Raposa's investigations with the button to ask for one, and **Criar variações**, a link to `/create/?from=spy&creative={creative}` that opens Create on a new session with this ad's image and headline |
 | Operadores | `/spy/operators/` and `/{id}` | Operators by presence, momentum, launches and hit rate; one operator's creatives, accounts, brands and publishers |
 | Publishers | `/spy/publishers/` and `/{id}` | Checks and sightings per publisher; its top operators and creatives |
 | Mercado | `/spy/pulse/` | Each vertical's presence and momentum, how many are rising, fading and stopped now, and the latest changes of direction |
@@ -238,7 +238,15 @@ read what spy-numbers keeps ready; any other range is counted when asked
 (10 to 15 s at Tracks' volume) in a transaction with a 90 s limit, one
 query per address at a time, and kept 10 minutes (the last 24 hours, 2).
 
-The JSON is under `/spy/api/` (`ads`, `ads/{id}`, `operators`,
+Tracks keeps hourly counts 35 days after their month ends, then moves them
+to hour files in its archive (tracks/README.md, decision 0023); daily counts
+stay, and ranges older than `hourly_days` already read whole days. For an
+older range, the ad page asks Tracks for the archived days of its hour of
+day back (`tracks_api.hourly_days_v1`), says so on the panel, and asks
+`ads/{id}/hours` (never cached) every 15 s until they are in, a minute or
+two later.
+
+The JSON is under `/spy/api/` (`ads`, `ads/{id}`, `ads/{id}/hours`, `operators`,
 `publishers`, `pulse`, `search`, `events`, `verticals`, `facets`);
 `POST /spy/api/ads/{id}/investigate` asks Raposa through
 `raposa_api.request_investigation_v1` and records who asked. It takes only
@@ -267,8 +275,8 @@ Reads Tracks only through `tracks_api` (the login needs `tracks_api_read`):
 `ad_account_brand_hourly_v1`, `scrape_coverage_v2`, `closed_hour_v1`,
 `ad_daily_v1`, `ad_account_daily_v1`, `creative_link_daily_v1`,
 `creative_campaign_daily_v1`, `auction_v1`, `walk_page_v1`,
-`page_version_v1`, and (spy-web) `network_v1`
-and `campaign_v1`. `scrape_coverage_v2` adds the open hours' checks, which
+`page_version_v1`, and (spy-web) `network_v1`, `campaign_v1` and
+`hourly_days_v1`. `scrape_coverage_v2` adds the open hours' checks, which
 Direction needs beside their sightings. From Raposa it reads
 `raposa_api.evidence_v1` (page titles for the classifier, when the login
 may) and, in spy-web, `investigation_v1`.

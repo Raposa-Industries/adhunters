@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // where collects SQL conditions and their arguments.
@@ -298,14 +300,7 @@ func (s *Server) ad(r *http.Request) (any, error) {
 				WHERE dd.creative_id = $1 AND dd.day BETWEEN $2 AND $3
 				GROUP BY p.id, p.name, p.network_id, dv.code
 				ORDER BY sightings DESC`, []any{id, d0, d1}},
-			{"hours", `
-				SELECT extract(hour FROM h.hour AT TIME ZONE 'America/Sao_Paulo')::int AS hour, dv.code AS device,
-				       sum(h.sightings) AS sightings
-				FROM tracks_api.ad_hourly_v1 h
-				JOIN tracks_api.ad_v1 a ON a.id = h.ad_id
-				JOIN tracks_api.device_v1 dv ON dv.id = h.device_id
-				WHERE a.creative_id = $1 AND h.hour >= $2 AND h.hour < $3
-				GROUP BY 1, 2 ORDER BY 1, 2`, []any{id, win.To.Add(-7 * 24 * time.Hour), win.To}},
+			{"hours", hoursSQL, []any{id, win.To.Add(-hoursSpan), win.To}},
 			{"links", `
 				SELECT l.id, l.host, l.path, l.tracker, l.affiliate_network, l.item_id, l.params, l.sample_url,
 				       n.sightings, n.last_seen_at
@@ -345,8 +340,8 @@ func (s *Server) ad(r *http.Request) (any, error) {
 				JOIN tracks_api.device_v1 dv ON dv.id = p.device_id
 				WHERE p.creative_id = $1 AND p.day BETWEEN $2 AND $3
 				GROUP BY 1, 2, 3 ORDER BY auctions DESC`, []any{id, d0, d1}},
-			{"series", `SELECT day, sightings, checks, presence FROM spy_api.creative_series_v1(ARRAY[$1::int], 30, $2)`,
-				[]any{id, s.cfg.Now()}},
+			{"series", `SELECT day, sightings, checks, presence FROM spy_api.creative_series_v1(ARRAY[$1::int], $2, $3)`,
+				seriesArgs(id, win, s.cfg.Now())},
 		}
 		for _, p := range parts {
 			rows, err := s.rowsQ(ctx, p.sql, p.args...)
@@ -355,12 +350,95 @@ func (s *Server) ad(r *http.Request) (any, error) {
 			}
 			out[p.key] = rows
 		}
+		out["hours_state"] = "database"
+		if !win.Recent {
+			out["hours_state"] = s.hoursState(ctx, win.To.Add(-hoursSpan), win.To)
+		}
 		out["raposa"], err = s.raposaFor(ctx, id)
 		if err != nil {
 			return nil, err
 		}
 		return out, nil
 	})
+}
+
+// hoursSpan is how far back from a range's end the hour of day reads.
+const hoursSpan = 7 * 24 * time.Hour
+
+// hoursSQL is a creative's sightings by hour of day (São Paulo) and device.
+const hoursSQL = `
+	SELECT extract(hour FROM h.hour AT TIME ZONE 'America/Sao_Paulo')::int AS hour, dv.code AS device,
+	       sum(h.sightings) AS sightings
+	FROM tracks_api.ad_hourly_v1 h
+	JOIN tracks_api.ad_v1 a ON a.id = h.ad_id
+	JOIN tracks_api.device_v1 dv ON dv.id = h.device_id
+	WHERE a.creative_id = $1 AND h.hour >= $2 AND h.hour < $3
+	GROUP BY 1, 2 ORDER BY 1, 2`
+
+// seriesArgs are creative_series_v1's arguments for the ad page: the last
+// 30 days for the last 24 hours, else every day of the range (the last 120
+// at most), so an old week reads day by day from the daily counts.
+func seriesArgs(id int, win Window, now time.Time) []any {
+	if win.Recent {
+		return []any{id, 30, now}
+	}
+	d0, d1 := win.days()
+	days := int(d1.Sub(d0).Hours()/24) + 1
+	return []any{id, min(days, 120), win.To.Add(-time.Microsecond)}
+}
+
+// hoursState asks Tracks where the hourly counts of [from, to) are, and
+// asks for archived days back (tracks_api.hourly_days_v1): "database" when
+// every day is there, "coming" while Tracks brings some back, "archive" when
+// it could not. Older hours than Tracks keeps are in its archive; the page
+// waits for them. When Tracks cannot answer, the hours read as they are.
+func (s *Server) hoursState(ctx context.Context, from, to time.Time) string {
+	const q = `
+		SELECT COALESCE(max(CASE state WHEN 'coming' THEN 2 WHEN 'archive' THEN 1 ELSE 0 END), 0)
+		FROM tracks_api.hourly_days_v1($1, $2, true)`
+	var n int
+	var err error
+	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
+		// A savepoint: a failure here must not end the range's transaction.
+		var sp pgx.Tx
+		if sp, err = tx.Begin(ctx); err == nil {
+			if err = sp.QueryRow(ctx, q, from, to).Scan(&n); err != nil {
+				_ = sp.Rollback(ctx)
+			} else {
+				err = sp.Commit(ctx)
+			}
+		}
+	} else {
+		err = s.db.QueryRow(ctx, q, from, to).Scan(&n)
+	}
+	if err != nil {
+		s.log.Warn("where the hourly counts are: Tracks did not answer", "err", err)
+		return "database"
+	}
+	return [...]string{"database", "archive", "coming"}[n]
+}
+
+// adHours is the hour of day alone, never cached: the ad page asks again
+// while Tracks brings archived hours back.
+func (s *Server) adHours(r *http.Request) (any, error) {
+	id, err := pathID(r)
+	if err != nil {
+		return nil, err
+	}
+	ctx := r.Context()
+	win, err := s.window(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	state := "database"
+	if !win.Recent {
+		state = s.hoursState(ctx, win.To.Add(-hoursSpan), win.To)
+	}
+	rows, err := s.rows(ctx, hoursSQL, id, win.To.Add(-hoursSpan), win.To)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"state": state, "hours": rows}, nil
 }
 
 // oneQ is row through q(ctx).

@@ -90,6 +90,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /spy/api/facets", s.api(s.facets))
 	mux.Handle("GET /spy/api/ads", s.api(s.ads))
 	mux.Handle("GET /spy/api/ads/{id}", s.api(s.ad))
+	mux.Handle("GET /spy/api/ads/{id}/hours", s.api(s.adHours))
 	mux.Handle("POST /spy/api/ads/{id}/investigate", s.api(s.investigate))
 	mux.Handle("GET /spy/api/operators", s.api(s.operators))
 	mux.Handle("GET /spy/api/operators/{id}", s.api(s.operator))

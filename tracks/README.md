@@ -101,6 +101,7 @@ tracks-loader run    -archive s3://adhunters-raw [-max-lag 10m]
 tracks-loader replay -from 2026-09-20T00:00:00Z -to 2026-09-21T00:00:00Z [-network taboola]
 tracks-loader status [-books]
 tracks-loader import-old -before 2026-10-01T00:00:00Z [-from 2026-06-01T00:00:00Z]
+tracks-loader hourly status|check|drop [-month 2026-09] [-keep 35]
 ```
 
 `run` does, in a loop:
@@ -129,6 +130,12 @@ tracks-loader import-old -before 2026-10-01T00:00:00Z [-from 2026-06-01T00:00:00
 5. **Keep times**: once an hour it makes partitions ahead and drops days past
    their keep time, only once the day is final (every hour closed, no file
    pending). Drops use `DETACH … CONCURRENTLY`.
+6. **Hour files**: every 5 minutes it writes one final day older than 7 days
+   to the archive as hour files (below), oldest first, and again when a
+   replay closed it since.
+7. **Bring back**: every 10 seconds it loads an archived day a page asked
+   for back into the hourly tables, and once an hour drops archived days
+   nobody has asked for in 3 days.
 
 A file that fails to load is tried 3 times, then quarantined with an alert
 metric; a file that cannot load however often it is tried (a bad checksum, a
@@ -166,7 +173,9 @@ targets file.
 | `scrape` | 35 days, daily partitions |
 | `sighting` | 3 days, daily partitions, BRIN on `seen_at` (the CX43 run's suggestion) |
 | `auction` | 14 days, daily partitions; published as `tracks_api.auction_v1`, which Spy sums per day and keeps |
-| `ad_hourly`, `ad_account_brand_hourly`, `publisher_hourly` | monthly partitions, all kept for now |
+| `ad_hourly`, `ad_account_brand_hourly` | monthly partitions; 35 days after its month ends, a month may move to hour files in the archive (`tracks-loader hourly drop`) |
+| `publisher_hourly` | forever (one row per publisher, device and hour) |
+| `hour_file`, `archived_month`, `hour_bring_back` | forever (what is in the archive, which months left, which days came back) |
 | `ad_hourly_open`, `publisher_hourly_open` | the hours not closed yet |
 | `ad_daily`, `ad_account_daily`, `placement_daily`, `campaign_daily`, `creative_link_daily`, `creative_campaign_daily` | forever |
 | lookups (`publisher`, `placement`, `brand`, `account`, `campaign`, `creative`, `ad`, `link`, `network_ad`, `proxy_line`) | forever |
@@ -176,6 +185,55 @@ targets file.
 Anything dropped comes back by replay from the archive ([decision
 0007](../decisions/0007-keep-times.md)). What other services may read is
 published in `tracks_api` and listed in [`contract/sql/tracks/`](../contract/sql/tracks/).
+
+### Hour files
+
+Hourly counts leave the database 35 days after their month ends, as hour
+files in the archive ([decision 0023](../decisions/0023-hourly-counts-to-the-archive.md)).
+An hour file is one UTC day of `ad_hourly` or `ad_account_brand_hourly` as
+Parquet (zstd), at `hourly/<table>/<yyyy>/<mm>/<dd>-v<n>.parquet`: the same
+columns and types as the table, sorted by hour and key, readable by DuckDB
+or pandas as it is. A real day's 1.5 million rows take about 10 s to write.
+Before a file is recorded in `tracks.hour_file`, the loader reads the
+archive's copy back and compares every hour with the database: rows,
+sightings, and a fingerprint of every value of every row. A day closed
+again after its file was written (a replay) is written again as the next
+version; older versions stay.
+
+```
+tracks-loader hourly status
+tracks-loader hourly check -month 2026-09
+tracks-loader hourly drop  -month 2026-09 [-keep 35]
+```
+
+`status` lists each month: days, days written to hour files, whether it is
+still in the database, its size, days brought back, and the first day it
+may go. `check` compares a month with its hour files again, day by day and
+hour by hour (about 9 s a day), and prints each day's rows and sightings in
+the database and in its files, the hours that differ, and the daily counts
+(which stay) against the hourly sightings. It exits non-zero unless every
+hour matches. `drop` runs the same check and, only when everything matches
+and the month ended `-keep` days ago, records it in `archived_month` and
+drops its two hourly partitions (`DETACH … CONCURRENTLY`); it prints the
+space freed and the month's daily counts before and after. The first drop
+of a month is run by a person, on the data box, from the deploy's build
+folder or the installed binary:
+
+```
+sudo bash -c 'set -a; . /etc/adhunters/tracks-loader.env; /opt/adhunters/bin/tracks-loader hourly check -month 2026-09'
+```
+
+`tracks_api.hourly_days_v1(from, to, bring_back)` says, per UTC day, whether
+its hourly counts are in the `database`, in the `archive` or `coming`. With
+`bring_back` true, the archived days of the range (15 at most) are asked
+for: the loader copies their hour files back into the hourly tables within
+a minute or two, checks the rows and sightings against `hour_file`, and
+keeps them until nobody has asked for 3 days. Then, once an hour, it runs
+the month's check again over the days back in the database and drops them;
+a day a replay closed again waits for its new hour file. Daily counts and
+`publisher_hourly` never leave the database. Metrics:
+`tracks_loader_hour_files_total{outcome}`, `tracks_loader_hour_days_waiting`,
+`tracks_loader_hours_brought_back_total{outcome}`.
 
 ## tracks-walker
 
@@ -289,7 +347,6 @@ plus `042_walk_queue.sql`).
 
 - Replaying into a shadow schema (`replay --into`) to compare a parser change
   before switching.
-- Moving hourly counts older than 35 days to Parquet in the archive.
 - A small copy of each ad image the first time it is seen. Nothing here rules
   it out: the loader knows when a creative is new.
 

@@ -136,6 +136,23 @@ CREATE INDEX ON tracks_api.ad_hourly_v1 (ad_id, hour);
 CREATE TABLE tracks_api.ad_account_brand_hourly_v1 (hour TIMESTAMPTZ NOT NULL, ad_id INTEGER NOT NULL, account_id INTEGER,
     brand_id INTEGER, publisher_id INTEGER NOT NULL, device_id SMALLINT NOT NULL, sightings INTEGER NOT NULL);
 CREATE INDEX ON tracks_api.ad_account_brand_hourly_v1 (hour);
+-- Stands in for Tracks' hour files: a day listed here has its hourly counts
+-- in the archive ('archive'), and reads 'coming' once asked for.
+CREATE TABLE tracks_api.hourly_days_fake (day DATE PRIMARY KEY, state TEXT NOT NULL);
+CREATE FUNCTION tracks_api.hourly_days_v1(p_from TIMESTAMPTZ, p_to TIMESTAMPTZ, p_bring_back BOOLEAN)
+RETURNS TABLE (day DATE, state TEXT, kept_until TIMESTAMPTZ) LANGUAGE plpgsql AS $$
+DECLARE
+    d0 DATE := (p_from AT TIME ZONE 'UTC')::date;
+    d1 DATE := ((p_to - interval '1 microsecond') AT TIME ZONE 'UTC')::date;
+BEGIN
+    IF p_bring_back THEN
+        UPDATE tracks_api.hourly_days_fake f SET state = 'coming' WHERE f.state = 'archive' AND f.day BETWEEN d0 AND d1;
+    END IF;
+    RETURN QUERY SELECT g::date, COALESCE(f.state, 'database'), NULL::timestamptz
+    FROM generate_series(d0::timestamp, d1::timestamp, interval '1 day') g
+    LEFT JOIN tracks_api.hourly_days_fake f ON f.day = g::date ORDER BY 1;
+END;
+$$;
 CREATE TABLE tracks_api.scrape_coverage_v2 (hour TIMESTAMPTZ NOT NULL, publisher_id INTEGER NOT NULL, device_id SMALLINT NOT NULL,
     scrapes INTEGER NOT NULL, answered INTEGER NOT NULL DEFAULT 0, failed INTEGER NOT NULL DEFAULT 0,
     sightings INTEGER NOT NULL DEFAULT 0, closed BOOLEAN NOT NULL DEFAULT TRUE,

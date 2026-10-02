@@ -46,6 +46,8 @@ type Config struct {
 	OpenEvery        time.Duration // open hours rewritten, 5 min
 	MaxAttempts      int           // failed loads before a file is quarantined, 3
 	Idle             time.Duration // wait when nothing is pending, 2 s
+	HourFilesAfter   int           // days before a day's hourly counts go to hour files, 7
+	HourFilesEvery   time.Duration // between days written to hour files, 5 min
 	Now              func() time.Time
 	DisableRetention bool
 }
@@ -78,6 +80,12 @@ func (c *Config) defaults() {
 	if c.Idle == 0 {
 		c.Idle = 2 * time.Second
 	}
+	if c.HourFilesAfter == 0 {
+		c.HourFilesAfter = 7
+	}
+	if c.HourFilesEvery == 0 {
+		c.HourFilesEvery = 5 * time.Minute
+	}
 	if c.Now == nil {
 		c.Now = time.Now
 	}
@@ -93,6 +101,7 @@ type Loader struct {
 	caches                        *caches
 	parts                         map[string]bool // partitions known to exist, "table day"
 	lastOpen, lastPrune, lastKeep time.Time
+	lastHourFiles, lastBringBack  time.Time
 }
 
 // New returns a Loader. metrics may be nil.
@@ -103,15 +112,18 @@ func New(db *pgxpool.Pool, store archive.Store, log *slog.Logger, cfg Config, me
 
 // Metrics are the loader's live signals.
 type Metrics struct {
-	Files       *prometheus.CounterVec // by outcome: loaded, failed, quarantined
-	Scrapes     *prometheus.CounterVec // by network and outcome; unparsed is format drift
-	Sightings   *prometheus.CounterVec // by network
-	Pending     prometheus.Gauge
-	Quarantined prometheus.Gauge
-	Lag         prometheus.Gauge
-	LastClosed  prometheus.Gauge
-	CloseTook   prometheus.Histogram
-	lagSeconds  atomic.Int64
+	Files           *prometheus.CounterVec // by outcome: loaded, failed, quarantined
+	Scrapes         *prometheus.CounterVec // by network and outcome; unparsed is format drift
+	Sightings       *prometheus.CounterVec // by network
+	Pending         prometheus.Gauge
+	Quarantined     prometheus.Gauge
+	Lag             prometheus.Gauge
+	LastClosed      prometheus.Gauge
+	CloseTook       prometheus.Histogram
+	HourFiles       *prometheus.CounterVec // by outcome: written, failed
+	BroughtBack     *prometheus.CounterVec // archived days brought back, by outcome: loaded, failed
+	HourDaysWaiting prometheus.Gauge
+	lagSeconds      atomic.Int64
 }
 
 // NewMetrics registers the loader's metrics on reg.
@@ -142,8 +154,18 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 			Name: "tracks_loader_hour_close_seconds", Help: "Time to close one hour and rebuild its day.",
 			Buckets: []float64{1, 2, 5, 10, 20, 40, 80, 160},
 		}),
+		HourFiles: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "tracks_loader_hour_files_total", Help: "Hour files (a day of an hourly table in the archive), by outcome (written, failed).",
+		}, []string{"outcome"}),
+		BroughtBack: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "tracks_loader_hours_brought_back_total", Help: "Archived days loaded back into the hourly tables, by outcome (loaded, failed).",
+		}, []string{"outcome"}),
+		HourDaysWaiting: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "tracks_loader_hour_days_waiting", Help: "Days past the hour-file age without current hour files.",
+		}),
 	}
-	reg.MustRegister(m.Files, m.Scrapes, m.Sightings, m.Pending, m.Quarantined, m.Lag, m.LastClosed, m.CloseTook)
+	reg.MustRegister(m.Files, m.Scrapes, m.Sightings, m.Pending, m.Quarantined, m.Lag, m.LastClosed, m.CloseTook,
+		m.HourFiles, m.BroughtBack, m.HourDaysWaiting)
 	return m
 }
 

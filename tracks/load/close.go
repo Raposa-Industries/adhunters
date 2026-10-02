@@ -15,8 +15,9 @@ import (
 const closeLock = `SELECT pg_try_advisory_xact_lock(hashtext('tracks-loader:maintain'))`
 
 // Maintain does the loop's work between files: close ready hours and rebuild
-// their days, rewrite the open hours, prune live links, and once an hour make
-// partitions ahead and drop old ones.
+// their days, rewrite the open hours, prune live links, once an hour make
+// partitions ahead and drop old ones, bring back archived days a page asked
+// for, and write hour files.
 func (l *Loader) Maintain(ctx context.Context) error {
 	now := l.cfg.Now()
 	if _, err := l.CloseReady(ctx); err != nil {
@@ -34,13 +35,28 @@ func (l *Loader) Maintain(ctx context.Context) error {
 		}
 		l.lastPrune = now
 	}
+	// The archive's work never holds up closing: each step runs, and its
+	// error is reported with the others.
+	var errs []error
 	if now.Sub(l.lastKeep) >= time.Hour {
 		if err := l.Keep(ctx); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 		l.lastKeep = now
 	}
-	return nil
+	if now.Sub(l.lastBringBack) >= 10*time.Second {
+		if _, err := l.BringBack(ctx); err != nil {
+			errs = append(errs, err)
+		}
+		l.lastBringBack = now
+	}
+	if now.Sub(l.lastHourFiles) >= l.cfg.HourFilesEvery {
+		if _, err := l.WriteHourFiles(ctx); err != nil {
+			errs = append(errs, err)
+		}
+		l.lastHourFiles = now
+	}
+	return errors.Join(errs...)
 }
 
 // CloseReady closes every dirty hour whose raw files are all loaded and that
@@ -190,6 +206,9 @@ func (l *Loader) Keep(ctx context.Context) error {
 	}
 	if l.cfg.DisableRetention {
 		return nil
+	}
+	if err := l.KeepArchived(ctx); err != nil {
+		return err
 	}
 	keep := map[string]int{"scrape": l.cfg.KeepScrapes, "sighting": l.cfg.KeepSightings, "auction": l.cfg.KeepAuctions}
 

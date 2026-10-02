@@ -121,6 +121,13 @@ func (s *site) do(method, path, body string, hdr ...string) *httptest.ResponseRe
 	return w
 }
 
+func (s *site) exec(sql string, args ...any) {
+	s.t.Helper()
+	if _, err := s.db.Exec(context.Background(), sql, args...); err != nil {
+		s.t.Fatalf("%v\n%s", err, sql)
+	}
+}
+
 func (s *site) get(path string) map[string]any {
 	s.t.Helper()
 	w := s.do("GET", path, "")
@@ -174,6 +181,34 @@ func TestAPI(t *testing.T) {
 			t.Errorf("ad %s is empty", k)
 		}
 	}
+	if ad["hours_state"] != "database" {
+		t.Errorf("the last 24 hours' hours read %v", ad["hours_state"])
+	}
+
+	// An older range: presence day by day over the range, and hours Tracks
+	// moved to its archive are asked for back.
+	from, to := now.AddDate(0, 0, -4).Format("2006-01-02"), now.AddDate(0, 0, -1).Format("2006-01-02")
+	s.exec(`INSERT INTO tracks_api.hourly_days_fake VALUES ($1::date, 'archive')`, now.AddDate(0, 0, -2))
+	old := s.get("/spy/api/ads/10?from=" + from + "&to=" + to)
+	if got := len(list(old["series"])); got != 4 {
+		t.Errorf("an older range's presence has %d days, want its 4", got)
+	}
+	if old["hours_state"] != "coming" {
+		t.Errorf("archived hours read %v, want coming", old["hours_state"])
+	}
+	if h := s.get("/spy/api/ads/10/hours?from=" + from + "&to=" + to); h["state"] != "coming" {
+		t.Errorf("hours: %v", h)
+	}
+	s.exec(`UPDATE tracks_api.hourly_days_fake SET state = 'database'`)
+	if h := s.get("/spy/api/ads/10/hours?from=" + from + "&to=" + to); h["state"] != "database" {
+		t.Errorf("hours once back: %v", h)
+	}
+	// Before Tracks publishes it (a deploy in between), the page still opens.
+	s.exec(`DROP FUNCTION tracks_api.hourly_days_v1`)
+	if got := s.get("/spy/api/ads/10?from=" + from + "&to=" + now.Format("2006-01-02")); got["hours_state"] != "database" || len(list(got["hours"])) == 0 {
+		t.Errorf("without hourly_days_v1: %v %v", got["hours_state"], got["hours"])
+	}
+
 	if r := ad["raposa"].(map[string]any); r["available"] != false {
 		t.Errorf("raposa without its views: %v", r)
 	}
