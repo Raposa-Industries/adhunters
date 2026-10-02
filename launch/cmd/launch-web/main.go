@@ -154,6 +154,7 @@ func serve(args []string) error {
 	srv.AddCheck("database", func(ctx context.Context) error { return db.Ping(ctx) })
 	tasks := srv.Tasks()
 	tasks.Promise("launch_watch_moves", 3*every)
+	tasks.Promise("launch_run_requests", 3*requestsEvery)
 
 	ln, err := net.Listen("tcp", *addr)
 	if err != nil {
@@ -170,7 +171,8 @@ func serve(args []string) error {
 	return run.Main(log, run.DefaultGrace, func(ctx context.Context) error {
 		opsDone := make(chan error, 1)
 		go func() { opsDone <- srv.Serve(ctx, log, envOr("OPS_ADDR", "127.0.0.1:9111")) }()
-		go watch(ctx, l, tasks, log, every)
+		go loop(ctx, tasks, log, "launch_watch_moves", "watching moves", every, l.Watch)
+		go loop(ctx, tasks, log, "launch_run_requests", "carrying out requests", requestsEvery, l.RunWaiting)
 		served := make(chan error, 1)
 		go func() { served <- httpSrv.Serve(ln) }()
 		var err error
@@ -215,17 +217,22 @@ func handler(a *api.API) http.Handler {
 	return web.Secure(cop.Handler(mux))
 }
 
-// watch pauses a move's originals once a person starts the copies.
-func watch(ctx context.Context, l *actions.Launch, tasks *ops.Tasks, log interface{ Warn(string, ...any) }, every time.Duration) {
+// requestsEvery is how often Launch looks for requests Desk sent.
+const requestsEvery = 15 * time.Second
+
+// loop runs one of launch-web's own jobs every so often: watching moves
+// (pausing a move's originals once a person starts the copies) and
+// carrying out the requests Desk sent.
+func loop(ctx context.Context, tasks *ops.Tasks, log interface{ Warn(string, ...any) }, task, what string, every time.Duration, job func(context.Context) (int, error)) {
 	t := time.NewTicker(every)
 	defer t.Stop()
 	for {
 		start := time.Now()
-		n, err := l.Watch(ctx)
+		n, err := job(ctx)
 		if err != nil {
-			log.Warn("watching moves", "err", err)
+			log.Warn(what, "err", err)
 		}
-		tasks.Done("launch_watch_moves", start, int64(n), err)
+		tasks.Done(task, start, int64(n), err)
 		select {
 		case <-ctx.Done():
 			return

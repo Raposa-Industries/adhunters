@@ -412,6 +412,30 @@ func (s *Store) Requests(ctx context.Context, limit int) ([]Request, error) {
 	return out, rows.Err()
 }
 
+// WaitingRequests lists the requests nobody decided yet that were made
+// within maxAge, oldest first.
+func (s *Store) WaitingRequests(ctx context.Context, maxAge time.Duration, limit int) ([]Request, error) {
+	rows, err := s.db.Query(ctx, `SELECT `+requestCols+` FROM launch.request
+		WHERE state = 'waiting' AND made_at >= now() - make_interval(secs => $1)
+		ORDER BY made_at, id LIMIT $2`, maxAge.Seconds(), limit)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (Request, error) { return scanRequest(r) })
+}
+
+// Expire refuses, as who, the requests still waiting after maxAge, with
+// why in their result; nothing is sent for them.
+func (s *Store) Expire(ctx context.Context, maxAge time.Duration, who, why string) (int64, error) {
+	b, err := json.Marshal(map[string]string{"error": why})
+	if err != nil {
+		return 0, err
+	}
+	tag, err := s.db.Exec(ctx, `UPDATE launch.request SET state = 'refused', confirmed_by = $2, result = $3, decided_at = now()
+		WHERE state = 'waiting' AND made_at < now() - make_interval(secs => $1)`, maxAge.Seconds(), who, b)
+	return tag.RowsAffected(), err
+}
+
 // ErrDecided is a request someone already confirmed or refused.
 var ErrDecided = errors.New("store: request already decided")
 

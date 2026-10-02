@@ -124,7 +124,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | draft | A new campaign or pair, group or set of new ads saved on the server to finish later. It is deleted when what it holds is made. New ones are no longer saved since 2 Oct 2026, and the Rascunhos screen that listed them was removed the same day (IMPLEMENT d587e1b829): the saved ones are kept and open only by address (`/launch/new?draft=<id>`). |
 | History | Everything Launch did on a network, one row per change: who did it, who asked (a person, Intel or Desk), before and after, and the result. Shown in a campaign's Histórico tab; the Histórico screen was removed on 2 Oct 2026, and every row is kept. |
 | old launcher | create-web's one-page campaign launcher, the prototype Launch replaced. Retired on 2026-10-01: create-web now only redirects to Launch. |
-| request | A change another service (Desk) asks Launch for, made only once a person confirms it. Launch's Pedidos screen, where people confirmed or refused them, was removed on 2 Oct 2026 (IMPLEMENT d587e1b829): requests are still taken and kept, but wait unseen until a screen for them comes back. |
+| request | A change another service (Desk) asks Launch for, after the person said yes in Desk's conversation. Launch carries it out on arrival as that person, within its usual limits; it never turns anything on. (Launch's Pedidos screen, where people used to confirm them, was removed on 2 Oct 2026.) |
 
 ## Intel
 

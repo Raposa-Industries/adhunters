@@ -2,9 +2,9 @@
 
 Puts ads on the networks, and is the one app that changes anything there
 (AGENTS.md: Launch owns every write; Intel and Desk only read and suggest:
-their one-tap links open Launch with the change filled in; Desk's requests
-are taken and kept, but have no screen since Pedidos was removed, see
-Pages). Taboola today; NewsBreak
+their one-tap links open Launch with the change filled in; Desk's requests,
+which the person OKs in Desk's conversation, Launch carries out on
+arrival, see Requests). Taboola today; NewsBreak
 later as a second adapter under `internal/network/`. The pages are in
 Portuguese, headlines always in English. It sits in the Frame
 (`shared/frame`) and uses the ad code it shares with create-web
@@ -52,8 +52,8 @@ Rascunhos (`web/pages/route.js`, `GONE`). Nothing stored was dropped and the
 API is unchanged, but:
 
 - **Desk's requests** (`launch_api.new_request_v1`, the `launch.*` asks in
-  `contract/actions/launch.json`) are still taken and kept, and nobody can
-  confirm or refuse them: they wait. Desk's links to them
+  `contract/actions/launch.json`) are carried out on arrival (see
+  Requests), so they need no screen. Desk's links to them
   (`/launch/requests/<id>`, the asks' `link`) open Campanhas.
 - **History** shows only in a campaign's Histórico tab, not all at once.
 - **Presets** are still saved and used in the new-item steps (**Salvar como
@@ -155,11 +155,16 @@ or saved in a preset:
 - **Pause, change.** Bid, daily cap, total limit, name (one campaign at a
   time). Some ads of one campaign can be paused too (Intel's `pause-ads`).
   Turning on is never here.
-- **Requests.** Desk calls `launch_api.new_request_v1` (below); the
-  request waits until a person confirms or refuses it. It is decided once:
-  a second press gets "já foi decidido". Since Pedidos was removed
-  (IMPLEMENT d587e1b829) no page confirms or refuses them: they are kept
-  and wait, and Desk's links to `/launch/requests/<id>` open Campanhas.
+- **Requests.** Desk calls `launch_api.new_request_v1` (below) only after
+  the person said yes in Desk's conversation (owner, 2 Oct 2026), so
+  launch-web carries each waiting request out within 15 s, oldest first,
+  as that person (`requested_by`, kept as `confirmed_by`) and asked by its
+  origin (`desk:step:…`, in History): the same actions, limits, ceilings
+  and proxies as the pages, and none of them turns anything on. It ends
+  `sent` or `failed` with the result; one that waited over an hour (Launch
+  was down) is `refused` by `launch` instead and nothing is sent. A request
+  is decided once, so the API's confirm or refuse on one already done gets
+  "já foi decidido". The ops task `launch_run_requests` shows the runs.
 - **Proxies.** Every request to Taboola for an account of a login added on
   Contas goes through that login's proxy, and for an account of the
   server's own login through its proxy when it has one (else direct): the
@@ -222,8 +227,8 @@ or failed, 503 not connected.
 | `GET library/status` `verticals` `sets` `creatives` `headlines` | The library's lists, passed on (filters: `vertical`, `set`, `angle`, `origin`, `ai_label`, `q`, `limit`, `before`). |
 | `GET library/set?id=`, `GET library/thumb?id=` | One set with its creatives and headlines; a creative's thumbnail. |
 | `POST library/use?id=` | Copies a library creative's picture into Launch's pictures: `{image, creative}`. |
-| `GET requests`, `GET requests/{id}` | Requests (kept; no screen shows them since IMPLEMENT d587e1b829). |
-| `POST requests/{id}/confirm`, `POST requests/{id}/refuse` | Decides one, as the signed-in person. |
+| `GET requests`, `GET requests/{id}` | Requests and where each stands (no screen shows them since IMPLEMENT d587e1b829). |
+| `POST requests/{id}/confirm`, `POST requests/{id}/refuse` | Decides one still waiting, as the signed-in person (launch-web carries them out within 15 s, so these rarely find one). |
 | `POST images` (multipart `image`), `GET images/{sha}` | Pictures. |
 
 | `GET logins` | The logins for Contas: `{id, server, network, name, client_id` (first and last four characters only)`, user_id, proxy` (host:port)`, accounts: [{id, name, proxy, problem}], added_by, added_at, problem}`; an account's `proxy` "" is direct. Each login's accounts are asked of Taboola through their proxy. Never a secret or a whole proxy. |
