@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 
 // Client reads one project's issues.
@@ -105,7 +107,7 @@ func (c *Client) issues(ctx context.Context) ([]Issue, error) {
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 	hc := c.HTTP
 	if hc == nil {
-		hc = &http.Client{Timeout: 30 * time.Second}
+		hc = &http.Client{Timeout: 30 * time.Second, Transport: ops.Transport("sentry", nil)}
 	}
 	resp, err := hc.Do(req)
 	if err != nil {

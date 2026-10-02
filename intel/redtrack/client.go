@@ -22,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Raposa-Industries/adhunters/kit/ops"
 )
 
 // DefaultBaseURL is RedTrack's API host.
@@ -67,7 +69,7 @@ var DefaultLimits = map[string]time.Duration{
 func New(apiKey string) *Client {
 	return &Client{
 		BaseURL:        DefaultBaseURL,
-		HTTP:           &http.Client{Timeout: 60 * time.Second},
+		HTTP:           &http.Client{Timeout: 60 * time.Second, Transport: ops.Transport("redtrack", nil)},
 		MinGap:         200 * time.Millisecond,
 		Limits:         DefaultLimits,
 		MaxRetries:     3,

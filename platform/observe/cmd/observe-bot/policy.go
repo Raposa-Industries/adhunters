@@ -35,7 +35,7 @@ func newPolicyWatch(state string, tg *telegram.Client) *policyWatch {
 	}
 	return &policyWatch{
 		crawler: &policy.Crawler{
-			HTTP:  &http.Client{Timeout: 30 * time.Second},
+			HTTP:  &http.Client{Timeout: 30 * time.Second, Transport: ops.Transport("taboola-help", nil)},
 			Roots: roots,
 			Max:   300,
 			Pause: 2 * time.Second,

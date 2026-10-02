@@ -100,7 +100,7 @@ makes and drops its own database).
 
 | Path | Does |
 |---|---|
-| `redtrack/` | Thin client for the RedTrack API: spacing and retries, paging, the key kept out of every answer, error and log line, rows kept as raw JSON fields. |
+| `redtrack/` | Thin client for the RedTrack API: spacing and retries, paging, the key kept out of every answer, error and log line, rows kept as raw JSON fields. Every call, retries included, is counted on `/metrics` by status as provider `redtrack` (`kit/ops` `Transport`). |
 | `taboola/` | Read-only client for Taboola's Backstage API, on `shared/taboola` (token handling, retries on 429 and 5xx honouring `Retry-After`): a transport that refuses anything but reads, and the reads (account, campaigns, items, reports). Answers come back raw so they are saved before they are read. |
 | `cmd/intel-taboola` | Developer tool: `probe` calls every Taboola read once for one account and writes the raw answers plus `summary.md`. Not a service. |
 | `taboola/act` | The Taboola write client for the write tests only (Launch owns every Taboola write), on `shared/taboola` (it repeats nothing but a request answered 401, once, with a new token). A guard checked before every request: one advertiser account, only campaigns and items it created (kept in a state file), new campaigns paused with a fixed bid and a total budget, and a money ceiling on everything it ever turns on. |
