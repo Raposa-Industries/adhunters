@@ -91,18 +91,23 @@ groups:
           resolved: 'Walks on the {{ $labels.box }} box fail at their usual rate again.'
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/walker-failing.md
 
-      # An ad waiting a whole extra re-walk (6 h) past its turn: the walker
-      # cannot keep up. 1,532 ads were overdue, the oldest by 27 hours, on 2
-      # Oct 2026. tracks_walker_oldest_overdue_seconds comes from
-      # tracks-walker; until it reports it, this stays silent.
+      # The walker cannot keep up: at its pace of the last 15 minutes, it
+      # needs over 2 hours to walk the ads waiting for it (about 30 minutes
+      # with 2 workers on 2 Oct 2026). The longest single wait,
+      # tracks_walker_oldest_overdue_seconds, is only information: ads that
+      # run on and off come back already due, so it reads hours on a good
+      # day too. The queue is one for all walkers, hence no by (box). A walker
+      # that walks nothing is WalkerStopped's, hence > 0.
       - alert: WalkerBehind
-        expr: max by (box) (tracks_walker_oldest_overdue_seconds) > 6 * 3600
+        expr: |
+          max(tracks_walker_backlog)
+            / (sum(rate(tracks_walker_walks_total[15m])) > 0) > 2 * 3600
         for: 30m
         labels:
           tier: chat
         annotations:
-          summary: 'An ad has waited {{ $value | humanizeDuration }} past its re-walk on the {{ $labels.box }} box. tracks-walker is not keeping up.'
-          resolved: 'tracks-walker on the {{ $labels.box }} box is keeping up with its re-walks again.'
+          summary: 'At its current pace, tracks-walker needs {{ $value | humanizeDuration }} to walk the ads waiting for it. It is not keeping up.'
+          resolved: tracks-walker is keeping up again.
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/walker-behind.md
 
       - alert: ShipperBehind

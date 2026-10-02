@@ -47,7 +47,8 @@ q "Units failed now" 'node_systemd_unit_state{state="failed"} == 1'
 q "Services not answering now" 'up{job="adhunters"} == 0'
 q "Scrapes, successful share" "sum(increase(tracks_capture_scrapes_total{outcome=\"ok\"}[$h])) / sum(increase(tracks_capture_scrapes_total[$h]))"
 q "Walks, failed share by box" "sum by (box) (increase(tracks_walker_walks_total{outcome!=\"ok\"}[$h])) / sum by (box) (increase(tracks_walker_walks_total[$h]))"
-q "Walker, oldest overdue (seconds)" 'max by (box) (tracks_walker_oldest_overdue_seconds)'
+q "Walker, time to walk what waits now (seconds; WalkerBehind over 7200)" 'max(tracks_walker_backlog) / (sum(rate(tracks_walker_walks_total[15m])) > 0)'
+q "Walker, longest wait of one ad (seconds, information only)" 'max by (box) (tracks_walker_oldest_overdue_seconds)'
 q "Raposa steps by result" "sum by (result) (increase(raposa_steps_total[$h]))"
 q "Raposa automatic quick runs queued" "sum(increase(raposa_auto_queued_total[$h]))"
 q "Loader, most behind (seconds)" "max_over_time(max(tracks_loader_lag_seconds)[$h:5m])"
