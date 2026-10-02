@@ -38,12 +38,15 @@ inhibit_rules:
     target_matchers: ['tier="chat"']
     equal: [box]
   - source_matchers: ['alertname="PostgresDown"']
-    target_matchers: ['alertname=~"LoaderLag|HourNotClosed|ServiceDown|ServiceRestarting|TaskLate|TaskFailing|ErrorsLogged|WalkerStopped|RaposaIdle"']
+    target_matchers: ['alertname=~"LoaderLag|HourNotClosed|ServiceDown|ServiceRestarting|TaskLate|TaskFailing|ErrorsLogged|WalkerStopped|RaposaIdle|RaposaQueueEmpty"']
   # Every service logs connection errors while Postgres restarts; the restart
   # is the one message worth reading. Errors that go on after the hour fire
   # then.
   - source_matchers: ['alertname="PostgresRestarted"']
     target_matchers: ['alertname="ErrorsLogged"']
+  # An empty automatic queue is why Raposa is idle; say the cause once.
+  - source_matchers: ['alertname="RaposaQueueEmpty"']
+    target_matchers: ['alertname="RaposaIdle"']
   # A failing task logs an error each time; the task's alert says it once.
   - source_matchers: ['alertname="TaskFailing"']
     target_matchers: ['alertname="ErrorsLogged"']

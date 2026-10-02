@@ -448,3 +448,25 @@ tests:
               summary: An ad has waited 8h 20m 0s past its re-walk on the worker box. tracks-walker is not keeping up.
               resolved: tracks-walker on the worker box is keeping up with its re-walks again.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/walker-behind.md
+
+  # The automatic queue queues a few an hour, then nothing (2 Oct 2026: a
+  # join with a view that had no Taboola ads). 6 quiet hours, then 30 min.
+  - interval: 5m
+    input_series:
+      - series: 'up{job="adhunters",service="raposa-engine",instance="adhunters-worker",box="worker"}'
+        values: '1x200'
+      - series: 'raposa_auto_queued_total{service="raposa-engine",instance="adhunters-worker",box="worker",job="adhunters"}'
+        values: '0+2x24 48x170'
+    alert_rule_test:
+      - eval_time: 8h
+        alertname: RaposaQueueEmpty
+        exp_alerts: []
+      - eval_time: 8h40m
+        alertname: RaposaQueueEmpty
+        exp_alerts:
+          - exp_labels:
+              tier: chat
+            exp_annotations:
+              summary: Raposa's automatic quick queue has queued nothing for over 6 hours. New ads whose landing page the walker could not get are not being investigated.
+              resolved: Raposa's automatic quick queue is queuing investigations again.
+              runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raposa-queue-empty.md

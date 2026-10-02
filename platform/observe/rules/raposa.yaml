@@ -37,3 +37,20 @@ groups:
           summary: raposa-engine has taken no investigation step for over 3 hours. Nothing is queued, or nothing that is queued runs.
           resolved: raposa-engine is running investigations again.
           runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raposa-idle.md
+
+      # The automatic quick queue selects nothing. After the switch-over on 2
+      # Oct 2026 raposa.queue_quick joined a view with no Taboola ads and
+      # queued 0 every five minutes without an error, for hours. Usually it
+      # queues several an hour (quick runs for new ads whose landing page the
+      # walker could not get), so 6 quiet hours is the queue, not the ads.
+      - alert: RaposaQueueEmpty
+        expr: |
+          sum(increase(raposa_auto_queued_total[6h])) == 0
+            and on() sum(up{job="adhunters", service="raposa-engine"}) > 0
+        for: 30m
+        labels:
+          tier: chat
+        annotations:
+          summary: Raposa's automatic quick queue has queued nothing for over 6 hours. New ads whose landing page the walker could not get are not being investigated.
+          resolved: Raposa's automatic quick queue is queuing investigations again.
+          runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/raposa-queue-empty.md
