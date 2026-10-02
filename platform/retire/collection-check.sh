@@ -44,7 +44,7 @@ printf 'out-of-memory kills in 24 h: %s\n' "$(journalctl -k --since -24h -q --no
 echo
 echo "-- failed units"
 systemctl list-units --state=failed --no-legend --plain | sed 's/^/  /'
-echo "-- services: state, since, restarts in 24 h, errors and warnings logged in 24 h"
+echo "-- services: state, since, restarts in 24 h, errors and warnings logged in 24 h (UTC)"
 printf '  %-28s %-18s %-12s %8s %7s %6s\n' unit state since restarts errors warns
 systemctl list-units --type=service --all --no-legend --plain |
     awk '{print $1}' |
@@ -59,9 +59,36 @@ systemctl list-units --type=service --all --no-legend --plain |
         warns=$(grep -c '"level":"WARN"' "$tmp")
         printf '  %-28s %-18s %-12s %8s %7s %6s\n' "${u%.service}" "$state" "$since" "$restarts" "$errs" "$warns"
         if [ "$errs" -gt 0 ]; then
-            grep '"level":"ERROR"' "$tmp" |
-                sed -nE 's/.*"msg":"([^"]*)".*"err":"([^"]{0,90}).*/\1: \2/p; t; s/.*"msg":"([^"]*)".*/\1/p' |
-                sed -E 's/[0-9]+/N/g' | mask | sort | uniq -c | sort -rn | head -3 | sed 's/^/      /'
+            python3 - "$tmp" "$since" <<'PY'
+import json, re, sys, collections
+path, since = sys.argv[1:3]
+start = None if since == "-" else since  # MM-DD HH:MM, compared as text with each line's own time
+seen = collections.OrderedDict()
+for line in open(path, errors="replace"):
+    if not line.startswith("{") or '"level":"ERROR"' not in line:
+        continue
+    try:
+        e = json.loads(line)
+    except ValueError:
+        continue
+    key = e.get("msg", "")
+    if e.get("job"):
+        key += " [%s]" % e["job"]
+    if e.get("err"):
+        key += ": " + str(e["err"])[:90]
+    key = re.sub(r"//[^/@ ]+@", "//***@", key)
+    key = re.sub(r"(?i)(password|token|key)=[^ &\"]+", r"\1=***", key)
+    key = re.sub(r"[0-9]+", "N", key)
+    t = str(e.get("time", ""))  # 2026-10-02T05:12:00.1Z
+    when = t[5:10] + " " + t[11:16] if len(t) >= 16 else ""
+    c = seen.setdefault(key, [0, 0, ""])
+    c[0] += 1
+    if start and when >= start:
+        c[1] += 1
+    c[2] = max(c[2], when)
+for key, (n, after, last) in sorted(seen.items(), key=lambda kv: -kv[1][0])[:4]:
+    print("      %5d, %d since the start, last %s  %s" % (n, after, last or "?", key))
+PY
         fi
     done
 
@@ -172,17 +199,34 @@ HAVING count(*) FILTER (WHERE s.outcome NOT IN ('ok', 'empty')) > 0.2 * count(*)
 ORDER BY failed DESC LIMIT 12;
 
 \echo
-\echo '== Walker per hour'
-SELECT to_char(date_trunc('hour', at), 'MM-DD HH24') AS hour, count(*) AS walks,
-       count(*) FILTER (WHERE outcome = 'ok') AS ok, count(*) FILTER (WHERE outcome = 'http_error') AS http_error,
-       count(*) FILTER (WHERE outcome = 'error') AS error,
-       round(percentile_disc(0.5) WITHIN GROUP (ORDER BY ms) / 1000.0, 1) AS median_s
+\echo '== Walker per hour (walks without a line are the old collector''s walker, imported)'
+SELECT to_char(date_trunc('hour', at), 'MM-DD HH24') AS hour, count(*) FILTER (WHERE line IS NULL) AS old_walker,
+       count(*) FILTER (WHERE line IS NOT NULL) AS tracks_walks,
+       count(*) FILTER (WHERE line IS NOT NULL AND outcome = 'ok') AS ok,
+       count(*) FILTER (WHERE outcome = 'http_error') AS http_error, count(*) FILTER (WHERE outcome = 'error') AS error,
+       round(percentile_disc(0.5) WITHIN GROUP (ORDER BY ms) FILTER (WHERE line IS NOT NULL) / 1000.0, 1) AS median_s
 FROM tracks.walk WHERE at >= date_trunc('hour', now()) - interval '30 hours' GROUP BY 1 ORDER BY 1;
-\echo '== Walker per day: landing pages read whole'
-SELECT w.at::date AS day, count(*) AS walks, round(100.0 * count(*) FILTER (WHERE w.outcome = 'ok') / count(*), 1) AS ok_pct,
-       round(100.0 * count(p.version_hash) / count(*), 1) AS landing_read_pct
+\echo '== Walker per day: landing pages read whole (tracks-walker only)'
+SELECT w.at::date AS day, count(*) FILTER (WHERE w.line IS NULL) AS old_walker, count(*) FILTER (WHERE w.line IS NOT NULL) AS tracks_walks,
+       round(100.0 * count(*) FILTER (WHERE w.line IS NOT NULL AND w.outcome = 'ok') / nullif(count(*) FILTER (WHERE w.line IS NOT NULL), 0), 1) AS ok_pct,
+       round(100.0 * count(p.version_hash) FILTER (WHERE w.line IS NOT NULL) / nullif(count(*) FILTER (WHERE w.line IS NOT NULL), 0), 1) AS landing_read_pct
 FROM tracks.walk w LEFT JOIN tracks.walk_step p ON p.walk_id = w.id AND p.step = 0
 WHERE w.at >= current_date - 6 GROUP BY 1 ORDER BY 1;
+\echo '== Walker backlog: ads seen in the last hour with a link, and when they were last walked'
+WITH s AS (SELECT DISTINCT ad_id FROM tracks.sighting WHERE seen_at > now() - interval '1 hour' AND link_id IS NOT NULL)
+SELECT count(*) AS live_ads, count(*) FILTER (WHERE w.ad_id IS NULL) AS never_walked,
+       count(*) FILTER (WHERE w.next_at <= now()) AS due_again,
+       round(extract(epoch FROM percentile_disc(0.5) WITHIN GROUP (ORDER BY now() - w.next_at) FILTER (WHERE w.next_at <= now())) / 60) AS median_overdue_min,
+       round(extract(epoch FROM max(now() - w.next_at) FILTER (WHERE w.next_at <= now())) / 60) AS max_overdue_min,
+       round(extract(epoch FROM percentile_disc(0.5) WITHIN GROUP (ORDER BY now() - w.walked_at)) / 60) AS median_since_walked_min
+FROM s LEFT JOIN tracks.walk_state w ON w.ad_id = s.ad_id;
+\echo '== New ads (first seen 1 to 7 hours ago): walked yet, and how soon'
+SELECT count(*) AS new_ads, count(f.at) AS walked,
+       round(100.0 * count(f.at) / nullif(count(*), 0), 1) AS walked_pct,
+       round(extract(epoch FROM percentile_disc(0.5) WITHIN GROUP (ORDER BY f.at - a.first_seen_at)) / 60) AS median_wait_min,
+       round(extract(epoch FROM percentile_disc(0.9) WITHIN GROUP (ORDER BY f.at - a.first_seen_at)) / 60) AS p90_wait_min
+FROM tracks.ad a LEFT JOIN LATERAL (SELECT min(w.at) AS at FROM tracks.walk w WHERE w.ad_id = a.id) f ON true
+WHERE a.first_seen_at >= now() - interval '7 hours' AND a.first_seen_at < now() - interval '1 hour';
 \echo '== Walker per line, last 24 h'
 SELECT coalesce(line, '-') AS line, count(*) AS walks, round(100.0 * count(*) FILTER (WHERE outcome = 'ok') / count(*), 1) AS ok_pct
 FROM tracks.walk WHERE at >= now() - interval '24 hours' GROUP BY 1 ORDER BY 1;
@@ -267,6 +311,16 @@ FROM w JOIN who ON who.k = w.k JOIN ph ON ph.k = w.k
 LEFT JOIN pages ON pages.k = w.k AND pages.network IS NOT DISTINCT FROM ph.network
 LEFT JOIN ah ON ah.k = w.k AND ah.network IS NOT DISTINCT FROM ph.network
 ORDER BY ph.network NULLS FIRST, w.k;
+
+\echo '== Landing page walks in those hours: the old collector''s walker against tracks-walker'
+WITH w AS (
+    SELECT k, :'t0'::timestamptz - k * interval '1 day' AS a, :'t1'::timestamptz - k * interval '1 day' AS b
+    FROM generate_series(0, 3) k)
+SELECT to_char(w.a, 'MM-DD') AS day, CASE WHEN x.line IS NULL THEN 'old walker' ELSE 'tracks-walker' END AS walker,
+       count(*) AS walks, count(*) FILTER (WHERE x.outcome = 'ok') AS ok, count(DISTINCT x.ad_id) AS ads,
+       count(DISTINCT x.creative_id) AS creatives, count(DISTINCT x.link_id) AS links
+FROM w JOIN tracks.walk x ON x.at >= w.a AND x.at < w.b
+GROUP BY w.k, w.a, 2 ORDER BY w.k, 2;
 
 \echo '== Which creatives each saw in those hours'
 WITH w AS (
