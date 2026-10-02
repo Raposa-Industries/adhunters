@@ -86,6 +86,12 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | campaign group | Taboola's level above a campaign, which can hold a budget shared by its campaigns. Taboola makes an "AutoGen" one for a campaign made without a group, and a campaign's group is set only when it is made. |
 | paused | Made but not running: a group, campaign or item with Taboola's `is_active` false. Everything Create makes on Taboola is paused; only a person turns it on, in Taboola's own dashboard. (Not "stopped", which is Spy's word for a creative no longer seen.) |
 | lent account | A Taboola login someone else owns that we may use for tests (ZoltaGroup). create-web runs it only-own: it lists and touches only the groups and campaigns it made, as recorded in its state file. |
+| platform | The ad network a session's pictures are for: Taboola (the default) or NewsBreak, chosen when the session starts. It gives the network letter of its minted names (T, N) and the folder between the vertical's and the set's in Drive (`<vertical>/<platform>/<set>`). |
+| picture size | The canvas a turn's pictures are made in: landscape 16:9 (1600x896), vertical 9:16 (896x1600) or NewsBreak's 1504x786. A size the picture model does not make is made at its closest shape and cut to the exact size on Create's server; the model's own picture is kept first. |
+| interrupted | A turn a person stopped with Parar: its pictures not started are not made, and the page stops waiting for the ones being made. What was already paid for is kept, and still shows up if it arrives. (Not "stopped", Spy's word, nor "paused".) |
+| quick edit | A one-click instruction the composer adds to the prompt for changing picked pictures faithfully ("mirror it horizontally", "change only the table's colour"). Several can go in one prompt. (Not a preset, which is Launch's saved settings.) |
+| headline memory | What a headline call learns from: every team example headline of the vertical, the session's headlines and the library's for the vertical, newest first up to a budget, with the blocked words and Taboola's rules. |
+| headline model | The text model that writes a turn's headlines: OpenAI's by default, or Grok, DeepSeek or Kimi when their keys are set (decision 0023). Pictures are always OpenAI's. |
 
 ## Library
 
