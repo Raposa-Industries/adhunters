@@ -53,7 +53,7 @@ export async function campaignView(o) {
   h('h2', { class: 'side-title' }, c.name),
   h('p', { class: 'side-meta' }, badge(c.status), h('span', { class: 'muted' }, [DEVICES[c.device], c.id].filter(Boolean).join(' · ')),
     data.pair ? h('span', { class: 'badge pair', title: 'Par criado pelo Launch: ' + data.pair.name }, 'par') : null,
-    data.twin ? h('span', { class: 'muted' }, 'com ', h('a', { href: '#', class: 'twin', onclick: (e) => { e.preventDefault(); o.open?.(data.twin.id); } }, twinDevice)) : null));
+    data.twin ? [h('span', { class: 'muted' }, 'com'), h('a', { href: '#', class: 'twin', onclick: (e) => { e.preventDefault(); o.open?.(data.twin.id); } }, twinDevice)] : null));
 
   // ---- actions ----
   const pauseBtn = h('button', { type: 'button', onclick: () => post(pauseBtn, 'pause', {}, ['pausada', 'pausadas']) });
@@ -84,10 +84,10 @@ export async function campaignView(o) {
   // ---- tabs: settings, ads, history ----
   const obj = OBJECTIVES.find(([k]) => k === (s.objective || c.objective))?.[1] || s.objective || c.objective || '—';
   const settings = h('dl', { class: 'summary' },
-    h('dt', {}, 'Lance'), h('dd', {}, bidLine(s)),
+    h('dt', {}, 'CPC'), h('dd', {}, bidLine(s)),
     h('dt', {}, 'Teto diário'), h('dd', {}, money(s.daily_cap)),
     h('dt', {}, 'Limite total'), h('dd', {}, money(s.spending_limit)),
-    h('dt', {}, 'Grupo'), h('dd', {}, g ? (g.name || g.id) + ' · ' + budgetLine(g) : c.group_id || '—'),
+    h('dt', {}, 'Grupo'), h('dd', {}, g ? (g.name || g.id) + ' · ' + budgetLine(g).replace(/^orçamento /, '') : c.group_id || '—'),
     h('dt', {}, 'Países'), h('dd', {}, (s.countries || []).join(', ') || 'todos', s.exclude_cities?.length ? ', menos ' + plural(s.exclude_cities.length, 'cidade', 'cidades') : ''),
     h('dt', {}, 'Objetivo'), h('dd', {}, obj),
     h('dt', {}, 'Marca'), h('dd', {}, s.brand || '—'),
@@ -207,10 +207,12 @@ function kpi(label, value) {
 
 const BIDS = { MAX_CONVERSIONS: 'Maximizar conversões', TARGET_CPA: 'CPA alvo', FIXED: 'CPC fixo', SMART: 'CPC Smart' };
 
-// bidLine says how the campaign bids: "CPC fixo · US$ 0,32".
+// bidLine is the CPC line: the bid itself ("US$ 0,32") when the campaign
+// bids a CPC, otherwise how Taboola bids for it ("Maximizar conversões").
 function bidLine(s) {
+  if ((s.bid_strategy === 'FIXED' || !s.bid_strategy) && s.cpc) return money(s.cpc);
+  if (s.bid_strategy === 'SMART' && s.cpc) return money(s.cpc) + ' · Smart';
   const b = BIDS[s.bid_strategy] || s.bid_strategy || '—';
-  if (s.bid_strategy === 'FIXED' || s.bid_strategy === 'SMART') return b + ' · ' + money(s.cpc);
   if (s.target_cpa) return b + ' · CPA alvo ' + money(s.target_cpa);
   return b;
 }

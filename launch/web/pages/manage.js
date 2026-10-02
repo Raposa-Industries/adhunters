@@ -141,6 +141,8 @@ export async function manage(ctx) {
   // no group at all get "Sem grupo".
   const extra = standIns(groups, campaigns);
   groups.push(...extra);
+  // realGroups are the groups a campaign can go to or start in.
+  const realGroups = groups.filter((g) => !g.gone && !g.none);
   for (const c of campaigns) {
     if (!extra.some((g) => g.gone && g.account === c.account && g.id === c.group_id)) continue;
     c.taboola_status = c.status;
@@ -208,7 +210,7 @@ export async function manage(ctx) {
   drawLists();
 
   // ---- head ----
-  main.append(h('div', { class: 'page-head' },
+  main.append(h('div', { class: 'page-head camp-head' },
     h('div', {}, h('h1', {}, 'Campanhas'), h('p', { class: 'muted numbers-line' }, numbersLine(nums))),
     h('div', { class: 'actions' }, newMenu({ at, group: at.group ? realGroups.find((g) => g.id === at.group) : null }))));
   for (const p of problems) main.append(note('fail', p));
@@ -343,12 +345,12 @@ export async function manage(ctx) {
     }
     const chip = [plural(rows.length, 'grupo', 'grupos'), openAny ? plural(nCamps, 'campanha', 'campanhas') : null, adCount ? plural(adCount, 'anúncio', 'anúncios') : null].filter(Boolean).join(' · ');
     const allPicked = shown.length > 0 && shown.every((c) => pickC.has(c.id));
-    const table = h('table', { class: 'list numbers nested' },
+    const table = h('table', { class: 'list numbers nested camp-table' },
       h('thead', {}, h('tr', {},
         h('th', { class: 'pick' }, h('input', { type: 'checkbox', 'aria-label': 'Escolher todas as campanhas abertas', checked: allPicked,
           onchange: (e) => { for (const c of shown) e.target.checked ? pickC.add(c.id) : pickC.delete(c.id); draw(); } })),
-        sortHead('name', 'Nome', 'name'), h('th', {}, 'Estado'), h('th', {}, 'Orçamento'),
-        visCols.map(([k, label]) => sortHead(k, label, 'num')))),
+        sortHead('name', 'Nome', 'name'), h('th', { class: 'state' }, 'Estado'), h('th', { class: 'budget' }, 'Orçamento'),
+        visCols.map(([k, label]) => sortHead(k, label, 'num col-' + k)))),
       h('tbody', {}, body.length ? body : h('tr', {}, h('td', { colspan: nCols, class: 'faint empty-row' },
         groups.length ? 'Nada com esses filtros.' : 'Nenhum grupo nesta conta. Use Novo › Grupo de campanha.'))),
       rows.length ? h('tfoot', {}, h('tr', {}, h('td'), h('td', { colspan: 3 }, h('b', {}, 'Total')), visCols.map(([, , show]) => h('td', { class: 'num' }, show(sum))))) : null);
@@ -367,7 +369,7 @@ export async function manage(ctx) {
 
   function caret(open, label, onclick) {
     return h('button', { type: 'button', class: 'caret' + (open ? ' open' : ''), 'aria-expanded': String(open), 'aria-label': (open ? 'Fechar ' : 'Abrir ') + label, onclick },
-      h('span', { 'aria-hidden': 'true' }, '▸'));
+      h('span', { class: 'tri', 'aria-hidden': 'true' }));
   }
 
   function groupRow(r, open, n, visCols) {
@@ -382,7 +384,7 @@ export async function manage(ctx) {
         caret(open, 'o grupo ' + (g.name || g.id), () => toggleGroup(r.key)),
         h('span', { class: 'tag' }, 'Grupo'),
         h('span', { class: 'row-name' }, g.name || g.id),
-        g.id && !g.gone ? h('span', { class: 'mono faint' }, g.id) : null,
+        g.id ? h('span', { class: 'mono faint' }, g.id) : null,
         many ? h('span', { class: 'faint acct' }, acctName.get(g.account)) : null)),
       h('td', {}, g.status ? badge(g.status) : '—'),
       h('td', { class: 'mono budget' }, g.gone || g.none ? '—' : budget(g)),
@@ -414,16 +416,14 @@ export async function manage(ctx) {
       h('td', { class: 'name' }, h('div', { class: 'name-cell indent-2' },
         h('span', { class: 'tag' }, 'Ad'),
         a.image_url ? h('img', { class: 'ad-thumb', src: a.image_url, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }) : h('span', { class: 'ad-thumb empty', 'aria-hidden': 'true' }, '–'),
-        h('span', { class: 'row-name', title: [a.title, a.description, a.url].filter(Boolean).join('\n') }, a.title || a.id),
-        a.ai ? h('span', { class: 'badge' }, 'IA') : null,
-        word(nums.ads?.[a.id]))),
+        h('span', { class: 'row-name', title: [a.title, a.description, a.url].filter(Boolean).join('\n') }, a.title || a.id))),
       h('td', {}, badge(a.approval && a.approval !== 'APPROVED' ? a.approval : a.status)),
       h('td', { class: 'mono budget' }, '—'),
       visCols.map(([, , show]) => h('td', { class: 'num' }, show(adNums(a)))));
   }
 
   function columnsMenu() {
-    const menu = h('details', { class: 'cols-menu' }, h('summary', { class: 'link-button' }, 'Colunas', h('span', { 'aria-hidden': 'true' }, ' ▾')),
+    const menu = h('details', { class: 'cols-menu' }, h('summary', { class: 'link-button' }, 'Colunas', h('span', { class: 'tri', 'aria-hidden': 'true' })),
       h('div', { class: 'menu', role: 'group', 'aria-label': 'Colunas da tabela' },
         COLUMNS.map(([k, label]) => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: cols.includes(k), onchange: (e) => {
           cols = COLUMNS.map(([c]) => c).filter((c) => (c === k ? e.target.checked : cols.includes(c)));
@@ -634,14 +634,6 @@ export function budget(g) {
   return per && g.budget ? money(g.budget) + per : 'por campanha';
 }
 
-const WORDS = { better: ['melhor', 'up'], worse: ['pior', 'down'], usual: ['normal', ''], unclear: ['incerto', 'faint'], too_little: ['pouco dado', 'faint'] };
-
-function word(n) {
-  if (!n?.word) return null;
-  const [label, cls] = WORDS[n.word] || [n.word, ''];
-  return h('span', { class: 'word ' + cls, title: 'Intel' + (n.sureness ? ', certeza: ' + n.sureness : '') }, label);
-}
-
 // NEW is what the "+ Novo" menu makes: a group, a campaign (a pair) or ads,
 // each with its letter (N then the letter opens it).
 const NEW = [
@@ -666,7 +658,7 @@ export function newMenu(where) {
     h('div', { class: 'menu', role: 'menu' }, NEW.map(([make, key, label, about]) => h('a', { href: newHref(make, where), role: 'menuitem' },
       h('span', { class: 'new-glyph', 'aria-hidden': 'true' }, key),
       h('span', { class: 'new-text' }, h('b', {}, label), h('small', {}, about)),
-      h('span', { class: 'new-keys', 'aria-label': 'atalho N ' + key }, h('kbd', {}, 'N'), h('kbd', {}, key))))));
+      h('kbd', { class: 'new-keys', 'aria-label': 'atalho N ' + key }, 'N ' + key)))));
   document.addEventListener('click', (e) => { if (!menu.contains(e.target)) menu.open = false; });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') menu.open = false; });
   return menu;
