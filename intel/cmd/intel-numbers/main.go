@@ -9,8 +9,10 @@
 //	intel-numbers status
 //
 // DATABASE_URL owns the intel schemas. TELEGRAM_BOT_TOKEN and
-// TELEGRAM_CHAT_ID, when set, send each new alert, delivery status change and
-// suggestion to "AdHunters alerts"; INTEL_BASE_URL (https://hunt-teste.fyi for
+// OPS_TELEGRAM_CHAT_ID, when set, send each new alert, delivery status change
+// and suggestion to the ops group "AdHunters operation" (without
+// OPS_TELEGRAM_CHAT_ID they go to TELEGRAM_CHAT_ID, "AdHunters alerts", as
+// before); INTEL_BASE_URL (https://hunt-teste.fyi for
 // now) makes the links absolute, so a suggestion opens Launch in one tap.
 // It never talks to Taboola or RedTrack, and never writes anywhere but the
 // intel schemas.
@@ -186,10 +188,19 @@ func (r *rounds) done(task string, start time.Time, rows int64, err error) {
 
 func newRounds(db *pgxpool.Pool, log *slog.Logger) *rounds {
 	r := &rounds{db: db, log: log, base: os.Getenv("INTEL_BASE_URL")}
-	if tok, chat := os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("TELEGRAM_CHAT_ID"); tok != "" && chat != "" {
+	if tok, chat := os.Getenv("TELEGRAM_BOT_TOKEN"), opsChat(); tok != "" && chat != "" {
 		r.send = telegram.New(tok, chat)
 	}
 	return r
+}
+
+// opsChat is the chat Intel's messages go to: the ops group, or "AdHunters
+// alerts" while the ops group has no chat id.
+func opsChat() string {
+	if chat := os.Getenv("OPS_TELEGRAM_CHAT_ID"); chat != "" {
+		return chat
+	}
+	return os.Getenv("TELEGRAM_CHAT_ID")
 }
 
 func runCmd() error {

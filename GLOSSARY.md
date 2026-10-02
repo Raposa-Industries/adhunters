@@ -36,8 +36,9 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | bring back | Load an archived day's hour files into the database again because a page asked for it. They go again once nobody has asked for 3 days. |
 | live link | A click link seen in the last 15 minutes, with the values the ad network put in it. Raposa takes each one once. |
 | books balance | The loaded facts add up: each raw file's scrapes equal its rows, and each closed hour's counts equal its sightings. |
-| watch | Something a person follows in an app (an operator, an investigation). Watches notify through Pushcut. |
+| watch | Something a person follows in an app (an operator, an investigation). Raposa's watches notify through Pushcut; Spy's watched operators notify the ops group. |
 | alert | A system or developer message. Alerts go to Telegram, never Pushcut. |
+| ops group | The Telegram group "AdHunters operation": what the team acts on (Intel's alerts, delivery status changes and suggestions, policy changes, watch notices). Everything about the platform itself stays in "AdHunters alerts". |
 | page | An alert that needs someone now: Telegram with sound, repeated every 5 minutes until it clears or is silenced. |
 | chat alert | An alert that can wait for the day: Telegram, silent, grouped, 08:00 to 22:00 São Paulo. |
 | digest | The one Telegram message at 08:00 São Paulo with yesterday in numbers. |
@@ -45,7 +46,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | runbook | The file in `runbooks/` an alert links: what it means, what to check, how to fix it. |
 | credit | What is left on a prepaid service we pay for: proxy traffic, AI credit. observe-bot reads it where the service has an API, or estimates it from our own spending where it has none (`credits.conf`). |
 | policy page | An article or section of Taboola's advertiser help center (realize.com/help) under Policy & Content Review. observe-bot reads them every 6 hours. |
-| policy change | A policy page that appeared, went away or whose text changed between two crawls. Each one is posted to "AdHunters alerts". |
+| policy change | A policy page that appeared, went away or whose text changed between two crawls. Each one is posted to the ops group. |
 | renewal | The day a subscription we depend on renews or must be paid, for services with no balance to read (the datacenter and ISP lines). |
 | task | Work a service does on a schedule (an hour close, a refresh, a pull). Each promises how often it succeeds; one past its promise is late. |
 | spool | A collector's local folder of what it received and has not handed on yet: Capture's raw files not yet archived, intel-collect's answers not yet in the database. The collector writes there first, so it keeps working while the database or archive is away. |
@@ -140,7 +141,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | tracking gap | The tracker counted under half the clicks the network counted in the last full hour: links lose their tracking or the tracker is down. |
 | landing page gap | The tracker's landing page views were under 30% of its clicks in the last full hour: the page does not open, or its script does not fire. |
 | postback gap | The network counted under half the tracker's sales yesterday: sales are not reaching the network, so its own optimisation works blind. |
-| delivery status | A campaign's state on the ad network, as Taboola's "Delivery Status" shows it: running, paused, pending approval, rejected, depleted (its budget is spent), expired, terminated, frozen; deleted when it leaves the network's list. Intel sends each change to "AdHunters alerts". |
+| delivery status | A campaign's state on the ad network, as Taboola's "Delivery Status" shows it: running, paused, pending approval, rejected, depleted (its budget is spent), expired, terminated, frozen; deleted when it leaves the network's list. Intel sends each change to the ops group. |
 | suggestion | A change Intel proposes (pause these ads, pause this campaign, lower the daily cap), with why. Intel never makes it: its button opens Launch with the change filled in, and a person makes it there. |
 | not now | A person setting a suggestion aside. It does not come back for a day, and comes back after that only if its reason still holds. |
 | campaign line | A campaign and every copy made of it. Moving a campaign to another group makes a copy with a new id (Taboola cannot change a campaign's group), so Intel keeps the line to follow its history across ids. |
@@ -179,7 +180,7 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | grouping | Spy's own answer to which sites and accounts make one operator (`spy.regroup_operators`). Proposed until the `operators_from` setting says `grouping`. |
 | hand fix | A person's correction: to the grouping (join a site or account to an operator, or keep it out of every group) or to a creative's vertical. It always wins. |
 | nickname | A name a person gives an operator in Spy. It replaces the inferred name everywhere until taken away. |
-| watch notice | A watched operator's move (it turned rising, or Size started calling it scaled), sent through Pushcut and listed on its Spy page. |
+| watch notice | A watched operator's move (it turned rising, or Size started calling it scaled), sent to the ops group and listed on its Spy page. |
 | agency | An account name root whose accounts buy for 3 or more operators' sites. Its accounts are not grouped by the root. |
 | kind | An operator's business: arbitrage (an account buys for 3 or more site groups), affiliate (sells through an affiliate network) or direct. |
 | stage | Retired: the collector's blend of counts into test, scaling and winner. Use momentum, lifespan and new. |

@@ -2,7 +2,8 @@
 // "AdHunters alerts" that Alertmanager cannot: the 08:00 digest, and each new
 // Sentry issue as it first appears. It also exports what is left on each
 // prepaid service and when subscriptions renew, for the credit alerts, and
-// posts each change to Taboola's advertiser policy pages.
+// posts each change to Taboola's advertiser policy pages to the ops group
+// "AdHunters operation".
 //
 //	observe-bot run                 the digest at DIGEST_AT (default 08:00 São Paulo), the Sentry relay
 //	                                the credit checks and the policy watch
@@ -15,7 +16,9 @@
 //	observe-bot version
 //
 // Settings come from the environment (/etc/adhunters/observe-bot.env):
-// TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID; GRAFANA_QUERY_URL (the stack's
+// TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID; OPS_TELEGRAM_CHAT_ID, the ops
+// group's chat id for the policy changes (empty: they go to TELEGRAM_CHAT_ID
+// too); GRAFANA_QUERY_URL (the stack's
 // Prometheus URL followed by /api/prom), GRAFANA_QUERY_USER and
 // GRAFANA_QUERY_TOKEN (metrics:read); SENTRY_URL (default https://sentry.io),
 // SENTRY_ORG, SENTRY_PROJECT and SENTRY_API_TOKEN (read-only; empty leaves
@@ -88,6 +91,7 @@ func usage() {
 
 type config struct {
 	tg     *telegram.Client
+	ops    *telegram.Client // the ops group; the same as tg when it has no chat id of its own
 	metric *prom.Client
 	errs   *sentry.Client // nil: relay off
 	loc    *time.Location
@@ -115,6 +119,10 @@ func load() (*config, error) {
 	}
 	if len(missing) > 0 {
 		return nil, fmt.Errorf("not set: %s", strings.Join(missing, ", "))
+	}
+	c.ops = c.tg
+	if chat := os.Getenv("OPS_TELEGRAM_CHAT_ID"); chat != "" && chat != "FILL_ME" {
+		c.ops = telegram.New(c.tg.Token, chat)
 	}
 	if tok := os.Getenv("SENTRY_API_TOKEN"); tok != "" && tok != "FILL_ME" {
 		u := os.Getenv("SENTRY_URL")
@@ -198,7 +206,7 @@ func runCmd(args []string) error {
 	}
 
 	cr := newCredits(srv.Registry, tasks, cfg, c.metric, c.state)
-	pw := newPolicyWatch(c.state, c.tg)
+	pw := newPolicyWatch(c.state, c.ops)
 	if *policyEvery > 0 {
 		tasks.Promise("policy_watch", policyPromise)
 	}

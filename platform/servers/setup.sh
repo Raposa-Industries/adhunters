@@ -538,7 +538,11 @@ spy_box() {
 # spy-numbers import-old: a read-only login on the collector's database.
 DATABASE_URL=postgres://spy:${spy_pw:-FILL_ME}@localhost:5432/adhunters?sslmode=require
 OLD_DATABASE_URL=
-OPS_ADDR=127.0.0.1:9122" spy
+OPS_ADDR=127.0.0.1:9122
+# Watch notices go to the ops group: the bot token and the group's chat id.
+TELEGRAM_BOT_TOKEN=
+OPS_TELEGRAM_CHAT_ID=
+SPY_BASE_URL=https://hunt-teste.fyi" spy
     env_file spy-web "# spy-web settings (spy/README.md). ACCESS_TEAM is the team's address
 # (https://<team>.cloudflareaccess.com), ACCESS_AUD the Access application's AUD tag.
 DATABASE_URL=postgres://spy_web:${web_pw:-FILL_ME}@localhost:5432/adhunters?sslmode=require
@@ -745,6 +749,9 @@ OPS_ADDR=127.0.0.1:9108"
 observe_bot_env='# observe-bot settings (see platform/observe/README.md).
 TELEGRAM_BOT_TOKEN=FILL_ME
 TELEGRAM_CHAT_ID=FILL_ME
+# The ops group "AdHunters operation", for Taboola policy changes. Empty: they
+# go to TELEGRAM_CHAT_ID.
+OPS_TELEGRAM_CHAT_ID=
 # The stack'"'"'s Prometheus URL followed by /api/prom, its user number, and a
 # token with metrics:read.
 GRAFANA_QUERY_URL=FILL_ME

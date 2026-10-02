@@ -256,7 +256,8 @@ and stop switch are on its settings page.
 `/etc/adhunters/intel-collect.env` (the ZoltaGroup Taboola client id and
 secret, and a RedTrack key), then `sudo systemctl restart intel-collect`.
 Alerts reach Telegram once `/etc/adhunters/intel-numbers.env` has the same
-`TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as `observe-bot.env`, then
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` and `OPS_TELEGRAM_CHAT_ID` as
+`observe-bot.env` (they go to the ops group "AdHunters operation"), then
 `sudo systemctl restart intel-numbers`.
 
 ## Spy on hunt-teste.fyi/spy/

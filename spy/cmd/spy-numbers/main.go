@@ -15,9 +15,10 @@
 // (tracks_api_read) and owns the spy schemas. import-old copies the
 // groupings (operators, accounts, verticals), pages, Direction history and
 // prices from the collector's database at OLD_DATABASE_URL, which it only
-// reads. Watched operators' notices go through Pushcut with PUSHCUT_API_KEY
-// to the notification PUSHCUT_NOTIFICATION; without them they show only in
-// Spy's pages. run stops cleanly on SIGTERM: a
+// reads. Watched operators' notices go to the ops group "AdHunters operation"
+// on Telegram with TELEGRAM_BOT_TOKEN and OPS_TELEGRAM_CHAT_ID, linking the
+// operator page under SPY_BASE_URL; without them they show only in Spy's
+// pages. run stops cleanly on SIGTERM: a
 // job in flight is cancelled and its transaction rolled back.
 package main
 
@@ -39,7 +40,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/kit/ops"
 	"github.com/Raposa-Industries/adhunters/kit/pg"
 	"github.com/Raposa-Industries/adhunters/kit/run"
-	"github.com/Raposa-Industries/adhunters/shared/pushcut"
+	"github.com/Raposa-Industries/adhunters/shared/telegram"
 	"github.com/Raposa-Industries/adhunters/spy/classify"
 	"github.com/Raposa-Industries/adhunters/spy/importold"
 	"github.com/Raposa-Industries/adhunters/spy/migrations"
@@ -194,14 +195,15 @@ func refreshCmd(args []string) error {
 	return numbers.New(db, log, cfg, nil).All(ctx, *rebuild)
 }
 
-// watches sets where watch notices go: Pushcut, when its key and the
-// notification's name are set.
+// watches sets where watch notices go: the ops group on Telegram, when the
+// bot token and the group's chat id are set.
 func watches(cfg *numbers.Config, log *slog.Logger) {
-	key, name := os.Getenv("PUSHCUT_API_KEY"), os.Getenv("PUSHCUT_NOTIFICATION")
-	if key != "" && name != "" {
-		cfg.Pushcut, cfg.Notification = pushcut.New(key), name
+	tok, chat := os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("OPS_TELEGRAM_CHAT_ID")
+	if tok != "" && chat != "" {
+		cfg.Telegram = telegram.New(tok, chat)
 	}
-	log.Info("watch notices", "pushcut", key != "" && name != "")
+	cfg.BaseURL = os.Getenv("SPY_BASE_URL")
+	log.Info("watch notices", "telegram", cfg.Telegram != nil)
 }
 
 // classifier is the classifier as a numbers job: it counts the creatives read
