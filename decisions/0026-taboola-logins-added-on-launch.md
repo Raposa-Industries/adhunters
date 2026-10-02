@@ -23,7 +23,7 @@ Launch uses.
   exchange holds it. A page sees only the client ID's first and last four
   characters.
 - **Launch owns it.** Launch is the one app that writes to Taboola
-  (decision 0013 and AGENTS.md), so its logins live in its schema. Intel
+  (launch/README.md), so the logins live in its schema. Intel
   still reads only its own env logins; giving it the added ones is a later
   change through `contract/`.
 
