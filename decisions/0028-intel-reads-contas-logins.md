@@ -27,6 +27,12 @@ numbers.
   at start and every 5 minutes; when a login is added, removed or changed it
   ends cleanly and systemd starts it again with the new set.
 
-**Not covered:** the server's own login's accounts that have a proxy on
-Contas (`launch.account_proxy`) are still read direct by Intel's env login,
-as before.
+- **The server's own login's proxied accounts too.** An account of the
+  server's own login (Intel's env login) that has a proxy on Contas
+  (`launch.account_proxy`, published in
+  `launch_api.taboola_account_proxy_v1`) is read only through it, by a client
+  of its own, as Launch does; the env login leaves it out, and when its
+  proxy does not open it is not read. The owner's rule (2 Oct): once an
+  account has a proxy, every request for it goes through it, Intel's reads
+  included. intel-collect keeps a sealed copy of both views on disk, so a
+  start with the database away still knows which accounts never go direct.

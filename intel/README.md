@@ -31,7 +31,17 @@ the login's proxy and never direct; a login with no proxy, or whose secret
 or proxy does not open with the key, is not read and the log says why. An
 account one of its own logins already reads is read once, by its own. When a
 login is added, removed or changed, intel-collect ends cleanly and systemd
-starts it again with the new set. To give it the key, from your computer:
+starts it again with the new set.
+
+An account of its own env login that has a proxy on Contas (the "···" menu,
+`launch_api.taboola_account_proxy_v1`) is read only through that proxy, by
+a client of its own named `<login>-<account>`, the token included; the env
+login leaves it out. When its proxy does not open (no key, another key) the
+account is not read at all and the log says why; it never goes direct.
+What Launch published is kept in `/var/lib/intel-collect/launch.json`
+(still sealed, `INTEL_LAUNCH_KEPT`), so a start with the database away
+still knows which accounts never go direct. To give it the key, from your
+computer:
 
 ```
 ssh admin@adhunters-data sudo bash -s <<'EOF'
