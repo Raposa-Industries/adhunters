@@ -121,9 +121,46 @@ details.more.box[open] { padding-bottom: 14px; }
 /* Revisar (Figma "Nova campanha · revisar") */
 .review { display: flex; flex-direction: column; gap: 14px; }
 .review > p.faint:not(.rv-foot) { margin: 0; font-size: 13px; line-height: 19px; }
-.ads-preview table.list th { font: 600 10px/14px var(--sans); letter-spacing: .12em; color: var(--muted); }
-.ads-preview td { font-size: 13px; }
-.ads-preview .ad-id { font-size: 11px; }
+
+/* Novos anúncios · Revisar (Figma "Launch · Novos anúncios (revisar)"):
+   the whole width, a summary card, then one row per ad */
+.steps-page.ads .steps-content.wide { grid-template-columns: minmax(0, 1fr); }
+.ads-review { display: flex; flex-direction: column; }
+.ads-review .review { gap: 16px; }
+.ads-review .review > .note { margin: 0; }
+.rv-summary { display: grid; grid-template-columns: 420px 287px minmax(0, 1fr); padding: 15px 16px 14px 17px; border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-1); }
+.rv-fact { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 13px; line-height: 19px; color: var(--ink); }
+.rv-fact .fr-label { font-weight: 600; letter-spacing: .12em; }
+.rv-fact > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 16px; }
+.rv-fact .mono { font: 400 12px/19px var(--mono); white-space: pre; }
+.rv-ads { border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-1); overflow-x: auto; }
+.rv-ads table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 900px; }
+.rv-ads th { height: 35px; padding: 0 0 0 16px; text-align: left; vertical-align: middle; background: color-mix(in srgb, var(--surface-1) 60%, var(--ground)); border-bottom: 1px solid var(--line-subtle);
+  font: 600 10px/14px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.rv-ads th:nth-child(1) { width: 100px; padding-left: 17px; }
+.rv-ads th:nth-child(2) { width: 97px; padding-left: 0; }
+.rv-ads th:nth-child(3) { width: 360px; padding-left: 0; }
+.rv-ads th:nth-child(4) { width: 260px; padding-left: 0; }
+.rv-ads th:nth-child(6) { width: 82px; }
+.rv-ads th:nth-child(5) { padding-left: 0; }
+.rv-ads td { height: 56px; padding: 0; vertical-align: middle; border-bottom: 1px solid var(--line-subtle); font-size: 13.5px; }
+.rv-ads tbody tr:last-child td { border-bottom: 0; }
+.rv-ads td.rv-ad { padding-left: 17px; font: 500 12.5px var(--mono); color: var(--accent); }
+.rv-thumb { position: relative; display: block; width: 72px; height: 38px; }
+.rv-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; background: var(--surface-3); }
+.rv-ia { position: absolute; top: 4px; right: 4px; padding: 0 4px; border: 1px solid var(--ember-chip-line); border-radius: 3px; background: rgba(9, 9, 12, .82); color: var(--accent-soft); font: 500 8px/12px var(--mono); letter-spacing: .04em; }
+.rv-ads td.rv-title { padding-right: 24px; font-weight: 500; font-size: 14px; color: var(--ink-strong); }
+.rv-ads td.rv-title > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-ads td.rv-title .warn-line { font-size: 11.5px; font-weight: 400; white-space: normal; }
+.rv-ads td.rv-desc { padding-right: 24px; font-size: 13px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-label { display: inline-flex; align-items: center; justify-content: flex-start; width: 169px; min-height: 0; height: 17.5px; padding: 0 7px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-2);
+  font: 400 9px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+.ai-label:hover { border-color: var(--control-line); background: var(--surface-2); color: var(--ink); }
+.ai-label.off { border-style: dashed; background: none; color: var(--faint); }
+.rv-ads td.rv-out { padding-right: 16px; text-align: right; }
+.rv-out button { gap: 6px; min-height: 0; height: 28px; padding: 0 11px 0 10px; font-size: 13px; font-weight: 400; color: var(--ink-strong); }
+.x-icon { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.ads-review + .done-card ~ .steps-next, .steps-content.wide .steps-next { margin-top: 18px; }
 .rv-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .rv-head b { font-size: 13px; font-weight: 500; }
 .rv-head .faint { font-size: 12px; }
