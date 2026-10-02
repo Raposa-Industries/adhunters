@@ -101,7 +101,7 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | set | Creatives and headlines made or uploaded together: one session in Create, one folder in Drive. Launch picks a set to make ads from. |
 | safe copy | Retired (decision 0020): the library's own copy of a picture's bytes. The library keeps files in Drive only. |
 | minted name | A creative's name from its vertical's code, the network letter and a counter that only goes up (`BPT43`), given when an app saves it. Never given twice. |
-| hidden | Taken out of the library's lists by a person. Nothing in the library is deleted. |
+| hidden | Taken out of lists by a person: a library item out of the library's, an operator (with its creatives) out of Spy's. Nothing is deleted. |
 
 ## Launch
 
@@ -177,7 +177,9 @@ Every Spy number is defined in [spy/METRICS.md](spy/METRICS.md).
 | site | Where an operator's landing pages are: a registrable domain, or the whole host on a hosting domain (`shop.myshopify.com`). A checkout platform is never a site. |
 | clue | Something a site's pages carry that names who runs them: a pixel id, an email, a company name. A strong clue is one business's; the others are hints and group nothing. |
 | grouping | Spy's own answer to which sites and accounts make one operator (`spy.regroup_operators`). Proposed until the `operators_from` setting says `grouping`. |
-| hand fix | A person's correction to the grouping: join a site or account to an operator, or keep it out of every group. It always wins. |
+| hand fix | A person's correction: to the grouping (join a site or account to an operator, or keep it out of every group) or to a creative's vertical. It always wins. |
+| nickname | A name a person gives an operator in Spy. It replaces the inferred name everywhere until taken away. |
+| watch notice | A watched operator's move (it turned rising, or Size started calling it scaled), sent through Pushcut and listed on its Spy page. |
 | agency | An account name root whose accounts buy for 3 or more operators' sites. Its accounts are not grouped by the root. |
 | kind | An operator's business: arbitrage (an account buys for 3 or more site groups), affiliate (sells through an affiliate network) or direct. |
 | stage | Retired: the collector's blend of counts into test, scaling and winner. Use momentum, lifespan and new. |

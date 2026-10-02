@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -39,25 +40,68 @@ func (w *where) sql() string {
 	return strings.Join(w.conds, " AND ")
 }
 
+// sortBy is one order a list offers: a column and its usual direction.
+type sortBy struct {
+	col  string
+	desc bool
+}
+
 // adSorts are the orders the ads list offers. Presence first: how often you
 // would see the ad if you looked now.
-var adSorts = map[string]string{
-	"presence":  "r.presence DESC NULLS LAST",
-	"momentum":  "r.momentum_rank ASC NULLS LAST",
-	"share":     "r.share_pct DESC NULLS LAST",
-	"sightings": "r.sightings DESC",
-	"newest":    "r.first_seen_at DESC",
-	"last_seen": "r.last_seen_at DESC",
-	"lifespan":  "r.lifespan_days DESC NULLS LAST",
-	"days":      "cs.active_days DESC",
-	"total":     "cs.sightings_total DESC",
+var adSorts = map[string]sortBy{
+	"presence":  {"r.presence", true},
+	"momentum":  {"r.momentum_rank", false},
+	"share":     {"r.share_pct", true},
+	"sightings": {"r.sightings", true},
+	"newest":    {"r.first_seen_at", true},
+	"last_seen": {"r.last_seen_at", true},
+	"lifespan":  {"r.lifespan_days", true},
+	"days":      {"cs.active_days", true},
+	"total":     {"cs.sightings_total", true},
+	"name":      {"lower(cs.headline)", false},
+}
+
+// order reads sort (def when empty) and rev (1: the other way round, Z to A
+// for names) into an ORDER BY. Rows without a value stay last either way.
+func order(r *http.Request, sorts map[string]sortBy, def string) (string, error) {
+	name := r.URL.Query().Get("sort")
+	if name == "" {
+		name = def
+	}
+	sb, ok := sorts[name]
+	if !ok {
+		names := make([]string, 0, len(sorts))
+		for k := range sorts {
+			names = append(names, k)
+		}
+		slices.Sort(names)
+		return "", bad("sort must be one of %s", strings.Join(names, ", "))
+	}
+	desc := sb.desc
+	switch r.URL.Query().Get("rev") {
+	case "", "0":
+	case "1":
+		desc = !desc
+	default:
+		return "", bad("rev must be 1 or nothing")
+	}
+	if desc {
+		return sb.col + " DESC NULLS LAST", nil
+	}
+	return sb.col + " ASC NULLS LAST", nil
 }
 
 // rangeSource is the FROM for a subject's numbers: kept ready for the last
-// 24 hours, computed when asked for any other range.
+// 24 hours, computed when asked for any other range or against the period
+// just before.
 func rangeSource(win Window, w *where, recent, fn string) string {
-	if win.Recent {
+	if win.stored() {
 		return "spy_api." + recent
+	}
+	if win.Before {
+		span := win.To.Sub(win.From)
+		return fmt.Sprintf("spy_api.%s(%s, %s, %s, %s)", fn, w.arg(win.From), w.arg(win.To),
+			w.arg(win.From.Add(-span)), w.arg(win.From))
 	}
 	return fmt.Sprintf("spy_api.%s(%s, %s)", fn, w.arg(win.From), w.arg(win.To))
 }
@@ -68,22 +112,25 @@ func rangeSource(win Window, w *where, recent, fn string) string {
 // Filters: q (headline, brand, operator), category, vertical, operator,
 // publisher, network, account (Tracks account id), tracker, affiliate,
 // device (phone, desktop), status (new, running, ended, rising, fading,
-// scaled, stopped), min_days. Sorts: adSorts. limit (48, at most 100), offset.
+// scaled, stopped), min_days, hidden (1: with the operators people hid).
+// Sorts: adSorts, rev. limit (48, at most 100), offset.
 func (s *Server) ads(r *http.Request) (any, error) {
+	return s.adsUpTo(r, 100)
+}
+
+// adsUpTo is the ads list with at most max rows a page.
+func (s *Server) adsUpTo(r *http.Request, max int) (any, error) {
 	ctx := r.Context()
 	win, err := s.window(ctx, r)
 	if err != nil {
 		return nil, err
 	}
 	q := r.URL.Query()
-	sort, ok := adSorts[q.Get("sort")]
-	if q.Get("sort") == "" {
-		sort, ok = adSorts["presence"], true
+	sort, err := order(r, adSorts, "presence")
+	if err != nil {
+		return nil, err
 	}
-	if !ok {
-		return nil, bad("sort must be one of presence, momentum, share, sightings, newest, last_seen, lifespan, days, total")
-	}
-	limit, err := intParam(r, "limit", 48, 100)
+	limit, err := intParam(r, "limit", 48, max)
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +141,13 @@ func (s *Server) ads(r *http.Request) (any, error) {
 	var w where
 	from := rangeSource(win, &w, "creative_recent_v1", "creative_range_v1")
 	w.add("NOT r.is_junk")
+	switch q.Get("hidden") {
+	case "", "0":
+		w.add("NOT EXISTS (SELECT 1 FROM spy_api.operator_mark_v1 hm WHERE hm.operator_id = cs.operator_id AND hm.hidden)")
+	case "1":
+	default:
+		return nil, bad("hidden must be 1 or nothing")
+	}
 	if v := strings.TrimSpace(q.Get("q")); v != "" {
 		p := w.arg(like(v))
 		w.conds = append(w.conds, fmt.Sprintf("(cs.headline ILIKE %[1]s OR b.name ILIKE %[1]s OR o.name ILIKE %[1]s OR o.display_name ILIKE %[1]s)", p))
@@ -161,8 +215,8 @@ func (s *Server) ads(r *http.Request) (any, error) {
 	}
 	lim, off := w.arg(limit), w.arg(offset)
 	sql := `
-		SELECT r.creative_id AS id, r.network_id, cr.image_url, cr.format_type, cs.headline, b.name AS brand,
-		       cs.operator_id, o.code AS operator_code, COALESCE(o.display_name, o.name) AS operator_name,
+		SELECT r.creative_id AS id, r.network_id, cr.image_url, cr.format_type, cs.headline, ta.description, ta.cta,
+		       b.name AS brand, cs.operator_id, o.code AS operator_code, COALESCE(o.display_name, o.name) AS operator_name,
 		       k.category_id, k.vertical_id, COALESCE(k.unsure, TRUE) AS vertical_unsure,
 		       r.sightings, r.checks, r.presence, r.presence_usual, r.phone_presence, r.desktop_presence,
 		       r.share_pct, r.rank, r.momentum, r.momentum_low, r.momentum_high, r.momentum_word, r.momentum_sure,
@@ -173,6 +227,7 @@ func (s *Server) ads(r *http.Request) (any, error) {
 		FROM ` + from + ` r
 		JOIN spy_api.creative_stats_v1 cs ON cs.creative_id = r.creative_id
 		JOIN tracks_api.creative_v1 cr ON cr.id = r.creative_id
+		LEFT JOIN tracks_api.ad_v1 ta ON ta.id = cs.top_ad_id
 		LEFT JOIN tracks_api.brand_v1 b ON b.id = cs.brand_id
 		LEFT JOIN spy_api.operator_v1 o ON o.id = cs.operator_id
 		LEFT JOIN spy_api.creative_class_v1 k ON k.creative_id = r.creative_id
@@ -311,7 +366,10 @@ func (s *Server) ad(r *http.Request) (any, error) {
 				ORDER BY n.sightings DESC LIMIT 20`, []any{id, d0, d1}},
 			{"campaigns", `
 				SELECT c.id, c.network_id, c.external_id, c.name, c.parent_external_id, c.parent_name, c.objective,
-				       acc.external_id AS account, n.sightings, n.last_seen_at
+				       acc.external_id AS account, n.sightings, n.last_seen_at,
+				       (SELECT b.name FROM tracks_api.ad_account_daily_v1 d JOIN tracks_api.brand_v1 b ON b.id = d.brand_id
+				        WHERE d.account_id = c.account_id AND d.creative_id = $1 AND d.day BETWEEN $2 AND $3
+				        GROUP BY b.name ORDER BY sum(d.sightings) DESC, b.name LIMIT 1) AS brand
 				FROM (SELECT cc.campaign_id, sum(cc.sightings) AS sightings, max(cc.last_seen_at) AS last_seen_at
 				      FROM tracks_api.creative_campaign_daily_v1 cc
 				      WHERE cc.creative_id = $1 AND cc.day BETWEEN $2 AND $3 GROUP BY 1) n
@@ -376,10 +434,10 @@ const hoursSQL = `
 	GROUP BY 1, 2 ORDER BY 1, 2`
 
 // seriesArgs are creative_series_v1's arguments for the ad page: the last
-// 30 days for the last 24 hours, else every day of the range (the last 120
-// at most), so an old week reads day by day from the daily counts.
+// 30 days for the last 24, 48 or 72 hours, else every day of the range (the
+// last 120 at most), so an old week reads day by day from the daily counts.
 func seriesArgs(id int, win Window, now time.Time) []any {
-	if win.Recent {
+	if win.Recent || win.Hours > 0 {
 		return []any{id, 30, now}
 	}
 	d0, d1 := win.days()

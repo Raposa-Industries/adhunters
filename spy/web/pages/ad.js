@@ -3,7 +3,7 @@
 // found. From here a person asks Raposa to investigate it, or opens Create
 // with this ad's image and headline to make variations.
 
-import { frame, h, api, rangePicker, rangeParams, load, presence, momentum, num, pct, money, when, day, word, direction, spark, bars, table, stats, link, windowText, keepRange, fill } from './spy.js';
+import { frame, h, api, post, rangePicker, comparePicker, rangeParams, load, presence, momentum, num, pct, money, when, day, word, direction, spark, bars, table, stats, link, windowText, keepRange, fill } from './spy.js';
 
 frame('ads');
 
@@ -19,7 +19,8 @@ async function draw() {
   const n = out.numbers[0] || {};
 
   const meta = h('div', { class: 'sp-meta' },
-    c.vertical_name ? h('a', { class: 'badge', href: '/spy/?vertical=' + encodeURIComponent(c.vertical_id), title: 'Classificado por ' + (c.vertical_source || '?') + ', confiança ' + pct(c.vertical_confidence * 100, 0) }, (c.category_name ? c.category_name + ' · ' : '') + c.vertical_name + (c.vertical_unsure ? ' ?' : '')) : h('span', { class: 'badge' }, 'Sem vertical'),
+    c.vertical_name ? h('a', { class: 'badge', href: '/spy/?vertical=' + encodeURIComponent(c.vertical_id), title: c.vertical_source === 'hand' ? 'Vertical escolhida à mão' : 'Classificado por ' + (c.vertical_source || '?') + ', confiança ' + pct(c.vertical_confidence * 100, 0) }, (c.category_name ? c.category_name + ' · ' : '') + c.vertical_name + (c.vertical_unsure ? ' ?' : '') + (c.vertical_source === 'hand' ? ' ✓' : '')) : h('span', { class: 'badge' }, 'Sem vertical'),
+    fixVertical(c),
     c.is_new ? h('span', { class: 'badge running' }, 'novo') : null,
     c.running ? h('span', { class: 'badge running' }, 'no ar') : h('span', { class: 'badge' }, 'saiu'),
     c.scaled ? h('span', { class: 'badge pair' }, 'escalado') : null,
@@ -58,7 +59,7 @@ async function draw() {
       actions));
 
   const series = out.series || [];
-  const trend = h('section', { class: 'panel' }, h('h3', {}, out.window.recent ? 'Presença por dia, 30 dias' : 'Presença por dia no período'),
+  const trend = h('section', { class: 'panel' }, h('h3', {}, out.window.recent || out.window.hours ? 'Presença por dia, 30 dias' : 'Presença por dia no período'),
     spark(series.map((s) => s.presence), 600, 70),
     h('p', { class: 'faint' }, series.length ? day(series[0].day) + ' a ' + day(series[series.length - 1].day) : ''));
 
@@ -111,6 +112,7 @@ async function draw() {
 
   const campaigns = h('section', { class: 'panel' }, h('h3', {}, 'Campanhas'), table([
     ['Campanha', (r) => r.name || r.external_id],
+    ['Marca', (r) => r.brand || '–'],
     ['Grupo', (r) => r.parent_name || r.parent_external_id || '–'],
     ['Conta', (r) => h('span', { class: 'mono' }, r.account || '–')],
     ['Vistas', (r) => num(r.sightings), 'num'],
@@ -124,6 +126,42 @@ async function draw() {
     h('div', { style: 'margin-top:14px' }, ads),
     h('div', { class: 'sp-grid', style: 'margin-top:14px' }, links, campaigns),
     raposa.panel ? h('div', { style: 'margin-top:14px' }, raposa.panel) : null);
+}
+
+// fixVertical is a button that opens the list of verticals: the one chosen
+// replaces the classifier's for this creative (and teaches it), until it is
+// given back.
+function fixVertical(c) {
+  const box = h('span', { class: 'sp-inline' });
+  const open = h('button', { type: 'button', class: 'ghost small' }, c.vertical_name ? 'Corrigir vertical' : 'Escolher vertical');
+  open.addEventListener('click', async () => {
+    open.disabled = true;
+    let vs;
+    try {
+      vs = await api('verticals');
+    } catch (err) {
+      box.replaceChildren(h('span', { class: 'muted' }, err.message));
+      return;
+    }
+    const sel = h('select', { 'aria-label': 'Vertical' }, h('option', { value: '' }, 'Escolha…'),
+      vs.categories.map((cat) => h('optgroup', { label: cat.name },
+        cat.verticals.map((v) => h('option', { value: v.id, selected: v.id === c.vertical_id }, v.name)))));
+    const msg = h('span', { class: 'muted' });
+    const send = async (vertical) => {
+      try {
+        await post('ads/' + id + '/vertical', { vertical_id: vertical });
+        draw();
+      } catch (err) {
+        msg.textContent = err.message;
+      }
+    };
+    box.replaceChildren(sel,
+      h('button', { type: 'button', class: 'small', onclick: () => sel.value && send(sel.value) }, 'Salvar'),
+      c.vertical_source === 'hand' ? h('button', { type: 'button', class: 'ghost small', onclick: () => send('') }, 'Voltar ao automático') : null,
+      msg);
+  });
+  box.append(open);
+  return box;
 }
 
 // drawHours is the hour of day (São Paulo) the ad shows, the last 7 days of
@@ -205,6 +243,6 @@ function drawRaposa(r) {
 
 main.append(
   h('nav', { class: 'crumbs' }, link('/spy/' + keepRange(), 'Anúncios'), h('span', { class: 'sep' }, '/'), h('span', { 'aria-current': 'page' }, 'Anúncio ' + id)),
-  h('div', { class: 'sp-toolbar' }, rangePicker(draw), h('span', { class: 'sp-count sp-window' })),
+  h('div', { class: 'sp-toolbar' }, rangePicker(draw), h('div', { class: 'sp-tools' }, comparePicker(draw), h('span', { class: 'sp-count sp-window' }))),
   h('div', { class: 'sp-body' }));
 draw();

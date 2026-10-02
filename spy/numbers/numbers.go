@@ -6,11 +6,13 @@
 //
 // Every minute it asks for the last 24 hours, which rebuild only when Tracks
 // closed a new hour (or closed one again). Every 5 minutes it reads the new
-// landing page walks (every 15 it regroups operators), runs the
-// classifier, rebuilds the read model, which reads its verticals, then
-// Direction, which reads the read model's junk flags. Every hour it sums
-// today's and yesterday's auction prices again. A job that fails is logged
-// and counted; the next tick tries again.
+// landing page walks (every 15 it regroups operators and carries people's
+// marks along), runs the classifier, rebuilds the read model, which reads
+// its verticals, then Direction, which reads the read model's junk flags,
+// then the watches: a notice for each watched operator that turned rising or
+// scaled, sent through Pushcut. Every hour it sums today's and yesterday's
+// auction prices again. A job that fails is logged and counted; the next
+// tick tries again.
 package numbers
 
 import (
@@ -25,6 +27,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/Raposa-Industries/adhunters/kit/ops"
+	"github.com/Raposa-Industries/adhunters/shared/pushcut"
 )
 
 // Jobs, in the order a 5-minute tick runs them.
@@ -35,6 +38,7 @@ const (
 	JobClassify  = "classify"
 	JobReadModel = "read_model"
 	JobDirection = "direction"
+	JobWatches   = "watches"
 	JobPrices    = "prices"
 )
 
@@ -48,6 +52,10 @@ type Config struct {
 	// Classify runs the classifier; nil leaves it out (tests of the numbers
 	// alone). It returns how many creatives it read or answered.
 	Classify func(context.Context) (int64, error)
+	// Pushcut sends watch notices through Notification; nil (no key) records
+	// them as skipped, so they show only in Spy's pages.
+	Pushcut      *pushcut.Client
+	Notification string
 }
 
 // Promises is how often each job must succeed before the TaskLate alert:
@@ -59,6 +67,7 @@ var Promises = map[string]time.Duration{
 	JobClassify:  20 * time.Minute,
 	JobReadModel: 20 * time.Minute,
 	JobDirection: 20 * time.Minute,
+	JobWatches:   20 * time.Minute,
 	JobPrices:    90 * time.Minute,
 }
 
@@ -142,9 +151,22 @@ func (r *Runner) Pages(ctx context.Context) (int64, error) {
 }
 
 // Operators regroups sites and accounts into operators: a proposal, applied
-// only when the operators_from setting says grouping.
+// only when the operators_from setting says grouping. Then people's marks
+// follow their operators' accounts (spy.carry_operator_marks).
 func (r *Runner) Operators(ctx context.Context) (int64, error) {
-	return r.job(ctx, JobOperators, `SELECT spy.regroup_operators($1)`, r.cfg.Now())
+	return r.run(ctx, JobOperators, func(ctx context.Context) (int64, error) {
+		var n, moved int64
+		if err := r.db.QueryRow(ctx, `SELECT spy.regroup_operators($1)`, r.cfg.Now()).Scan(&n); err != nil {
+			return 0, err
+		}
+		if err := r.db.QueryRow(ctx, `SELECT spy.carry_operator_marks()`).Scan(&moved); err != nil {
+			return 0, fmt.Errorf("carry marks: %w", err)
+		}
+		if moved > 0 {
+			r.log.Info("operator marks carried to the operators that took their accounts", "marks", moved)
+		}
+		return n, nil
+	})
 }
 
 // Classify runs the classifier, when there is one.
@@ -189,6 +211,9 @@ func (r *Runner) All(ctx context.Context, rebuild bool) error {
 		errs = append(errs, err)
 	}
 	if _, err := r.Direction(ctx, rebuild); err != nil {
+		errs = append(errs, err)
+	}
+	if _, err := r.Watches(ctx); err != nil {
 		errs = append(errs, err)
 	}
 	if _, err := r.Prices(ctx); err != nil {
@@ -262,6 +287,7 @@ func (r *Runner) Run(ctx context.Context) error {
 			_, _ = r.Classify(ctx)
 			_, _ = r.ReadModel(ctx)
 			_, _ = r.Direction(ctx, false)
+			_, _ = r.Watches(ctx)
 		}
 		if tick%(12*r.cfg.Every) == 0 {
 			_, _ = r.Prices(ctx)

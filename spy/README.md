@@ -16,7 +16,7 @@ model and Direction were ported.
 
 | Binary | Does | Listens |
 |---|---|---|
-| `spy-numbers run` | Every minute, the last 24 hours (rebuilt only when Tracks closes an hour). Every 5 minutes, the new landing page walks, the classifier, the read model, then Size and Direction; every 15, operator grouping. Every hour, auction prices. | ops on `OPS_ADDR` (9122) |
+| `spy-numbers run` | Every minute, the last 24 hours (rebuilt only when Tracks closes an hour). Every 5 minutes, the new landing page walks, the classifier, the read model, then Size and Direction, then watches; every 15, operator grouping. Every hour, auction prices. | ops on `OPS_ADDR` (9122) |
 | `spy-web` | Spy's pages and their JSON under `/spy/`, behind create-web's sign-in. Reads only published views. | `SPY_WEB_ADDR` (127.0.0.1:8097), ops on 9116 |
 
 ```
@@ -33,7 +33,7 @@ spy-numbers check                  the walker, the classifier and the grouping o
 
 `/healthz` fails when the read model or Direction has not succeeded for 20
 minutes. Each job is also a kit task (`adhunters_task_*`), promising the
-last 24 hours and prices every 90 minutes, grouping every 45 and the others every 20, so the TaskLate
+last 24 hours and prices every 90 minutes, grouping every 45 and the others (watches too) every 20, so the TaskLate
 alert covers them. `/metrics` has `spy_numbers_runs_total{job,outcome}`,
 `spy_numbers_seconds{job}`, `spy_numbers_rows{job}`,
 `spy_numbers_last_success_timestamp_seconds{job}` and
@@ -120,7 +120,10 @@ Every 15 minutes `spy.regroup_operators` groups sites and accounts by the
 collector's rules: sites sharing a strong clue belong together (a clue on
 more than `clue_max_sites`, 20, joins nothing); an account whose clicks
 reach at most 2 of those groups joins them, one reaching 3 or more is its
-own operator (arbitrage); accounts sharing a name root join, unless the
+own operator (arbitrage); accounts sharing a name root join (the first part
+of the name, or, when that is under 5 letters, the whole name without its
+numbers and `-sc`, so `memo-nb-1-sc` and `memo-nb-2-sc` are both `memo-nb`;
+migration 0015), unless the
 root reaches 3 or more groups or its accounts belong to 3 or more operators
 today (an agency; the second test is migration 0012, for agencies whose
 other clients the walker has not reached yet); accounts with the same email in
@@ -146,6 +149,23 @@ splits it out. Switching is one row:
 ```
 UPDATE spy.setting SET text_value = 'grouping' WHERE name = 'operators_from';
 ```
+
+### What people mark
+
+From the pages (migration 0015, through `spy_api.mark_operator_v1` and
+`spy_api.fix_vertical_v1`, the only spy_api functions that write, granted to
+the `spy_web` login alone):
+
+| Mark | Kept in | Does |
+|---|---|---|
+| Hidden | `operator_mark.hidden` | The operator and its creatives leave the Operadores and Anúncios lists unless asked for. Nothing is deleted. |
+| Nickname | `operator_mark.nickname` | Becomes the operator's name everywhere (`display_name`, `name_is_manual`), kept through regrouping; taken away, the grouping names it again. |
+| Watched | `operator_mark.watched` | After Direction, every 5 minutes, `spy.watch_operators` adds a `watch_notice` when the operator turns rising (a `direction_event` since it was watched) or Size starts calling it scaled. spy-numbers sends each through Pushcut (decision 0004), 3 tries; without `PUSHCUT_API_KEY` and `PUSHCUT_NOTIFICATION` in `spy-numbers.env` a notice is recorded as skipped and shows only on the operator page. |
+| Vertical | `vertical_fix`, and `creative_class` with source `hand` | Replaces the classifier's vertical for that creative at once; the rules and the model leave it alone, and the model learns from it. Given back, the rules' answer returns. |
+
+When the grouping merges an operator away, `spy.carry_operator_marks` (run
+after each regrouping) moves its mark to the operator that now holds most
+of its accounts, merged with that one's own.
 
 ### Verticals
 
@@ -187,6 +207,9 @@ present.
   `spy-numbers check` lists the most seen running ads with no vertical
   beside them. The last 7 models are kept.
 
+A vertical a person set (source `hand`) is never replaced, and trains the
+model first among its vertical's examples.
+
 A creative is read again when a newer ad, a changed landing page or newer
 Raposa evidence arrives,
 or when verticals.yaml changes (its hash is stored with each answer). The
@@ -226,14 +249,19 @@ and `refresh_prices` replaces a copied row when Tracks has one.
 
 | Page | Path | Shows |
 |---|---|---|
-| Anúncios | `/spy/` | Every creative in the range as a card with its sparkline; filters by text, category, vertical, status, device, network, publisher, tracker, affiliate network, days active; sorts by presence, momentum, share of voice and more |
-| Anúncio | `/spy/ads/{creative}` | Numbers, direction, presence per day (the last 30 days, or each day of a chosen range, up to 120), hour of day (São Paulo) over the range's last 7 days, publishers, auction prices, its ads, links, campaigns, Raposa's investigations with the button to ask for one, and **Criar variações**, a link to `/create/?from=spy&creative={creative}` that opens Create on a new session with this ad's image and headline |
-| Operadores | `/spy/operators/` and `/{id}` | Operators by presence, momentum, launches and hit rate; one operator's creatives, accounts, brands and publishers |
+| Anúncios | `/spy/` | Every creative in the range as a card with its sparkline; filters by text, category, vertical, status, device, network, publisher, tracker, affiliate network, days active, and hidden operators (left out unless asked); sorts by presence, momentum, share of voice, headline and more, either way round; **Exportar** downloads the first 100 of the list as one HTML file with each creative's image, headline, description, call to action, brand, operator, vertical and numbers |
+| Anúncio | `/spy/ads/{creative}` | Numbers, direction, presence per day (the last 30 days, or each day of a chosen range, up to 120), hour of day (São Paulo) over the range's last 7 days, publishers, auction prices, its ads, links, campaigns with their brand, Raposa's investigations with the button to ask for one, **Corrigir vertical** (a vertical by hand), and **Criar variações**, a link to `/create/?from=spy&creative={creative}` that opens Create on a new session with this ad's image and headline |
+| Operadores | `/spy/operators/` and `/{id}` | Operators by presence, momentum, launches, hit rate or name (A–Z or Z–A), each with the creative it showed most in 7 days beside its vertical; watched, hidden or all. One operator: **Vigiar**, **Ocultar das listas** and a nickname, its watch notices, its volume per day (presence, sightings and creatives; the last 30 days, or each day of a chosen range, up to 120), creatives, campaigns with their brands, accounts and sites with the rule that put each in it, brands and publishers |
 | Publishers | `/spy/publishers/` and `/{id}` | Checks and sightings per publisher; its top operators and creatives |
 | Mercado | `/spy/pulse/` | Each vertical's presence and momentum, how many are rising, fading and stopped now, and the latest changes of direction |
 
 ⌘K searches ads, operators, publishers and verticals. Every page has the
-range picker (24 hours, 7, 30, 90 days, or any dates). The last 24 hours
+range picker (24, 48 or 72 hours, 7, 30, 90 days, or any dates, which are
+São Paulo days: 2026-10-01 is 03:00 to 03:00 UTC; the daily tables read the
+UTC days of the same dates) and, on the lists, ad and operator pages,
+**Comparar com**: momentum against the usual weeks, or against the period of
+the same length just before (`vs=before`, so the last 24 hours against the
+24 before). The last 24 hours against the usual weeks
 read what spy-numbers keeps ready; any other range is counted when asked
 (10 to 15 s at Tracks' volume) in a transaction with a 90 s limit, one
 query per address at a time, and kept 10 minutes (the last 24 hours, 2).
@@ -247,10 +275,14 @@ day back (`tracks_api.hourly_days_v1`), says so on the panel, and asks
 two later.
 
 The JSON is under `/spy/api/` (`ads`, `ads/{id}`, `ads/{id}/hours`, `operators`,
-`publishers`, `pulse`, `search`, `events`, `verticals`, `facets`);
+`publishers`, `pulse`, `search`, `events`, `verticals`, `facets`; `from=48h`,
+`vs=before` and `rev=1` work on every list); `ads/export` is the HTML file.
 `POST /spy/api/ads/{id}/investigate` asks Raposa through
-`raposa_api.request_investigation_v1` and records who asked. It takes only
-JSON from the same origin.
+`raposa_api.request_investigation_v1` and records who asked;
+`POST /spy/api/operators/{id}/mark` (`hidden`, `watched`, `nickname`) and
+`POST /spy/api/ads/{id}/vertical` (`vertical_id`, empty to give it back) write
+what people mark, and empty the kept answers. They take only JSON from the
+same origin.
 
 People reach it through create-web's sign-in (create/README.md), which
 replaced Cloudflare Access on 2026-10-01, so `ACCESS_TEAM` and `ACCESS_AUD`
@@ -263,6 +295,10 @@ the spy schemas; `tracks_api_read`, `raposa_api_read`) and the `spy_web`
 login (`spy_api_read`, `tracks_api_read`, `raposa_api_read`, which carries
 EXECUTE on `raposa_api.request_investigation_v1`), writes
 `/etc/adhunters/spy-numbers.env` and `spy-web.env`, and starts both units.
+For watch notices on phones, `spy-numbers.env` needs `PUSHCUT_API_KEY` and
+`PUSHCUT_NOTIFICATION` (a notification made in the Pushcut app), then
+`systemctl restart spy-numbers`. Migration 0015 grants the two writing
+functions to `spy_web` when that login exists.
 Without the Raposa grants the ad page
 leaves Raposa out. Spy is marked ready in `shared/frame/assets/core.js`,
 so other apps' menus link to it.
@@ -288,7 +324,9 @@ definition in [contract/sql/spy](../contract/sql/spy):
   `creative_recent_v1`, `operator_recent_v1`, `recent_window_v1`,
   `size_v1`, `direction_v1`, `direction_event_v1`, `operator_v1`,
   `account_operator_v1`, `creative_vertical_v1`, `creative_class_v1`,
-  `price_day_v1`.
+  `price_day_v1`, `operator_mark_v1`, `watch_notice_v1`,
+  `operator_member_v1`.
+- For spy-web only (they write): `mark_operator_v1`, `fix_vertical_v1`.
 - Any range: `range_info_v1`, `creative_range_v1`, `operator_range_v1`,
   `vertical_range_v1`, `publisher_range_v1`, `creative_prices_v1`,
   `creative_series_v1`.
@@ -315,11 +353,11 @@ gets a new version: a new contract file and a new migration.
 
 ### Not built yet
 
-- Showing sites, clues and the proposed grouping in the app, and screens
-  to edit groupings (`grouping_fix`) and correct a vertical.
+- Clues in the app, and screens to edit groupings (`grouping_fix`). The
+  operator page shows why each account and site is in it.
 - Shared certificates and name servers as clues (the collector had them
   from its own lookups; Tracks' walker does not look them up).
-- Watches and alerts from the pages (Direction's events are ready for them).
+- Watches on creatives and verticals (operators have them).
 - Direction's fading guard for one site (ranges have it; Direction sums its
   usual publishers).
 - The nightly checks METRICS.md asks for (stopped accuracy, predictive

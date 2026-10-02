@@ -252,3 +252,68 @@ func TestClassifierReadsWalkedPage(t *testing.T) {
 		t.Errorf("after the page changed: %+v", got)
 	}
 }
+
+// A person's vertical (spy_api.fix_vertical_v1) stays through new reads and
+// the model, teaches the model, and taking it away gives the creative back
+// to the classifier.
+func TestHandVerticalStays(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	id := 1
+	for i := 0; i < 40; i++ {
+		seed(t, db, id, "", fmt.Sprintf("Cardiologist warns: high blood pressure trick number %d", i))
+		id++
+		seed(t, db, id, "", fmt.Sprintf("Audiologist explains: tinnitus relief secret %d", i))
+		id++
+		seed(t, db, id, "", fmt.Sprintf("Melt stubborn belly fat, weight loss hack %d", i))
+		id++
+	}
+	seed(t, db, 2001, "", "Cardiologist shares this morning trick")
+	seed(t, db, 2002, "", "Melt stubborn belly fat, weight loss hack for real")
+	fix := func(creative int, cat, vert any) {
+		t.Helper()
+		if _, err := db.Exec(ctx, `SELECT spy_api.fix_vertical_v1($1, $2, $3, 'test')`, creative, cat, vert); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// One fixed before the rules ever read it.
+	fix(2001, "senses", "tinnitus")
+
+	c, err := New(db, log, Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, db, 2001); got.vertical != "tinnitus" || got.source != "hand" || got.unsure {
+		t.Errorf("fixed before the first read: %+v", got)
+	}
+	if got := read(t, db, 2002); got.vertical != "weight-loss" || got.source != "ad" {
+		t.Fatalf("rules: %+v", got)
+	}
+	fix(2002, "heart", "cholesterol")
+	// A new ad reads it again; the hand fix stays.
+	if _, err := db.Exec(ctx, `INSERT INTO tracks_api.ad_v1 (id, creative_id, headline) VALUES (99999, 2002, 'Belly fat gone')`); err != nil {
+		t.Fatal(err)
+	}
+	if res, err := c.Run(ctx); err != nil || res.Read != 1 {
+		t.Fatalf("read again: %+v %v", res, err)
+	}
+	if got := read(t, db, 2002); got.vertical != "cholesterol" || got.category != "heart" || got.source != "hand" {
+		t.Errorf("after a new ad: %+v", got)
+	}
+	// The model learns from it.
+	if err := c.Train(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var labels string
+	if err := db.QueryRow(ctx, `SELECT verticals::text FROM spy.class_model ORDER BY id DESC LIMIT 1`).Scan(&labels); err != nil || labels != "4" {
+		t.Errorf("verticals the model learnt: %s %v (want the 3 sure ones and the fixed cholesterol)", labels, err)
+	}
+	fix(2002, nil, nil)
+	if got := read(t, db, 2002); got.vertical != "weight-loss" || got.source != "ad" {
+		t.Errorf("fix taken away: %+v", got)
+	}
+}

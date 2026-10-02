@@ -61,32 +61,41 @@ export function setParams(p) {
   history.replaceState(null, '', location.pathname + (s ? '?' + s : ''));
 }
 
-// rangeParams are the from/to of the page's range (none: the last 24 hours).
+// rangeParams are the from/to of the page's range (none: the last 24 hours;
+// from=48h: the last 48 hours), and vs when it is compared with the period
+// just before rather than the usual weeks.
 export function rangeParams() {
   const p = params();
-  return { from: p.get('from') || '', to: p.get('to') || '' };
+  return { from: p.get('from') || '', to: p.get('to') || '', vs: p.get('vs') || '' };
 }
 
 const RANGES = [
   { id: '', label: '24 h' },
+  { id: '48h', label: '48 h' },
+  { id: '72h', label: '72 h' },
   { id: '7', label: '7 dias' },
   { id: '30', label: '30 dias' },
   { id: '90', label: '90 dias' },
 ];
 
+// Dates are São Paulo days, as the API reads them.
+const spDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/Sao_Paulo' });
 function isoDay(d) {
-  return d.toISOString().slice(0, 10);
+  return spDate.format(d);
 }
 
 // rangePicker draws the range choice; onchange runs after the address changes.
 export function rangePicker(onchange) {
   const p = params();
   let current = '';
-  if (p.get('from')) {
-    const days = Math.round((Date.parse(p.get('to') || isoDay(new Date())) - Date.parse(p.get('from'))) / 864e5) + 1;
+  const f = p.get('from') || '';
+  if (/^\d+h$/.test(f) && !p.get('to')) {
+    current = RANGES.some((r) => r.id === f) ? f : 'custom';
+  } else if (f) {
+    const days = Math.round((Date.parse(p.get('to') || isoDay(new Date())) - Date.parse(f)) / 864e5) + 1;
     current = RANGES.some((r) => r.id === String(days)) && !p.get('to') ? String(days) : 'custom';
   }
-  const from = h('input', { type: 'date', value: p.get('from') || '', 'aria-label': 'De' });
+  const from = h('input', { type: 'date', value: /^\d+h$/.test(f) ? '' : f, 'aria-label': 'De' });
   const to = h('input', { type: 'date', value: p.get('to') || '', 'aria-label': 'Até' });
   const custom = h('span', { class: 'sp-custom', hidden: current !== 'custom' }, from, to,
     h('button', { type: 'button', class: 'small', onclick: () => apply('custom') }, 'Ver'));
@@ -94,6 +103,7 @@ export function rangePicker(onchange) {
     const q = params();
     q.delete('offset');
     if (id === '') { q.delete('from'); q.delete('to'); }
+    else if (id.endsWith('h')) { q.set('from', id); q.delete('to'); }
     else if (id === 'custom') {
       if (!from.value) return;
       q.set('from', from.value);
@@ -116,11 +126,61 @@ export function rangePicker(onchange) {
   return h('div', { class: 'sp-range' }, seg, custom);
 }
 
+// comparePicker chooses what momentum compares the range with: the same
+// hours of the usual weeks, or the period of the same length just before.
+export function comparePicker(onchange) {
+  return h('label', { class: 'sp-inline', title: 'Contra o usual: com o que a presença do período é comparada' }, 'Comparar com',
+    h('select', { 'aria-label': 'Comparar com', onchange: (e) => {
+      const q = params();
+      if (e.target.value) q.set('vs', e.target.value); else q.delete('vs');
+      q.delete('offset');
+      setParams(q);
+      onchange();
+    } },
+    h('option', { value: '', selected: !params().get('vs') }, 'as semanas usuais'),
+    h('option', { value: 'before', selected: params().get('vs') === 'before' }, 'o período anterior')));
+}
+
+// sortPicker is the sort choice and a button that turns it round (Z to A
+// for names); onchange runs after the address changes.
+export function sortPicker(sorts, def, onchange) {
+  const cur = params().get('sort') || def;
+  const rev = h('button', { type: 'button', class: 'ghost small', title: 'Inverter a ordem' }, '');
+  const label = () => {
+    const on = params().get('rev') === '1';
+    const byName = (params().get('sort') || def) === 'name';
+    rev.textContent = byName ? (on ? 'Z–A' : 'A–Z') : (on ? '↑ invertido' : '↓');
+    rev.setAttribute('aria-pressed', String(on));
+  };
+  const change = (name, value) => {
+    const q = params();
+    if (!value) q.delete(name); else q.set(name, value);
+    q.delete('offset');
+    setParams(q);
+    label();
+    onchange();
+  };
+  rev.addEventListener('click', () => change('rev', params().get('rev') === '1' ? '' : '1'));
+  const sel = h('select', { 'aria-label': 'Ordenar', onchange: (e) => change('sort', e.target.value === def ? '' : e.target.value) },
+    sorts.map(([v, l]) => h('option', { value: v, selected: v === cur }, l)));
+  label();
+  return h('span', { class: 'sp-inline' }, sel, rev);
+}
+
+// post sends JSON to /spy/api/<path> and returns the answer.
+export function post(path, body) {
+  return api(path, {}, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 // load shows a waiting note while f runs (a range other than the last 24
 // hours is counted when asked and can take a while), then its result or
 // the error in place of the note.
 export async function load(into, f) {
-  const slow = rangeParams().from !== '' || rangeParams().to !== '';
+  const slow = rangeParams().from !== '' || rangeParams().to !== '' || rangeParams().vs !== '';
   into.replaceChildren(h('p', { class: 'muted sp-wait' }, slow ? 'Contando este período… pode levar alguns segundos.' : 'Carregando…'));
   try {
     const out = await f();
@@ -171,10 +231,14 @@ export function day(v) {
   return v ? dd.format(new Date(v)) : '–';
 }
 
+// A range's dates are São Paulo days.
+const spDay = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'America/Sao_Paulo' });
 export function windowText(w) {
   if (!w) return '';
-  if (w.recent) return 'Últimas 24 horas, até ' + when(w.to);
-  return day(w.from) + ' a ' + day(new Date(Date.parse(w.to) - 1));
+  const vs = w.vs === 'before' ? ', contra o período anterior' : '';
+  if (w.recent) return 'Últimas 24 horas, até ' + when(w.to) + vs;
+  if (w.hours) return 'Últimas ' + w.hours + ' horas, até ' + when(w.to) + vs;
+  return spDay.format(new Date(w.from)) + ' a ' + spDay.format(new Date(Date.parse(w.to) - 1)) + vs;
 }
 
 const WORDS = { rising: 'subindo', steady: 'estável', fading: 'caindo', stopped: 'parou', unclear: 'incerto', too_little: 'poucos dados', new: 'novo' };
@@ -228,6 +292,19 @@ export function bars(items, fmt = num) {
     h('span', { class: 'num' }, fmt(i.value)))));
 }
 
+// dayBars draws one bar per day: rows are { day, value, title }. Days with
+// no value (nobody looked) are gaps.
+export function dayBars(rows) {
+  const max = Math.max(0, ...rows.map((r) => Number(r.value) || 0));
+  const first = rows.length ? day(rows[0].day) : '';
+  const last = rows.length ? day(rows[rows.length - 1].day) : '';
+  return h('div', {},
+    h('div', { class: 'sp-days', role: 'img', 'aria-label': 'Por dia, ' + first + ' a ' + last },
+      rows.map((r) => h('span', { title: r.title, class: r.value == null ? 'none' : null,
+        style: `height:${max && r.value != null ? Math.max(1, 100 * Number(r.value) / max).toFixed(1) : 0}%` }))),
+    h('div', { class: 'sp-days-axis' }, h('span', {}, first), h('span', {}, last)));
+}
+
 // table draws a list: cols are [header, (row) => cell, 'num'?].
 export function table(cols, rows, empty = 'Nada neste período.') {
   if (!rows || rows.length === 0) return h('p', { class: 'empty' }, empty);
@@ -261,6 +338,7 @@ export function keepRange() {
   const p = new URLSearchParams();
   if (r.from) p.set('from', r.from);
   if (r.to) p.set('to', r.to);
+  if (r.vs) p.set('vs', r.vs);
   const s = p.toString();
   return s ? '?' + s : '';
 }

@@ -74,12 +74,15 @@ func (s *Server) pulse(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Verticals are always counted when asked, the last 24 hours too.
+	var w where
+	src := rangeSource(Window{Before: win.Before, From: win.From, To: win.To}, &w, "", "vertical_range_v1")
 	return s.cached(r, win, func(ctx context.Context) (any, error) {
 		verts, err := s.rowsQ(ctx, `
 			SELECT vertical AS vertical_id, network_id, sightings, presence, presence_usual, share_pct, rank,
 			       momentum, momentum_low, momentum_high, momentum_word, momentum_sure, momentum_rank
-			FROM spy_api.vertical_range_v1($1, $2)
-			ORDER BY network_id, momentum_rank NULLS LAST, sightings DESC`, win.From, win.To)
+			FROM `+src+`
+			ORDER BY network_id, momentum_rank NULLS LAST, sightings DESC`, w.args...)
 		if err != nil {
 			return nil, err
 		}
