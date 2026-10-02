@@ -58,24 +58,29 @@ every visit: changing them needs no deploy.
 ## Automatic quick investigations
 
 Every 5 minutes the engine tops the queue of automatic quick investigations
-up to `quick_queue_depth` (30) with `raposa.queue_quick()`. It picks a
-creative when:
+up to `quick_queue_depth` (30) with `raposa.queue_quick()`. As in the
+collector, Raposa looks at an ad on its own only when its landing page could
+not be fetched when it was scraped. It picks a creative when:
 
 - an ad of it on one of `quick_networks` (`taboola`) was seen in the last
   hour, so a live link exists;
 - Tracks first saw the creative within `quick_new_days` (7);
-- no visit of any investigation of it landed on a usable page (40 words or
-  more, not a bot check or an error page);
+- `tracks-walker` tried the landing page of its ads at least
+  `quick_walk_failures` (2) times (`tracks_api.walk_page_v1`, step 0) and
+  never read it whole: no walk got a usable page (40 words or more, not a bot
+  check or an error page). A creative the walker has not tried yet waits for
+  it;
+- no visit of any investigation of it landed on a usable page;
 - none of its investigations waits or runs, and none was asked for within
   `quick_repeat_hours` (24); a stopped one does not count.
 
 Newest creatives first. `quick_max_running` (6) still holds them back so a
 deep one someone asked for finds room. Setting `quick_queue_depth` to 0 turns
-this off, for example while the collector's Raposa still runs.
+this off.
 
-The collector picked the ads whose landing page its funnel walker never read
-whole. The walker is not here yet (`tracks-walker`), so Raposa asks the same
-question of its own visits instead.
+A quick investigation climbs only the rungs that cost nothing, and never a
+rung on the residential line, whatever that rung's `cost_kb` says: automatic
+investigations never spend metered traffic.
 
 ## Copying the collector's investigations
 
@@ -125,8 +130,8 @@ waiting and runs here, and one running there is copied as stopped.
 Reads Tracks only through `tracks_api` (the login needs `tracks_api_read`):
 `ad_v1`, `ad_daily_v1`, `creative_link_daily_v1`, `link_v1`,
 `creative_campaign_daily_v1`, `campaign_v1`, `sighting_v1`, `publisher_v1`,
-`device_v1`, `creative_v1`, `network_ad_v1`, `network_v1` and
-`take_live_link_v1`.
+`device_v1`, `creative_v1`, `network_ad_v1`, `network_v1`, `walk_page_v1`,
+`page_version_v1` and `take_live_link_v1`.
 
 Publishes `raposa_api` (granted to `raposa_api_read`), with a copy of each
 definition in [contract/sql/raposa](../contract/sql/raposa):

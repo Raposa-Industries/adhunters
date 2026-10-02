@@ -681,6 +681,9 @@ func (r *run) visit(ctx context.Context, d Disguise, device, purpose string, att
 	// avoided place, because that is what a reviewer sees; every other rung
 	// stays away from those places and from burned lines.
 	var line *lines.Line
+	if r.inv.Mode == "quick" && d.LineRole == "residential" {
+		return r.record(v, nil, "a quick investigation never uses the residential line")
+	}
 	if d.LineRole != "direct" {
 		all := r.usableLines()
 		if !d.IsBaseline {
@@ -1009,11 +1012,12 @@ func (r *run) rungAt(rung int16) *Disguise {
 }
 
 // nextRung is the first rung above after that this investigation climbs: a
-// quick one climbs only the rungs that cost nothing.
+// quick one climbs only the rungs that cost nothing, and never one on the
+// metered residential line, whatever its cost_kb says.
 func (r *run) nextRung(after int16) *Disguise {
 	for i := range r.ladder {
 		d := &r.ladder[i]
-		if d.Rung <= after || d.IsBaseline || (r.inv.Mode == "quick" && d.CostKB > 0) {
+		if d.Rung <= after || d.IsBaseline || (r.inv.Mode == "quick" && (d.CostKB > 0 || d.LineRole == "residential")) {
 			continue
 		}
 		return d
