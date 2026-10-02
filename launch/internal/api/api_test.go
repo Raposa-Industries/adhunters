@@ -220,6 +220,51 @@ func TestNewPairInNewGroupWithPreset(t *testing.T) {
 	}
 }
 
+// A pair whose mobile half has its own bid, daily budget and start: the
+// desktop gets the shared settings, the mobile its own, both paused, and
+// each gets exactly the ads sent (the page's edited review), in order.
+func TestPairMobileOwnSettingsAndExactAds(t *testing.T) {
+	r := setup(t)
+	g := r.net.AddGroup(acct, network.Group{Name: "01"})
+	a := r.upload("one.png", pngBytes(t, 1))
+	b := r.upload("two.png", pngBytes(t, 2))
+	ads := []map[string]any{
+		{"title": "Headline One With Image Two", "url": "https://lp.test", "image": b.SHA, "cta": "Learn More", "ad_id": "ah-1"},
+		{"title": "A Headline Typed In Review", "url": "https://lp.test", "image": a.SHA, "cta": "Read More", "ad_id": "ah-2"},
+	}
+	var j job
+	if code := r.call("POST", "pairs", map[string]any{
+		"key": "own-mobile", "network": "taboola", "account": acct, "devices": "both", "group_id": g.ID,
+		"settings": map[string]any{"brand": "B", "cpc": 0.3, "daily_cap": 20, "countries": []string{"US"}},
+		"mobile":   map[string]any{"brand": "B", "cpc": 0.2, "daily_cap": 10, "start_date": "2030-01-05", "countries": []string{"US"}},
+		"ads":      ads,
+	}, &j); code != http.StatusAccepted {
+		t.Fatalf("send %d", code)
+	}
+	res := r.waitJob(j).Result
+	if res.Result != "done" || res.Desktop == nil || res.Mobile == nil {
+		t.Fatalf("%+v", res)
+	}
+	d, m := res.Desktop.Campaign, res.Mobile.Campaign
+	if d.Device != network.Desktop || d.Settings.CPC != 0.3 || d.Settings.DailyCap != 20 || d.Settings.StartDate != "" {
+		t.Errorf("desktop %+v", d)
+	}
+	if m.Device != network.Mobile || m.Settings.CPC != 0.2 || m.Settings.DailyCap != 10 || m.Settings.StartDate != "2030-01-05" {
+		t.Errorf("mobile %+v", m)
+	}
+	for _, made := range []*network.Made{res.Desktop, res.Mobile} {
+		if made.Campaign.Status != "PAUSED" || made.Campaign.Active || len(made.Ads) != len(ads) {
+			t.Fatalf("%+v", made)
+		}
+		for i, ad := range made.Ads {
+			sha := ads[i]["image"].(string)
+			if ad.Title != ads[i]["title"] || ad.CTA != ads[i]["cta"] || !strings.Contains(ad.ImageURL, sha[:12]) || ad.Active {
+				t.Errorf("campaign %s ad %d: %+v, sent %v", made.Campaign.ID, i, ad, ads[i])
+			}
+		}
+	}
+}
+
 func TestPairRefusedAndPartial(t *testing.T) {
 	r := setup(t)
 	var e map[string]string

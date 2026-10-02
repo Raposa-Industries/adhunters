@@ -2,14 +2,19 @@
 // of everything that will be made on the right, like Realize's "+ New".
 // make=group makes a group only; make=campaign (the default) a campaign, or
 // one desktop and one mobile campaign with the same settings and the same
-// ads, paused in one group; make=ads adds ads to campaigns that exist. The ads come from pictures,
-// headlines (always English) and buttons, combined "Sortido" (every
-// picture and headline used, the shorter list repeating) or every
-// combination. Taboola's rules only warn: the person decides. Without a
-// connected network, the same ads come out as Taboola's bulk sheet.
-import { api, h, note, field, input, select, segmented, busy, plural, money, link, date, store, badge, DEVICES } from './lib.js';
+// ads, paused in one group (the mobile one may have its own bid, daily
+// budget and start); make=ads adds ads to campaigns that exist. The ads come
+// from pictures, headlines (always English) and buttons, combined "Sortido"
+// (every picture and headline used, the shorter list repeating), "Par a par"
+// (picture 1 with headline 1, 2 with 2, …), pairs the person picks, or
+// every combination; then, in the review, any ad can get another picture,
+// headline or button, or be taken out, and that list is what is sent.
+// Taboola's rules only warn: the person decides. Without a connected
+// network, the same ads come out as Taboola's bulk sheet.
+import { api, h, note, field, input, select, segmented, busy, plural, money, link, date, store, badge, numberOf, DEVICES } from './lib.js';
 import { groupFields, settingsForm, presetBar, loadPresets, OBJECTIVES } from './presets.js';
-import { mixedN, everyN, usesN, seeded } from '/launch/_ads/pairing.js';
+import { mixedN, everyN, seeded, pairwiseN } from '/launch/_ads/pairing.js';
+import { manualCombos, pairsFrom, reviewFrom, reviewAds, repeats, mobileSettings, mobileProblem } from './adset.js';
 import { clean, hasHidden, headlineWarnings, imageWarnings, looksAIMade } from '/launch/_ads/checks.js';
 import { CTAS, AD_COLUMNS, MAX_ADS, adId, adRows, uniqueNames, campaignIds } from '/launch/_ads/sheet.js';
 import { fillTemplate } from '/launch/_ads/template.js';
@@ -24,11 +29,25 @@ export function portuguese(text) {
   return PT.test(text);
 }
 
-// combos lists the ads as [image, headline, cta] index triples.
+// combos lists the ads as [image, headline, cta] index triples: every
+// combination, "Par a par" (k with k) or "Sortido". The person's own pairs
+// are manualCombos (adset.js).
 export function combos(nImages, nHeadlines, nCTAs, mode, seed) {
   const sizes = [nImages, nHeadlines, nCTAs];
   if (sizes.some((n) => !n)) return [];
-  return mode === 'every' ? everyN(sizes) : mixedN(sizes, seed ? seeded(seed) : null);
+  if (mode === 'every') return everyN(sizes);
+  if (mode === 'pairs') return pairwiseN(sizes);
+  return mixedN(sizes, seed ? seeded(seed) : null);
+}
+
+// MODES are the ways pictures and headlines become ads.
+const MODES = [['mixed', 'Sortido'], ['pairs', 'Par a par'], ['manual', 'Escolher pares'], ['every', 'Todas as combinações']];
+
+let hid = 0;
+// withId gives a headline the id pairs and edited ads know it by.
+function withId(hl) {
+  if (!hl.id) hl.id = 'h' + Date.now().toString(36) + '-' + ++hid;
+  return hl;
 }
 
 export async function newPair({ main, status }) {
@@ -48,6 +67,9 @@ export async function newPair({ main, status }) {
     seed: 0,
     ai: '',
     devices: 'both',
+    manual: [], // the person's own pairs: {img: sha256, hl: headline id}
+    review: null, // the ads as edited in the review; null: the pairing's
+    mobile: { on: false, cpc: '', target_cpa: '', daily_cap: '', start_date: '' }, // the mobile campaign's own values
   };
   let next = null; // the account's next names: {group, campaign, desktop, mobile}
   let accounts = [];
@@ -57,7 +79,7 @@ export async function newPair({ main, status }) {
 
   const TITLES = {
     group: ['Novo grupo de campanha', 'O grupo nasce sem campanhas. As campanhas de um grupo têm o mesmo objetivo e podem dividir o orçamento dele.'],
-    campaign: ['Nova campanha', 'Grupo, campanha e anúncios, como no Taboola. Com "Os dois" saem uma campanha desktop e uma mobile iguais. Tudo nasce pausado.'],
+    campaign: ['Nova campanha', 'Grupo, campanha e anúncios, como no Taboola. Com "Os dois" saem uma campanha desktop e uma mobile (celular e tablet), iguais ou com lance, orçamento e início próprios no mobile. Tudo nasce pausado.'],
     ads: ['Novos anúncios', 'Os mesmos anúncios, pausados, em cada campanha escolhida. Eles passam pela revisão do Taboola.'],
   };
   const back = '/launch/' + (make === 'group' ? 'groups' : make === 'ads' ? 'ads' : 'campaigns') + '?' +
@@ -92,7 +114,7 @@ export async function newPair({ main, status }) {
     gBox.hidden = false;
   }
   const campaignHead = h('div', {},
-    h('span', { class: 'field' }, 'Dispositivo'), deviceBox,
+    h('span', { class: 'field' }, 'Dispositivo'), deviceBox, h('p', { class: 'faint' }, 'Mobile é celular e tablet; desktop, só computador.'),
     h('div', { class: 'fields' }, h('label', { class: 'field' }, 'Nome próprio (opcional)', pairName, nameHint)));
   // names shows the campaigns' names: the team's (CMP<n>-<conta>-<Mobile|Desktop>-pp-bl) or the typed one.
   function names() {
@@ -112,10 +134,60 @@ export async function newPair({ main, status }) {
   // ---- 2. settings ----
   const set = settingsForm({}, status.limits || {});
   const presetHold = h('div');
+  // With both devices the mobile campaign may have its own bid, daily
+  // budget and start; empty fields keep the desktop's.
+  const mobileBox = h('div', { class: 'mobile-own', hidden: make !== 'campaign' });
   const settingsPanel = h('section', { class: 'panel step' }, h('h2', {}, 'Campanha'),
     campaignHead,
-    h('p', { class: 'muted' }, 'Começa com o padrão do time. Use um preset ou salve estas como um.'), presetHold, set.el);
+    h('p', { class: 'muted' }, 'Começa com o padrão do time. Use um preset ou salve estas como um.'), presetHold, set.el, mobileBox);
   let presetId = null;
+  const mobileIn = {
+    cpc: input({ inputmode: 'decimal', 'aria-label': 'CPC do mobile' }),
+    target_cpa: input({ inputmode: 'decimal', 'aria-label': 'CPA alvo do mobile' }),
+    daily_cap: input({ inputmode: 'decimal', 'aria-label': 'Orçamento diário do mobile' }),
+    start_date: input({ type: 'date', 'aria-label': 'Início do mobile' }),
+  };
+  for (const [k, el] of Object.entries(mobileIn)) el.addEventListener('input', () => { s.mobile[k] = el.value; });
+  const mobileOn = h('input', { type: 'checkbox', onchange: (e) => { s.mobile.on = e.target.checked; update(); } });
+  const mobileFields = h('div', { class: 'fields' });
+  mobileBox.append(h('h3', {}, 'Mobile'),
+    h('label', { class: 'check' }, mobileOn, 'Mobile com valores próprios (lance, orçamento diário, início)'),
+    h('p', { class: 'faint' }, 'Sem marcar, as duas campanhas saem iguais. Campo vazio: o mesmo do desktop.'), mobileFields);
+  // mobileOver is the mobile campaign's own values, as numbers and dates.
+  const mobileOver = () => (s.devices === 'both' && s.mobile.on ? {
+    cpc: String(s.mobile.cpc || '').trim() ? numberOf(s.mobile.cpc) : '',
+    target_cpa: String(s.mobile.target_cpa || '').trim() ? numberOf(s.mobile.target_cpa) : '',
+    daily_cap: String(s.mobile.daily_cap || '').trim() ? numberOf(s.mobile.daily_cap) : '',
+    start_date: s.mobile.start_date || '',
+  } : null);
+  // deviceSettings is each campaign's settings: {desktop, mobile}.
+  const deviceSettings = () => {
+    const d = set.settings();
+    return { desktop: d, mobile: mobileSettings(d, mobileOver()) || d };
+  };
+  // drawMobile shows the mobile's own fields under the settings, with the
+  // desktop's values as placeholders. Only the bid kind the desktop uses.
+  function drawMobile() {
+    mobileBox.hidden = s.devices !== 'both';
+    for (const [k, el] of Object.entries(mobileIn)) if (document.activeElement !== el) el.value = s.mobile[k] || '';
+    const d = set.settings();
+    const lim = status.limits || {};
+    const same = (v) => (v ? 'igual: ' + String(v).replace('.', ',') : 'igual ao desktop');
+    mobileIn.cpc.placeholder = same(d.cpc);
+    mobileIn.target_cpa.placeholder = same(d.target_cpa);
+    mobileIn.daily_cap.placeholder = same(d.daily_cap);
+    mobileFields.hidden = !s.mobile.on;
+    // Only redrawn when the bid kind changes (fields() moves the inputs into
+    // new labels), so typing keeps its place.
+    const kind = d.bid_strategy === 'MAX_CONVERSIONS' ? 'cpa' : 'cpc';
+    if (mobileFields.dataset.kind !== kind) {
+      mobileFields.dataset.kind = kind;
+      mobileFields.replaceChildren(
+        kind === 'cpa' ? field('CPA alvo do mobile (US$)', mobileIn.target_cpa, 'opcional') : field('CPC do mobile (US$)', mobileIn.cpc, lim.max_cpc ? 'até ' + money(lim.max_cpc) : null),
+        field('Orçamento diário do mobile (US$)', mobileIn.daily_cap, lim.max_daily_cap ? 'até ' + money(lim.max_daily_cap) : null),
+        field('Mobile começa em', mobileIn.start_date, 'vazio: o mesmo do desktop'));
+    }
+  }
 
   // ---- 3. ads ----
   const imgGrid = h('div', { class: 'thumbs' });
@@ -136,7 +208,7 @@ export async function newPair({ main, status }) {
       const t = line.trim();
       if (!t || known.has(clean(t).toLowerCase())) continue;
       known.add(clean(t).toLowerCase());
-      s.headlines.push({ text: t, on: true });
+      s.headlines.push(withId({ text: t, on: true }));
     }
     paste.value = '';
     drawHeadlines();
@@ -144,7 +216,38 @@ export async function newPair({ main, status }) {
   } }, 'Adicionar headlines');
 
   const ctaBox = h('div', { class: 'chips' });
-  const modeBox = segmented('mode', [['mixed', 'Sortido'], ['every', 'Todas as combinações']], s.mode, (v) => { s.mode = v; update(); });
+  const modeBox = segmented('mode', MODES, s.mode, (v) => {
+    s.mode = v;
+    if (v === 'manual' && !s.manual.length) s.manual = pairsFrom(on().I, on().H);
+    update();
+  });
+  // The person's own pairs: each row ties one headline to one picture.
+  const manualBox = h('div', { class: 'manual-pairs' });
+  function drawManual() {
+    manualBox.hidden = s.mode !== 'manual';
+    if (manualBox.hidden) return;
+    const { I, H } = on();
+    const imgOpts = I.map((x) => [x.sha256, 'I' + (s.images.indexOf(x) + 1) + ' · ' + (x.name || x.sha256.slice(0, 10))]);
+    const hlOpts = H.map((x) => [x.id, 'H' + (s.headlines.indexOf(x) + 1) + ' · ' + clean(x.text).slice(0, 70)]);
+    manualBox.replaceChildren(
+      h('p', { class: 'faint' }, 'Cada linha é um anúncio: esta headline com esta imagem (com cada botão escolhido).'),
+      h('ol', { class: 'headlines' }, s.manual.map((p) => {
+        const gone = !I.some((x) => x.sha256 === p.img) || !H.some((x) => x.id === p.hl);
+        return h('li', { class: gone ? 'off' : '' }, h('div', { class: 'hl-row' },
+          h('img', { class: 'mini', src: '/launch/api/images/' + p.img, alt: '' }),
+          select(imgOpts, p.img, { 'aria-label': 'Imagem do par', onchange: (e) => { p.img = e.target.value; update(); } }),
+          select(hlOpts, p.hl, { 'aria-label': 'Headline do par', onchange: (e) => { p.hl = e.target.value; update(); } }),
+          h('button', { type: 'button', class: 'small ghost', onclick: () => { s.manual = s.manual.filter((x) => x !== p); update(); } }, 'Tirar')),
+        gone ? h('div', { class: 'warn-line' }, 'A imagem ou a headline deste par não está mais escolhida: ele fica de fora.') : null);
+      })),
+      h('div', { class: 'actions' },
+        h('button', { type: 'button', class: 'small', disabled: !I.length || !H.length, onclick: () => {
+          const k = s.manual.length;
+          s.manual.push({ img: I[k % I.length].sha256, hl: H[k % H.length].id });
+          update();
+        } }, '+ Par'),
+        h('button', { type: 'button', class: 'small ghost', onclick: () => { s.manual = pairsFrom(I, H); update(); } }, 'Recomeçar par a par')));
+  }
   const reshuffle = h('button', { type: 'button', class: 'small ghost', onclick: () => { s.seed = 1 + Math.floor(Math.random() * 2 ** 31); update(); } }, 'Sortear de novo');
   const aiBox = h('div');
   const pairing = h('p', { class: 'muted' });
@@ -152,7 +255,7 @@ export async function newPair({ main, status }) {
     lib.el, h('h3', {}, 'Imagens'), drop, fileIn, upNote, imgGrid,
     h('h3', {}, 'Headlines'), h('p', { class: 'faint' }, 'Sempre em inglês. Os avisos são do Taboola e não impedem o envio.'), paste, h('div', { class: 'actions' }, addHl), hlList,
     h('h3', {}, 'Botão'), ctaBox,
-    h('h3', {}, 'Combinação'), h('div', { class: 'actions' }, modeBox, reshuffle), pairing,
+    h('h3', {}, 'Combinação'), h('div', { class: 'actions' }, modeBox, reshuffle), manualBox, pairing,
     h('h3', {}, 'Feito com IA?'), aiBox);
 
   // ---- 4. review and send ----
@@ -336,7 +439,7 @@ export async function newPair({ main, status }) {
       const t = clean(x.text || '');
       if (!t || known.has(t.toLowerCase())) continue;
       known.add(t.toLowerCase());
-      s.headlines.push({ text: t, on: true, library: x.id, ai: x.ai_label === 'ai' });
+      s.headlines.push(withId({ text: t, on: true, library: x.id, ai: x.ai_label === 'ai' }));
       nH++;
     }
     if (!s.ai && (s.images.some((x) => x.on && x.ai) || s.headlines.some((x) => x.on && x.ai))) s.ai = 'yes';
@@ -394,14 +497,22 @@ export async function newPair({ main, status }) {
   // ---- the ads ----
   const on = () => ({ I: s.images.filter((x) => x.on), H: s.headlines.filter((x) => x.on && clean(x.text)), T: CTAS.filter((c) => s.ctas.has(c)) });
 
-  // ads builds every ad the page would send.
-  async function ads() {
+  // generated is the ads the pairing makes, before any edit in the review.
+  // i and h are the picture's and headline's places in the whole lists.
+  function generated() {
     const { I, H, T } = on();
-    const list = combos(I.length, H.length, T.length, s.mode, s.seed);
-    return Promise.all(list.map(async ([i, hh, t]) => {
-      const title = clean(H[hh].text);
-      const cta = T[t];
-      return { img: I[i], i, h: hh, title, cta, adId: await adId(I[i].sha256.slice(0, 10), title, T.length > 1 ? cta : '') };
+    const list = s.mode === 'manual' ? manualCombos(s.manual, I, H, T.length) : combos(I.length, H.length, T.length, s.mode, s.seed);
+    return list.map(([i, hh, t]) => ({ img: I[i], i: s.images.indexOf(I[i]), h: s.headlines.indexOf(H[hh]), hl: H[hh].id, title: clean(H[hh].text), cta: T[t] }));
+  }
+
+  // ads builds every ad the page would send: the review's edited list when
+  // the person changed it there, else the pairing's.
+  async function ads() {
+    const list = s.review ? reviewAds(s.review, s.images, s.headlines) : generated();
+    const manyCTAs = s.review ? new Set(list.map((a) => a.cta)).size > 1 : on().T.length > 1;
+    return Promise.all(list.map(async (a) => {
+      const title = clean(a.title);
+      return { ...a, title, adId: await adId(a.img.sha256.slice(0, 10), title, manyCTAs ? a.cta : '') };
     }));
   }
 
@@ -409,15 +520,20 @@ export async function newPair({ main, status }) {
   async function update() {
     const run = ++drawn;
     reshuffle.hidden = s.mode !== 'mixed';
+    drawManual();
+    if (make === 'campaign') drawMobile();
     const { I, H, T } = on();
     const list = await ads();
     if (run !== drawn) return;
+    const made = generated();
     if (!I.length || !H.length || !T.length) {
       pairing.textContent = 'Escolha ao menos uma imagem, uma headline e um botão.';
     } else {
-      const [uI, uH] = usesN(list.map((a) => [a.i, a.h, 0]), [I.length, H.length, 1]);
+      const uI = I.map((x) => made.filter((a) => a.img === x).length);
+      const uH = H.map((x) => made.filter((a) => a.hl === x.id).length);
       const range = (a) => (Math.min(...a) === Math.max(...a) ? times(a[0]) : `${Math.min(...a)} a ${times(Math.max(...a))}`);
-      pairing.textContent = `${plural(I.length, 'imagem', 'imagens')} × ${plural(H.length, 'headline', 'headlines')} × ${plural(T.length, 'botão', 'botões')} → ${plural(list.length, 'anúncio', 'anúncios')} em cada campanha. Cada imagem ${range(uI)}, cada headline ${range(uH)}.`;
+      pairing.textContent = `${plural(I.length, 'imagem', 'imagens')} × ${plural(H.length, 'headline', 'headlines')} × ${plural(T.length, 'botão', 'botões')} → ${plural(made.length, 'anúncio', 'anúncios')} em cada campanha. Cada imagem ${range(uI)}, cada headline ${range(uH)}.` +
+        (s.review ? ` A revisão foi editada: vão os ${plural(list.length, 'anúncio', 'anúncios')} de lá até você usar "Refazer pela combinação".` : '');
     }
     drawAI();
     drawReview(list);
@@ -427,11 +543,14 @@ export async function newPair({ main, status }) {
   function warnings(list) {
     const w = [];
     const { I, H } = on();
-    const badHl = H.filter((x) => headlineWarnings(x.text).length || portuguese(x.text)).length;
+    const titles = s.review ? [...new Set(list.map((a) => a.title))] : H.map((x) => x.text);
+    const badHl = titles.filter((t) => headlineWarnings(t).length || portuguese(t)).length;
     const badImg = I.filter((x) => imageWarnings({ width: x.width, height: x.height, size: x.bytes, type: x.type }).length).length;
     if (badHl) w.push(`${plural(badHl, 'headline tem', 'headlines têm')} aviso do Taboola.`);
     if (badImg) w.push(`${plural(badImg, 'imagem tem', 'imagens têm')} aviso de tamanho ou formato.`);
     if (list.length > MAX_ADS) w.push(`${list.length} anúncios passam de ${MAX_ADS}, o máximo de uma planilha.`);
+    const twice = repeats(list);
+    if (twice) w.push(`${plural(twice, 'anúncio repete', 'anúncios repetem')} outro (mesma imagem, headline e botão).`);
     if (s.ai === 'no' && I.some((x) => x.ai)) w.push('Marcado como sem IA, mas há imagens que parecem de IA.');
     return w;
   }
@@ -443,14 +562,51 @@ export async function newPair({ main, status }) {
       review.replaceChildren(h('p', { class: 'muted' }, 'Confira na prévia ao lado. Depois de criar, você pode pôr uma campanha nele.'));
       return;
     }
+    // Each ad can get another picture, headline (from the list or typed) or
+    // button, or be taken out. The first edit freezes the list; the edited
+    // list is exactly what is sent.
+    const edit = (k, change) => {
+      if (!s.review) s.review = reviewFrom(list);
+      change(s.review[k]);
+      update();
+    };
+    const imgOpts = s.images.map((x, n) => [x.sha256, 'I' + (n + 1) + ' · ' + (x.name || x.sha256.slice(0, 10))]);
+    const hls = s.headlines.filter((x) => clean(x.text));
+    const ctaOpts = CTAS.map((c) => [c, c || 'sem botão']);
     review.replaceChildren(...[
       w.length ? note('warn', h('b', {}, 'Avisos (não impedem): '), w.join(' ')) : null,
+      s.review ? note('', h('b', {}, 'Anúncios editados. '), 'Vai exatamente esta lista. ',
+        h('button', { type: 'button', class: 'small ghost', onclick: () => { s.review = null; update(); } }, 'Refazer pela combinação')) :
+        list.length ? h('p', { class: 'faint' }, 'Troque a imagem, a headline ou o botão de qualquer anúncio, ou tire um, antes de criar.') : null,
       list.length ? h('div', { class: 'table-wrap ads-preview' }, h('table', { class: 'list' },
-        h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', {}, 'Headline'), h('th', {}, 'Botão'), h('th', {}, 'Id do anúncio'))),
-        h('tbody', {}, list.slice(0, 60).map((a) => h('tr', {},
-          h('td', {}, h('img', { class: 'mini', src: '/launch/api/images/' + a.img.sha256, alt: 'I' + (a.i + 1) })),
-          h('td', {}, a.title), h('td', {}, a.cta || 'sem botão'), h('td', { class: 'mono faint' }, a.adId)))))) : h('p', { class: 'faint' }, 'Nenhum anúncio ainda.'),
-      list.length > 60 ? h('p', { class: 'faint' }, `…e mais ${list.length - 60}.`) : null].filter(Boolean));
+        h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', {}, 'Imagem'), h('th', {}, 'Headline'), h('th', {}, 'Botão'), h('th', {}, 'Id do anúncio'), h('th', {}, ''))),
+        h('tbody', {}, list.map((a, k) => {
+          const known = hls.find((x) => x.id === a.hl && clean(x.text) === a.title);
+          const hw = headlineWarnings(a.title);
+          if (portuguese(a.title)) hw.unshift('Parece português: as headlines vão sempre em inglês.');
+          const hlOpts = [...(known ? [] : [['', 'texto próprio']]), ...hls.map((x) => [x.id, 'H' + (s.headlines.indexOf(x) + 1) + ' · ' + clean(x.text).slice(0, 50)])];
+          const imgs = imgOpts.some(([v]) => v === a.img.sha256) ? imgOpts : [[a.img.sha256, 'imagem tirada da lista'], ...imgOpts];
+          return h('tr', {},
+            h('td', {}, h('img', { class: 'mini', src: '/launch/api/images/' + a.img.sha256, alt: a.i >= 0 ? 'I' + (a.i + 1) : '' })),
+            h('td', {}, select(imgs, a.img.sha256, { 'aria-label': 'Imagem do anúncio ' + (k + 1), onchange: (e) => edit(k, (r) => { r.img = e.target.value; }) })),
+            h('td', {},
+              select(hlOpts, known ? known.id : '', { 'aria-label': 'Headline do anúncio ' + (k + 1), onchange: (e) => edit(k, (r) => {
+                const x = hls.find((y) => y.id === e.target.value);
+                if (x) { r.hl = x.id; r.title = clean(x.text); }
+              }) }),
+              h('input', { type: 'text', value: a.title, 'aria-label': 'Texto da headline do anúncio ' + (k + 1), onchange: (e) => edit(k, (r) => {
+                r.title = e.target.value.replace(/[\r\n]+/g, ' ');
+                r.hl = hls.find((y) => clean(y.text) === clean(r.title))?.id ?? null;
+              }) }),
+              hw.map((x) => h('div', { class: 'warn-line' }, x))),
+            h('td', {}, select(ctaOpts, a.cta, { 'aria-label': 'Botão do anúncio ' + (k + 1), onchange: (e) => edit(k, (r) => { r.cta = e.target.value; }) })),
+            h('td', { class: 'mono faint' }, a.adId),
+            h('td', {}, h('button', { type: 'button', class: 'small ghost', 'aria-label': 'Tirar o anúncio ' + (k + 1), onclick: () => {
+              if (!s.review) s.review = reviewFrom(list);
+              s.review.splice(k, 1);
+              update();
+            } }, 'Tirar')));
+        })))) : h('p', { class: 'faint' }, s.review ? 'Todos os anúncios foram tirados.' : 'Nenhum anúncio ainda.')].filter(Boolean));
   }
 
   // drawPreview is the right column: the whole thing as it will be made.
@@ -465,17 +621,22 @@ export async function newPair({ main, status }) {
       const gName = newGroup ? gf.name || (next ? next.group : 'próximo número') : groups.find((x) => x.id === groupSel.value)?.name || '';
       parts.push(h('div', { class: 'pv-node pv-group' },
         row('Grupo', gName ? h('b', {}, gName) : h('span', { class: 'faint' }, 'escolha o grupo'), newGroup ? h('span', { class: 'badge' }, 'novo') : null),
-        newGroup ? h('p', { class: 'faint' }, (objective || '') + ' · ' + (gf.budget_model ? money(gf.budget) + { MONTHLY: ' por mês', ENTIRE: ' no total' }[gf.budget_model] : 'orçamento por campanha')) : null));
+        newGroup ? h('p', { class: 'faint' }, (objective || '') + ' · ' + (gf.budget_model ? money(gf.budget) + { MONTHLY: ' por mês', ENTIRE: ' no total' }[gf.budget_model] : 'orçamento por campanha') + ' · para sempre, sem data de fim') : null));
     }
     if (make === 'campaign') {
-      const bid = st.bid_strategy === 'MAX_CONVERSIONS' ? 'Maximizar conversões' + (st.target_cpa ? `, CPA alvo ${money(st.target_cpa)}` : '') : st.cpc ? `CPC ${money(st.cpc)}` : 'lance —';
       const devices = s.devices === 'both' ? ['desktop', 'mobile'] : [s.devices];
       const names = campaignNames();
-      parts.push(...devices.map((d, i) => h('div', { class: 'pv-node pv-campaign' },
-        row('Campanha · ' + DEVICES[d], h('b', {}, names[i] || '—'), ' ', badge('PAUSED')),
-        h('p', { class: 'faint' }, [bid, st.daily_cap ? money(st.daily_cap) + ' por dia' : 'sem orçamento',
-          'Estados Unidos' + (st.exclude_cities.length ? ` menos ${plural(st.exclude_cities.length, 'cidade', 'cidades')}` : ''),
-          (st.spending_limit || status.limits?.max_spend_limit) ? 'no máximo ' + money(st.spending_limit || status.limits.max_spend_limit) + ' no total' : 'sem limite total'].join(' · ')))));
+      const per = deviceSettings();
+      parts.push(...devices.map((d, i) => {
+        const ds = s.devices === 'both' ? per[d] : st;
+        const bid = ds.bid_strategy === 'MAX_CONVERSIONS' ? 'Maximizar conversões' + (ds.target_cpa ? `, CPA alvo ${money(ds.target_cpa)}` : '') : ds.cpc ? `CPC ${money(ds.cpc)}` : 'lance —';
+        return h('div', { class: 'pv-node pv-campaign' },
+          row('Campanha · ' + DEVICES[d] + (d === 'mobile' ? ' (celular e tablet)' : ''), h('b', {}, names[i] || '—'), ' ', badge('PAUSED')),
+          h('p', { class: 'faint' }, [bid, ds.daily_cap ? money(ds.daily_cap) + ' por dia' : 'sem orçamento',
+            ds.start_date ? 'começa em ' + ds.start_date : '',
+            'Estados Unidos' + (ds.exclude_cities.length ? ` menos ${plural(ds.exclude_cities.length, 'cidade', 'cidades')}` : ''),
+            (ds.spending_limit || status.limits?.max_spend_limit) ? 'no máximo ' + money(ds.spending_limit || status.limits.max_spend_limit) + ' no total' : 'sem limite total'].filter(Boolean).join(' · ')));
+      }));
     }
     if (make === 'ads') {
       const byId = new Map(campaignList.map((c) => [c.id, c]));
@@ -504,13 +665,14 @@ export async function newPair({ main, status }) {
       if (newGroup) return gForm.problem();
       if (!groupSel.value) return 'Escolha o grupo, ou crie um novo.';
     }
-    if (el === settingsPanel) return set.problem();
+    if (el === settingsPanel) return set.problem() || (s.devices === 'both' ? mobileProblem(mobileSettings(set.settings(), mobileOver()), status.limits || {}) : '');
     if (el === targets) {
       if (!to.length) return 'Escolha ao menos uma campanha.';
       if (!url()) return 'Falta o link da página.';
     }
     if (el === adsPanel) {
       if (!on().I.length || !on().H.length || !on().T.length) return 'Escolha ao menos uma imagem, uma headline e um botão.';
+      if (s.mode === 'manual' && !s.review && !generated().length) return 'Monte ao menos um par.';
       if (!s.ai) return 'Diga se os anúncios foram feitos com IA.';
     }
     return '';
@@ -554,6 +716,10 @@ export async function newPair({ main, status }) {
       sendOut.replaceChildren(note('fail', p));
       return;
     }
+    if (!list.length) {
+      sendOut.replaceChildren(note('fail', 'Nenhum anúncio para criar.'));
+      return;
+    }
     if (make === 'ads') {
       await busy(sendBtn, sendOut, async () => {
         const res = await api(`${s.net}/${encodeURIComponent(s.account)}/add-ads`, { method: 'POST', body: { campaigns: to,
@@ -573,6 +739,9 @@ export async function newPair({ main, status }) {
       settings: set.settings(),
       ads: list.map((a) => ({ title: a.title, description: description(), url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' })),
     };
+    // The mobile campaign's own bid, daily budget or start, when asked.
+    const mobile = s.devices === 'both' ? mobileSettings(body.settings, mobileOver()) : null;
+    if (mobile) body.mobile = mobile;
     if (newGroup) body.new_group = gForm.get();
     if (presetId) body.preset_id = presetId;
     if (s.draftId) body.draft_id = s.draftId;
@@ -621,6 +790,7 @@ export async function newPair({ main, status }) {
       net: s.net, account: s.account, group: groupSel.value, newGroup, group_fields: gForm.get(),
       name: pairName.value, settings: set.preset(), start: set.settings().start_date, end: set.settings().end_date,
       images: s.images, headlines: s.headlines, ctas: [...s.ctas], mode: s.mode, seed: s.seed, ai: s.ai, devices: s.devices, preset_id: presetId,
+      manual: s.manual, review: s.review, mobile: s.mobile,
     };
   }
   async function saveDraft() {
@@ -640,7 +810,11 @@ export async function newPair({ main, status }) {
     s.account = b.account || s.account;
     s.group = b.group || '';
     s.images = b.images || [];
-    s.headlines = b.headlines || [];
+    s.headlines = (b.headlines || []).map(withId);
+    s.manual = b.manual || [];
+    s.review = b.review || null;
+    s.mobile = { ...s.mobile, ...(b.mobile || {}) };
+    mobileOn.checked = !!s.mobile.on;
     s.ctas = new Set(b.ctas || ['Learn More']);
     s.mode = b.mode || 'mixed';
     s.seed = b.seed || 0;
@@ -672,9 +846,9 @@ export async function newPair({ main, status }) {
       const names = uniqueNames(used.map((x) => x.name || 'imagem.jpg'));
       const fileOf = new Map(used.map((x, i) => [x, names[i]]));
       const T = on().T;
-      const rows = adRows(list.map((a) => ({
+      const rows = adRows(list.map((a, k) => ({
         creativeFile: fileOf.get(a.img), title: a.title, cta: a.cta, customId: a.adId,
-        adName: `${fileOf.get(a.img).replace(/\.[^.]+$/, '')} - H${a.h + 1}${T.length > 1 ? ' - ' + (a.cta || 'sem botão') : ''}`,
+        adName: `${fileOf.get(a.img).replace(/\.[^.]+$/, '')} - ${a.h >= 0 ? 'H' + (a.h + 1) : 'E' + (k + 1)}${T.length > 1 ? ' - ' + (a.cta || 'sem botão') : ''}`,
       })), { campaigns: ids, url: url(), description: description(), ai: { yes: 'Yes', no: 'No' }[s.ai] || '' });
       const base = new Uint8Array(await (await fetch('/launch/_ads/realize-base.xlsx')).arrayBuffer());
       const sheet = await fillTemplate(base, AD_COLUMNS, rows);

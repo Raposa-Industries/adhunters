@@ -28,7 +28,7 @@ All under `/launch/`; a link to any of them opens it.
 | `/launch/taboola/<account>/g/<group>/c/<campaign>` | One campaign: settings, ads with their review state, the pair's other half, its History, and the same actions (rename here only). |
 | `…/c/<campaign>?do=…&from=intel:<id>` | The same page with a suggested change filled in on top: `do=pause-ads&ads=<ids,…>`, `pause-campaign`, `set-daily-cap&cap=<usd>`, `set-bid&cpc=<usd>`. Only this campaign, not its pair. Nothing is sent until the person presses the button; History records `from` (only `intel:…` or `desk:…`, like `desk:step:12`) as who asked. |
 | `/launch/new?make=…` | The steps behind **Novo ▾**, like Realize's "+ New": the steps on the left, one at a time (**Próximo** checks the step first; the step list jumps back), and on the right a preview of everything that will be made: account, group, each campaign with its name and settings, and the first ads as cards. Everything is made paused. |
-| `make=campaign` (the default; `&group=` picks the group) | **Nova campanha**: 1 · Grupo (account; an existing group or a new one, named with the account's next number, 01, 02…, from a group preset or typed: objective, budget per campaign (default) or the group's per month or in total). 2 · Campanha (devices: both, which makes a desktop and a mobile campaign alike, mobile or desktop; named CMP<n>-<account number>-<Mobile or Desktop>-pp-bl unless a name is typed; settings from a campaign preset or the team's defaults below). 3 · Anúncios (pictures uploaded or from the library, English headlines, buttons, Sortido or every combination, AI label). 4 · Revisar e **Criar pausado**. Each step of the send shows as it happens; the same send twice is one send. Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
+| `make=campaign` (the default; `&group=` picks the group) | **Nova campanha**: 1 · Grupo (account; an existing group or a new one, named with the account's next number, 01, 02…, from a group preset or typed: objective, budget per campaign (default) or the group's per month or in total; every group runs for ever, with no end date, see "How the writes work"). 2 · Campanha (devices: both, which makes a desktop and a mobile campaign, mobile or desktop; mobile is phones and tablets, desktop is computers only; named CMP<n>-<account number>-<Mobile or Desktop>-pp-bl unless a name is typed; settings from a campaign preset or the team's defaults below; with both, **Mobile com valores próprios** gives the mobile campaign its own CPC (or target CPA), daily budget and start date, each empty field keeping the desktop's, under the same ceilings). 3 · Anúncios (pictures uploaded or from the library, English headlines, buttons, AI label, and the pairing: **Sortido**, **Par a par** (picture 1 with headline 1, 2 with 2, …, the shorter list starting over), **Escolher pares** (rows of one picture and one headline the person sets, starting par a par; each row is one ad per button) or **Todas as combinações**). 4 · Revisar e **Criar pausado**: every ad is a row where its picture (any picked or uploaded one), headline (from the list, or its text edited) or button can be changed, or the ad taken out. The first edit freezes the list (a note says so, and **Refazer pela combinação** goes back to the pairing's); the edited list is exactly what is sent, to each campaign. Repeated ads and headline warnings only warn. Each step of the send shows as it happens; the same send twice is one send. Without a network connected, **Subir à mão** gives Realize's bulk sheet and the ZIP. |
 | `make=group` | **Novo grupo de campanha**: **Criar grupo**, or **Criar e adicionar campanha**, which goes straight on to a campaign in it. |
 | `make=ads` (`&to=<ids>` picks campaigns) | **Novos anúncios**: pick campaigns of one account, then the same ads, paused, go into each (Realize's "assign creatives"). |
 | `/launch/new?set=<id>` | Nova campanha with one library set's creatives and headlines already in (Create links here after saving a set). |
@@ -85,8 +85,20 @@ or saved in a preset:
   ceilings (its source's daily cap or fixed CPC) is brought down to them.
 - **New campaign.** The group (when new; without a group budget it is
   `spending_limit_model` NONE, accepted on the paused test), then the
-  desktop campaign (Taboola `DESK`) and/or the mobile one (`PHON`; tablets
-  are not targeted), each with all the ads. Both devices make a pair. A picture is uploaded to Taboola once however many ads and
+  desktop campaign (Taboola `DESK`) and/or the mobile one (`PHON` and
+  `TBLT`, phones and tablets, as the team's mobile campaigns are; since
+  2026-10-02, before it was `PHON` only), each with all the ads. Both
+  devices make a pair; the mobile one has the desktop's settings unless the
+  request's `mobile` gives its own (the page sends only CPC or target CPA,
+  daily budget and start date there). The Taboola client checks each
+  campaign against the ceilings on its own.
+- **Groups run for ever.** Backstage's campaign group has an `end_date`
+  whose default, `9999-12-31`, means no end (API reference §3,
+  CampaignGroup; `start_date` defaults to today). Launch never sends either,
+  so every group it makes has no end date and runs until someone pauses it;
+  the pages say "para sempre" on the group form, the preview and group
+  presets. Sending `9999-12-31` explicitly needs a change to
+  `shared/taboola/write` that is not made yet. A picture is uploaded to Taboola once however many ads and
   campaigns use it. When one campaign fails the other is still made; the
   result says what exists. The pair is recorded (`launch.pair`) with the
   preset it came from.
@@ -152,7 +164,7 @@ or failed, 503 not connected.
 | `POST {net}/{account}/groups` | A paused group `{name, budget, budget_model, objective}`. |
 | `POST {net}/{account}/move` `duplicate` `pause` `change` | `{campaigns, to_group, originals, change}`; one result per campaign. |
 | `POST moves/{id}/cancel` | Stops waiting on a move. |
-| `POST pairs` then `GET jobs/{id}` | A new campaign or pair (`actions.PairRequest` plus `key`; `devices` both, mobile or desktop; no `name` for the team's names); the job lists each step. |
+| `POST pairs` then `GET jobs/{id}` | A new campaign or pair (`actions.PairRequest` plus `key`; `devices` both, mobile or desktop; no `name` for the team's names; `ads` exactly as made, one entry per ad; `desktop` or `mobile`, whole settings that replace `settings` for that device only); the job lists each step. |
 | `GET/POST presets`, `PUT/DELETE presets/{id}` | Presets. |
 | `GET history?network=&account=&campaign=&limit=` | History and waiting moves. |
 | `GET/POST drafts`, `GET/PUT/DELETE drafts/{id}` | Drafts. |
@@ -212,6 +224,7 @@ then open http://127.0.0.1:8094/launch/.
 
 ```
 cd launch && PG_TEST_URL=postgres://… go test -race ./...
+node --test launch/web/test/*.test.js   # from the repo root: pairs, edited ads, the mobile's own settings
 ```
 
 The API tests run every write against the fake network on a throwaway

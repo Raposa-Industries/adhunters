@@ -7,6 +7,7 @@
 // Because the longer list is used once each, no pair repeats.
 //
 // every ("Todas as combinações") is every creative with every headline.
+// pairwise ("Par a par") is creative 1 with headline 1, 2 with 2, …
 // Manual pairs ("Um a um") are whatever the person ticks, kept by the app.
 
 // mixed returns [creativeIndex, headlineIndex] pairs. With rand (a function
@@ -91,6 +92,15 @@ export function mixedN(sizes, rand) {
     return seq;
   });
   return [...Array(n).keys()].map((k) => seqs.map((seq) => seq[k]));
+}
+
+// pairwiseN is item k of every list together ("Par a par": image 1 with
+// headline 1, 2 with 2, …), as many ads as the longest list; a shorter list
+// starts again from its first item, in order, never shuffled.
+export function pairwiseN(sizes) {
+  if (!sizes.length || sizes.some((n) => n <= 0)) return [];
+  const n = Math.max(...sizes);
+  return [...Array(n).keys()].map((k) => sizes.map((m) => k % m));
 }
 
 // everyN is every combination, the first list slowest.
