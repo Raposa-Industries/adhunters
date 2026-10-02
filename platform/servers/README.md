@@ -29,7 +29,7 @@ with a list of what is still to do.
 | Role | What it gets |
 |---|---|
 | worker | `tracks-capture@a` and `@b` (4 workers each), `tracks-shipper`, `tracks-walker` (2 workers, capture's proxy lines); Raposa: `raposa-browser`, `raposa-engine`, `raposa-web` |
-| standby | `tracks-capture@standby` (1 worker), `tracks-shipper` |
+| standby | `tracks-capture@standby` (1 worker; disabled until it has lines of its own, `platform/SWITCH-OVER.md`), `tracks-shipper` |
 | data | Postgres 17 (UTC, TLS, sized for a CX43), the `adhunters` database, the `tracks_loader`, `tracks_shipper`, `tracks_walker`, `raposa` and `observe` logins and the `tracks_api_read` and `raposa_api_read` roles, `tracks-loader` (it runs its migrations each time it starts), Spy (`spy-numbers` and `spy-web`, with the `spy` and `spy_web` logins and the `spy_api_read` role), `observe-bot` (the 08:00 digest, the Sentry relay, the credit checks and the Taboola policy watch), and pgBackRest: WAL archiving and daily backups to the `adhunters-backups` bucket (`pgbackrest-full.timer` Sundays, `pgbackrest-diff.timer` other days, 03:30 UTC), switched on once its keys are filled in (its `stanza-create` and `check` wait up to 5 minutes, `PGBACKREST_LOCK_WAIT` seconds, while a WAL push or backup holds pgBackRest's lock, instead of stopping with exit 50); Desk: the `desk` login (owner of the `desk` schemas, member of the `_api_read` role of each app in `contract/actions`), the `desk_api_read` role, `desk-web` and `desk-agent` (both run Desk's migrations before they start; Desk stays off, `desk-agent` taking no work and every `desk-web` page saying to sign in, until its Claude key and Access settings are in) |
 
 Every box: timezone UTC, the `tracks` user, `/var/lib/tracks/spool`, the
@@ -45,6 +45,8 @@ Postgres through the read-only `observe` login; it starts once
 
 Capture needs `targets.yaml` (the collector's `config/publishers.yaml`) and
 `proxies.env` (its `secrets/proxies.env`) in `/etc/adhunters/tracks-capture/` (the proxies log in with a password; no IP allowlist).
+Until both are there its instances stay disabled, so Alloy leaves them out
+and they never read as down; copy them in and run the setup again.
 Each instance's `/etc/adhunters/tracks-capture@<instance>.env` sets `WORKERS`
 and, optionally, `THROTTLE` (the wait after each scrape, default `150ms`).
 

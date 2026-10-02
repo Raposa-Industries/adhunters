@@ -17,7 +17,7 @@ No box has made a successful scrape for 3 minutes. Nothing new is being collecte
 
 - Processes down: `systemctl restart tracks-capture@a`, wait 30 s, then `@b` (never both at once). If they crash at start, the journal says why; a bad `targets.yaml` or `proxies.env` is the usual cause, and `.prev` of the binary is the rollback (`/opt/adhunters/bin/tracks-capture.prev`).
 - Proxies refused: fix at the provider (credit, credentials). Capture reads its lines at start: restart `@a`, wait 30 s, then `@b`.
-- The worker box is dead: raise the standby box to all 8 workers (set `WORKERS=8` in `/etc/adhunters/tracks-capture@standby.env`, then `systemctl restart tracks-capture@standby`).
+- The worker box is dead: the standby takes over on the worker's lines, which are free now. On the standby, put `targets.yaml` and `proxies.env` in `/etc/adhunters/tracks-capture/` (`platform/servers/README.md`), set `WORKERS=8` in `/etc/adhunters/tracks-capture@standby.env`, then run `setup.sh` there (`platform/OPERATIONS.md`): it starts `tracks-capture@standby` and has Alloy watch it.
 
 ## After
 
