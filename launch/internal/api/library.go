@@ -18,9 +18,12 @@ import (
 var libraryLists = map[string][]string{
 	"status":    nil,
 	"verticals": nil,
+	// folders is the library as Create shows it: each vertical with its
+	// platforms' folders and its sets (Novos anúncios' folder picker).
+	"folders":   nil,
 	"sets":      {"vertical", "limit", "before"},
-	"creatives": {"vertical", "set", "angle", "origin", "ai_label", "q", "limit", "before"},
-	"headlines": {"vertical", "set", "angle", "origin", "ai_label", "q", "limit", "before"},
+	"creatives": {"vertical", "set", "angle", "origin", "ai_label", "q", "platform", "limit", "before"},
+	"headlines": {"vertical", "set", "angle", "origin", "ai_label", "q", "platform", "limit", "before"},
 }
 
 var pictureExt = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp"}

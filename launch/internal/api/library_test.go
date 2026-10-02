@@ -27,6 +27,10 @@ func fakeLibrary(t *testing.T, pic []byte) (*httptest.Server, *[]string) {
 		switch r.URL.Path {
 		case "/api/sets":
 			_, _ = w.Write([]byte(`{"sets":[{"id":7,"name":"Memory morning","vertical_id":"memory-loss","creatives":1,"headlines":1}]}`))
+		case "/api/folders":
+			_, _ = w.Write([]byte(`{"verticals":[{"id":"memory-loss","name":"Memory Loss","platforms":[{"id":"taboola","name":"Taboola"}],"sets":[]}]}`))
+		case "/api/creatives":
+			_, _ = w.Write([]byte(`{"creatives":[]}`))
 		case "/api/sets/7":
 			_, _ = w.Write([]byte(`{"set":{"id":7,"name":"Memory morning"},"creatives":[{"id":3,"name":"MMT12","sha256":"` + sha + `","ai_label":"ai"}],"headlines":[{"id":5,"text":"Doctors Surprised By This Habit","ai_label":"unset"}]}`))
 		case "/api/creatives/3":
@@ -65,6 +69,17 @@ func TestLibrary(t *testing.T) {
 	}
 	if (*asked)[0] != "/api/sets?vertical=memory-loss" {
 		t.Errorf("filters passed on: %q", (*asked)[0])
+	}
+	// The folder picker, and the originals filter by platform.
+	var folders struct{ Verticals []map[string]any }
+	if code := r.call("GET", "library/folders", nil, &folders); code != 200 || len(folders.Verticals) != 1 {
+		t.Fatalf("folders: %d %+v", code, folders)
+	}
+	if code := r.call("GET", "library/creatives?vertical=memory-loss&platform=taboola&origin=upload,drive&limit=60", nil, nil); code != 200 {
+		t.Fatalf("creatives: %d", code)
+	}
+	if got := (*asked)[len(*asked)-1]; got != "/api/creatives?limit=60&origin=upload%2Cdrive&platform=taboola&vertical=memory-loss" {
+		t.Errorf("creatives filters passed on: %q", got)
 	}
 	var set struct {
 		Creatives []map[string]any
