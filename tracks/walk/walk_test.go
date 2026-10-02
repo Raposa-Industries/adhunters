@@ -208,7 +208,7 @@ func TestWalkerSavesAndReplays(t *testing.T) {
 
 	// Archive, then replay into emptied tables.
 	store := &archive.Dir{Root: t.TempDir()}
-	n, err := Archive(ctx, db, store, dir)
+	n, err := Archive(ctx, db, store, dir, nil)
 	if err != nil || n != 1 {
 		t.Fatalf("archived %d: %v", n, err)
 	}

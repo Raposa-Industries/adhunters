@@ -146,7 +146,7 @@ func runCmd(args []string) error {
 			tick := time.NewTicker(30 * time.Second)
 			defer tick.Stop()
 			for {
-				n, err := walk.Archive(context.Background(), db, store, *spoolDir)
+				n, err := walk.Archive(context.Background(), db, store, *spoolDir, log)
 				archived.Add(float64(n))
 				mu.Lock()
 				if err != nil {
@@ -170,7 +170,7 @@ func runCmd(args []string) error {
 		w.Close()
 		<-shipped
 		// The files sealed on the way out go now; any left go at the next start.
-		if n, aerr := walk.Archive(context.Background(), db, store, *spoolDir); aerr != nil {
+		if n, aerr := walk.Archive(context.Background(), db, store, *spoolDir, log); aerr != nil {
 			log.Warn("archiving the last raw walk files", "err", aerr)
 		} else {
 			archived.Add(float64(n))

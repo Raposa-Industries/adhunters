@@ -7,9 +7,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -24,7 +27,13 @@ import (
 // Archive uploads the sealed raw walk files under dir to the archive, lists
 // each in tracks.walk_file, and then removes the local copy. A file that
 // fails stays for the next pass. It returns how many it archived.
-func Archive(ctx context.Context, db *pgxpool.Pool, store archive.Store, dir string) (int, error) {
+//
+// A walker restarted inside a minute writes a second file with the same
+// name as the one it archived on the way out (the local copy is gone, so
+// the spool does not know to add -2). The archive never replaces a key, so
+// that file goes under the next free name of its minute, -2, -3, …, and both
+// are kept; log says so.
+func Archive(ctx context.Context, db *pgxpool.Pool, store archive.Store, dir string, log *slog.Logger) (int, error) {
 	var keys []string
 	root := filepath.Join(dir, Network)
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -45,39 +54,61 @@ func Archive(ctx context.Context, db *pgxpool.Pool, store archive.Store, dir str
 	}
 	n := 0
 	for _, key := range keys {
-		if err := archiveOne(ctx, db, store, dir, key); err != nil {
+		stored, err := archiveOne(ctx, db, store, dir, key)
+		if err != nil {
 			return n, fmt.Errorf("%s: %w", key, err)
+		}
+		if stored != key && log != nil {
+			log.Warn("raw walk file archived under another name: the archive holds other bytes under its own",
+				"file", key, "archived_as", stored)
 		}
 		n++
 	}
 	return n, nil
 }
 
-func archiveOne(ctx context.Context, db *pgxpool.Pool, store archive.Store, dir, key string) error {
+// maxSameMinute is how many files of one minute the archive may hold.
+const maxSameMinute = 50
+
+// archiveOne archives one file and returns the key it went under.
+func archiveOne(ctx context.Context, db *pgxpool.Pool, store archive.Store, dir, key string) (string, error) {
 	k, err := spool.ParseKey(key)
 	if err != nil {
-		return err
+		return "", err
 	}
 	path := filepath.Join(dir, filepath.FromSlash(key))
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return err
+		return "", err
 	}
 	rows := 0
 	if err := spool.ReadLines(bytes.NewReader(data), func(int, []byte) error { rows++; return nil }); err != nil {
-		return err
+		return "", err
 	}
 	m := md5.Sum(data)
 	s := sha256.Sum256(data)
-	if err := store.Put(ctx, key, bytes.NewReader(data), int64(len(data)), hex.EncodeToString(m[:])); err != nil {
-		return err
+	stored := key
+	stem := pathpkg.Dir(key) + "/capture-" + k.Instance + "-" + k.Minute.Format("1504")
+	for n := 1; ; n++ {
+		if n > 1 {
+			if stored = fmt.Sprintf("%s-%d.ndjson.zst", stem, n); stored == key {
+				continue // the file's own name, tried first
+			}
+		}
+		err := store.Put(ctx, stored, bytes.NewReader(data), int64(len(data)), hex.EncodeToString(m[:]))
+		if err == nil {
+			break
+		}
+		if !errors.Is(err, archive.ErrDifferent) || n >= maxSameMinute {
+			return "", err
+		}
 	}
 	if _, err := db.Exec(ctx, `
 		INSERT INTO tracks.walk_file (key, minute, rows, bytes, sha256) VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (key) DO NOTHING`, key, k.Minute, rows, len(data), hex.EncodeToString(s[:])); err != nil {
-		return err
+		ON CONFLICT (key) DO NOTHING`, stored, k.Minute, rows, len(data), hex.EncodeToString(s[:])); err != nil {
+		return "", err
 	}
-	return os.Remove(path)
+	return stored, os.Remove(path)
 }
 
 // Replayed is what a replay did.
