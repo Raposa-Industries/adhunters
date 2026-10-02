@@ -262,3 +262,60 @@ func TestWalkedBackoff(t *testing.T) {
 		t.Errorf("after a good walk: %v", got)
 	}
 }
+
+func TestBacklog(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Second)
+	exec := func(sql string, args ...any) {
+		t.Helper()
+		if _, err := db.Exec(ctx, sql, args...); err != nil {
+			t.Fatalf("%v\n%s", err, sql)
+		}
+	}
+	exec(`SELECT tracks.ensure_day_partitions('sighting', $1::date - 1, $1::date)`, now)
+	exec(`INSERT INTO tracks.publisher (id, network_id, name, first_seen_at, last_seen_at) VALUES (1, 1, 'foxnews', now(), now())`)
+	exec(`INSERT INTO tracks.creative (id, creative_key, image_url, first_seen_at, last_seen_at) VALUES (10, 'ck', '', now(), now())`)
+	exec(`INSERT INTO tracks.ad (id, creative_id, headline, first_seen_at, last_seen_at)
+		SELECT g, 10, 'h' || g, now(), now() FROM generate_series(100, 105) g`)
+	exec(`INSERT INTO tracks.link (id, link_key, host, path, sample_url, first_seen_at, last_seen_at)
+		VALUES (1, gen_random_uuid(), 'a.com', '/', 'https://a.com/', now(), now())`)
+	// 100 never walked, 101 not due yet, 102 due 2 hours ago, 103 due 30
+	// minutes ago; 104 due but not seen in the last hour, 105 seen without a link.
+	exec(`INSERT INTO tracks.sighting (seen_at, scrape_id, ad_id, creative_id, publisher_id, device_id, link_id)
+		VALUES ($1, 1, 100, 10, 1, 1, 1), ($1, 1, 101, 10, 1, 1, 1), ($1 - interval '10 minutes', 1, 102, 10, 1, 1, 1),
+		       ($1 - interval '20 minutes', 1, 102, 10, 1, 1, 1), ($1 + interval '5 minutes', 1, 103, 10, 1, 1, 1),
+		       ($1 - interval '2 hours', 1, 104, 10, 1, 1, 1), ($1, 1, 105, 10, 1, 1, NULL)`, now.Add(-10*time.Minute))
+	exec(`INSERT INTO tracks.walk_state (ad_id, walked_at, next_at) VALUES
+		(101, $1::timestamptz - interval '1 hour', $1::timestamptz + interval '5 hours'),
+		(102, $1::timestamptz - interval '8 hours', $1::timestamptz - interval '2 hours'),
+		(103, $1::timestamptz - interval '1 hour', $1::timestamptz - interval '30 minutes'),
+		(104, $1::timestamptz - interval '9 hours', $1::timestamptz - interval '3 hours')`, now)
+
+	n, oldest, err := Backlog(ctx, db, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 3 || oldest != 2*time.Hour {
+		t.Errorf("backlog %d, oldest overdue %v; want 3 and 2h", n, oldest)
+	}
+	// The walker takes them never walked first, then most overdue first,
+	// though 103 was seen last.
+	dues, err := Dues(ctx, db, 10, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var order []int
+	for _, d := range dues {
+		order = append(order, d.AdID)
+	}
+	if len(order) != 3 || order[0] != 100 || order[1] != 102 || order[2] != 103 {
+		t.Errorf("due order %v, want [100 102 103]", order)
+	}
+	exec(`DELETE FROM tracks.walk_state WHERE ad_id IN (102, 103)`)
+	exec(`INSERT INTO tracks.walk_state (ad_id, walked_at, next_at) VALUES (100, $1, $1::timestamptz + interval '6 hours'),
+		(102, $1, $1::timestamptz + interval '6 hours'), (103, $1, $1::timestamptz + interval '6 hours')`, now)
+	if n, oldest, err := Backlog(ctx, db, now); err != nil || n != 0 || oldest != 0 {
+		t.Errorf("all walked: backlog %d, oldest %v, %v", n, oldest, err)
+	}
+}

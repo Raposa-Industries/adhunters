@@ -37,6 +37,23 @@ func Dues(ctx context.Context, db *pgxpool.Pool, limit int, now time.Time) ([]Du
 	})
 }
 
+// Backlog is how far behind the walker is: the ads seen in the last hour
+// with a link that are due, never walked included, and how long ago the most
+// overdue of the walked ones fell due again (0 when none is).
+func Backlog(ctx context.Context, db *pgxpool.Pool, now time.Time) (int64, time.Duration, error) {
+	var n int64
+	var secs float64
+	err := db.QueryRow(ctx, `
+		WITH s AS (
+			SELECT DISTINCT ad_id FROM tracks.sighting
+			WHERE seen_at > $1::timestamptz - interval '1 hour' AND seen_at <= $1 AND link_id IS NOT NULL
+		)
+		SELECT count(*) FILTER (WHERE w.ad_id IS NULL OR w.next_at <= $1),
+		       COALESCE(extract(epoch FROM max($1 - w.next_at) FILTER (WHERE w.next_at <= $1)), 0)::float8
+		FROM s LEFT JOIN tracks.walk_state w ON w.ad_id = s.ad_id`, now).Scan(&n, &secs)
+	return n, time.Duration(secs * float64(time.Second)), err
+}
+
 // Save writes one walk and what its pages said, each URL kept once
 // (tracks.url_id). A walk saved again (a replay) replaces its pages; a page
 // version already known only gets its times widened.
