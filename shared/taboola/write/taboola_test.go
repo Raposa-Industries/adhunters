@@ -493,7 +493,6 @@ func TestMassCreateChecksEveryItemFirst(t *testing.T) {
 	c, _ := client(t, f.srv.URL)
 	for name, mod := range map[string]func(*NewItem){
 		"empty title": func(it *NewItem) { it.Title = " " },
-		"long title":  func(it *NewItem) { it.Title = strings.Repeat("é", 101) },
 		"macro":       func(it *NewItem) { it.URL = "https://example.com/?c={campaign_id}" },
 		"not a link":  func(it *NewItem) { it.URL = "example.com" },
 		"custom id":   func(it *NewItem) { it.CustomID = strings.Repeat("x", 31) },

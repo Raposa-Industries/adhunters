@@ -720,24 +720,20 @@ func isTypedHeadlines(f drive.File) bool {
 var bullet = regexp.MustCompile(`^(?:[-*•‣◦▪●]|\d{1,3}[.)])\s+`)
 
 // HeadlineLines reads a headline file's text: one headline per line, list
-// bullets and numbers dropped, blank lines and repeats skipped. long holds
-// the line numbers over store.MaxHeadline characters, which are left out.
-func HeadlineLines(raw []byte) (lines []string, long []int) {
+// bullets and numbers dropped, blank lines and repeats skipped. Any length
+// is kept: the apps warn about long ones.
+func HeadlineLines(raw []byte) (lines []string) {
 	seen := map[string]bool{}
 	body := strings.TrimPrefix(strings.ToValidUTF8(string(raw), ""), "\ufeff")
-	for i, line := range strings.Split(body, "\n") {
+	for _, line := range strings.Split(body, "\n") {
 		t := text.CleanLine(bullet.ReplaceAllString(strings.TrimSpace(line), ""))
-		switch {
-		case t == "" || seen[t]:
-			continue
-		case len([]rune(t)) > store.MaxHeadline:
-			long = append(long, i+1)
+		if t == "" || seen[t] {
 			continue
 		}
 		seen[t] = true
 		lines = append(lines, t)
 	}
-	return lines, long
+	return lines
 }
 
 // typedHeadlines reads a person's headline file when it changed or moved:
@@ -779,7 +775,7 @@ func (s *Syncer) typedHeadlines(ctx context.Context, f drive.File, dir folderAt)
 	if err != nil {
 		return err
 	}
-	lines, long := HeadlineLines(raw)
+	lines := HeadlineLines(raw)
 	ids := make([]int64, 0, len(lines))
 	for start := 0; start < len(lines); start += 500 {
 		batch := make([]store.NewHeadline, 0, 500)
@@ -794,15 +790,11 @@ func (s *Syncer) typedHeadlines(ctx context.Context, f drive.File, dir folderAt)
 			ids = append(ids, h.ID)
 		}
 	}
-	msg := ""
-	if len(long) > 0 {
-		msg = fmt.Sprintf("lines over %d characters left out: %v", store.MaxHeadline, long)
-	}
 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
 		if err := recordFile(ctx, tx, withParent(f, dir.id), "headlines", 0); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE library.drive_file SET error = $2 WHERE file_id = $1`, f.ID, msg); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE library.drive_file SET error = '' WHERE file_id = $1`, f.ID); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `

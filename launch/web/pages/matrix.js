@@ -21,10 +21,6 @@ export function moreCTAs(all) {
   return all.filter((c) => !chips.has(c));
 }
 
-// MAX_HEADLINE: the library's headlines longer than this stay out of the
-// list (Taboola does not take them; Create keeps them to 60).
-export const MAX_HEADLINE = 60;
-
 // letter names a column: A…Z, then AA, AB…
 export function letter(i) {
   let s = '';

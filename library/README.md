@@ -92,8 +92,8 @@ saves something, one pass:
 
    Headlines a person typed come in the same way: a Google Doc (or a text
    file) named `Headlines` in a folder, one headline per line, list bullets
-   and numbers dropped, lines over 200 characters left out (noted on the
-   file's `drive_file.error`). When the file changed or moved, its text is
+   and numbers dropped, any length kept (no headline is refused for its
+   length anywhere; the apps warn). When the file changed or moved, its text is
    kept raw in `library.drive_text`, each line becomes a headline of that
    folder (its set, or its vertical), and a line taken out takes its
    headline out of the lists (hidden, kept) unless another file still lists

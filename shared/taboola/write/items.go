@@ -78,7 +78,6 @@ type Item struct {
 
 // Limits of an ad.
 const (
-	MaxTitle       = 100 // Taboola's template says under 100
 	MaxDescription = 1000
 	MaxCustomID    = 30 // Taboola's Custom ID
 	// MassChunk is the most items sent in one mass create.
@@ -97,8 +96,6 @@ func (it NewItem) Check() error {
 	switch {
 	case title == "":
 		return refuse("título vazio")
-	case utf8.RuneCountInString(title) > MaxTitle:
-		return refuse("título com mais de %d caracteres", MaxTitle)
 	case strings.ContainsAny(title, "\r\n"):
 		return refuse("título com quebra de linha")
 	case utf8.RuneCountInString(it.Description) > MaxDescription:
