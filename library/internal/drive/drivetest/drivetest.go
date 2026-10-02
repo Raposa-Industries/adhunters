@@ -71,7 +71,7 @@ func (d *Drive) add(parent, name, mimeType string, data []byte, props map[string
 	d.next++
 	f := &File{File: drive.File{ID: fmt.Sprintf("f%03d", d.next), Name: name, MimeType: mimeType, Parents: []string{parent},
 		ModifiedTime: time.Date(2026, 9, 30, 12, 0, d.next, 0, time.UTC), AppProperties: props}, Data: data}
-	if mimeType != drive.FolderType {
+	if mimeType != drive.FolderType && mimeType != drive.DocType {
 		sum := md5.Sum(data)
 		f.MD5 = hex.EncodeToString(sum[:])
 		f.Size = strconv.Itoa(len(data))
@@ -85,6 +85,32 @@ func (d *Drive) Remove(id string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	delete(d.files, id)
+}
+
+// Edit gives a file new contents, as a person editing it would.
+func (d *Drive) Edit(id string, data []byte) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	f, ok := d.files[id]
+	if !ok {
+		return
+	}
+	f.Data = data
+	f.ModifiedTime = f.ModifiedTime.Add(time.Minute)
+	if f.MimeType != drive.DocType {
+		sum := md5.Sum(data)
+		f.MD5 = hex.EncodeToString(sum[:])
+		f.Size = strconv.Itoa(len(data))
+	}
+}
+
+// Trash puts a file in Drive's trash, or takes it out, as a person would.
+func (d *Drive) Trash(id string, on bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if f, ok := d.files[id]; ok {
+		f.Trashed = on
+	}
 }
 
 // Get returns a copy of a file, or false.
@@ -155,7 +181,7 @@ func (d *Drive) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		var kids []drive.File
 		for _, f := range d.files {
-			if len(f.Parents) > 0 && f.Parents[0] == m[1] {
+			if len(f.Parents) > 0 && f.Parents[0] == m[1] && !f.Trashed {
 				kids = append(kids, f.File)
 			}
 		}
@@ -167,6 +193,13 @@ func (d *Drive) serve(w http.ResponseWriter, r *http.Request) {
 			reply["nextPageToken"] = strconv.Itoa(end)
 		}
 		writeJSON(w, reply)
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/drive/v3/files/") && strings.HasSuffix(path, "/export"):
+		f, ok := d.files[strings.TrimSuffix(strings.TrimPrefix(path, "/drive/v3/files/"), "/export")]
+		if !ok || f.MimeType != drive.DocType || r.URL.Query().Get("mimeType") != "text/plain" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write(f.Data)
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/drive/v3/files/"):
 		f, ok := d.files[strings.TrimPrefix(path, "/drive/v3/files/")]
 		if !ok {

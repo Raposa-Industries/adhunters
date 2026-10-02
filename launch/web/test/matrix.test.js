@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { CHIPS, moreCTAs, letter, cell, matrixAds, toggle, forget, groupPrefix, campaignName, adName, namesLine, sheetName, shortName, ORIGINS, originLabel, folderList } from '../pages/matrix.js';
+import { CHIPS, moreCTAs, letter, cell, matrixAds, toggle, forget, groupPrefix, campaignName, adName, namesLine, sheetName, shortName, ORIGINS, originLabel, folderList, adAI } from '../pages/matrix.js';
 
 const rows = [{ id: 'h1' }, { id: 'h2' }, { id: 'h3' }];
 const cols = [{ sha256: 'a' }, { sha256: 'b' }, { sha256: 'c' }, { sha256: 'd' }];
@@ -90,4 +90,17 @@ test("folderList: each vertical's platform folders, each with its sets", () => {
     ['s:2', 'Memory Loss › Sem pasta', { set: '2' }],
   ]);
   assert.deepEqual(folderList(undefined), []);
+});
+
+test('adAI: the label follows the library and the look, unless the person chose', () => {
+  const r = { id: 'r1' };
+  const plain = { sha256: 'a' };
+  const made = { sha256: 'b', ai: true };
+  const none = new Map();
+  assert.equal(adAI(r, plain, none), false);
+  assert.equal(adAI(r, made, none), true);
+  assert.equal(adAI({ id: 'r2', ai: true }, plain, none), true);
+  const chosen = new Map([[cell('r1', 'b'), false], [cell('r1', 'a'), true]]);
+  assert.equal(adAI(r, made, chosen), false);
+  assert.equal(adAI(r, plain, chosen), true);
 });

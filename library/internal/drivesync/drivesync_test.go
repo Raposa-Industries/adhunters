@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"io"
 	"log/slog"
+	"sort"
 	"strings"
 	"testing"
 
@@ -140,6 +141,16 @@ func TestSync(t *testing.T) {
 	}
 	if b := read(t, st, made.ID, true); len(b) == 0 {
 		t.Error("thumbnail lost with the file")
+	}
+	// It leaves the lists and the counts.
+	if l, _ := st.Creatives(ctx, store.Filter{VerticalID: "blood-pressure"}); len(l) != 0 {
+		t.Errorf("deleted picture still listed: %+v", l)
+	}
+	if l, _ := st.Creatives(ctx, store.Filter{SetID: set.ID}); len(l) != 0 {
+		t.Errorf("deleted picture still in its set: %+v", l)
+	}
+	if f, _ := st.Folders(ctx); f.Totals.Creatives != 1 {
+		t.Errorf("counts after delete %+v", f.Totals)
 	}
 	if hl := fake.Find(drivesync.HeadlinesFile); len(hl) != 1 || !strings.HasSuffix(string(hl[0].Data), "Three\n") {
 		t.Errorf("headlines not rewritten: %+v", hl)
@@ -323,5 +334,149 @@ func TestPlatformFolders(t *testing.T) {
 	}
 	if _, ok := got["NewsBreak"]; ok {
 		t.Errorf("the platform's folder became a set: %v", got)
+	}
+}
+
+func TestTrashedFileLeavesTheLists(t *testing.T) {
+	ctx := context.Background()
+	fake := drivetest.New(t)
+	st := store.New(testdb.New(t))
+	dc := drive.New(fake.App(), "refresh")
+	st.UseDrive(func(context.Context) (store.Drive, error) { return dc, nil })
+	sy := drivesync.New(st, dc, drivetest.Root, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	vert := fake.Add(drivetest.Root, "Memory Loss", drive.FolderType, nil)
+	set := fake.Add(vert, "Winners", drive.FolderType, nil)
+	id := fake.Add(set, "MMT1.png", "image/png", pic(t, 7))
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	listed := func() int {
+		l, err := st.Creatives(ctx, store.Filter{VerticalID: "memory-loss"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(l)
+	}
+	if listed() != 1 {
+		t.Fatal("not imported")
+	}
+
+	// In the trash: gone from the lists.
+	fake.Trash(id, true)
+	if res, err := sy.Run(ctx); err != nil || res.Gone != 1 {
+		t.Fatalf("pass after trash %+v %v", res, err)
+	}
+	if listed() != 0 {
+		t.Error("trashed picture still listed")
+	}
+
+	// Taken back out: listed again, without a second download.
+	fake.Trash(id, false)
+	if res, err := sy.Run(ctx); err != nil || res.Added != 0 {
+		t.Fatalf("pass after restore %+v %v", res, err)
+	}
+	if listed() != 1 {
+		t.Error("restored picture not listed")
+	}
+	if n := fake.Calls["GET /drive/v3/files/"+id]; n != 1 {
+		t.Errorf("downloaded %d times", n)
+	}
+}
+
+func TestTypedHeadlines(t *testing.T) {
+	ctx := context.Background()
+	fake := drivetest.New(t)
+	st := store.New(testdb.New(t))
+	dc := drive.New(fake.App(), "refresh")
+	st.UseDrive(func(context.Context) (store.Drive, error) { return dc, nil })
+	sy := drivesync.New(st, dc, drivetest.Root, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	vert := fake.Add(drivetest.Root, "Memory Loss", drive.FolderType, nil)
+	folder := fake.Add(vert, "Winners", drive.FolderType, nil)
+	fake.Add(folder, "MMT1.png", "image/png", pic(t, 9))
+	long := strings.Repeat("x", store.MaxHeadline+1)
+	doc := fake.Add(folder, "Headlines", drive.DocType, []byte("\ufeff- One Spoon Trick\r\n2. Doctors Hate This\n\n• One Spoon Trick\n"+long+"\n"))
+	fake.Add(vert, "headlines.txt", "text/plain", []byte("Loose Line\n"))
+
+	texts := func(f store.Filter) []string {
+		t.Helper()
+		hs, err := st.Headlines(ctx, f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := []string{}
+		for _, h := range hs {
+			out = append(out, h.Text)
+		}
+		sort.Strings(out)
+		return out
+	}
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	sets, _ := st.Sets(ctx, "memory-loss", 0)
+	if len(sets) != 1 || sets[0].Name != "Winners" || sets[0].Creatives != 1 || sets[0].Headlines != 2 {
+		t.Fatalf("sets %+v", sets)
+	}
+	set := sets[0].ID
+	if got := texts(store.Filter{SetID: set}); strings.Join(got, "|") != "Doctors Hate This|One Spoon Trick" {
+		t.Errorf("headlines of the folder %q", got)
+	}
+	if got := texts(store.Filter{VerticalID: "memory-loss"}); len(got) != 3 {
+		t.Errorf("headlines of the vertical %q", got)
+	}
+	var why string
+	_ = st.DB().QueryRow(ctx, `SELECT error FROM library.drive_file WHERE file_id = $1`, doc).Scan(&why)
+	if !strings.Contains(why, "[5]") {
+		t.Errorf("long line not noted: %q", why)
+	}
+	var raws int
+	_ = st.DB().QueryRow(ctx, `SELECT count(*) FROM library.drive_text`).Scan(&raws)
+	if raws != 2 {
+		t.Errorf("%d raw texts kept", raws)
+	}
+
+	// Unchanged: not read again. Our own Headlines.txt is never read.
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if n := fake.Calls["GET /drive/v3/files/"+doc+"/export"]; n != 1 {
+		t.Errorf("exported %d times", n)
+	}
+	if mine := fake.Find(drivesync.HeadlinesFile); len(mine) != 1 || fake.Calls["GET /drive/v3/files/"+mine[0].ID] != 0 {
+		t.Errorf("our headlines file: %+v", mine)
+	}
+
+	// Edited: a line out, a line in.
+	fake.Edit(doc, []byte("Doctors Hate This\nThree Foods To Avoid\n"))
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := texts(store.Filter{SetID: set}); strings.Join(got, "|") != "Doctors Hate This|Three Foods To Avoid" {
+		t.Errorf("after edit %q", got)
+	}
+
+	// Trashed: its headlines leave; back out of the trash, they return.
+	fake.Trash(doc, true)
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := texts(store.Filter{SetID: set}); len(got) != 0 {
+		t.Errorf("after trash %q", got)
+	}
+	fake.Trash(doc, false)
+	if _, err := sy.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := texts(store.Filter{SetID: set}); strings.Join(got, "|") != "Doctors Hate This|Three Foods To Avoid" {
+		t.Errorf("after restore %q", got)
+	}
+}
+
+func TestHeadlineLines(t *testing.T) {
+	got, long := drivesync.HeadlineLines([]byte("1) First\n* Second\n  \n10. Tenth Thing\n3 Foods That Help\nFirst\n"))
+	if strings.Join(got, "|") != "First|Second|Tenth Thing|3 Foods That Help" || len(long) != 0 {
+		t.Errorf("%q %v", got, long)
 	}
 }

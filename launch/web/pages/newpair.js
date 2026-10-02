@@ -31,7 +31,7 @@ import { CTAS, AD_COLUMNS, MAX_ADS, adId, adRows, uniqueNames, campaignIds } fro
 import { fillTemplate } from '/launch/_ads/template.js';
 import { zip } from '/launch/_ads/zip.js';
 import { libraryPanel } from './library.js';
-import { CHIPS, moreCTAs, letter, cell, matrixAds, toggle, forget, groupPrefix, campaignName, adName, namesLine, sheetName, shortName } from './matrix.js';
+import { CHIPS, moreCTAs, letter, cell, matrixAds, toggle, forget, groupPrefix, campaignName, adName, namesLine, sheetName, shortName, adAI } from './matrix.js';
 
 // Portuguese in a headline: accents Portuguese uses and English does not,
 // and a few common words. Headlines always go out in English.
@@ -164,7 +164,7 @@ export async function newPair({ main, status }) {
     rows: [], // its headlines: {id, text, desc, library, ai}
     ticked: new Set(), // cell(row id, sha256)
     cta: 'Learn More',
-    ai: '',
+    aiChosen: new Map(), // cell key → the AI label the person chose for that ad in Revisar
   };
   let next = null; // the names for the chosen group, or the account's new group: actions.NextNames
   let accounts = [];
@@ -472,7 +472,6 @@ export async function newPair({ main, status }) {
   function addCol(img) {
     if (s.cols.some((x) => x.sha256 === img.sha256)) return;
     s.cols.push(img);
-    if (!s.ai && img.ai) s.ai = 'yes';
     changed();
   }
   function removeCol(c) {
@@ -485,7 +484,6 @@ export async function newPair({ main, status }) {
     if (!t || s.rows.some((r) => r.text.toLowerCase() === t.toLowerCase())) return null;
     const r = { id: newId(), text: t, desc: '', ...extra };
     s.rows.push(r);
-    if (!s.ai && r.ai) s.ai = 'yes';
     changed();
     return r;
   }
@@ -586,9 +584,7 @@ export async function newPair({ main, status }) {
   const sheetIds = input({ placeholder: '123456, 123457', 'aria-label': 'Ids das campanhas para a planilha' });
   const sheetOut = h('div');
   const sheetBtn = h('button', { type: 'button', onclick: () => downloadSheet() }, 'Baixar planilha e imagens');
-  const aiBox = h('div');
-  const reviewCard = h('section', { class: 'form-card' }, review,
-    make === 'ads' ? h('div', { class: 'field' }, 'Feito com IA?', aiBox) : null,
+  const reviewCard = h('section', { class: make === 'ads' ? 'ads-review' : 'form-card' }, review,
     sendOut,
     make !== 'ads' || connected.length ? null : h('details', { class: 'sheet', open: true }, h('summary', {}, 'Subir à mão pelo Bulk Upload'),
       h('p', { class: 'muted' }, 'A planilha usa as campanhas que já existem no Taboola. Os anúncios entram pausados.'),
@@ -616,7 +612,7 @@ export async function newPair({ main, status }) {
       { label: 'Anúncios', el: adsCard, sub: () => 'campanhas, página, combinações e botão', title: 'Novos anúncios',
         lead: () => 'Marque quais imagens vão com quais headlines. Cada marca vira um anúncio em cada campanha.' },
       { label: 'Revisar e adicionar', title: 'Passo 2 · Revisar', el: reviewCard, sub: () => '',
-        lead: () => `Confira os anúncios como vão sair. Eles entram ${live ? 'ativos' : 'pausados'} em cada campanha escolhida e passam pela revisão do Taboola.` },
+        lead: () => `Um anúncio por linha; cada um vai ${to.length === 1 ? 'na campanha escolhida' : to.length === 2 ? 'nas duas campanhas' : to.length ? `nas ${to.length} campanhas` : 'em cada campanha escolhida'}. Tire o que não quiser antes de adicionar.` },
     ],
   }[make];
   const title = h('h1', {}, '');
@@ -647,8 +643,12 @@ export async function newPair({ main, status }) {
   }
   // drawAside is the right column: Novos anúncios' library on its first
   // step, the preview everywhere else.
+  // Novos anúncios' Revisar has neither: its table takes the whole width.
   function drawAside() {
     const library = make === 'ads' && at === 0 && !finished;
+    const wide = make === 'ads' && at > 0 && !finished;
+    aside.hidden = wide;
+    content.classList.toggle('wide', wide);
     aside.classList.toggle('lib-panel', library);
     aside.setAttribute('aria-label', library ? 'Biblioteca do Create' : 'Prévia na tabela');
     content.classList.toggle('with-library', library);
@@ -768,7 +768,8 @@ export async function newPair({ main, status }) {
   async function ads() {
     const list = matrixAds(s.rows, s.cols, s.ticked).map((m) => {
       const r = s.rows[m.row];
-      return { n: m.n, col: m.col, img: s.cols[m.col], row: r, title: clean(r.text), description: (r.desc || '').trim(), cta: s.cta };
+      const img = s.cols[m.col];
+      return { n: m.n, col: m.col, img, row: r, title: clean(r.text), description: (r.desc || '').trim(), cta: s.cta, ai: adAI(r, img, s.aiChosen) };
     });
     return Promise.all(list.map(async (a) => ({ ...a, adId: await adId(a.img.sha256.slice(0, 10), a.title, '') })));
   }
@@ -787,10 +788,6 @@ export async function newPair({ main, status }) {
       namesLineEl.textContent = namesLine(chosenNames(), list.length);
       nextBtn.textContent = `Próximo: revisar ${total}`;
       sendBtn.textContent = 'Adicionar ' + total;
-      // The AI label starts from the library's labels and the pictures'
-      // look; the person can change it.
-      if (at === steps.length - 1 && !s.ai) s.ai = s.cols.some((x) => x.ai) || s.rows.some((r) => r.ai) ? 'yes' : 'no';
-      drawAI();
     } else {
       nextBtn.textContent = 'Próximo: revisar';
       sendBtn.textContent = make === 'group' ? 'Criar grupo' : 'Criar ' + plural(devicesNow().length, 'campanha', 'campanhas');
@@ -810,16 +807,9 @@ export async function newPair({ main, status }) {
     if (list.length > MAX_ADS) w.push(`${list.length} anúncios passam de ${MAX_ADS}, o máximo de uma planilha.`);
     const twice = repeats(list);
     if (twice) w.push(`${plural(twice, 'anúncio repete', 'anúncios repetem')} outro (mesma imagem, headline e botão).`);
-    if (s.ai === 'no' && imgs.some((x) => x.ai)) w.push('Marcado como sem IA, mas há imagens que parecem de IA.');
+    const bare = list.filter((a) => !a.ai && a.img.ai).length;
+    if (bare) w.push(`${plural(bare, 'anúncio vai', 'anúncios vão')} sem o rótulo de IA, mas com imagem que parece de IA.`);
     return w;
-  }
-
-  function drawAI() {
-    const looks = s.cols.filter((x) => x.ai).length;
-    aiBox.replaceChildren(...[
-      segmented('ai', [['yes', 'Sim, marcar como IA'], ['no', 'Não']], s.ai, (v) => { s.ai = v; update(); }),
-      s.ai === 'no' && looks ? note('warn', `${plural(looks, 'imagem parece feita', 'imagens parecem feitas')} com IA. O Taboola pede que imagens de IA sejam declaradas; a escolha é sua.`) : null,
-      h('p', { class: 'faint' }, 'O Taboola pede que imagens e headlines de saúde feitas com IA sejam declaradas.')].filter(Boolean));
   }
 
   function drawReview(list) {
@@ -861,24 +851,41 @@ export async function newPair({ main, status }) {
         h('p', { class: 'faint rv-foot' }, 'Objetivo, lance e o resto vão com os padrões do Launch.'));
       return;
     }
-    // One row per ad; "Tirar" unticks its cell in the matrix.
+    // Figma "Launch · Novos anúncios (revisar)": what goes where, then one
+    // row per ad. "Tirar" unticks its cell in the matrix; a click on its
+    // label turns Taboola's AI label off or on for that ad alone.
     const names = chosenNames();
+    const camps = Math.max(1, to.length);
+    const fact = (k, v, cls) => h('div', { class: 'rv-fact' }, h('span', { class: 'fr-label' }, k), h('span', { class: cls || '' }, v));
+    const label = (a) => {
+      const k = cell(a.row.id, a.img.sha256);
+      return h('button', { type: 'button', class: 'ai-label' + (a.ai ? '' : ' off'), 'aria-pressed': String(a.ai),
+        title: a.ai ? 'Vai com o rótulo de IA do Taboola. Clique para tirar deste anúncio.' : 'Vai sem o rótulo de IA. Clique para pôr neste anúncio.',
+        onclick: () => { s.aiChosen.set(k, !a.ai); update(); } }, a.ai ? (a.img.ai ? 'Imagem feita com IA' : 'Feita com IA') : 'Sem rótulo de IA');
+    };
     review.replaceChildren(...[
       w.length ? note('warn', h('b', {}, 'Avisos (não impedem): '), w.join(' ')) : null,
-      list.length ? h('p', { class: 'faint' }, `${plural(list.length, 'anúncio', 'anúncios')}, com o botão ${ctaLabel(s.cta)}, em ${to.length ? plural(to.length, 'campanha', 'campanhas') : 'cada campanha'}. ${namesLine(names, list.length)}`) : null,
-      list.length ? h('div', { class: 'table-wrap ads-preview' }, h('table', { class: 'list' },
-        h('thead', {}, h('tr', {}, h('th', {}, 'Anúncio'), h('th', {}, 'Imagem'), h('th', {}, 'Headline'), h('th', {}, 'Botão'), h('th', {}, ''))),
+      h('div', { class: 'rv-summary' },
+        fact('Campanhas', names.length ? names.join('  ·  ') : '—', 'mono'),
+        fact('Página de destino', adUrl.value.trim().replace(/^https?:\/\//i, '') || '—'),
+        fact('Botão', ctaLabel(s.cta))),
+      list.length ? h('div', { class: 'rv-ads' }, h('table', {},
+        h('thead', {}, h('tr', {}, ...['Anúncio', 'Imagem', 'Headline', 'Descrição', 'Rótulo', ''].map((x) => h('th', {}, x)))),
         h('tbody', {}, list.map((a) => {
           const hw = headlineWarnings(a.title);
           if (portuguese(a.title)) hw.unshift('Parece português: as headlines vão sempre em inglês.');
           return h('tr', {},
-            h('td', { class: 'mono' }, 'AD' + pad(a.n), names.length ? h('div', { class: 'faint ad-id' }, names.slice(0, 2).map((c) => adName(c, a.n)).join(' · ') + (names.length > 2 ? ' …' : '')) : null),
-            h('td', { class: 'ad-pic' }, h('img', { class: 'mini', src: '/launch/api/images/' + a.img.sha256, alt: '' }), h('span', { class: 'faint' }, letter(a.col))),
-            h('td', { class: 'ad-title' }, h('b', {}, a.title), a.description ? h('div', { class: 'faint' }, a.description) : null,
-              hw.map((x) => h('div', { class: 'warn-line' }, x)), h('div', { class: 'mono faint ad-id', title: 'Id do anúncio' }, a.adId)),
-            h('td', {}, ctaLabel(a.cta)),
-            h('td', {}, h('button', { type: 'button', class: 'small ghost', 'aria-label': 'Tirar o AD' + pad(a.n), onclick: () => { s.ticked.delete(cell(a.row.id, a.img.sha256)); changed(); } }, 'Tirar')));
-        })))) : h('p', { class: 'faint' }, 'Nenhuma combinação marcada.')].filter(Boolean));
+            h('td', { class: 'rv-ad' }, 'AD' + pad(a.n)),
+            h('td', { class: 'rv-pic' }, h('span', { class: 'rv-thumb' }, h('img', { src: '/launch/api/images/' + a.img.sha256, alt: 'Imagem ' + letter(a.col) }),
+              a.img.ai ? h('span', { class: 'rv-ia', title: 'Imagem marcada como IA na biblioteca, ou que parece feita com IA' }, 'IA') : null)),
+            h('td', { class: 'rv-title' }, h('span', {}, a.title), hw.map((x) => h('div', { class: 'warn-line' }, x))),
+            h('td', { class: 'rv-desc', title: a.description || null }, a.description || '—'),
+            h('td', {}, label(a)),
+            h('td', { class: 'rv-out' }, h('button', { type: 'button', class: 'small', 'aria-label': 'Tirar o AD' + pad(a.n), onclick: () => { s.ticked.delete(cell(a.row.id, a.img.sha256)); changed(); } },
+              svgIcon('x-icon', ['M4.5 4.5l7 7', 'M11.5 4.5l-7 7']), 'Tirar')));
+        })))) : h('p', { class: 'faint' }, 'Nenhuma combinação marcada.'),
+      list.length ? h('p', { class: 'faint rv-foot' }, `${plural(list.length, 'anúncio', 'anúncios')} × ${plural(camps, 'campanha', 'campanhas')} = ${plural(list.length * camps, 'anúncio', 'anúncios')}. `
+        + (names.length ? namesLine(names, list.length).replace(/^Nomes: /, 'Nomes ') + '. ' : '') + (live ? 'Nascem rodando.' : 'Nascem pausados.')) : null].filter(Boolean));
   }
 
   // drawPreview is the right column: the rows Campanhas will show, the new
@@ -999,7 +1006,7 @@ export async function newPair({ main, status }) {
 
   async function sendAds() {
     const list = await ads();
-    const p = problem() || (!list.length ? 'Nenhum anúncio para criar.' : !s.ai ? 'Diga se os anúncios foram feitos com IA.' : '');
+    const p = problem() || (!list.length ? 'Nenhum anúncio para criar.' : '');
     if (p) {
       sendOut.replaceChildren(note('fail', p));
       return;
@@ -1013,7 +1020,7 @@ export async function newPair({ main, status }) {
         if (!byAcct.has(acct)) byAcct.set(acct, []);
         byAcct.get(acct).push(id);
       }
-      const newAds = list.map((a) => ({ title: a.title, description: a.description, url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: s.ai === 'yes' }));
+      const newAds = list.map((a) => ({ title: a.title, description: a.description, url: url(), image: a.img.sha256, cta: a.cta, ad_id: a.adId, ai: a.ai }));
       const done = [];
       for (const [acct, ids] of byAcct) {
         const res = await api(`${s.net}/${encodeURIComponent(acct)}/add-ads`, { method: 'POST', body: { campaigns: ids, new_ads: newAds } });
@@ -1134,7 +1141,8 @@ export async function newPair({ main, status }) {
     s.rows = (b.headlines || []).filter((x) => x.on !== false && clean(x.text || '')).map((x) => ({ id: newId(), text: clean(x.text), desc: b.ad_desc || '' }));
     for (const r of s.rows) for (const c of s.cols) s.ticked.add(cell(r.id, c.sha256));
     if ((b.ctas || []).length) s.cta = b.ctas[0];
-    s.ai = b.ai || '';
+    // Old drafts kept one AI answer for every ad.
+    if (b.ai === 'yes' || b.ai === 'no') for (const k of s.ticked) s.aiChosen.set(k, b.ai === 'yes');
     to.splice(0, to.length, ...(b.to || to));
     adUrl.value = b.ad_url || '';
     rail.querySelector('.rail-label').textContent = MAKES[make] + ' · rascunho';
@@ -1153,9 +1161,10 @@ export async function newPair({ main, status }) {
       const camps = ids.map((id) => campOf(id)?.name || '');
       // A row goes in every campaign, so it has one description: each ad's own.
       const rows = adRows(list.map((a) => ({ creativeFile: fileOf.get(a.img), title: a.title, cta: a.cta, customId: a.adId, adName: sheetName(camps, a.n) })),
-        { campaigns: ids, url: url(), description: '', ai: { yes: 'Yes', no: 'No' }[s.ai] || '' });
+        { campaigns: ids, url: url(), description: '' });
       const at2 = AD_COLUMNS.indexOf('Description');
-      list.forEach((a, k) => { rows[k][at2] = a.description; });
+      const at3 = AD_COLUMNS.indexOf('AI Content');
+      list.forEach((a, k) => { rows[k][at2] = a.description; rows[k][at3] = a.ai ? 'Yes' : 'No'; });
       const base = new Uint8Array(await (await fetch('/launch/_ads/realize-base.xlsx')).arrayBuffer());
       const sheet = await fillTemplate(base, AD_COLUMNS, rows);
       const files = [];

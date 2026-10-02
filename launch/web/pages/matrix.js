@@ -161,3 +161,12 @@ export function folderList(data) {
   }
   return out;
 }
+
+// adAI says whether one ad carries Taboola's AI label (ai_disclosure): the
+// person's choice for that ad in Revisar when there is one (chosen maps
+// cell keys to true or false), else on when its picture or its headline is
+// labelled AI in the library or the picture looks AI-made.
+export function adAI(row, col, chosen) {
+  const k = cell(row.id, col.sha256);
+  return chosen.has(k) ? !!chosen.get(k) : !!(col.ai || row.ai);
+}

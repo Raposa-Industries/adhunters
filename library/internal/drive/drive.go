@@ -36,6 +36,9 @@ const Scope = "https://www.googleapis.com/auth/drive"
 // FolderType is Drive's media type for a folder.
 const FolderType = "application/vnd.google-apps.folder"
 
+// DocType is Drive's media type for a Google Doc.
+const DocType = "application/vnd.google-apps.document"
+
 // Endpoints are Google's addresses; tests point them at a fake.
 type Endpoints struct {
 	Auth  string // consent page
@@ -337,6 +340,12 @@ func (c *Client) Get(ctx context.Context, id string) (File, error) {
 	}
 	var f File
 	return f, json.Unmarshal(raw, &f)
+}
+
+// Export returns a Google Doc's text as plain text (UTF-8).
+func (c *Client) Export(ctx context.Context, id string) ([]byte, error) {
+	return c.do(ctx, request{method: http.MethodGet,
+		url: c.app.ends().API + "/drive/v3/files/" + url.PathEscape(id) + "/export?mimeType=text%2Fplain"})
 }
 
 // Download returns a file's bytes.

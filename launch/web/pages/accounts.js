@@ -96,7 +96,7 @@ export async function accounts({ main }) {
     const l = r.login;
     const menu = h('details', { class: 'row-menu' });
     const shut = () => { menu.open = false; };
-    const item = (label, run) => h('button', { type: 'button', role: 'menuitem', onclick: () => { shut(); run(); } }, label);
+    const item = (label, run, cls) => h('button', { type: 'button', role: 'menuitem', class: cls || null, onclick: () => { shut(); run(); } }, label);
     const items = l.server
       // The server's own login: only its proxy changes here.
       ? [item('Proxy', () => accountProxy(r))]
@@ -104,8 +104,9 @@ export async function accounts({ main }) {
         item('Proxy', () => loginProxy(r)),
         item('Detalhes do acesso', () => details(r)),
         item('Escolher as contas deste acesso', () => chooseAccounts(l)),
+        h('hr', { class: 'menu-sep' }),
         item('Tirar esta conta do Launch', () => dropAccount(r)),
-        item(`Remover o acesso (${plural((l.accounts || []).length, 'conta', 'contas')})`, () => removeLogin(l, null, null)),
+        item('Remover o acesso', () => removeLogin(l, null, null), 'danger'),
       ];
     menu.append(
       h('summary', { 'aria-label': 'Ações da conta ' + r.name, title: 'Ações' }, '···'),
@@ -293,14 +294,16 @@ function newLogin(rows, added) {
   let checked = null; // {key, allowed, all, fresh} once Taboola answered for these fields
   let asking = null; // the check under way: {key, promise}
   const form = h('form', { class: 'fields-col', novalidate: true },
-    field('Client ID', id, 'a chave de 32 letras e números (Backstage › Account Settings › API)'),
-    field('User ID', user, 'o nome da conta na Taboola, como empresa-network'),
+    h('div', { class: 'pair' },
+      field('Client ID', id, 'a chave de 32 letras e números'),
+      field('User ID', user, 'o nome da conta, como empresa-network')),
     field('Client secret', secret, 'fica guardado criptografado e não aparece de novo'),
-    field('Proxy', proxy, PROXY_HINT),
+    field('Proxy', proxy),
     found, msg, h('div', { class: 'actions' }, cancel, go));
   const box = dialog('Nova conta',
-    h('p', { class: 'lead' }, 'Cole o client ID e o client secret da Taboola (Backstage › Account Settings › API). Todas as contas desse acesso entram no Launch.'),
+    h('p', { class: 'lead' }, 'Cole o acesso da API da Taboola (Backstage › Account Settings › API). Todas as contas desse acesso entram no Launch.'),
     form);
+  box.classList.add('new-login');
   // The secret and the proxy never stay in the page once the dialog is gone.
   box.addEventListener('close', () => { secret.value = ''; proxy.value = ''; clearTimeout(wait); });
   cancel.onclick = () => box.close();

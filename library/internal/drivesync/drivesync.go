@@ -12,9 +12,10 @@
 //     downloaded once, for its hash and thumbnail, and added as a creative
 //     whose bytes are that Drive file: its vertical from the top folder's
 //     name, its set from the folder it sits in.
-//  3. Gone: after a whole listing, a file that was not in it is marked gone,
-//     and so is its creative. The creative's row and thumbnail stay; its
-//     bytes went with the file.
+//  3. Gone: after a whole listing, a file that was not in it (deleted, or
+//     in Drive's trash) is marked gone, and so is its creative, which leaves
+//     the lists. The creative's row and thumbnail stay; its bytes went with
+//     the file. A file taken back out of the trash brings it back.
 //
 // Nothing is ever deleted in Drive.
 package drivesync
@@ -27,6 +28,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +39,7 @@ import (
 	"github.com/Raposa-Industries/adhunters/library/internal/drive"
 	"github.com/Raposa-Industries/adhunters/library/internal/picture"
 	"github.com/Raposa-Industries/adhunters/library/internal/store"
+	"github.com/Raposa-Industries/adhunters/shared/text"
 )
 
 // App property keys the library puts on the files it knows.
@@ -513,6 +516,8 @@ func (s *Syncer) seen(ctx context.Context, f drive.File, dir folderAt, res *Resu
 		return &folderAt{id: f.ID, path: joinPath(p, f.Name), depth: dir.depth + 1}, err
 	case f.AppProperties[PropKind] == "headlines":
 		return nil, s.touch(ctx, f, "headlines", dir, 0)
+	case isTypedHeadlines(f):
+		return nil, s.typedHeadlines(ctx, f, dir)
 	case !pictureTypes[f.MimeType]:
 		return nil, s.touch(ctx, f, "other", dir, 0)
 	}
@@ -585,7 +590,16 @@ func withParent(f drive.File, parent string) drive.File {
 
 func (s *Syncer) touch(ctx context.Context, f drive.File, kind string, dir folderAt, creative int64) error {
 	return pgx.BeginFunc(ctx, s.st.DB(), func(tx pgx.Tx) error {
-		return recordFile(ctx, tx, withParent(f, dir.id), kind, creative)
+		if err := recordFile(ctx, tx, withParent(f, dir.id), kind, creative); err != nil {
+			return err
+		}
+		if creative == 0 {
+			return nil
+		}
+		// A file back from Drive's trash brings its creative back.
+		_, err := tx.Exec(ctx, `UPDATE library.creative SET drive_state = 'in_drive', updated_at = now()
+			WHERE id = $1 AND drive_file_id = $2 AND drive_state = 'gone'`, creative, f.ID)
+		return err
 	})
 }
 
@@ -634,9 +648,10 @@ func (s *Syncer) placeOf(ctx context.Context, dir folderAt) (string, int64, erro
 	return vertID, set.ID, err
 }
 
-// gone marks what the whole listing did not see.
+// gone marks what the whole listing did not see. A person's headline file
+// that is gone takes its headlines with it.
 func (s *Syncer) gone(ctx context.Context, started time.Time, res *Result) error {
-	return pgx.BeginFunc(ctx, s.st.DB(), func(tx pgx.Tx) error {
+	err := pgx.BeginFunc(ctx, s.st.DB(), func(tx pgx.Tx) error {
 		tag, err := tx.Exec(ctx, `UPDATE library.drive_file SET gone_at = now() WHERE gone_at IS NULL AND seen_at < $1`, started)
 		if err != nil {
 			return err
@@ -648,4 +663,201 @@ func (s *Syncer) gone(ctx context.Context, started time.Time, res *Result) error
 			WHERE f.file_id = c.drive_file_id AND f.gone_at IS NOT NULL AND c.drive_state = 'in_drive'`)
 		return err
 	})
+	if err != nil {
+		return err
+	}
+	rows, err := s.st.DB().Query(ctx, `
+		SELECT h.file_id, COALESCE(h.set_id, 0) FROM library.drive_headlines h JOIN library.drive_file f USING (file_id)
+		WHERE f.gone_at IS NOT NULL AND h.read_at IS NOT NULL ORDER BY h.file_id`)
+	if err != nil {
+		return err
+	}
+	type typed struct {
+		file  string
+		setID int64
+	}
+	list, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (typed, error) {
+		var t typed
+		err := r.Scan(&t.file, &t.setID)
+		return t, err
+	})
+	if err != nil {
+		return err
+	}
+	for _, t := range list {
+		err := pgx.BeginFunc(ctx, s.st.DB(), func(tx pgx.Tx) error {
+			if err := listHeadlines(ctx, tx, t.file, nil, t.setID); err != nil {
+				return err
+			}
+			_, err := tx.Exec(ctx, `UPDATE library.drive_headlines SET read_at = NULL WHERE file_id = $1`, t.file)
+			return err
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ---- headlines a person typed ------------------------------------------------
+
+// MaxHeadlinesFile is the largest headline file read, in bytes.
+const MaxHeadlinesFile = 1 << 20
+
+// isTypedHeadlines: a Google Doc or text file a person named "Headlines"
+// (any case, "Headlines.txt" too). The library's own Headlines.txt carries
+// our app property and is only written, never read.
+func isTypedHeadlines(f drive.File) bool {
+	if f.AppProperties[PropKind] != "" {
+		return false
+	}
+	if f.MimeType != drive.DocType && f.MimeType != "text/plain" {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(strings.TrimSuffix(f.Name, path.Ext(f.Name))), "headlines")
+}
+
+var bullet = regexp.MustCompile(`^(?:[-*•‣◦▪●]|\d{1,3}[.)])\s+`)
+
+// HeadlineLines reads a headline file's text: one headline per line, list
+// bullets and numbers dropped, blank lines and repeats skipped. long holds
+// the line numbers over store.MaxHeadline characters, which are left out.
+func HeadlineLines(raw []byte) (lines []string, long []int) {
+	seen := map[string]bool{}
+	body := strings.TrimPrefix(strings.ToValidUTF8(string(raw), ""), "\ufeff")
+	for i, line := range strings.Split(body, "\n") {
+		t := text.CleanLine(bullet.ReplaceAllString(strings.TrimSpace(line), ""))
+		switch {
+		case t == "" || seen[t]:
+			continue
+		case len([]rune(t)) > store.MaxHeadline:
+			long = append(long, i+1)
+			continue
+		}
+		seen[t] = true
+		lines = append(lines, t)
+	}
+	return lines, long
+}
+
+// typedHeadlines reads a person's headline file when it changed or moved:
+// its text is kept raw, each line becomes a headline of the folder it sits
+// in, and a line taken out takes its headline out of the lists.
+func (s *Syncer) typedHeadlines(ctx context.Context, f drive.File, dir folderAt) error {
+	db := s.st.DB()
+	var md5, parent string
+	var mod *time.Time
+	var read bool
+	err := db.QueryRow(ctx, `
+		SELECT f.md5, f.modified_at, f.parent_id, h.read_at IS NOT NULL AND f.gone_at IS NULL
+		FROM library.drive_file f JOIN library.drive_headlines h USING (file_id) WHERE f.file_id = $1`, f.ID).
+		Scan(&md5, &mod, &parent, &read)
+	if err == nil && read && md5 == f.MD5 && parent == dir.id && mod != nil && mod.Equal(f.ModifiedTime) {
+		return s.touch(ctx, f, "headlines", dir, 0)
+	}
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	if f.Bytes() > MaxHeadlinesFile {
+		return fmt.Errorf("%s is over %d KB", f.Name, MaxHeadlinesFile>>10)
+	}
+	var raw []byte
+	if f.MimeType == drive.DocType {
+		raw, err = s.drive.Export(ctx, f.ID)
+	} else {
+		raw, err = s.drive.Download(ctx, f.ID)
+	}
+	if err != nil {
+		return err
+	}
+	h := sha256.Sum256(raw)
+	sum := hex.EncodeToString(h[:])
+	if _, err := db.Exec(ctx, `INSERT INTO library.drive_text (sha256, body) VALUES ($1, $2) ON CONFLICT DO NOTHING`, sum, raw); err != nil {
+		return err
+	}
+	vertID, setID, err := s.placeOf(ctx, dir)
+	if err != nil {
+		return err
+	}
+	lines, long := HeadlineLines(raw)
+	ids := make([]int64, 0, len(lines))
+	for start := 0; start < len(lines); start += 500 {
+		batch := make([]store.NewHeadline, 0, 500)
+		for _, t := range lines[start:min(start+500, len(lines))] {
+			batch = append(batch, store.NewHeadline{Text: t, VerticalID: vertID, SetID: setID, Origin: store.OriginDrive, OriginRef: "drive:" + f.ID})
+		}
+		hs, err := s.st.AddHeadlines(ctx, batch)
+		if err != nil {
+			return err
+		}
+		for _, h := range hs {
+			ids = append(ids, h.ID)
+		}
+	}
+	msg := ""
+	if len(long) > 0 {
+		msg = fmt.Sprintf("lines over %d characters left out: %v", store.MaxHeadline, long)
+	}
+	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
+		if err := recordFile(ctx, tx, withParent(f, dir.id), "headlines", 0); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE library.drive_file SET error = $2 WHERE file_id = $1`, f.ID, msg); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `
+			INSERT INTO library.drive_headlines (file_id, raw_sha256, vertical_id, set_id, read_at)
+			VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, 0), now())
+			ON CONFLICT (file_id) DO UPDATE SET raw_sha256 = EXCLUDED.raw_sha256, vertical_id = EXCLUDED.vertical_id,
+			    set_id = EXCLUDED.set_id, read_at = EXCLUDED.read_at`, f.ID, sum, vertID, setID)
+		if err != nil {
+			return err
+		}
+		return listHeadlines(ctx, tx, f.ID, ids, setID)
+	})
+}
+
+// listHeadlines records that file lists exactly ids now. One listed again
+// that came from Drive comes back into the lists; one no file lists any more
+// that came from Drive leaves them (hidden, kept). setID's Headlines.txt is
+// written again when one left.
+func listHeadlines(ctx context.Context, tx pgx.Tx, file string, ids []int64, setID int64) error {
+	if ids == nil {
+		ids = []int64{}
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE library.headline h SET hidden_at = NULL, updated_at = now()
+		WHERE h.id = ANY ($2) AND h.hidden_at IS NOT NULL AND h.origin = 'drive'
+		  AND NOT EXISTS (SELECT 1 FROM library.drive_file_headline x WHERE x.file_id = $1 AND x.headline_id = h.id AND x.removed_at IS NULL)`,
+		file, ids); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO library.drive_file_headline (file_id, headline_id) SELECT $1, unnest($2::bigint[])
+		ON CONFLICT (file_id, headline_id) DO UPDATE SET removed_at = NULL,
+		    added_at = CASE WHEN library.drive_file_headline.removed_at IS NULL THEN library.drive_file_headline.added_at ELSE now() END`,
+		file, ids); err != nil {
+		return err
+	}
+	rows, err := tx.Query(ctx, `
+		UPDATE library.drive_file_headline SET removed_at = now()
+		WHERE file_id = $1 AND removed_at IS NULL AND NOT (headline_id = ANY ($2)) RETURNING headline_id`, file, ids)
+	if err != nil {
+		return err
+	}
+	left, err := pgx.CollectRows(rows, pgx.RowTo[int64])
+	if err != nil || len(left) == 0 {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE library.headline h SET hidden_at = now(), updated_at = now()
+		WHERE h.id = ANY ($1) AND h.origin = 'drive' AND h.hidden_at IS NULL
+		  AND NOT EXISTS (SELECT 1 FROM library.drive_file_headline x WHERE x.headline_id = h.id AND x.removed_at IS NULL)`,
+		left); err != nil {
+		return err
+	}
+	if setID != 0 {
+		_, err = tx.Exec(ctx, `UPDATE library.set SET headlines_changed_at = now() WHERE id = $1`, setID)
+	}
+	return err
 }
