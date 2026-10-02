@@ -9,8 +9,12 @@ Portuguese, headlines always in English. It sits in the Frame
 (`shared/frame`) and uses the ad code it shares with create-web
 (`shared/adsweb`).
 
-**Everything is made paused.** Groups, campaigns and ads are created
-paused and run only when a person turns them on in Taboola's own dashboard.
+**New campaigns go up running.** Since the owner's word of 2026-10-02
+(`TABOOLA_CREATE_ACTIVE=1`), the groups, campaigns and ads a person makes
+here go up running and spend once Taboola approves them; the button says
+**Criar e ligar**. Without it they are made paused and run only when a
+person turns them on in Taboola's dashboard. Copies and moves always arrive
+paused, and nothing here turns an existing campaign on.
 Taboola's rules only warn; the person decides. The AI label is the person's
 choice, with a warning when pictures that look AI-made are marked "no".
 
@@ -76,14 +80,16 @@ or saved in a preset:
 
 ## How the writes work
 
-- **Never turned on.** The owner's rule (2026-10-01): no campaign or ad runs
-  without their go. No Launch action, Intel `?do=` link or Desk request can
-  start one (the kinds are pause, pause ads, change, copy and move), and the
-  Taboola client refuses any body with `is_active` other than false before
-  it is sent.
-- **Paused, checked.** Every campaign Taboola makes (new or a copy) must
-  come back with `is_active` false; one that comes back running, or without
-  saying, is paused at once and that pause is checked. A copy above the
+- **Never turned on.** No Launch action, Intel `?do=` link or Desk request
+  can start an existing campaign or ad (the kinds are pause, pause ads,
+  change, copy and move), and the Taboola client refuses any body with
+  `is_active` other than false before it is sent. The one exception is a new
+  campaign, group or ad a person makes here with `TABOOLA_CREATE_ACTIVE=1`
+  (the owner, 2026-10-02: a person pressing create is the go).
+- **Paused, checked.** Every copy Taboola makes, and every new campaign
+  without `TABOOLA_CREATE_ACTIVE`, must come back with `is_active` false;
+  one that comes back running, or without saying, is paused at once and
+  that pause is checked. A copy above the
   ceilings (its source's daily cap or fixed CPC) is brought down to them.
 - **New campaign.** The group (when new; without a group budget it is
   `spending_limit_model` NONE, accepted on the paused test), then the

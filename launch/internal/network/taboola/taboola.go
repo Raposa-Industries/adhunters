@@ -210,7 +210,8 @@ func newItems(ads []network.NewAd) ([]write.NewItem, error) {
 	return items, nil
 }
 
-// addItems uploads the pictures (once each) and makes the ads, paused.
+// addItems uploads the pictures (once each) and makes the ads (paused, or
+// running with TABOOLA_CREATE_ACTIVE).
 func (t *Taboola) addItems(ctx context.Context, account, campaign string, ads []network.NewAd, items []write.NewItem, up *network.Uploads, before string) ([]network.Ad, error) {
 	for i, a := range ads {
 		url, err := up.Once(a.Image, func(name string, data []byte) (string, error) { return t.c.UploadImage(ctx, name, data) })
@@ -227,7 +228,7 @@ func (t *Taboola) addItems(ctx context.Context, account, campaign string, ads []
 	return out, err
 }
 
-// AddAds makes more ads, paused, in an existing campaign.
+// AddAds makes more ads in an existing campaign.
 func (t *Taboola) AddAds(ctx context.Context, account, campaign string, ads []network.NewAd, up *network.Uploads) (network.Made, error) {
 	if err := t.c.CheckCampaign(account, campaign); err != nil {
 		return network.Made{}, err

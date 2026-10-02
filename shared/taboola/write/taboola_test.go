@@ -986,9 +986,9 @@ func TestAdsPauseAndChange(t *testing.T) {
 }
 
 func TestSettingsFromEnv(t *testing.T) {
-	env := map[string]string{"TABOOLA_ACCOUNTS": " a-sc, ,b-sc", "TABOOLA_ONLY_OWN": "1", "TABOOLA_MAX_CPC": "0.5"}
+	env := map[string]string{"TABOOLA_ACCOUNTS": " a-sc, ,b-sc", "TABOOLA_ONLY_OWN": "1", "TABOOLA_MAX_CPC": "0.5", "TABOOLA_CREATE_ACTIVE": "1"}
 	s, err := SettingsFromEnv(func(k string) string { return env[k] }, "/x/state.json")
-	if err != nil || fmt.Sprint(s.Accounts) != "[a-sc b-sc]" || !s.OnlyOwn || s.MaxCPC != 0.5 || s.MaxDailyCap != 20 || s.MaxSpendLimit != 20 || s.StateFile != "/x/state.json" || s.Base != DefaultBase {
+	if err != nil || fmt.Sprint(s.Accounts) != "[a-sc b-sc]" || !s.OnlyOwn || !s.CreateActive || s.MaxCPC != 0.5 || s.MaxDailyCap != 20 || s.MaxSpendLimit != 20 || s.StateFile != "/x/state.json" || s.Base != DefaultBase {
 		t.Fatalf("%+v %v", s, err)
 	}
 	// 0 is no spending limit; the other ceilings must stay above 0.
@@ -996,7 +996,7 @@ func TestSettingsFromEnv(t *testing.T) {
 	if s, err = SettingsFromEnv(func(k string) string { return env[k] }, ""); err != nil || s.MaxSpendLimit != 0 || s.MaxDailyCap != 500 {
 		t.Fatalf("no spending limit: %+v %v", s, err)
 	}
-	for k, v := range map[string]string{"TABOOLA_ACCOUNTS": "z-network", "TABOOLA_ONLY_OWN": "yes", "TABOOLA_MAX_DAILY_CAP": "0", "TABOOLA_MAX_CPC": "0", "TABOOLA_MAX_SPEND_LIMIT": "-1"} {
+	for k, v := range map[string]string{"TABOOLA_ACCOUNTS": "z-network", "TABOOLA_ONLY_OWN": "yes", "TABOOLA_CREATE_ACTIVE": "on", "TABOOLA_MAX_DAILY_CAP": "0", "TABOOLA_MAX_CPC": "0", "TABOOLA_MAX_SPEND_LIMIT": "-1"} {
 		if _, err := SettingsFromEnv(func(key string) string {
 			if key == k {
 				return v
@@ -1132,5 +1132,68 @@ func TestSpendCeiling(t *testing.T) {
 	}
 	if _, err := c.ChangeCampaign(ctx, "acme-sc", "101", Change{DailyCap: 21}); !errors.As(err, &r) {
 		t.Errorf("daily change above the ceiling: %v", err)
+	}
+}
+
+// With CreateActive a new campaign, group and ads go up running and are
+// left so; a copy still arrives paused, and any other call that would turn
+// something on is still refused.
+func TestCreateActive(t *testing.T) {
+	f := newFake(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
+		p := strings.TrimPrefix(r.URL.Path, apiPrefix)
+		if strings.HasSuffix(p, "/items/mass") {
+			massAnswer(w, r, body)
+			return
+		}
+		var b map[string]any
+		_ = json.Unmarshal(body, &b)
+		switch p {
+		case "acme-sc/campaigns/":
+			b["id"] = "41"
+		case "acme-sc/campaigns_group/":
+			b["id"] = "g1"
+		case "acme-sc/campaigns/101/duplicate/":
+			b = map[string]any{"id": "42", "is_active": true}
+		default:
+			b["id"] = strings.Split(strings.TrimPrefix(p, "acme-sc/campaigns/"), "/")[0]
+		}
+		_ = json.NewEncoder(w).Encode(b)
+	})
+	c, _ := clientWith(t, Settings{Base: f.srv.URL, CreateActive: true})
+	cp, err := c.CreateCampaign(ctx, "acme-sc", NewCampaign{Name: "x", Brand: "b", CPC: 0.1, DailyCap: 10})
+	if err != nil || !cp.IsActive {
+		t.Fatalf("%+v %v", cp, err)
+	}
+	if _, err := c.CreateGroup(ctx, "acme-sc", NewGroup{Name: "g", Model: "NONE"}); err != nil {
+		t.Fatal(err)
+	}
+	made, err := c.MassCreateItems(ctx, "acme-sc", "41", []NewItem{item(0)})
+	if err != nil || len(made) != 1 || made[0].Paused {
+		t.Fatalf("%+v %v", made, err)
+	}
+	cp, err = c.DuplicateCampaign(ctx, "acme-sc", "101", NewCampaign{Name: "copy"})
+	if err != nil || cp.IsActive {
+		t.Fatalf("copy: %+v %v", cp, err)
+	}
+	var got []string
+	for _, x := range f.seen() {
+		var b map[string]any
+		_ = json.Unmarshal(x.Body, &b)
+		if coll, ok := b["collection"].([]any); ok {
+			b = coll[0].(map[string]any)
+		}
+		got = append(got, fmt.Sprintf("%s %v", x.Path, b["is_active"]))
+	}
+	want := []string{"acme-sc/campaigns/ true", "acme-sc/campaigns_group/ true", "acme-sc/campaigns/41/items/mass true",
+		"acme-sc/campaigns/101/duplicate/ false", "acme-sc/campaigns/42/ false"}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("sent:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	var r *Refused
+	if _, err := c.sendJSON(ctx, http.MethodPost, "acme-sc/campaigns/101/", obj{"is_active": true}, false); !errors.As(err, &r) {
+		t.Errorf("turning on an existing campaign: %v", err)
+	}
+	if _, err := c.ChangeCampaign(ctx, "acme-sc", "101", Change{DailyCap: 5}); err != nil {
+		t.Fatal(err)
 	}
 }

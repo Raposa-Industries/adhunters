@@ -45,6 +45,8 @@ type taboolaStatusReply struct {
 	Accounts    []taboola.Account `json:"accounts"`
 	MaxCPC      float64           `json:"max_cpc"`
 	MaxDailyCap float64           `json:"max_daily_cap"`
+	// CreateActive: new campaigns, groups and ads go up running.
+	CreateActive bool `json:"create_active"`
 	// OnlyOwn is a lent account: only campaigns and groups made here, named
 	// with NamePrefix, are listed or touched.
 	OnlyOwn    bool   `json:"only_own"`
@@ -55,6 +57,7 @@ func (s *Server) taboolaStatus(w http.ResponseWriter, r *http.Request) {
 	reply := taboolaStatusReply{Connected: s.tb.Available(), Reason: s.tb.Why(), Accounts: []taboola.Account{}}
 	reply.MaxCPC, reply.MaxDailyCap = s.tb.Limits()
 	reply.OnlyOwn, reply.NamePrefix = s.tb.OnlyOwn()
+	reply.CreateActive = s.tb.CreateActive()
 	if reply.Connected {
 		ctx, cancel := context.WithTimeout(r.Context(), taboolaReadBudget)
 		defer cancel()

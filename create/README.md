@@ -242,9 +242,11 @@ daily cap, the page offers it and remembers it for that account:
     that order. The same ads cannot be sent twice by accident. The bulk sheet
     (below) stays as the fallback, under "Baixar para o Bulk Upload".
 
-**Everything is created paused.** Campaign groups, campaigns and ads are made
-paused; they run only when a person turns them on in Taboola's own dashboard.
-Taboola's mass create answers `is_active: true` even when asked for false
+**New campaigns go up running with `TABOOLA_CREATE_ACTIVE=1`** (the owner,
+2026-10-02): the campaign group, campaign and ads made here start once
+Taboola approves them. Without it everything is made paused and runs only
+when a person turns it on in Taboola's own dashboard. Copies always arrive
+paused. Taboola's mass create answers `is_active: true` even when asked for false
 (seen 2026-09-29), so every ad is paused again right after it is made, and
 the result says which ones could not be.
 
@@ -391,6 +393,7 @@ the full list in `cmd/create-web/main.go`):
 | `TABOOLA_CLIENT_ID`, `TABOOLA_CLIENT_SECRET` | unset | One Taboola login's Backstage API keys. Unset: Taboola is off and the bulk sheet is the way out. |
 | `TABOOLA_ACCOUNTS` | unset | That login's advertiser accounts the page may use, comma separated. A `-network` account is refused at boot. |
 | `TABOOLA_MAX_CPC`, `TABOOLA_MAX_DAILY_CAP`, `TABOOLA_MAX_SPEND_LIMIT` | `1.00`, `20`, `20` | Ceilings for a new campaign, in USD. Above 0, every campaign made or copied gets a total limit of at most `TABOOLA_MAX_SPEND_LIMIT`; `0` is no spending limit (the box runs `500` a day and `0` since the owner's word, 2026-10-02). |
+| `TABOOLA_CREATE_ACTIVE` | off | `1`: new groups, campaigns and ads go up running (the owner, 2026-10-02). Off: all paused. Copies are always paused. |
 | `TABOOLA_ONLY_OWN` | off | A lent account: only groups and campaigns this server made (recorded in the state file) are listed or touched. |
 | `TABOOLA_NAME_PREFIX` | unset | Optional, with only-own: every group and campaign name must start with it. |
 | `TABOOLA_STATE_FILE` | `<keep dir>/taboola-state.json` | What this server made, for only-own. |

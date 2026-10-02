@@ -21,6 +21,8 @@ import (
 //	                       0 is no spending limit (the owner, 2026-10-02): a
 //	                       campaign gets none unless one is asked, and an
 //	                       asked total is at most 30 daily caps
+//	TABOOLA_CREATE_ACTIVE  1: new campaigns, groups and ads go up running
+//	                       (the owner, 2026-10-02); copies stay paused
 //	TABOOLA_ONLY_OWN       1 on a lent login: only what this server made
 //	TABOOLA_NAME_PREFIX    optional, with only-own
 //	TABOOLA_STATE_FILE     stateFile: what this server made, for only-own
@@ -37,6 +39,13 @@ func SettingsFromEnv(getenv func(string) string, stateFile string) (Settings, er
 		ClientSecret: getenv("TABOOLA_CLIENT_SECRET"),
 		NamePrefix:   strings.TrimSpace(getenv("TABOOLA_NAME_PREFIX")),
 		StateFile:    or("TABOOLA_STATE_FILE", stateFile),
+	}
+	switch v := getenv("TABOOLA_CREATE_ACTIVE"); v {
+	case "", "0", "false":
+	case "1", "true":
+		s.CreateActive = true
+	default:
+		return s, fmt.Errorf("TABOOLA_CREATE_ACTIVE must be 1 or 0, not %q", v)
 	}
 	switch v := getenv("TABOOLA_ONLY_OWN"); v {
 	case "", "0", "false":

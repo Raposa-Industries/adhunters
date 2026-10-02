@@ -181,10 +181,8 @@ func (c *Client) Campaigns(ctx context.Context, account string) ([]Campaign, err
 	return list, nil
 }
 
-// NewCampaign is what the page asks for in a new campaign. There is no way
-// to ask for a running one: every campaign is created paused
-// (is_active false), and only a person turns it on, in Taboola's own
-// dashboard.
+// NewCampaign is what the page asks for in a new campaign. It is created
+// paused (is_active false), or running when Settings.CreateActive is on.
 //
 // For a copy (DuplicateCampaign) only Name is needed, and a zero or empty
 // field keeps what the copied campaign has.
@@ -414,8 +412,9 @@ func (n NewCampaign) body(maxCPC, maxDailyCap, maxTotal, maxSpend float64, full 
 	return b, nil
 }
 
-// CreateCampaign creates a paused campaign in account. It is never repeated
-// after a 5xx, which may have created it.
+// CreateCampaign creates a campaign in account, paused or, with
+// CreateActive, running. It is never repeated after a 5xx, which may have
+// created it.
 func (c *Client) CreateCampaign(ctx context.Context, account string, n NewCampaign) (Campaign, error) {
 	if err := c.CheckAccount(account); err != nil {
 		return Campaign{}, err
@@ -427,7 +426,10 @@ func (c *Client) CreateCampaign(ctx context.Context, account string, n NewCampai
 	if err := c.checkOwnCampaignBody(account, n); err != nil {
 		return Campaign{}, err
 	}
-	out, err := c.sendJSON(ctx, http.MethodPost, account+"/campaigns/", b, false)
+	if c.s.CreateActive {
+		b["is_active"] = true
+	}
+	out, err := c.sendNew(ctx, http.MethodPost, account+"/campaigns/", b)
 	if err != nil {
 		return Campaign{}, err
 	}
@@ -435,7 +437,7 @@ func (c *Client) CreateCampaign(ctx context.Context, account string, n NewCampai
 	if err := c.rememberOrSay(account, cp.ID, ""); err != nil {
 		return cp, err
 	}
-	if cp, err = c.settle(ctx, account, out, cp); err != nil {
+	if cp, err = c.settle(ctx, account, out, cp, c.s.CreateActive); err != nil {
 		return cp, err
 	}
 	c.log.Info("taboola campaign created", "account", account, "campaign", cp.ID, "active", cp.IsActive,
@@ -443,16 +445,17 @@ func (c *Client) CreateCampaign(ctx context.Context, account string, n NewCampai
 	return cp, nil
 }
 
-// settle checks a campaign Taboola just made, as its answer out says. It
-// must say is_active false: when it says true or nothing, the campaign is
-// paused now and that pause is checked. A copy keeps its source's daily cap,
+// settle checks a campaign Taboola just made, as its answer out says.
+// Unless running is wanted (a new campaign with CreateActive) it must say
+// is_active false: when it says true or nothing, the campaign is paused now
+// and that pause is checked. A copy keeps its source's daily cap,
 // CPC and total limit (or none), which may be above this client's ceilings:
 // those are brought down to the ceiling (the copy is paused, so nothing was
 // spent at the old ones). With MaxSpendLimit no campaign is left without a
 // total limit at or under it.
-func (c *Client) settle(ctx context.Context, account string, out obj, cp Campaign) (Campaign, error) {
+func (c *Client) settle(ctx context.Context, account string, out obj, cp Campaign, running bool) (Campaign, error) {
 	fix := obj{}
-	if active, ok := out["is_active"].(bool); !ok || active {
+	if active, ok := out["is_active"].(bool); !running && (!ok || active) {
 		fix["is_active"] = false
 	}
 	if c.s.MaxDailyCap > 0 && cp.DailyCap > c.s.MaxDailyCap {
@@ -472,17 +475,19 @@ func (c *Client) settle(ctx context.Context, account string, out obj, cp Campaig
 	if len(fix) == 0 {
 		return cp, nil
 	}
-	if _, ok := fix["is_active"]; !ok {
+	if _, ok := fix["is_active"]; !ok && !running {
 		fix["is_active"] = false
 	}
 	got, err := c.sendJSON(ctx, http.MethodPost, campaignPath(account, cp.ID)+"/", fix, true)
 	if err != nil {
-		return cp, errors.New("campanha " + cp.ID + " feita, mas não consegui confirmar que está pausada e dentro dos tetos: " + Message(err))
+		return cp, errors.New("campanha " + cp.ID + " feita, mas não consegui confirmar que está dentro dos tetos: " + Message(err))
 	}
-	if got["is_active"] != false {
-		return cp, &Error{Status: http.StatusOK, Message: "a Taboola não confirmou a pausa da campanha " + cp.ID + ": pause no Taboola"}
+	if !running {
+		if got["is_active"] != false {
+			return cp, &Error{Status: http.StatusOK, Message: "a Taboola não confirmou a pausa da campanha " + cp.ID + ": pause no Taboola"}
+		}
+		cp.IsActive = false
 	}
-	cp.IsActive = false
 	if v, ok := fix["daily_cap"].(float64); ok {
 		cp.DailyCap = v
 	}
@@ -530,7 +535,7 @@ func (c *Client) DuplicateCampaign(ctx context.Context, account, from string, n 
 	if err := c.rememberOrSay(account, cp.ID, ""); err != nil {
 		return cp, err
 	}
-	if cp, err = c.settle(ctx, account, out, cp); err != nil {
+	if cp, err = c.settle(ctx, account, out, cp, false); err != nil {
 		return cp, err
 	}
 	c.log.Info("taboola campaign copied", "account", account, "from", from, "campaign", cp.ID, "active", cp.IsActive, "group", cp.CampaignGroupID)
@@ -595,7 +600,8 @@ type NewGroup struct {
 	MarketingObjective string
 }
 
-// CreateGroup creates a paused campaign group. Proven on the real API on
+// CreateGroup creates a campaign group, paused or, with CreateActive,
+// running. Proven on the real API on
 // 2026-09-29, without bid_strategy (read-only on a group).
 func (c *Client) CreateGroup(ctx context.Context, account string, n NewGroup) (Group, error) {
 	if err := c.CheckAccount(account); err != nil {
@@ -630,12 +636,12 @@ func (c *Client) CreateGroup(ctx context.Context, account string, n NewGroup) (G
 		"spending_limit_model": model,
 		// No bid_strategy: Taboola answers "Trying to modify a read-only
 		// field" for it on a group (seen 2026-09-29).
-		"is_active": false,
+		"is_active": c.s.CreateActive,
 	}
 	if model != "NONE" {
 		body["spending_limit"] = n.SpendingLimit
 	}
-	out, err := c.sendJSON(ctx, http.MethodPost, account+"/campaigns_group/", body, false)
+	out, err := c.sendNew(ctx, http.MethodPost, account+"/campaigns_group/", body)
 	if err != nil {
 		return Group{}, err
 	}
