@@ -4,7 +4,7 @@ Chat: Telegram "AdHunters alerts", silent, at any hour. Rule: `platform/observe/
 
 ## What it means
 
-The boxes have sent over 9,000 series to Grafana Cloud for 30 minutes. The free plan holds 10,000 and drops what goes over, without a bill: new metrics, and the alerts and dashboards that need them, stop arriving. `platform/observe/README.md`, Series, says what we send and why.
+The boxes have sent over 9,000 series to Grafana Cloud for 30 minutes, counted as the samples they send a minute (every scrape runs every 60 s). The free plan holds 10,000 and drops what goes over, without a bill: new metrics, and the alerts and dashboards that need them, stop arriving. `platform/observe/README.md`, Series, says what we send and why.
 
 ## Check
 

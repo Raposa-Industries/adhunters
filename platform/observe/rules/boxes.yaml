@@ -153,10 +153,13 @@ groups:
     rules:
       # Grafana Cloud's free plan holds 10,000 series and drops what goes
       # over, new metrics and the alerts that need them included
-      # (platform/observe/README.md, Series). Each box's Alloy counts what it
-      # sends.
+      # (platform/observe/README.md, Series). Every scrape runs every 60 s,
+      # so the samples the boxes send in a minute are the series they send.
+      # Not prometheus_remote_write_wal_storage_active_series: it keeps a
+      # series a box stopped sending until the WAL is truncated, every 2
+      # hours, and read 10,234 on the data box after the 2 Oct 2026 cut.
       - alert: SeriesNearLimit
-        expr: sum(prometheus_remote_write_wal_storage_active_series) > 9000
+        expr: sum(rate(prometheus_remote_storage_samples_total[10m])) * 60 > 9000
         for: 30m
         labels:
           tier: chat
