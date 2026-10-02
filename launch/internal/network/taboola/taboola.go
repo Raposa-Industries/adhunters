@@ -173,9 +173,14 @@ func (t *Taboola) CreateCampaign(ctx context.Context, account string, n network.
 	if n.Device != network.Desktop && n.Device != network.Mobile {
 		return network.Made{}, &network.Refused{Message: "cada campanha nova é desktop ou mobile"}
 	}
-	items, err := newItems(n.Ads)
-	if err != nil {
-		return network.Made{}, err
+	// A campaign may go up without ads (Nova campanha); they come later
+	// through Novos anúncios.
+	var items []write.NewItem
+	if len(n.Ads) > 0 {
+		var err error
+		if items, err = newItems(n.Ads); err != nil {
+			return network.Made{}, err
+		}
 	}
 	s := n.Settings
 	if strings.EqualFold(s.BidStrategy, "MAX_CONVERSIONS") {
@@ -191,6 +196,9 @@ func (t *Taboola) CreateCampaign(ctx context.Context, account string, n network.
 		return network.Made{}, err
 	}
 	made := network.Made{Campaign: campaign(cp)}
+	if len(n.Ads) == 0 {
+		return made, nil
+	}
 	made.Ads, err = t.addItems(ctx, account, cp.ID, n.Ads, items, up, "campanha "+cp.ID+" criada, mas ")
 	return made, err
 }

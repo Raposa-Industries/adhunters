@@ -265,6 +265,34 @@ func TestPairMobileOwnSettingsAndExactAds(t *testing.T) {
 	}
 }
 
+// Nova campanha sends no ads: the pair goes up empty and Novos anúncios
+// fills it later.
+func TestPairWithoutAds(t *testing.T) {
+	r := setup(t)
+	g := r.net.AddGroup(acct, network.Group{Name: "01"})
+	var j job
+	if code := r.call("POST", "pairs", map[string]any{
+		"key": "no-ads", "network": "taboola", "account": acct, "devices": "both", "group_id": g.ID,
+		"settings": map[string]any{"brand": "B", "cpc": 0.3, "daily_cap": 20, "countries": []string{"US"}},
+		"ads":      []any{},
+	}, &j); code != http.StatusAccepted {
+		t.Fatalf("send %d", code)
+	}
+	res := r.waitJob(j).Result
+	if res.Result != "done" || res.Desktop == nil || res.Mobile == nil || len(res.Desktop.Ads) != 0 || len(res.Mobile.Ads) != 0 {
+		t.Fatalf("%+v", res)
+	}
+	var hist struct{ History []store.Change }
+	r.call("GET", "history", nil, &hist)
+	said := false
+	for _, c := range hist.History {
+		said = said || c.Kind == "new_pair" && strings.HasSuffix(c.Summary, "2 de 2 campanhas, sem anúncios")
+	}
+	if !said {
+		t.Errorf("history %+v", hist.History)
+	}
+}
+
 func TestPairRefusedAndPartial(t *testing.T) {
 	r := setup(t)
 	var e map[string]string

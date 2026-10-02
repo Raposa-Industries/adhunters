@@ -114,11 +114,11 @@ One meaning per word, everywhere: code, UI, docs and alerts.
 | Word | Means |
 |---|---|
 | group | Short for campaign group, in Launch's tree (Network > Account > Group > Campaign > Ads). On NewsBreak, its campaign. |
-| pair | One desktop and one mobile campaign Launch made together (a new campaign for both devices), with the same settings (the mobile one may have its own name, bid, daily budget, total limit and start date) and the same ads, in one group. Named with the team's names (CMP<n>-<account>-Desktop-pp-bl and CMP<n>-<account>-Mobile-pp-bl), or each with the name typed for it. Mobile means phones and tablets (Taboola PHON and TBLT); desktop, computers only (DESK). |
+| pair | One desktop and one mobile campaign Launch made together (a new campaign for both devices), with the same settings (the mobile one may have its own name, bid, daily budget, total limit and start date), in one group. Nova campanha makes it without ads; the same ads go into both later, through Novos anúncios. Named with the team's names (CMP<n>-<account>-Desktop-pp-bl and CMP<n>-<account>-Mobile-pp-bl), or each with the name typed for it. Mobile means phones and tablets (Taboola PHON and TBLT); desktop, computers only (DESK). |
 | preset | Settings a person saved to reuse, at one of two levels: a group preset (budget and objective) or a campaign preset (bid, caps, countries, link and tracking code, brand, description). For one account or all. Nobody fixes them for the team. |
 | copy | A new, paused campaign with another's settings and ads (Taboola's duplicate with its items; the ads get new ids and go through review again). It has its own id. |
 | move | Putting a campaign in another group. Taboola fixes a campaign's group when it is made, so a move is a copy in the new group; the original is paused when a person starts the copy (or at once, or never, as the person chose). |
-| draft | A new campaign or pair, group or set of new ads saved on the server to finish later (Launch's Rascunhos). It is deleted when what it holds is made. |
+| draft | A new campaign or pair, group or set of new ads saved on the server to finish later (Launch's Rascunhos). It is deleted when what it holds is made. New ones are no longer saved since 2 Oct 2026; the ones already saved still open. |
 | History | Everything Launch did on a network, one row per change: who did it, who asked (a person, Intel or Desk), before and after, and the result. |
 | old launcher | create-web's one-page campaign launcher, the prototype Launch replaced. Retired on 2026-10-01: create-web now only redirects to Launch. |
 | request | A change another service (Desk) asks Launch for. It waits in Launch's Pedidos until a person confirms it, and only then is sent; or the person refuses it. |

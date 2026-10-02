@@ -93,6 +93,25 @@ func adapter(t *testing.T) (*Taboola, *backstage) {
 	return New(c), b
 }
 
+// Nova campanha makes campaigns without ads: no item is sent.
+func TestCampaignWithoutAds(t *testing.T) {
+	tb, b := adapter(t)
+	up := &network.Uploads{Read: func(string) ([]byte, string, error) { t.Fatal("nothing to upload"); return nil, "", nil }}
+	set := network.Settings{Brand: "Health Daily", CPC: 0.3, DailyCap: 20, Countries: []string{"US"}}
+	m, err := tb.CreateCampaign(context.Background(), "acme-sc", network.NewCampaign{Name: "Alone · Desktop", GroupID: "44", Device: network.Desktop, Settings: set}, up)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Campaign.ID == "" || len(m.Ads) != 0 {
+		t.Fatalf("%+v", m)
+	}
+	for _, c := range b.calls {
+		if strings.Contains(c, "/items") || strings.Contains(c, "upload") {
+			t.Errorf("called %s for a campaign without ads", c)
+		}
+	}
+}
+
 func TestPairSharesUploadsAndTargetsOneDevice(t *testing.T) {
 	tb, b := adapter(t)
 	images := map[string][]byte{"aaa": []byte("\xff\xd8one"), "bbb": []byte("\xff\xd8two")}

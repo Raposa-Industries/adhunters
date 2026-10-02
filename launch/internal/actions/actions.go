@@ -208,8 +208,6 @@ func (r PairRequest) Check() error {
 		return &network.Refused{Message: "escolha a conta"}
 	case r.GroupID == "" && r.NewGroup == nil:
 		return &network.Refused{Message: "escolha o grupo ou crie um novo: o Launch sempre põe as campanhas num grupo"}
-	case len(r.Ads) == 0:
-		return &network.Refused{Message: "escolha ao menos um anúncio"}
 	}
 	for i, a := range r.Ads {
 		if a.Image == "" {
@@ -334,7 +332,11 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 		if side.set != nil {
 			set = *side.set
 		}
-		tell(i+1, "run", "criando a campanha e "+ads(len(r.Ads)))
+		if len(r.Ads) > 0 {
+			tell(i+1, "run", "criando a campanha e "+ads(len(r.Ads)))
+		} else {
+			tell(i+1, "run", "criando a campanha, sem anúncios")
+		}
 		m, err := n.CreateCampaign(ctx, r.Account, network.NewCampaign{Name: side.name, GroupID: res.GroupID, Device: side.dev, Settings: set, Ads: r.Ads}, up)
 		if m.Campaign.ID != "" {
 			made++
@@ -356,6 +358,8 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 		case err != nil:
 			tell(i+1, "fail", fmt.Sprintf("campanha %s criada, %s; %d de %s: %s", m.Campaign.ID, onOff(m.Campaign.Active, "ativa", "pausada"), len(m.Ads), ads(len(r.Ads)), l.Say(err)))
 			res.Problems = append(res.Problems, side.name+": "+l.Say(err))
+		case len(r.Ads) == 0:
+			tell(i+1, "ok", fmt.Sprintf("criada, %s · %s · sem anúncios", onOff(m.Campaign.Active, "ativa", "pausada"), m.Campaign.ID))
 		default:
 			tell(i+1, "ok", fmt.Sprintf("criada, %s · %s · %s, %s", onOff(m.Campaign.Active, "ativa", "pausada"), m.Campaign.ID, ads(len(m.Ads)), adsState(m.Ads)))
 		}
@@ -375,9 +379,13 @@ func (l *Launch) NewPair(ctx context.Context, who Who, r PairRequest, progress f
 			res.Problems = append(res.Problems, "o par foi criado mas não foi anotado aqui; ele aparece como duas campanhas soltas")
 		}
 	}
-	summary := fmt.Sprintf("Criou %s e %s, %ss: %d de 2 campanhas, %s em cada", sides[0].name, sides[len(sides)-1].name, state, made, ads(len(r.Ads)))
+	each, with := ads(len(r.Ads))+" em cada", "com "+ads(len(r.Ads))
+	if len(r.Ads) == 0 {
+		each, with = "sem anúncios", "sem anúncios"
+	}
+	summary := fmt.Sprintf("Criou %s e %s, %ss: %d de 2 campanhas, %s", sides[0].name, sides[len(sides)-1].name, state, made, each)
 	if len(sides) == 1 {
-		summary = fmt.Sprintf("Criou a campanha %s, %s, com %s", sides[0].name, state, ads(len(r.Ads)))
+		summary = fmt.Sprintf("Criou a campanha %s, %s, %s", sides[0].name, state, with)
 		if made == 0 {
 			summary = "Tentou criar a campanha " + sides[0].name
 		}
