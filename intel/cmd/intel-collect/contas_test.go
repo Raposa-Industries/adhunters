@@ -211,3 +211,26 @@ func TestProxiedAccountsNeverGoDirect(t *testing.T) {
 		t.Errorf("the proxy carried %q", got)
 	}
 }
+
+// A start waits for a view launch-web has not migrated yet, rather than
+// going on without it and restarting once it appears (which a deploy takes
+// for a crash loop).
+func TestStartWaitsForLaunchsViews(t *testing.T) {
+	db := testdb.New(t)
+	ctx := context.Background()
+	defer func(w time.Duration) { launchWait = w }(launchWait)
+	launchWait = 30 * time.Second
+	go func() {
+		time.Sleep(2 * time.Second)
+		_, _ = db.Exec(ctx, `CREATE SCHEMA launch_api;
+			CREATE TABLE launch_api.taboola_account_proxy_v1 (account text, proxy bytea, set_at timestamptz)`)
+	}()
+	s := &setup{kept: t.TempDir() + "/launch.json"}
+	start := time.Now()
+	if _, err := s.readLaunchWaiting(ctx, &lazyDB{pool: db}, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
+		t.Fatalf("gave up after %v: %v", time.Since(start), err)
+	}
+	if _, err := readKept(s.kept); err != nil {
+		t.Errorf("nothing kept: %v", err)
+	}
+}

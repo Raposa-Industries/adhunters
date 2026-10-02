@@ -210,12 +210,14 @@ func runCmd() error {
 		defer stop()
 		changed := false
 		// What Launch published is read at start, so the proxied accounts'
-		// and the Contas logins' jobs are in the schedule; with the database
-		// away, the copy kept from the last read stands in, and the launch
-		// job reads it again.
-		start, cancel := context.WithTimeout(ctx, 15*time.Second)
+		// and the Contas logins' jobs are in the schedule. A deploy starts
+		// intel-collect before launch-web has migrated a view it reads, so it
+		// tries for up to launchWait before going on; only then the copy kept
+		// from the last read stands in, and the launch job reads it again.
+		// Without the wait, the view appearing a minute later would restart
+		// intel-collect while the deploy checks it, which rolls the box back.
 		fp := "unread"
-		r, err := s.readLaunchAt(start, &db)
+		r, err := s.readLaunchWaiting(ctx, &db, log)
 		if err != nil {
 			log.Warn("what Launch publishes not read yet; using the copy kept from the last read", "err", err)
 			if k, kerr := readKept(s.kept); kerr == nil {
@@ -224,7 +226,6 @@ func runCmd() error {
 		} else {
 			fp = fingerprint(r)
 		}
-		cancel()
 		s.useLaunch(r, taboola.DefaultBase, log)
 		if s.box == nil {
 			log.Info("LAUNCH_LOGIN_KEY_BASE64 is not set: the logins added on Launch's Contas page are not read")
@@ -384,6 +385,29 @@ func (s *setup) readLaunchAt(ctx context.Context, db *lazyDB) (launchRows, error
 		return r, fmt.Errorf("keep %s: %w", s.kept, err)
 	}
 	return r, nil
+}
+
+// launchWait is how long a start waits for Launch's views (see runCmd).
+var launchWait = 2 * time.Minute
+
+// readLaunchWaiting reads what Launch publishes, trying again every 5
+// seconds for up to launchWait.
+func (s *setup) readLaunchWaiting(ctx context.Context, db *lazyDB, log *slog.Logger) (launchRows, error) {
+	until := time.Now().Add(launchWait)
+	for {
+		try, cancel := context.WithTimeout(ctx, 15*time.Second)
+		r, err := s.readLaunchAt(try, db)
+		cancel()
+		if err == nil || time.Now().After(until) || ctx.Err() != nil {
+			return r, err
+		}
+		log.Info("waiting for what Launch publishes", "err", err)
+		select {
+		case <-ctx.Done():
+			return r, err
+		case <-time.After(5 * time.Second):
+		}
+	}
 }
 
 // lazyDB connects on first use and keeps the pool; the drain and the launch
