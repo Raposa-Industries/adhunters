@@ -33,6 +33,7 @@ const GLYPHS = {
   search: '<circle cx="7" cy="7" r="4.6"/><path d="m10.4 10.4 3.2 3.2"/>',
   chevron: '<path d="m4.5 9.5 3.5-3.5 3.5 3.5"/>',
   filter: '<path d="M2 4h12M4.5 8h7M7 12h2"/>',
+  person: '<circle cx="8" cy="5.5" r="2.6"/><path d="M3 14c.6-2.7 2.6-4.2 5-4.2s4.4 1.5 5 4.2" stroke-linejoin="round"/>',
 };
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -106,9 +107,11 @@ export function mountFrame(opts) {
   const filterBtn = filters
     ? h('button', { type: 'button', class: 'fr-filter-toggle', 'aria-label': 'Filtros', 'aria-expanded': 'false', onclick: () => toggleFilters() }, icon('filter', 15))
     : null;
+  // The signed-in person's initials; until a service passes the name, a
+  // neutral placeholder keeps the avatar where the design draws it.
   const account = opts.user
     ? h('span', { class: 'fr-account', title: opts.user, 'aria-label': 'Conta: ' + opts.user }, initials(opts.user))
-    : null;
+    : h('span', { class: 'fr-account', 'aria-hidden': 'true' }, icon('person', 14));
   const top = h('header', { class: 'fr-top' }, menu.button, tabs, h('div', { class: 'fr-spacer' }),
     h('div', { class: 'fr-tools' }, filterBtn, searchBtn, account));
 
