@@ -120,7 +120,7 @@ jobs:
           for box in worker data; do
             dir=$(mktemp -d)
             cp platform/observe/alloy/common.alloy platform/observe/tests/services.alloy "$dir/"
-            [ "$box" = data ] && cp platform/observe/alloy/postgres.alloy "$dir/"
+            [ "$box" = data ] && cp platform/observe/alloy/postgres.alloy platform/observe/alloy/tunnel.alloy "$dir/"
             alloy validate "$dir"
           done
       - name: shell

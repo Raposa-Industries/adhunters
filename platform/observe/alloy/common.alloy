@@ -4,6 +4,9 @@
 //
 // Scrapes run every 60 s: Grafana Cloud's free tier counts one sample a
 // minute per series, and a minute is fine-grained enough for every alert.
+// The free tier also holds at most 10,000 active series and drops the rest,
+// so every exporter here sends what a rule, a dashboard or a person reads,
+// not everything it can (README, Series).
 
 // ---- where it all goes ------------------------------------------------------
 
@@ -39,20 +42,38 @@ loki.write "cloud" {
 
 // ---- the host ----------------------------------------------------------------
 
-// Every unit of ours: UnitFailed and PostgresRestarted read these. The list
-// must cover every unit platform/servers/setup.sh runs (push.sh check
-// tests it), and run-* covers one-off jobs started with systemd-run.
+// The host: CPU, memory and pressure, disks and filesystems, network (with
+// TCP retransmits, sockets and the connection-tracking table, which walks
+// and scrapes through proxies fill), file handles, processes and threads
+// (browsers left behind), the clock and its sync, and our units. Only these
+// collectors: the exporter's default set also sends hardware and kernel
+// internals, per core and per interface, that nothing reads.
 prometheus.exporter.unix "host" {
-  enable_collectors = ["systemd"]
+  set_collectors = [
+    "conntrack", "cpu", "diskstats", "filefd", "filesystem", "loadavg",
+    "meminfo", "netdev", "netstat", "os", "pressure", "processes", "sockstat",
+    "stat", "systemd", "textfile", "time", "timex", "uname", "vmstat",
+  ]
 
+  // Every unit of ours: UnitFailed and PostgresRestarted read these. The list
+  // must cover every unit platform/servers/setup.sh runs (push.sh check
+  // tests it), and run-* covers one-off jobs started with systemd-run.
   systemd {
     unit_include = "(tracks-.*|raposa-.*|spy-.*|intel-.*|funnels-.*|desk-.*|launch-.*|create|create-web|library|observe-bot|pgbackrest-.*|postgresql.*|alloy|cloudflared.*|tailscaled|run-.*)\\.service"
     // node_systemd_unit_start_time_seconds: when each unit last started.
     start_time = true
+    // node_systemd_service_restart_total: how often systemd restarted it.
+    enable_restarts = true
+    // node_systemd_unit_tasks_current: its processes and threads.
+    task_metrics = true
   }
 
   filesystem {
     mount_points_exclude = "^/(dev|proc|run|sys|snap)($|/)"
+  }
+
+  netdev {
+    device_exclude = "^(lo|veth.*|docker.*|br-.*)$"
   }
 
   // Metrics files our scripts write (pgBackRest's state on the data box).
@@ -68,14 +89,35 @@ prometheus.scrape "host" {
   forward_to      = [prometheus.remote_write.cloud.receiver]
 }
 
-// Alloy's own health: failed or delayed sends show up here.
+// Alloy's own health: its version and config, whether its sends to Grafana
+// Cloud fail, lag or drop, how many series this box sends, and its memory.
+// It exports about 600 series a box; only these go out.
 prometheus.exporter.self "alloy" { }
 
 prometheus.scrape "alloy" {
   job_name        = "alloy"
   targets         = prometheus.exporter.self.alloy.targets
   scrape_interval = "60s"
-  forward_to      = [prometheus.remote_write.cloud.receiver]
+  forward_to      = [prometheus.relabel.alloy.receiver]
+}
+
+prometheus.relabel "alloy" {
+  forward_to = [prometheus.remote_write.cloud.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    action        = "keep"
+    regex         = string.join([
+      "up", "scrape_.*",
+      "alloy_build_info", "alloy_config_last_load_successful",
+      "alloy_component_controller_running_components",
+      "prometheus_remote_storage_(samples_total|samples_failed_total|samples_retried_total|samples_dropped_total|samples_pending|highest_timestamp_in_seconds|queue_highest_sent_timestamp_seconds|shards|bytes_total)",
+      "prometheus_remote_write_wal_storage_active_series",
+      "loki_write_(sent_entries_total|dropped_entries_total|sent_bytes_total|batch_retries_total)",
+      "loki_source_journal_target_(lines_total|parsing_errors_total)",
+      "process_(resident_memory_bytes|cpu_seconds_total|start_time_seconds)",
+    ], "|")
+  }
 }
 
 // ---- logs --------------------------------------------------------------------

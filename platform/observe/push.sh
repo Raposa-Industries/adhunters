@@ -58,7 +58,7 @@ runbooks() {
 units_watched() {
     local include keep unit fail=0
     include=$(sed -n 's/^ *unit_include *= *"\(.*\)"$/\1/p' "$here/alloy/common.alloy" | sed 's/\\\\/\\/g')
-    keep=$(sed -n 's/^ *regex *= *"\(.*\)"$/\1/p' "$here/alloy/common.alloy" | sed 's/\\\\/\\/g')
+    keep=$(sed -n '/^loki.relabel "journal"/,/^}/s/^ *regex *= *"\(.*\)"$/\1/p' "$here/alloy/common.alloy" | sed 's/\\\\/\\/g')
     [ -n "$include" ] && [ -n "$keep" ] || { echo "no unit_include or journal regex in common.alloy" >&2; return 1; }
     for unit in $(sed -n "/^ops_ports='/,/'\$/p" "$repo/platform/servers/setup.sh" | sed "s/^ops_ports='//" | awk '{print $1}') run-u1234; do
         printf '%s.service' "$unit" | grep -Eqx "$include" || { echo "Alloy's unit_include misses $unit" >&2; fail=1; }
