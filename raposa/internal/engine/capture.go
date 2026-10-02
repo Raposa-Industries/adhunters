@@ -114,7 +114,38 @@ func capture(step VisitStep, maxPageBytes int) Page {
 		CheckoutPlatform:   checkout.Platform,
 		CheckoutMerchantID: checkout.MerchantID,
 		OutboundLinks:      outboundLinks(body, step.URL),
+		VideoLinks:         videoLinks(step.HTML),
 	}
+}
+
+// rxVideoLink finds the address of a video player a VSL loads: VTurb
+// (converteai.net), Panda, Vidalytics, Wistia, Vimeo, YouTube embeds and
+// Bunny's player. The team opens the VTurb one to watch a VSL whose page
+// will not open for them.
+var rxVideoLink = regexp.MustCompile(`(?i)(?:https?:)?//[a-z0-9.-]*(?:converteai\.net|vturb\.com(?:\.br)?|pandavideo\.com(?:\.br)?|vidalytics\.com|wistia\.(?:com|net)|player\.vimeo\.com|youtube(?:-nocookie)?\.com/embed|mediadelivery\.net)(?:/[^"'\s<>\\)]*)?`)
+
+// maxVideoLinks caps the links kept per page.
+const maxVideoLinks = 20
+
+// videoLinks lists the video player addresses in the texts, once each, in
+// the order met, with a scheme.
+func videoLinks(texts ...string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, t := range texts {
+		for _, m := range rxVideoLink.FindAllString(t, -1) {
+			link := strings.TrimRight(strings.ReplaceAll(m, "&amp;", "&"), ".,;&")
+			if strings.HasPrefix(link, "//") {
+				link = "https:" + link
+			}
+			if seen[link] || len(out) >= maxVideoLinks {
+				continue
+			}
+			seen[link] = true
+			out = append(out, link)
+		}
+	}
+	return out
 }
 
 // assetRole settles on one of the words raposa.page_asset.role takes.

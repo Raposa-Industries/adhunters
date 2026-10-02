@@ -273,7 +273,14 @@ func (r *run) climb(ctx context.Context) error {
 	tries := max(r.set.LadderTriesPerRung, 1)
 	d := r.rungAt(r.p.Rung)
 	if d == nil || r.p.Attempt >= tries {
-		d = r.nextRung(r.p.Rung)
+		after := r.p.Rung
+		if after == 0 && r.inv.StartRung > 1 {
+			// A follow-up run starts at the rung that broke through the
+			// first time: the rungs below it already got the white page.
+			after = r.inv.StartRung - 1
+			r.logf("follow-up run: starting the climb at rung %d, where the followed investigation broke through", r.inv.StartRung)
+		}
+		d = r.nextRung(after)
 		if d == nil {
 			return r.ladderRanOut()
 		}
@@ -795,12 +802,30 @@ func (r *run) store(v visitRow, res *VisitResult, d Disguise) (*visitOutcome, er
 	land := landing{URL: first.URL, Status: first.Status, Title: pages[0].Title, Hash: pages[0].ContentHash, Engine: d.Engine}
 
 	vd := judge(r.p.White, land, r.p.WhiteStable)
+	if vd.Outcome == "error" && !d.IsBaseline && sentAway(r.p.White, land, v.TargetURL) {
+		// The link sent this visit to a site the reviewer never reaches, and
+		// that site did not open (a PHP page that "can't be reached"). The
+		// redirect itself is the dark funnel: the reviewer is never sent there.
+		vd = verdict{Outcome: "dark", Reason: fmt.Sprintf("sent to %s, where the reviewer lands on %s; that page did not open (%s)",
+			domainOf(land.URL), domainOf(r.p.White.URL), orDash(land.Title))}
+	}
 	if d.IsBaseline {
 		// The baseline is the white page by definition. Only a server error
 		// makes it useless.
 		vd = verdict{Outcome: "white", Reason: "the reviewer baseline"}
 		if isErrorPage(land.Status, land.Title) {
 			vd = verdict{Outcome: "error", Reason: fmt.Sprintf("the server answered %d (%s)", land.Status, land.Title)}
+		}
+	}
+	// A player address met on the way (a redirect through the video host)
+	// belongs to the page the visit landed on.
+	for i, step := range res.Steps {
+		hops := make([]string, 0, len(step.Hops))
+		for _, h := range step.Hops {
+			hops = append(hops, h.URL)
+		}
+		if extra := videoLinks(hops...); len(extra) > 0 {
+			pages[i].VideoLinks = videoLinks(append(pages[i].VideoLinks, extra...)...)
 		}
 	}
 	// Once a visit is dark, every page it walked through belongs to the dark
@@ -933,8 +958,24 @@ func (r *run) takeLiveLink(ctx context.Context, device string) (*liveLink, error
 	}
 	anyDevice := !slices.Contains(ad.Devices, device)
 	l, ok, err := r.e.store.TakeLiveLink(ctx, ad.LandingHost, campaign, device, anyDevice)
-	if err != nil || !ok {
+	if err != nil {
 		return nil, err
+	}
+	if !ok && campaign != "" && r.p.LinkWaitSince != nil &&
+		time.Since(*r.p.LinkWaitSince) >= time.Duration(r.set.LiveLinkWaitSeconds)*time.Second/2 {
+		// Half the wait went by with no link from this campaign: take a fresh
+		// one from another ad going to the same site, which is the same
+		// advertiser's funnel.
+		l, ok, err = r.e.store.TakeLiveLink(ctx, ad.LandingHost, "", device, anyDevice)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			r.logf("no live link from campaign %s: took one from campaign %s, another ad going to %s", campaign, orDash(l.Campaign), ad.LandingHost)
+		}
+	}
+	if !ok {
+		return nil, nil
 	}
 	return &l, nil
 }

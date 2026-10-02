@@ -14,8 +14,8 @@ and `browser/`), with the work held differently
 
 | Binary | Does | Listens |
 |---|---|---|
-| `raposa-engine run` | Claims due investigations one visit at a time (10 workers), keeps pages whole, delivers watches through Pushcut, and every 5 minutes refreshes burned lines and queues automatic quick investigations. | ops on `OPS_ADDR` (9105) |
-| `raposa-web` | Plain pages: ask for an investigation, follow it, read its visits, variants and evidence, open stored pages, set watches, see burned lines. | `127.0.0.1:8090`, ops on 9106 |
+| `raposa-engine run` | Claims due investigations one visit at a time (10 workers), keeps pages whole, delivers watches through Pushcut, and every 5 minutes refreshes burned lines, queues automatic quick investigations and queues the follow-up runs that are due. | ops on `OPS_ADDR` (9105) |
+| `raposa-web` | Plain pages: ask for an investigation, follow it day by day, read its visits, splits per step, whole funnels, video links and evidence, compare its days, list the cloaked ads, open stored pages, set watches, see burned lines. | `127.0.0.1:8090`, ops on 9106 |
 | `browser/runner.js` | Headless Chromium for the browser rungs and the keeper. See [browser/README.md](browser/README.md). | `127.0.0.1:8086` |
 
 `raposa-engine migrate` applies the migrations (the unit runs it before each
@@ -36,13 +36,21 @@ on the worker box ([its README](../platform/servers/README.md)).
    that differs on every load is compared on its domain and title only.
 4. **Climb**: each rung gets `ladder_tries_per_rung` visits with a live link
    taken from Tracks (`take_live_link_v1`, each link once). The first rung
-   whose visit sees a dark page is the breach rung.
+   whose visit sees a dark page is the breach rung. A follow-up run starts
+   the climb at the rung that broke through the first time. A visit that is
+   sent to a domain neither the white page nor the ad's link names, where the
+   page does not open ("This site can't be reached", often a PHP page), counts
+   as dark: the operator sent it away from the reviewer's page.
 5. **Sample** (deep only): `visits_target` visits on the breach rung, spread
    over `visits_window_minutes`, following the funnel, each paired with a
    reviewer visit at the same moment to see whether the white page is split
    tested too.
 6. **Finish**: variants, confidence, evidence, a `finished` event; a deep one
-   that found nothing is queued again, up to `retry_limit` attempts in all.
+   that found nothing is queued again, up to `retry_limit` (4) attempts in
+   all. A quick one that could not test the ad (failed, and no visit past the
+   reviewer's got a white or a dark page) is queued again on the free rungs,
+   up to `quick_retry_limit` (2) attempts; one that saw only the white page
+   has its answer and is not.
 
 Each step is one claim: the worker writes the visit, its pages, the log, the
 events and the progress in one transaction fenced by its claim token, and
@@ -50,7 +58,9 @@ lets go. A stopping engine writes nothing for the visit in flight; it runs
 again at the next claim, here or on another box. A step that fails for a
 reason that is not the page's is tried again in 30 s, and after 5 in a row
 the investigation fails with the reason. With no live link on hand a visit
-waits (up to `live_link_wait_seconds`) without recording anything.
+waits (up to `live_link_wait_seconds`) without recording anything; after
+half that wait it takes a fresh link from another ad going to the same site
+(any campaign of the advertiser), and the log says so.
 
 Settings (`raposa.setting`) and the ladder (`raposa.disguise`) are read on
 every visit: changing them needs no deploy.
@@ -81,6 +91,31 @@ this off.
 A quick investigation climbs only the rungs that cost nothing, and never a
 rung on the residential line, whatever that rung's `cost_kb` says: automatic
 investigations never spend metered traffic.
+
+The pages hide Raposa's own investigations (asked for by `raposa`) from the
+list and say how many ran in the last day, with a link to show them too.
+
+## Splits per step, follow-ups and the cloaked ads
+
+- **Splits per step**: each step of the dark funnel (advertorial, VSL,
+  checkout) lists the different pages the sample visits met there, with the
+  share of the visits that reached the step (`raposa.step_split`). Whole
+  funnels (variants) stay below. A run whose visits past the reviewer's all
+  got the white page says so at the top.
+- **Video links**: the player links a page carries (VTurb on converteai.net,
+  Panda, Vidalytics, Wistia, Vimeo, YouTube embeds, Bunny) are kept on the
+  page (`raposa.page.video_links`), including links met on the way to a page
+  that did not open, and listed on the investigation, dark pages first.
+- **Follow day by day**: on a deep investigation, "Follow" queues a follow-up
+  run every `every_hours` (24) for 3, 4 or 5 days (up to 7; `raposa.follow`). Each one is
+  a deep investigation that starts at the breach rung, so a day costs about
+  what the sample costs. `/i/{id}/days` compares the days: dark share, the
+  ad's sightings in Tracks, and each step's split with its change against the
+  day before. "End the follow" stops the days still to come.
+- **Cloaked ads** (`/cloaked?days=N`, 1 to 90, 1 by default): every
+  investigation finished in those days that got past the white page, with
+  its dark and white domains, checkout and video links. It prints as a
+  report.
 
 ## Copying the collector's investigations
 
@@ -165,6 +200,9 @@ its files, the page after its scripts ran, and its video in the files store
 (`RAPOSA_FILES`: object storage in production, a folder otherwise) under
 `files/<md5>`. Plain video files are streamed to disk by the engine.
 
+raposa-web can sit under a path of another site: `-base /raposa` (or
+`RAPOSA_WEB_BASE`) serves every page under it and writes its links with it.
+
 raposa-web serves stored pages and files sandboxed and without loading
 anything from outside, so opening one runs none of its scripts and tells the
 operator nothing; they look unstyled for that reason.
@@ -198,8 +236,7 @@ database.
 
 ## Not in this yet
 
-- **Not deployed.** Nothing here has run on a real box, and the old Raposa in
-  the collector keeps running until this one is. Moving over: set up the
-  boxes, stop the collector's Raposa, start `raposa-engine`, then run
-  `import-old`.
 - **No design.** The pages are plain until the app's design is ready.
+- **Not on hunt-teste.fyi.** raposa-web listens on the worker only; the team
+  sees Raposa through Spy's ad page, which does not show splits per step,
+  follows or the cloaked ads yet.

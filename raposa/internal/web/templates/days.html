@@ -1,0 +1,37 @@
+{{template "head" (printf "Days of investigation %d" .Root)}}
+<h1>Day by day: investigation <a href="{{base}}/i/{{.Root}}">{{.Root}}</a></h1>
+{{with .Follow}}<p>Runs again every {{.EveryHours}} hours: {{.Done}} of {{.Days}} done{{if .Ended}}, ended {{when .Ended}}{{else}}, next {{when .NextAt}}{{end}}.</p>
+{{else}}<p class="note">Not followed. Follow it from <a href="{{base}}/i/{{.Root}}">its page</a>.</p>{{end}}
+
+<div class="scroll"><table>
+<tr><th>Day</th><th>Run</th><th>Date</th><th>Status</th><th>Ad seen</th><th>Sample visits</th><th>Past the white page</th><th>What changed</th></tr>
+{{range .Days}}<tr>
+<td>{{if .Day}}{{.Day}}{{else}}first{{end}}</td>
+<td><a href="{{base}}/i/{{.Row.ID}}">{{.Row.ID}}</a></td>
+<td>{{day .Started}}</td>
+<td>{{.Row.Status}}{{if eq .Row.Status "failed"}} <span class="note">{{.Row.StageNote}}</span>{{end}}</td>
+<td>{{with .Sightings}}{{.}} times{{end}}</td>
+<td>{{.Row.VisitsDone}}{{if .Row.VisitsTarget}}/{{.Row.VisitsTarget}}{{end}}</td>
+<td>{{if or .DarkVisits .WhiteVisits}}{{printf "%.0f" .DarkPct}}% ({{.DarkVisits}} dark, {{.WhiteVisits}} white){{end}}</td>
+<td>{{range .Changes}}{{.}}<br>{{end}}</td>
+</tr>{{end}}
+</table></div>
+
+{{range .Days}}{{if .Steps}}
+<h2>{{if .Day}}Day {{.Day}}{{else}}First run{{end}}, {{day .Started}}: splits per step</h2>
+{{range grouped .Steps}}
+<h3>Step {{.Step}}: {{.Kind}}</h3>
+<table><tr><th>Page</th><th>Address</th><th>Visits</th><th>Share</th><th>Since the day before</th></tr>
+{{range .Pages}}<tr><td><a href="{{base}}/p/{{.PageID}}">{{with .Title}}{{.}}{{else}}(no title){{end}}</a></td><td class="url">{{.Address}}</td>
+<td>{{.Visits}} of {{.StepVisits}}</td><td><span class="bar" style="width:{{printf "%.0f" .Share}}px"></span> {{printf "%.0f" .Share}}%</td>
+<td>{{.Change}}</td></tr>{{end}}
+</table>
+{{end}}
+{{end}}{{end}}
+
+{{if .Videos}}
+<h2>Videos</h2>
+<table>{{range .Videos}}<tr><td class="url"><a href="{{.URL}}" target="_blank" rel="noreferrer noopener">{{.URL}}</a></td>
+<td>{{if .Dark}}<span class="dark">dark</span> {{end}}on <a href="{{base}}/p/{{.PageID}}">{{.Title}}</a></td></tr>{{end}}</table>
+{{end}}
+{{template "foot"}}

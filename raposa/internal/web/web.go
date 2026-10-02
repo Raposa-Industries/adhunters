@@ -40,19 +40,28 @@ type Server struct {
 	files files.Store
 	log   *slog.Logger
 	tmpl  *template.Template
+	// Base is the path the pages sit under when another site fronts them
+	// (/raposa behind create-web); "" when they are served at the root.
+	Base string
 }
 
 // New builds the pages over the raposa schema.
 func New(db *pgxpool.Pool, fs files.Store, log *slog.Logger) (*Server, error) {
+	s := &Server{db: db, files: fs, log: log}
 	t, err := template.New("").Funcs(template.FuncMap{
-		"when":  when,
-		"bytes": humanBytes,
-		"deref": deref,
+		"when":    when,
+		"day":     day,
+		"bytes":   humanBytes,
+		"deref":   deref,
+		"base":    func() string { return s.Base },
+		"signed":  signed,
+		"grouped": Grouped,
 	}).ParseFS(templateFiles, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
-	return &Server{db: db, files: fs, log: log, tmpl: t}, nil
+	s.tmpl = t
+	return s, nil
 }
 
 // Handler routes the pages.
@@ -69,7 +78,15 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /p/{id}/kept", s.pageHTML)
 	mux.HandleFunc("GET /f/{hash}", s.file)
 	mux.HandleFunc("GET /burns", s.burns)
-	return sameOrigin(mux)
+	mux.HandleFunc("POST /i/{id}/follow", s.follow)
+	mux.HandleFunc("POST /follow/{id}/end", s.endFollow)
+	mux.HandleFunc("GET /i/{id}/days", s.days)
+	mux.HandleFunc("GET /cloaked", s.cloaked)
+	var h http.Handler = mux
+	if s.Base != "" {
+		h = http.StripPrefix(s.Base, mux)
+	}
+	return sameOrigin(h)
 }
 
 // sameOrigin refuses a form posted from another site: the pages sit on a
@@ -136,7 +153,11 @@ func scanRow(r pgx.Row, x *Row, more ...any) error {
 }
 
 func (s *Server) list(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.db.Query(r.Context(), `SELECT `+rowColumns+` FROM raposa.investigation ORDER BY id DESC LIMIT 200`)
+	// The investigations Raposa queues on its own (and their retries) are
+	// left out unless asked for: the list is what people asked for.
+	all := r.URL.Query().Get("all") == "1"
+	rows, err := s.db.Query(r.Context(), `SELECT `+rowColumns+` FROM raposa.investigation
+		WHERE $1 OR requested_by <> 'raposa' ORDER BY id DESC LIMIT 200`, all)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -149,7 +170,10 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	s.render(w, "list.html", map[string]any{"Rows": list, "Asked": r.URL.Query().Get("asked")})
+	var auto int
+	_ = s.db.QueryRow(r.Context(), `SELECT count(*) FROM raposa.investigation WHERE requested_by = 'raposa'
+		AND requested_at > now() - interval '1 day'`).Scan(&auto)
+	s.render(w, "list.html", map[string]any{"Rows": list, "Asked": r.URL.Query().Get("asked"), "All": all, "Auto": auto})
 }
 
 func (s *Server) request(w http.ResponseWriter, r *http.Request) {
@@ -178,7 +202,7 @@ func (s *Server) request(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/i/%d", id), http.StatusSeeOther)
+	http.Redirect(w, r, s.Base+fmt.Sprintf("/i/%d", id), http.StatusSeeOther)
 }
 
 func (s *Server) stop(w http.ResponseWriter, r *http.Request) {
@@ -190,7 +214,7 @@ func (s *Server) stop(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/i/%d", id), http.StatusSeeOther)
+	http.Redirect(w, r, s.Base+fmt.Sprintf("/i/%d", id), http.StatusSeeOther)
 }
 
 // Detail is one investigation's page.
@@ -212,6 +236,21 @@ type Detail struct {
 	Log                []LogLine
 	Watches            []Watch
 	Running            bool
+	// Splits per step of the dark funnel, the video players its pages load,
+	// and the follow it is part of.
+	Steps       []StepSplit
+	Videos      []VideoLink
+	Follow      *FollowInfo
+	FollowOf    *int64
+	FollowDay   *int16
+	WhiteVisits int
+	DarkVisits  int
+}
+
+// WhiteOnly says the investigation tested the ad and every visit past the
+// reviewer got the white page: no dark page, as opposed to no answer.
+func (d Detail) WhiteOnly() bool {
+	return !d.Cloaked && d.DarkVisits == 0 && d.WhiteVisits > 0 && !d.Running
 }
 
 // Variant is one dark funnel the sample met.
@@ -273,10 +312,11 @@ func (s *Server) investigation(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var d Detail
 	err := scanRow(s.db.QueryRow(ctx, `SELECT `+rowColumns+`, target_click_url, publisher_referer, target_device,
-			burn_scope, rung_reached, bytes_used, attempt, retry_of, next_visit_at, claimed_by, stop_requested, white_page_id
-		FROM raposa.investigation WHERE id = $1`, id), &d.Row,
+			burn_scope, rung_reached, bytes_used, attempt, retry_of, next_visit_at, claimed_by, stop_requested, white_page_id,
+			(SELECT investigation_id FROM raposa.follow f WHERE f.id = i.follow_id), follow_day
+		FROM raposa.investigation i WHERE id = $1`, id), &d.Row,
 		&d.TargetURL, &d.Referer, &d.Device, &d.Scope, &d.RungReached, &d.BytesUsed, &d.Attempt, &d.RetryOf,
-		&d.NextVisitAt, &d.ClaimedBy, &d.StopRequested, &d.WhitePageID)
+		&d.NextVisitAt, &d.ClaimedBy, &d.StopRequested, &d.WhitePageID, &d.FollowOf, &d.FollowDay)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -291,6 +331,21 @@ func (s *Server) investigation(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) details(ctx context.Context, d *Detail) error {
 	var err error
+	if d.Steps, err = s.stepSplits(ctx, d.ID); err != nil {
+		return err
+	}
+	if d.Videos, err = s.videos(ctx, []int64{d.ID}); err != nil {
+		return err
+	}
+	if d.Follow, err = s.followOf(ctx, d.ID, d.FollowOf); err != nil {
+		return err
+	}
+	if err := s.db.QueryRow(ctx, `
+		SELECT count(*) FILTER (WHERE v.outcome = 'white'), count(*) FILTER (WHERE v.outcome = 'dark')
+		FROM raposa.visit v JOIN raposa.disguise g ON g.id = v.disguise_id AND NOT g.is_baseline
+		WHERE v.investigation_id = $1`, d.ID).Scan(&d.WhiteVisits, &d.DarkVisits); err != nil {
+		return err
+	}
 	rows, _ := s.db.Query(ctx, `SELECT label, visits, share_pct::float8, page_ids FROM raposa.variant
 		WHERE investigation_id = $1 ORDER BY visits DESC, id`, d.ID)
 	if d.Variants, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (Variant, error) {
@@ -386,7 +441,7 @@ func (s *Server) watch(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/i/%d", id), http.StatusSeeOther)
+	http.Redirect(w, r, s.Base+fmt.Sprintf("/i/%d", id), http.StatusSeeOther)
 }
 
 func (s *Server) endWatch(w http.ResponseWriter, r *http.Request) {
@@ -402,7 +457,7 @@ func (s *Server) endWatch(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(back, "/i/") {
 		back = "/"
 	}
-	http.Redirect(w, r, back, http.StatusSeeOther)
+	http.Redirect(w, r, s.Base+back, http.StatusSeeOther)
 }
 
 // ---- pages and files ----------------------------------------------------

@@ -1,28 +1,67 @@
 {{template "head" (printf "Investigation %d" .ID)}}
 <h1>Investigation {{.ID}}: creative {{.CreativeID}}{{with .AdID}}, ad {{.}}{{end}}</h1>
 <p>{{.Mode}}, {{.Status}}{{if .StopRequested}} (stop asked){{end}}, {{.Stage}}{{with .StageNote}}: {{.}}{{end}}.
-Attempt {{.Attempt}}{{with .RetryOf}}, retry of <a href="/i/{{.}}">{{.}}</a>{{end}}.
+Attempt {{.Attempt}}{{with .RetryOf}}, retry of <a href="{{base}}/i/{{.}}">{{.}}</a>{{end}}.
 Asked {{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}.{{if .CompletedAt}} Ended {{when .CompletedAt}}.{{end}}</p>
+{{if eq .Mode "quick"}}<p class="note">Quick: tries only the disguises that cost nothing and reads the landing page. It does not sample the funnel, so it has no splits.</p>{{end}}
+{{with .FollowOf}}<p>Day {{deref $.FollowDay}} of the follow-up of investigation <a href="{{base}}/i/{{.}}">{{.}}</a>. <a href="{{base}}/i/{{$.ID}}/days">Compare the days</a>.</p>{{end}}
 {{if .Running}}
 <p>Next visit {{when .NextVisitAt}}{{with .ClaimedBy}}, held by {{.}}{{end}}.
-<form class="inline" method="post" action="/i/{{.ID}}/stop"><button>Stop it</button></form></p>
+<form class="inline" method="post" action="{{base}}/i/{{.ID}}/stop"><button>Stop it</button></form></p>
 {{end}}
 
 <h2>Verdict</h2>
 {{if .Cloaked}}
-<p class="dark">Cloaked: {{printf "%.0f" .Confidence}}% of the visits on rung {{deref .BreachRung}} saw a dark page. {{len .Variants}} variant(s).</p>
+<p class="dark">Cloaked: {{printf "%.0f" .Confidence}}% of the visits on rung {{deref .BreachRung}} saw a dark page. {{len .Variants}} whole funnel(s).</p>
+{{else if .WhiteOnly}}<p class="whiteonly">Only the white page: all {{.WhiteVisits}} visit(s) past the reviewer got the page the reviewer sees.{{if eq .Mode "quick"}} Quick tried only the disguises that cost nothing.{{end}}</p>
 {{else if eq .Status "completed"}}<p>No dark page found.</p>
+{{else if eq .Status "failed"}}<p class="whiteonly">No answer: {{.StageNote}}</p>
 {{else}}<p class="note">Not yet.</p>{{end}}
 <p>Highest rung tried {{.RungReached}}. Device {{.Device}}. Site {{with .Scope}}{{.}}{{else}}not known yet{{end}}.
-{{with .WhitePageID}}White page <a href="/p/{{.}}">{{.}}</a>.{{end}} Line traffic {{bytes .BytesUsed}}.</p>
+{{with .WhitePageID}}White page <a href="{{base}}/p/{{.}}">{{.}}</a>.{{end}} Line traffic {{bytes .BytesUsed}}.</p>
 {{with .TargetURL}}<p>Saved link: <span class="url">{{.}}</span></p>{{end}}
 {{with .Referer}}<p>Publisher: <span class="url">{{.}}</span></p>{{end}}
 
+{{if .Steps}}
+<h2>Splits per step</h2>
+<p class="note">Each step of the dark funnel, and the share of the sample visits that reached it which met each page there. Pages with the same words are one page.</p>
+{{range grouped .Steps}}
+<h3>Step {{.Step}}: {{.Kind}}</h3>
+<table><tr><th>Page</th><th>Address</th><th>Visits</th><th>Share</th></tr>
+{{range .Pages}}<tr><td><a href="{{base}}/p/{{.PageID}}">{{with .Title}}{{.}}{{else}}(no title){{end}}</a></td><td class="url">{{.Address}}</td>
+<td>{{.Visits}} of {{.StepVisits}}</td><td><span class="bar" style="width:{{printf "%.0f" .Share}}px"></span> {{printf "%.0f" .Share}}%</td></tr>{{end}}
+</table>
+{{end}}
+{{end}}
+
+{{if .Videos}}
+<h2>Videos</h2>
+<p class="note">The video players these pages load. The VTurb ones (converteai.net) open the VSL even when its page does not open for you.</p>
+<table>{{range .Videos}}<tr><td class="url"><a href="{{.URL}}" target="_blank" rel="noreferrer noopener">{{.URL}}</a></td>
+<td>{{if .Dark}}<span class="dark">dark</span> {{end}}on <a href="{{base}}/p/{{.PageID}}">{{.Title}}</a></td></tr>{{end}}</table>
+{{end}}
+
+<h2>Follow day by day</h2>
+{{with .Follow}}
+<p>Runs again every {{.EveryHours}} hours: {{.Done}} of {{.Days}} done{{if .Ended}}, ended {{when .Ended}}{{else}}, next {{when .NextAt}}{{end}}{{with .By}}, asked by {{.}}{{end}}.
+<a href="{{base}}/i/{{$.ID}}/days">Compare the days</a>.
+{{if not .Ended}}<form class="inline" method="post" action="{{base}}/follow/{{.ID}}/end"><button>End the follow</button></form>{{end}}</p>
+{{else}}{{if not .FollowOf}}
+<form method="post" action="{{base}}/i/{{.ID}}/follow">
+<label>Run this ad again every 24 hours for
+<select name="days"><option>3</option><option>4</option><option>5</option></select> days</label>
+<label>Your name <input name="by" size="10"></label>
+<button>Follow</button>
+<p class="note">Each day is a deep investigation that starts at the rung that broke through, so it costs about one sample of visits a day. The days page then shows how the splits moved.</p>
+</form>
+{{end}}{{end}}
+
 {{if .Variants}}
-<h2>Variants</h2>
+<h2>Whole funnels</h2>
+<p class="note">Each distinct chain of pages from landing to the last step, and its share of the sample visits.</p>
 <table><tr><th>Label</th><th>Visits</th><th>Share</th><th>Pages</th></tr>
 {{range .Variants}}<tr><td>{{.Label}}</td><td>{{.Visits}}</td><td>{{printf "%.0f" .Share}}%</td>
-<td>{{range $i, $p := .PageIDs}}{{if $i}} → {{end}}<a href="/p/{{$p}}">{{$p}}</a>{{end}}</td></tr>{{end}}
+<td>{{range $i, $p := .PageIDs}}{{if $i}} → {{end}}<a href="{{base}}/p/{{$p}}">{{$p}}</a>{{end}}</td></tr>{{end}}
 </table>
 {{end}}
 
@@ -31,7 +70,7 @@ Asked {{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}.{{if .Completed
 <div class="scroll"><table><tr><th>Seen</th><th>Landing page</th><th>Kind</th><th>Checkout</th><th>Seller</th><th>Account</th><th>Device</th></tr>
 {{range .Evidence}}<tr>
 <td class="{{if eq .Outcome "dark"}}dark{{end}}">{{.Outcome}}</td>
-<td class="url"><a href="/p/{{.PageID}}">{{.Title}}</a><br>{{.FinalURL}}</td>
+<td class="url"><a href="{{base}}/p/{{.PageID}}">{{.Title}}</a><br>{{.FinalURL}}</td>
 <td>{{.Kind}}</td><td>{{.Checkout}} {{.Merchant}}</td><td>{{.Seller}} {{.SellerAcct}}</td>
 <td>{{deref .Account}} {{.Campaign}}</td><td>{{.Device}}</td>
 </tr>{{end}}
@@ -44,10 +83,10 @@ Asked {{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}.{{if .Completed
 {{range .Watches}}<tr><td>{{.Notification}}</td><td>{{range $i, $k := .Kinds}}{{if $i}}, {{end}}{{$k}}{{end}}</td>
 <td>{{if .Creative}}the creative{{else}}this investigation{{end}}{{with .By}}, by {{.}}{{end}}</td>
 <td>{{.Sent}} sent{{if .Failed}}, {{.Failed}} failed{{end}}{{if .Skipped}}, {{.Skipped}} skipped{{end}}</td>
-<td><form class="inline" method="post" action="/watch/{{.ID}}/end"><input type="hidden" name="back" value="/i/{{$.ID}}"><button>End</button></form></td></tr>{{end}}
+<td><form class="inline" method="post" action="{{base}}/watch/{{.ID}}/end"><input type="hidden" name="back" value="/i/{{$.ID}}"><button>End</button></form></td></tr>{{end}}
 </table>
 {{end}}
-<form method="post" action="/i/{{.ID}}/watch">
+<form method="post" action="{{base}}/i/{{.ID}}/watch">
 <fieldset><legend>Watch</legend>
 <label>Pushcut notification <input name="notification" required size="16"></label>
 <label><input type="checkbox" name="kind" value="started" checked> started</label>
@@ -67,7 +106,7 @@ Asked {{when .RequestedAt}}{{with .RequestedBy}} by {{.}}{{end}}.{{if .Completed
 <td>{{when .At}}</td><td>{{.Purpose}}</td><td>{{.Rung}}</td><td>{{.Device}}</td><td>{{.Engine}}</td><td>{{.Link}}</td>
 <td>{{.Line}}{{with .Place}} {{.}}{{end}}</td><td>{{deref .ExitIP}}</td>
 <td class="{{if eq .Outcome "dark"}}dark{{end}}">{{.Outcome}}{{with .Error}} <span class="note">{{.}}</span>{{end}}</td>
-<td>{{with .PageID}}<a href="/p/{{.}}">{{.}}</a>{{end}}</td><td>{{.Steps}}</td><td>{{bytes .Bytes}}</td><td>{{.Ms}} ms</td>
+<td>{{with .PageID}}<a href="{{base}}/p/{{.}}">{{.}}</a>{{end}}</td><td>{{.Steps}}</td><td>{{bytes .Bytes}}</td><td>{{.Ms}} ms</td>
 </tr>{{else}}<tr><td colspan="13">No visits yet.</td></tr>{{end}}
 </table></div>
 

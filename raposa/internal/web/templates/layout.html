@@ -16,11 +16,14 @@ td.url { max-width: 480px; overflow-wrap: anywhere; }
 form.inline { display: inline; }
 fieldset { border: 1px solid #ccc; margin: 8px 0 20px; }
 .scroll { overflow-x: auto; }
-@media (prefers-color-scheme: dark) { body { color: #eee; background: #111; } th, td { border-color: #333; } a { color: #8ab4f8; } .dark { color: #f77; } }
+.bar { display: inline-block; height: 8px; background: #a00; vertical-align: middle; }
+.whiteonly { background: #f3f3f3; padding: 6px 8px; border-left: 3px solid #999; }
+@media print { nav, form { display: none; } }
+@media (prefers-color-scheme: dark) { body { color: #eee; background: #111; } th, td { border-color: #333; } a { color: #8ab4f8; } .dark { color: #f77; } .whiteonly { background: #222; } .bar { background: #f77; } }
 </style>
 </head>
 <body>
-<nav><a href="/">Investigations</a><a href="/burns">Burned lines</a></nav>
+<nav><a href="{{base}}/">Investigations</a><a href="{{base}}/cloaked">Cloaked ads</a><a href="{{base}}/burns">Burned lines</a></nav>
 {{end}}
 {{define "foot"}}</body>
 </html>

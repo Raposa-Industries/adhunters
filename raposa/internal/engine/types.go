@@ -108,7 +108,10 @@ type Page struct {
 	CheckoutPlatform   string
 	CheckoutMerchantID string
 	OutboundLinks      []string
-	IsDark             bool
+	// The video player links the page carries (VTurb on converteai.net and
+	// the like), so a VSL can be watched without opening its page.
+	VideoLinks []string
+	IsDark     bool
 }
 
 // Investigation is the row a worker claimed, with what the visit needs.
@@ -125,7 +128,10 @@ type Investigation struct {
 	VisitsTarget     int
 	RetryOf          *int64
 	Attempt          int
-	StartedAt        *time.Time
-	Token            uuid.UUID
-	Progress         Progress
+	// The rung a follow-up run starts its climb at: the one that broke
+	// through the first time. 0 starts at the bottom.
+	StartRung int16
+	StartedAt *time.Time
+	Token     uuid.UUID
+	Progress  Progress
 }

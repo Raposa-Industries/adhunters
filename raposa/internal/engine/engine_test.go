@@ -43,6 +43,7 @@ func cloaker(t *testing.T) *httptest.Server {
 	mux.HandleFunc("/offer", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `<html><head><title>She Fixed Her Ringing Ears</title></head><body>`+
 			`<h1>She Fixed Her Ringing Ears In 3 Weeks</h1><p>Watch the presentation before it is taken down.</p>`+
+			`<vturb-smartplayer id="vid-123"></vturb-smartplayer><script src="https://scripts.converteai.net/abc/players/123/v4/player.js"></script>`+
 			`<a href="/order">Watch the presentation now</a><a href="/order">Order now</a></body></html>`)
 	})
 	mux.HandleFunc("/order", func(w http.ResponseWriter, r *http.Request) {
@@ -268,6 +269,49 @@ func TestDeepInvestigationFindsTheDarkFunnel(t *testing.T) {
 	if retries != 0 {
 		t.Fatalf("%d retries queued after a dark page", retries)
 	}
+
+	// The VSL's player address is kept on its page.
+	var videos []string
+	if err := f.pool.QueryRow(ctx, `SELECT video_links FROM raposa.page WHERE is_dark AND title LIKE 'She Fixed%'`).Scan(&videos); err != nil ||
+		len(videos) != 1 || videos[0] != "https://scripts.converteai.net/abc/players/123/v4/player.js" {
+		t.Fatalf("video links %v (%v)", videos, err)
+	}
+
+	// Splits per step: every sample visit met the same landing page and the
+	// same next step.
+	var stepRows, full int
+	if err := f.pool.QueryRow(ctx, `SELECT count(*), count(*) FILTER (WHERE share_pct = 100)
+		FROM raposa.step_split WHERE investigation_id = $1`, id).Scan(&stepRows, &full); err != nil || stepRows < 2 || full != stepRows {
+		t.Fatalf("step splits: %d rows, %d at 100%% (%v)", stepRows, full, err)
+	}
+
+	// Followed for 3 days: the first day is queued when due, as a deep run
+	// that starts at the rung that broke through, and runs.
+	mustExec(t, f.pool, `INSERT INTO raposa.follow (investigation_id, creative_id, days, next_at, created_by)
+		VALUES ($1, 5, 3, now() - interval '1 minute', 'ana')`, id)
+	if n, err := f.e.store.ReleaseFollows(ctx); err != nil || n != 1 {
+		t.Fatalf("released %d follow-up runs (%v)", n, err)
+	}
+	if n, _ := f.e.store.ReleaseFollows(ctx); n != 0 {
+		t.Fatalf("released %d more before the next day", n)
+	}
+	var day1 int64
+	var startRung, followDay *int16
+	var by string
+	if err := f.pool.QueryRow(ctx, `SELECT id, start_rung, follow_day, requested_by FROM raposa.investigation WHERE follow_id IS NOT NULL`).
+		Scan(&day1, &startRung, &followDay, &by); err != nil || startRung == nil || *startRung != 2 || followDay == nil || *followDay != 1 || by != "ana" {
+		t.Fatalf("day 1: start rung %v, day %v, by %q (%v)", startRung, followDay, by, err)
+	}
+	f.liveLinks(t, 10)
+	f.drive(t, day1, 40)
+	if l := strings.Join(f.logLines(t, day1), "\n"); !strings.Contains(l, "starting the climb at rung 2") {
+		t.Fatalf("day 1 log:\n%s", l)
+	}
+	var done int
+	var next time.Time
+	if err := f.pool.QueryRow(ctx, `SELECT done, next_at FROM raposa.follow`).Scan(&done, &next); err != nil || done != 1 || time.Until(next) < 23*time.Hour {
+		t.Fatalf("follow done %d, next %v (%v)", done, next, err)
+	}
 }
 
 // With no live link at all, a quick investigation waits for one, records
@@ -303,11 +347,21 @@ func TestQuickInvestigationWithoutLiveLinks(t *testing.T) {
 	if noLink != 2 {
 		t.Fatalf("%d visits recorded with no live link, want the 2 tries of the one free rung", noLink)
 	}
-	// Quick investigations are never retried.
+	// A quick one that could not test the ad tries again once, quick too.
 	var n int
-	_ = f.pool.QueryRow(ctx, `SELECT count(*) FROM raposa.investigation`).Scan(&n)
-	if n != 1 {
-		t.Fatalf("%d investigations after a failed quick one", n)
+	var mode, origin string
+	_ = f.pool.QueryRow(ctx, `SELECT count(*), max(mode), max(origin) FROM raposa.investigation WHERE retry_of = $1`, id).
+		Scan(&n, &mode, &origin)
+	if n != 1 || mode != "quick" || origin != "retry" {
+		t.Fatalf("%d retries (%s, %s) after a quick one that tested nothing", n, mode, origin)
+	}
+	// The retry is the last attempt quick_retry_limit allows.
+	var retry int64
+	_ = f.pool.QueryRow(ctx, `SELECT id FROM raposa.investigation WHERE retry_of = $1`, id).Scan(&retry)
+	mustExec(t, f.pool, `UPDATE raposa.investigation SET status = 'failed' WHERE id = $1`, retry)
+	var again *int64
+	if err := f.pool.QueryRow(ctx, `SELECT raposa.schedule_retry($1)`, retry).Scan(&again); err != nil || again != nil {
+		t.Fatalf("a third quick attempt: %v %v", again, err)
 	}
 }
 
