@@ -72,8 +72,10 @@ up to `quick_queue_depth` (30) with `raposa.queue_quick()`. As in the
 collector, Raposa looks at an ad on its own only when its landing page could
 not be fetched when it was scraped. It picks a creative when:
 
-- an ad of it on one of `quick_networks` (`taboola`) was seen in the last
-  hour, so a live link exists;
+- an ad of it was seen in the last hour on a publisher of one of
+  `quick_networks` (`taboola`), so a live link exists. The network is the
+  publisher's, from Tracks' hourly counts (`ad_hourly_v1`, open hours
+  included): `network_ad_v1` holds NewsBreak's ad ids only;
 - Tracks first saw the creative within `quick_new_days` (7);
 - `tracks-walker` tried the landing page of its ads at least
   `quick_walk_failures` (2) times (`tracks_api.walk_page_v1`, step 0) and
@@ -179,10 +181,10 @@ waiting and runs here, and one running there is copied as stopped.
 ## What it reads and publishes
 
 Reads Tracks only through `tracks_api` (the login needs `tracks_api_read`):
-`ad_v1`, `ad_daily_v1`, `creative_link_daily_v1`, `link_v1`,
+`ad_v1`, `ad_hourly_v1`, `ad_daily_v1`, `creative_link_daily_v1`, `link_v1`,
 `creative_campaign_daily_v1`, `campaign_v1`, `sighting_v1`, `publisher_v1`,
-`device_v1`, `creative_v1`, `network_ad_v1`, `network_v1`, `walk_page_v1`,
-`page_version_v1` and `take_live_link_v1`.
+`device_v1`, `creative_v1`, `network_v1`, `walk_page_v1`, `page_version_v1`
+and `take_live_link_v1`.
 
 Publishes `raposa_api` (granted to `raposa_api_read`), with a copy of each
 definition in [contract/sql/raposa](../contract/sql/raposa):
