@@ -554,18 +554,22 @@ tests:
               resolved: Requests to spy are answered without server errors again.
               runbook_url: https://github.com/Raposa-Industries/adhunters/blob/main/runbooks/app-errors.md
 
-  # The boxes send 9,500 series for over 30 minutes.
-  - interval: 5m
+  # The boxes send 7,500 series, then 9,500 for over 30 minutes: as many
+  # samples a minute, since every scrape runs every 60 s.
+  - interval: 1m
     input_series:
-      - series: 'prometheus_remote_write_wal_storage_active_series{job="integrations/self",component_id="prometheus.remote_write.cloud",box="data"}'
-        values: '3000x4 5000x12'
-      - series: 'prometheus_remote_write_wal_storage_active_series{job="integrations/self",component_id="prometheus.remote_write.cloud",box="worker"}'
-        values: '4500x16'
+      - series: 'prometheus_remote_storage_samples_total{job="integrations/self",component_id="prometheus.remote_write.cloud",remote_name="cloud",url="https://prometheus.example/api/prom/push",box="data"}'
+        values: '0+3000x30 95000+5000x60'
+      - series: 'prometheus_remote_storage_samples_total{job="integrations/self",component_id="prometheus.remote_write.cloud",remote_name="cloud",url="https://prometheus.example/api/prom/push",box="worker"}'
+        values: '0+4500x90'
     alert_rule_test:
       - eval_time: 30m
         alertname: SeriesNearLimit
         exp_alerts: []
-      - eval_time: 60m
+      - eval_time: 65m
+        alertname: SeriesNearLimit
+        exp_alerts: []
+      - eval_time: 80m
         alertname: SeriesNearLimit
         exp_alerts:
           - exp_labels:

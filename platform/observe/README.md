@@ -273,9 +273,14 @@ what a rule, a dashboard or a person reads, about 5,000 in all:
 Before adding a metric, count its series: each label multiplies them, so a
 label never holds an id, a URL or free text, only a short fixed set of
 values. Where we stand, in Grafana's Explore: `count({__name__=~".+"})`, and
-`count by (job) ({__name__=~".+"})` for who sends them. Each box's Alloy
-reports what it sends as `prometheus_remote_write_wal_storage_active_series`;
-`SeriesNearLimit` (chat) fires when the boxes send over 9,000 together.
+`count by (job) ({__name__=~".+"})` for who sends them. Every scrape runs
+every 60 s, so the samples a box sends in a minute are the series it sends:
+`sum by (box) (rate(prometheus_remote_storage_samples_total[10m])) * 60`,
+"Series sent, by box" on "AdHunters · Boxes". `SeriesNearLimit` (chat) fires
+when the boxes send over 9,000 together. Alloy's own
+`prometheus_remote_write_wal_storage_active_series` reads higher: it keeps a
+series a box stopped sending until the WAL is truncated, every 2 hours, so
+right after a cut it still counts what was cut.
 
 ## Daily check
 
