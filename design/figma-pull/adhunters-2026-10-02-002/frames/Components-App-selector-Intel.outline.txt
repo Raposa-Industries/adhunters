@@ -1,0 +1,25 @@
+COMPONENT 'App selector · Intel' key=adh.c.a36vnq.default 233x48 @0,2479 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1}
+  FRAME 'Selected app' key=mm.sel.intel.row 232x32 @0,8 layout=H gap=10 pad=[0, 14, 0, 12] main=start cross=center sizing=fill/fixed
+    FRAME 'Glyph' key=mm.sel.intel.row>adh.k8zsol 28x28 @12,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7
+      FRAME 'Icon' key=mm.sel.intel.row>adh.k90rui 16x16 @6,6 sizing=fixed/fixed
+        VECTOR 'Vector' key=mm.sel.intel.row>#8:1489 13x9 @1.5,3.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+        VECTOR 'Vector' key=mm.sel.intel.row>#8:1490 13x0 @1.5,14.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.2000000476837158}
+    FRAME 'Apps text' key=mm.sel.intel.row>adh.k917dn 142x32 @50,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+      TEXT 'Intel' key=mm.sel.intel.row>adh.k92901 142x14 @0,0 sizing=fill/hug font=Archivo Expanded Bold 13 color=#F4EFE9 text="Intel"
+      FRAME 'O que está performando' key=mm.sel.intel.row>adh.k93701 142x18 @0,14 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'O que está performando' key=mm.sel.intel.row>adh.k93701#text 142x18 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 12 color=#B5AEA6 text="O que está performando"
+    FRAME 'Keys' key=mm.sel.intel.row>adh.k94yo4 41x19 @235,14.5 layout=H gap=3 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed HIDDEN
+      INSTANCE 'Key' key=mm.sel.intel.row>adh.k95ato 19x19 @0,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+      INSTANCE 'Key' key=mm.sel.intel.row>adh.k96zas 19x19 @22,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+    FRAME 'Chevron' key=mm.sel.intel.row.chevron 16x16 @202,8 sizing=fixed/fixed
+      VECTOR 'Vector' 8x4 @4,6 sizing=fixed/fixed stroke={"color": "#8B8B96", "weight": 1.5}
+  FRAME 'Glyph' key=adh.c.a36vnq.default.a31cnp 28x28 @30,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7 HIDDEN
+    FRAME 'Icon' key=adh.c.a36vnq.default.a323n0 16x16 @6,6 sizing=fixed/fixed
+      VECTOR 'Vector' 13x9 @1.5,3.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+      VECTOR 'Vector' 13x0 @1.5,14.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.2000000476837158}
+  FRAME 'Intel' key=adh.c.a36vnq.default.a33c5d 37x15 @50,8.5 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug HIDDEN
+    TEXT 'Intel' key=adh.c.a36vnq.default.a33c5d#text 37x15 @0,0 sizing=fill/hug font=Archivo Expanded Bold 14 color=#ECE7E1 text="Intel"
+  FRAME 'Spacing' key=adh.c.a36vnq.default.a34ngh~sp 122x14 @97,9 layout=H gap=0 pad=[0, 0, 0, 108] main=start cross=start sizing=hug/hug HIDDEN
+    FRAME 'Chevron' key=adh.c.a36vnq.default.a34ngh 14x14 @108,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+      FRAME 'Icon' key=adh.c.a36vnq.default.a35qqo 14x14 @0,0 sizing=fixed/fill
+        VECTOR 'Vector' 6.13x3.06 @3.94,5.69 sizing=fixed/fixed stroke={"color": "#8F8A85", "weight": 1.3125}

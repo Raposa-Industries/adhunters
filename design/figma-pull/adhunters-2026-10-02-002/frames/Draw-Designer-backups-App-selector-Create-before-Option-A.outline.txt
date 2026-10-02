@@ -1,0 +1,11 @@
+COMPONENT 'App selector · Create (before Option A)' key=mm.backup.comp.create.004 233x28 @1640,100 layout=H gap=10 pad=[0, 13, 0, 12] main=center cross=center fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1}
+  FRAME 'Glyph' key=mm.backup.comp.create.004>adh.c.a2o7kz.default.a2jdxk 28x28 @12,0 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7
+    FRAME 'Icon' key=mm.backup.comp.create.004>adh.c.a2o7kz.default.a2kdol 16x16 @6,6 sizing=fixed/fixed
+      VECTOR 'Vector' key=mm.backup.comp.create.004>#8:124 13x13 @1.5,1.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+      VECTOR 'Vector' key=mm.backup.comp.create.004>#8:125 8x8 @4,4 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.2000000476837158}
+  FRAME 'Create' key=mm.backup.comp.create.004>adh.c.a2o7kz.default.a2ls2d 59x15 @50,6.5 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+    TEXT 'Create' key=mm.backup.comp.create.004>adh.c.a2o7kz.default.a2ls2d#text 59x15 @0,0 sizing=fill/hug font=Archivo Expanded Bold 14 color=#ECE7E1 text="Create"
+  FRAME 'Spacing' key=mm.backup.comp.create.004>adh.c.a2o7kz.default.a2mb13~sp 100x14 @119,7 layout=H gap=0 pad=[0, 0, 0, 86] main=start cross=start sizing=hug/hug
+    FRAME 'Chevron' key=mm.backup.comp.create.004>adh.c.a2o7kz.default.a2mb13 14x14 @86,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+      FRAME 'Icon' key=mm.backup.comp.create.004>adh.c.a2o7kz.default.a2n7f8 14x14 @0,0 sizing=fixed/fill
+        VECTOR 'Vector' key=mm.backup.comp.create.004>#8:131 6.13x3.06 @3.94,5.69 sizing=fixed/fixed stroke={"color": "#8F8A85", "weight": 1.3125}

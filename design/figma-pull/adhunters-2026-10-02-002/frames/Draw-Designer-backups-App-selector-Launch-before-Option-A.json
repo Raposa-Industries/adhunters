@@ -1,0 +1,263 @@
+{
+ "id": "13:1347",
+ "type": "COMPONENT",
+ "name": "App selector · Launch (before Option A)",
+ "key": "mm.backup.comp.launch.004",
+ "x": 1640,
+ "y": 0,
+ "w": 233,
+ "h": 30,
+ "fills": [
+  "#0F0F13"
+ ],
+ "stroke": {
+  "color": "#6A6A75",
+  "weight": 1
+ },
+ "layout": {
+  "mode": "H",
+  "gap": 10,
+  "padding": [
+   0,
+   13,
+   0,
+   12
+  ],
+  "main": "center",
+  "cross": "center"
+ },
+ "description": "Draw Designer component au7t0 (App selector · Launch)",
+ "children": [
+  {
+   "id": "13:1348",
+   "type": "FRAME",
+   "name": "Glyph",
+   "key": "mm.backup.comp.launch.004>adh.c.au7t0.default.aparz",
+   "x": 12,
+   "y": 1,
+   "w": 28,
+   "h": 28,
+   "fills": [
+    "#1C1109"
+   ],
+   "stroke": {
+    "color": "#4A240D",
+    "weight": 1
+   },
+   "radius": 7,
+   "layout": {
+    "mode": "V",
+    "gap": 0,
+    "padding": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "main": "center",
+    "cross": "center"
+   },
+   "sizing": {
+    "h": "fixed",
+    "v": "fixed"
+   },
+   "children": [
+    {
+     "id": "13:1349",
+     "type": "FRAME",
+     "name": "Icon",
+     "key": "mm.backup.comp.launch.004>adh.c.au7t0.default.aqvhm",
+     "x": 6,
+     "y": 6,
+     "w": 16,
+     "h": 16,
+     "sizing": {
+      "h": "fixed",
+      "v": "fixed"
+     },
+     "children": [
+      {
+       "id": "13:1350",
+       "type": "VECTOR",
+       "name": "Vector",
+       "key": "mm.backup.comp.launch.004>#8:6",
+       "x": 2.5,
+       "y": 10,
+       "w": 11,
+       "h": 3.5,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1.5
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "svg": "<svg width=\"13\" height=\"5\" viewBox=\"0 0 13 5\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M0.75 0V3.5H11.75V0\" stroke=\"#FF7A1A\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/>\n</svg>\n"
+      },
+      {
+       "id": "13:1351",
+       "type": "VECTOR",
+       "name": "Vector",
+       "key": "mm.backup.comp.launch.004>#8:7",
+       "x": 4.8,
+       "y": 2.5,
+       "w": 6.4,
+       "h": 8.5,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1.5
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "svg": "<svg width=\"8\" height=\"10\" viewBox=\"0 0 8 10\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M3.73027 9.25V0.75M6.93027 3.95L3.73027 0.75L0.530273 3.95\" stroke=\"#FF7A1A\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/>\n</svg>\n"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "13:1352",
+   "type": "FRAME",
+   "name": "Launch",
+   "key": "mm.backup.comp.launch.004>adh.c.au7t0.default.ar9gv",
+   "x": 50,
+   "y": 0,
+   "w": 61,
+   "h": 30,
+   "layout": {
+    "mode": "V",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fixed",
+    "v": "hug"
+   },
+   "children": [
+    {
+     "id": "13:1353",
+     "type": "TEXT",
+     "name": "Launch",
+     "key": "mm.backup.comp.launch.004>adh.c.au7t0.default.ar9gv#text",
+     "x": 0,
+     "y": 0,
+     "w": 61,
+     "h": 30,
+     "sizing": {
+      "h": "fill",
+      "v": "hug"
+     },
+     "text": "Launch",
+     "font": {
+      "family": "Archivo Expanded",
+      "style": "Bold"
+     },
+     "size": 14,
+     "color": "#ECE7E1"
+    }
+   ]
+  },
+  {
+   "id": "13:1354",
+   "type": "FRAME",
+   "name": "Spacing",
+   "key": "mm.backup.comp.launch.004>adh.c.au7t0.default.asp7b~sp",
+   "x": 121,
+   "y": 8,
+   "w": 98,
+   "h": 14,
+   "layout": {
+    "mode": "H",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     84
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "hug",
+    "v": "hug"
+   },
+   "children": [
+    {
+     "id": "13:1355",
+     "type": "FRAME",
+     "name": "Chevron",
+     "key": "mm.backup.comp.launch.004>adh.c.au7t0.default.asp7b",
+     "x": 84,
+     "y": 0,
+     "w": 14,
+     "h": 14,
+     "layout": {
+      "mode": "H",
+      "gap": 0,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fixed"
+     },
+     "children": [
+      {
+       "id": "13:1356",
+       "type": "FRAME",
+       "name": "Icon",
+       "key": "mm.backup.comp.launch.004>adh.c.au7t0.default.at8rg",
+       "x": 0,
+       "y": 0,
+       "w": 14,
+       "h": 14,
+       "sizing": {
+        "h": "fixed",
+        "v": "fill"
+       },
+       "children": [
+        {
+         "id": "13:1357",
+         "type": "VECTOR",
+         "name": "Vector",
+         "key": "mm.backup.comp.launch.004>#8:13",
+         "x": 3.94,
+         "y": 5.69,
+         "w": 6.13,
+         "h": 3.06,
+         "stroke": {
+          "color": "#8F8A85",
+          "weight": 1.3125
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "fixed"
+         },
+         "svg": "<svg width=\"8\" height=\"5\" viewBox=\"0 0 8 5\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M0.463989 0.464039L3.52649 3.52654L6.58899 0.464039\" stroke=\"#8F8A85\" stroke-width=\"1.3125\"/>\n</svg>\n"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "page": "Draw Designer backups"
+}

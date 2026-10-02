@@ -1,0 +1,57 @@
+FRAME 'Launch · Pedidos' key=adh.k0b5w 1440x900 @4920,2200 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start fills=["#09090C"]
+  FRAME 'Top bar' key=adh.k1c41 1440x48 @0,0 layout=H gap=10 pad=[0, 0, 1, 0] main=start cross=start sizing=fill/fixed fills=["#060608"] stroke={"color": "#1D1D23", "weight": 1}
+    INSTANCE 'App selector · Launch' key=adh.k2kwv 232x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=fixed/fill fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1} instanceOf=adh.c.au7t0.default
+    FRAME 'Page tabs' key=adh.k8tsk 628x46 @242,0 layout=H gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+      INSTANCE 'Tab' key=adh.k9kyv 146x46 @0,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kastb 92x46 @148,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kbkkc 77x46 @242,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kcr9t 70x46 @321,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill stroke={"color": "#FF7A1A", "weight": 1} instanceOf=adh.c.awh7q.current props={"variant": "Current"}
+      INSTANCE 'Tab' key=adh.kdm3u 76x46 @393,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.keij5 68x46 @471,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kfrpp 87x46 @541,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+    FRAME 'Spacer' key=adh.kghyn 216x46 @880,0 sizing=fill/fill
+    FRAME 'Tools' key=adh.khk5c 334x46 @1106,0 layout=H gap=12 pad=[0, 14, 0, 0] main=start cross=center sizing=hug/fill
+      INSTANCE 'Search box' key=adh.ki2nd 280x30 @0,8 layout=H gap=8 pad=[1, 11, 1, 11] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=9 instanceOf=adh.c.a11ghd.default
+      INSTANCE 'Avatar' key=adh.km5vb 28x28 @292,9 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#18181E"] stroke={"color": "#2A2A33", "weight": 1} radius=8 instanceOf=adh.c.a133ym.default
+  FRAME 'Body' key=adh.knz19 1440x852 @0,48 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+    FRAME 'Main' key=adh.ko41t 1440x852 @0,0 layout=V gap=18 pad=[20, 24, 612.5900268554688, 24] main=start cross=start sizing=fill/fill
+      FRAME 'Page head' key=adh.kpjop 1392x73 @24,20 layout=H gap=0 pad=[0, 946, 0, 0] main=start cross=end sizing=hug/hug
+        FRAME 'Box' key=adh.kqj9d 446x73 @0,0 layout=V gap=4 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+          TEXT 'Pedidos' key=adh.krk5v 446x27 @0,0 sizing=fill/hug font=Inter Bold 22 color=#F4EFE9 text="Pedidos"
+          FRAME 'Mudanças que o Desk pediu. Nada ' key=adh.ksn0c 446x42 @0,31 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+            TEXT 'Mudanças que o Desk pediu. Nada ' key=adh.ksn0c#text 446x42 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#B5AEA6 text="Mudanças que o Desk pediu. Nada é enviado até alguém confirmar aqui."
+      FRAME 'Table' key=adh.ktsms 1392x150 @24,111 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fill/fixed fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=12
+        FRAME 'List' key=adh.kuz07 1390x146 @2,2 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+          FRAME 'Head' key=adh.kv5tl 1390x32.5 @0,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+            FRAME 'Row' key=adh.kwmm5 1390x32.5 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/fill
+              FRAME 'Quando' key=adh.kxr6b 286.36x32.5 @0,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                TEXT 'Quando' key=adh.kxr6b#text 262.36x14 @12,9 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Quando"
+              FRAME 'O quê' key=adh.kysmv 677.39x32.5 @286.36,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                TEXT 'O quê' key=adh.kysmv#text 653.39x14 @12,9 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="O quê"
+              FRAME 'Para' key=adh.kznuc 175.67x32.5 @963.75,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                TEXT 'Para' key=adh.kznuc#text 151.67x14 @12,9 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Para"
+              FRAME 'Estado' key=adh.k10gaj 250.58x32.5 @1139.42,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                TEXT 'Estado' key=adh.k10gaj#text 226.58x14 @12,9 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Estado"
+          FRAME 'Rows' key=adh.k115ig 1390x115.5 @0,32.5 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            FRAME 'Row' key=adh.k12c70 1390x58 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/fixed
+              FRAME '02/10, 04:17' key=adh.k137p4 286.36x58 @0,0 layout=V gap=0 pad=[19, 12, 19.5, 12] main=start cross=start sizing=fixed/fill
+                TEXT '02/10, 04:17' key=adh.k137p4#text 262.36x20 @12,19 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#B5AEA6 text="02/10, 04:17"
+              FRAME 'Cell' key=adh.k14u0g 677.39x58 @286.36,0 layout=V gap=0.25 pad=[9, 12, 9.5, 12] main=start cross=start sizing=fixed/fill
+                TEXT 'Pausar 1 anúncio da campanha 100' key=adh.k15do9 220x20 @12,9 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="Pausar 1 anúncio da campanha 1003"
+                FRAME 'pedido pelo Desk · desk:42' key=adh.k16vjs 653.39x20 @12,29.25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                  TEXT 'pedido pelo Desk · desk:42' key=adh.k16vjs#text 653.39x20 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#8F8A85 text="pedido pelo Desk · desk:42"
+              FRAME 'ana' key=adh.k175k6 175.67x58 @963.75,0 layout=V gap=0 pad=[19, 12, 19.5, 12] main=start cross=start sizing=fixed/fill
+                TEXT 'ana' key=adh.k175k6#text 151.67x20 @12,19 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#B5AEA6 text="ana"
+              FRAME 'Cell' key=adh.k183mw 250.58x58 @1139.42,0 layout=V gap=0 pad=[19, 12, 19, 12] main=start cross=start sizing=fixed/fill
+                INSTANCE 'Badge' key=adh.k19w8y 71x20 @12,19 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/fill fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.paused props={"variant": "Paused"}
+            FRAME 'Row' key=adh.k1amla 1390x57.5 @0,58 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/fixed
+              FRAME '02/10, 04:17' key=adh.k1bs8z 286.36x57.5 @0,0 layout=V gap=0 pad=[19, 12, 19, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                TEXT '02/10, 04:17' key=adh.k1bs8z#text 262.36x20 @12,20 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#B5AEA6 text="02/10, 04:17"
+              FRAME 'Cell' key=adh.k1c9l4 677.39x57.5 @286.36,0 layout=V gap=0.25 pad=[10, 12, 9, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                TEXT 'Mudar 2 campanhas: CPC US$ 0,28' key=adh.k1d20m 211x20 @12,11 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="Mudar 2 campanhas: CPC US$ 0,28"
+                FRAME 'pedido pelo Desk · desk:41' key=adh.k1ezhf 653.39x20 @12,31.25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                  TEXT 'pedido pelo Desk · desk:41' key=adh.k1ezhf#text 653.39x20 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#8F8A85 text="pedido pelo Desk · desk:41"
+              FRAME 'ana' key=adh.k1fn7z 175.67x57.5 @963.75,0 layout=V gap=0 pad=[19, 12, 19, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                TEXT 'ana' key=adh.k1fn7z#text 151.67x20 @12,20 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#B5AEA6 text="ana"
+              FRAME 'Cell' key=adh.k1gnky 250.58x57.5 @1139.42,0 layout=V gap=0 pad=[19, 12, 18.5, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                INSTANCE 'Badge' key=adh.k1hia3 71x19 @12,20 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/fill fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.paused props={"variant": "Paused"}

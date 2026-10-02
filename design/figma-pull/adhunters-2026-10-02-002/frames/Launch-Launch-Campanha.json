@@ -1,0 +1,3901 @@
+{
+ "id": "8:2713",
+ "type": "FRAME",
+ "name": "Launch · Campanha",
+ "key": "adh.k0q86",
+ "x": 4920,
+ "y": 0,
+ "w": 1440,
+ "h": 900,
+ "fills": [
+  "#09090C"
+ ],
+ "layout": {
+  "mode": "V",
+  "gap": 0,
+  "padding": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "main": "start",
+  "cross": "start"
+ },
+ "children": [
+  {
+   "id": "8:2714",
+   "type": "FRAME",
+   "name": "Top bar",
+   "key": "adh.k1gl8",
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 48,
+   "fills": [
+    "#060608"
+   ],
+   "stroke": {
+    "color": "#1D1D23",
+    "weight": 1
+   },
+   "layout": {
+    "mode": "H",
+    "gap": 10,
+    "padding": [
+     0,
+     0,
+     1,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fixed"
+   },
+   "children": [
+    {
+     "id": "8:2715",
+     "type": "INSTANCE",
+     "name": "App selector · Launch",
+     "key": "adh.k24v0",
+     "x": 0,
+     "y": 0,
+     "w": 232,
+     "h": 46,
+     "fills": [
+      "#0F0F13"
+     ],
+     "stroke": {
+      "color": "#6A6A75",
+      "weight": 1
+     },
+     "layout": {
+      "mode": "H",
+      "gap": 0,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "fixed",
+      "v": "fill"
+     },
+     "of": {
+      "id": "8:3",
+      "name": "App selector · Launch",
+      "key": "adh.c.au7t0.default"
+     },
+     "instanceProps": {}
+    },
+    {
+     "id": "8:2726",
+     "type": "FRAME",
+     "name": "Page tabs",
+     "key": "adh.k8kva",
+     "x": 242,
+     "y": 0,
+     "w": 628,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 2,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:2727",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.k91gn",
+       "x": 0,
+       "y": 0,
+       "w": 146,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:2767",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kahto",
+       "x": 148,
+       "y": 0,
+       "w": 92,
+       "h": 46,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1
+       },
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:16",
+        "name": "variant=Current",
+        "key": "adh.c.awh7q.current"
+       },
+       "instanceProps": {
+        "variant": "Current"
+       }
+      },
+      {
+       "id": "8:2771",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kbs48",
+       "x": 242,
+       "y": 0,
+       "w": 77,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:2775",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kcbsw",
+       "x": 321,
+       "y": 0,
+       "w": 70,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:2787",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kdukp",
+       "x": 393,
+       "y": 0,
+       "w": 76,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:2791",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.keqs0",
+       "x": 471,
+       "y": 0,
+       "w": 68,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:3055",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kfigy",
+       "x": 541,
+       "y": 0,
+       "w": 87,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      }
+     ]
+    },
+    {
+     "id": "8:3057",
+     "type": "FRAME",
+     "name": "Spacer",
+     "key": "adh.kg4yy",
+     "x": 880,
+     "y": 0,
+     "w": 216,
+     "h": 46,
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": []
+    },
+    {
+     "id": "8:3058",
+     "type": "FRAME",
+     "name": "Tools",
+     "key": "adh.kh7x0",
+     "x": 1106,
+     "y": 0,
+     "w": 334,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 12,
+      "padding": [
+       0,
+       14,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:3059",
+       "type": "INSTANCE",
+       "name": "Search box",
+       "key": "adh.ki4v6",
+       "x": 0,
+       "y": 8,
+       "w": 280,
+       "h": 30,
+       "fills": [
+        "#121217"
+       ],
+       "stroke": {
+        "color": "#26262E",
+        "weight": 1
+       },
+       "radius": 9,
+       "layout": {
+        "mode": "H",
+        "gap": 8,
+        "padding": [
+         1,
+         11,
+         1,
+         11
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:19",
+        "name": "Search box",
+        "key": "adh.c.a11ghd.default"
+       },
+       "instanceProps": {}
+      },
+      {
+       "id": "8:3067",
+       "type": "INSTANCE",
+       "name": "Avatar",
+       "key": "adh.kmqoh",
+       "x": 292,
+       "y": 9,
+       "w": 28,
+       "h": 28,
+       "fills": [
+        "#18181E"
+       ],
+       "stroke": {
+        "color": "#2A2A33",
+        "weight": 1
+       },
+       "radius": 8,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         1,
+         1,
+         1,
+         1
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:27",
+        "name": "Avatar",
+        "key": "adh.c.a133ym.default"
+       },
+       "instanceProps": {}
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "8:3069",
+   "type": "FRAME",
+   "name": "Body",
+   "key": "adh.knrr6",
+   "x": 0,
+   "y": 48,
+   "w": 1440,
+   "h": 852,
+   "layout": {
+    "mode": "H",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fill"
+   },
+   "children": [
+    {
+     "id": "8:3070",
+     "type": "FRAME",
+     "name": "Main",
+     "key": "adh.kopnz",
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 852,
+     "layout": {
+      "mode": "V",
+      "gap": 0,
+      "padding": [
+       20,
+       24,
+       85.44999694824219,
+       24
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:3071",
+       "type": "FRAME",
+       "name": "Breadcrumb",
+       "key": "adh.kphhp",
+       "x": 24,
+       "y": 20,
+       "w": 1391,
+       "h": 19,
+       "layout": {
+        "mode": "H",
+        "gap": 6,
+        "padding": [
+         0,
+         982,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:3072",
+         "type": "TEXT",
+         "name": "Launch",
+         "key": "adh.kq3k0",
+         "x": 0,
+         "y": 0,
+         "w": 41,
+         "h": 19,
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "text": "Launch",
+         "font": {
+          "family": "IBM Plex Sans",
+          "style": "Regular"
+         },
+         "size": 12.5,
+         "color": "#B5AEA6"
+        },
+        {
+         "id": "8:3073",
+         "type": "FRAME",
+         "name": "/",
+         "key": "adh.krv3i",
+         "x": 47,
+         "y": 0,
+         "w": 5,
+         "h": 19,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3074",
+           "type": "TEXT",
+           "name": "/",
+           "key": "adh.krv3i#text",
+           "x": 0,
+           "y": 0,
+           "w": 5,
+           "h": 19,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "/",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 12.5,
+           "color": "#8F8A85"
+          }
+         ]
+        },
+        {
+         "id": "8:3075",
+         "type": "FRAME",
+         "name": "Acme Health",
+         "key": "adh.ksl2d",
+         "x": 58,
+         "y": 0,
+         "w": 75,
+         "h": 19,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3076",
+           "type": "TEXT",
+           "name": "Acme Health",
+           "key": "adh.ksl2d#text",
+           "x": 0,
+           "y": 0,
+           "w": 75,
+           "h": 19,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "Acme Health",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 12.5,
+           "color": "#B5AEA6"
+          }
+         ]
+        },
+        {
+         "id": "8:3077",
+         "type": "FRAME",
+         "name": "/",
+         "key": "adh.ktlp0",
+         "x": 139,
+         "y": 0,
+         "w": 5,
+         "h": 19,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3078",
+           "type": "TEXT",
+           "name": "/",
+           "key": "adh.ktlp0#text",
+           "x": 0,
+           "y": 0,
+           "w": 5,
+           "h": 19,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "/",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 12.5,
+           "color": "#8F8A85"
+          }
+         ]
+        },
+        {
+         "id": "8:3079",
+         "type": "FRAME",
+         "name": "Memory Loss US",
+         "key": "adh.kug2g",
+         "x": 150,
+         "y": 0,
+         "w": 96,
+         "h": 19,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3080",
+           "type": "TEXT",
+           "name": "Memory Loss US",
+           "key": "adh.kug2g#text",
+           "x": 0,
+           "y": 0,
+           "w": 96,
+           "h": 19,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "Memory Loss US",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 12.5,
+           "color": "#B5AEA6"
+          }
+         ]
+        },
+        {
+         "id": "8:3081",
+         "type": "FRAME",
+         "name": "/",
+         "key": "adh.kvpyh",
+         "x": 252,
+         "y": 0,
+         "w": 5,
+         "h": 19,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3082",
+           "type": "TEXT",
+           "name": "/",
+           "key": "adh.kvpyh#text",
+           "x": 0,
+           "y": 0,
+           "w": 5,
+           "h": 19,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "/",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 12.5,
+           "color": "#8F8A85"
+          }
+         ]
+        },
+        {
+         "id": "8:3083",
+         "type": "FRAME",
+         "name": "Memory Loss US · Mobile",
+         "key": "adh.kwepa",
+         "x": 263,
+         "y": 0,
+         "w": 146,
+         "h": 19,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3084",
+           "type": "TEXT",
+           "name": "Memory Loss US · Mobile",
+           "key": "adh.kwepa#text",
+           "x": 0,
+           "y": 0,
+           "w": 146,
+           "h": 19,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "Memory Loss US · Mobile",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 12.5,
+           "color": "#D8D2CB"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:3085",
+       "type": "FRAME",
+       "name": "Spacing",
+       "key": "adh.kx2l7~sp",
+       "x": 24,
+       "y": 39,
+       "w": 1392,
+       "h": 35.5,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         14,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:3086",
+         "type": "FRAME",
+         "name": "p",
+         "key": "adh.kx2l7",
+         "x": 0,
+         "y": 14,
+         "w": 1392,
+         "h": 21.5,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0.5,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3087",
+           "type": "TEXT",
+           "name": "Ver os anúncios com os números d",
+           "key": "adh.kym66",
+           "x": 0,
+           "y": 0,
+           "w": 259,
+           "h": 21,
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "text": "Ver os anúncios com os números do Intel",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 14,
+           "color": "#FFA04A"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:3088",
+       "type": "FRAME",
+       "name": "Spacing",
+       "key": "adh.kzdou~sp",
+       "x": 24,
+       "y": 74.5,
+       "w": 1402,
+       "h": 90,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         14,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:3089",
+         "type": "FRAME",
+         "name": "Page head",
+         "key": "adh.kzdou",
+         "x": 0,
+         "y": 14,
+         "w": 1402,
+         "h": 76,
+         "layout": {
+          "mode": "H",
+          "gap": 442,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "end"
+         },
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3090",
+           "type": "FRAME",
+           "name": "Box",
+           "key": "adh.k10ywc",
+           "x": 0,
+           "y": 0,
+           "w": 345,
+           "h": 76,
+           "layout": {
+            "mode": "V",
+            "gap": 14,
+            "padding": [
+             0,
+             0,
+             14,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3091",
+             "type": "TEXT",
+             "name": "Memory Loss US · Mobile",
+             "key": "adh.k11stb",
+             "x": 0,
+             "y": 0,
+             "w": 345,
+             "h": 27,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Memory Loss US · Mobile",
+             "font": {
+              "family": "Inter",
+              "style": "Bold"
+             },
+             "size": 22,
+             "color": "#F4EFE9"
+            },
+            {
+             "id": "8:3092",
+             "type": "FRAME",
+             "name": "Muted",
+             "key": "adh.k12hmy",
+             "x": 0,
+             "y": 41,
+             "w": 345,
+             "h": 21,
+             "sizing": {
+              "h": "fill",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:3093",
+               "type": "INSTANCE",
+               "name": "Badge",
+               "key": "adh.k137qy",
+               "x": 0,
+               "y": 1,
+               "w": 59,
+               "h": 20,
+               "fills": [
+                "#0D1410"
+               ],
+               "stroke": {
+                "color": "#1F3A2A",
+                "weight": 1
+               },
+               "radius": 4,
+               "layout": {
+                "mode": "H",
+                "gap": 0,
+                "padding": [
+                 2,
+                 8,
+                 2,
+                 8
+                ],
+                "main": "start",
+                "cross": "center"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "of": {
+                "id": "8:88",
+                "name": "variant=Running",
+                "key": "adh.c.a1t3qx.running"
+               },
+               "instanceProps": {
+                "variant": "Running"
+               }
+              },
+              {
+               "id": "8:3095",
+               "type": "FRAME",
+               "name": "Space",
+               "key": "adh.k14jc4",
+               "x": 59,
+               "y": -0.5,
+               "w": 0,
+               "h": 21,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:3096",
+                 "type": "TEXT",
+                 "name": "Space",
+                 "key": "adh.k14jc4#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 0,
+                 "h": 21,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": " ",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#B5AEA6"
+                }
+               ]
+              },
+              {
+               "id": "8:3097",
+               "type": "FRAME",
+               "name": "Mobile",
+               "key": "adh.k15crk",
+               "x": 62,
+               "y": -0.5,
+               "w": 43,
+               "h": 21,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:3098",
+                 "type": "TEXT",
+                 "name": "Mobile",
+                 "key": "adh.k15crk#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 43,
+                 "h": 21,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": "Mobile",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#B5AEA6"
+                }
+               ]
+              },
+              {
+               "id": "8:3099",
+               "type": "FRAME",
+               "name": "·",
+               "key": "adh.k1612m",
+               "x": 105,
+               "y": -0.5,
+               "w": 5,
+               "h": 21,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:3100",
+                 "type": "TEXT",
+                 "name": "·",
+                 "key": "adh.k1612m#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 5,
+                 "h": 21,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": "·",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#B5AEA6"
+                }
+               ]
+              },
+              {
+               "id": "8:3101",
+               "type": "FRAME",
+               "name": "1006",
+               "key": "adh.k17vdo",
+               "x": 116,
+               "y": 1.5,
+               "w": 29,
+               "h": 18,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:3102",
+                 "type": "TEXT",
+                 "name": "1006",
+                 "key": "adh.k17vdo#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 29,
+                 "h": 18,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": "1006",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 12,
+                 "color": "#B5AEA6"
+                }
+               ]
+              },
+              {
+               "id": "8:3103",
+               "type": "FRAME",
+               "name": "Span",
+               "key": "adh.k180s6",
+               "x": 144,
+               "y": 1,
+               "w": 143,
+               "h": 18,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "children": [
+                {
+                 "id": "8:3104",
+                 "type": "TEXT",
+                 "name": "·",
+                 "key": "adh.k19rwz",
+                 "x": 0,
+                 "y": -1.5,
+                 "w": 5,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fixed",
+                  "v": "fixed"
+                 },
+                 "text": "·",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#B5AEA6"
+                },
+                {
+                 "id": "8:3105",
+                 "type": "INSTANCE",
+                 "name": "Badge",
+                 "key": "adh.k1arsc",
+                 "x": 8,
+                 "y": 0,
+                 "w": 32,
+                 "h": 20,
+                 "fills": [
+                  "#0E131C"
+                 ],
+                 "stroke": {
+                  "color": "#2D4466",
+                  "weight": 1
+                 },
+                 "radius": 4,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   2,
+                   8,
+                   2,
+                   8
+                  ],
+                  "main": "start",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "fixed",
+                  "v": "fixed"
+                 },
+                 "of": {
+                  "id": "8:96",
+                  "name": "variant=Pair",
+                  "key": "adh.c.a1t3qx.pair"
+                 },
+                 "instanceProps": {
+                  "variant": "Pair"
+                 }
+                },
+                {
+                 "id": "8:3107",
+                 "type": "FRAME",
+                 "name": "Memory Loss US",
+                 "key": "adh.k1b5zr",
+                 "x": 40,
+                 "y": -1.5,
+                 "w": 104,
+                 "h": 21,
+                 "layout": {
+                  "mode": "V",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   0,
+                   0
+                  ],
+                  "main": "start",
+                  "cross": "start"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "children": [
+                  {
+                   "id": "8:3108",
+                   "type": "TEXT",
+                   "name": "Memory Loss US",
+                   "key": "adh.k1b5zr#text",
+                   "x": 0,
+                   "y": 0,
+                   "w": 104,
+                   "h": 21,
+                   "sizing": {
+                    "h": "hug",
+                    "v": "hug"
+                   },
+                   "text": "Memory Loss US",
+                   "font": {
+                    "family": "IBM Plex Sans",
+                    "style": "Regular"
+                   },
+                   "size": 14,
+                   "color": "#B5AEA6"
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3109",
+           "type": "FRAME",
+           "name": "Actions",
+           "key": "adh.k1ckxb",
+           "x": 787,
+           "y": 34,
+           "w": 615,
+           "h": 42,
+           "layout": {
+            "mode": "H",
+            "gap": 8,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3110",
+             "type": "FRAME",
+             "name": "Check",
+             "key": "adh.k1dgiu",
+             "x": 0,
+             "y": 0,
+             "w": 85,
+             "h": 42,
+             "layout": {
+              "mode": "H",
+              "gap": 8,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3111",
+               "type": "INSTANCE",
+               "name": "Checkbox",
+               "key": "adh.k1emix",
+               "x": 0,
+               "y": 13,
+               "w": 16,
+               "h": 16,
+               "fills": [
+                "#FF7A1A"
+               ],
+               "stroke": {
+                "color": "#FF7A1A",
+                "weight": 1
+               },
+               "radius": 4,
+               "layout": {
+                "mode": "H",
+                "gap": 0,
+                "padding": [
+                 1,
+                 1,
+                 1,
+                 1
+                ],
+                "main": "center",
+                "cross": "center"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "of": {
+                "id": "8:71",
+                "name": "variant=On",
+                "key": "adh.c.a1ku5c.on"
+               },
+               "instanceProps": {
+                "variant": "On"
+               }
+              },
+              {
+               "id": "8:3113",
+               "type": "FRAME",
+               "name": "com o par",
+               "key": "adh.k1gezz",
+               "x": 24,
+               "y": 0,
+               "w": 61,
+               "h": 42,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:3114",
+                 "type": "TEXT",
+                 "name": "com o par",
+                 "key": "adh.k1gezz#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 61,
+                 "h": 42,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "com o par",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#ECE7E1"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:3115",
+             "type": "FRAME",
+             "name": "Button",
+             "key": "adh.k1hi83",
+             "x": 93,
+             "y": 4,
+             "w": 125,
+             "h": 34,
+             "fills": [
+              "#121217"
+             ],
+             "stroke": {
+              "color": "#55555F",
+              "weight": 1
+             },
+             "radius": 9,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               7,
+               14,
+               7,
+               14
+              ],
+              "main": "center",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:3116",
+               "type": "TEXT",
+               "name": "Button",
+               "key": "adh.k1hi83#text",
+               "x": 15,
+               "y": 8.5,
+               "w": 95,
+               "h": 17,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "Mudar de grupo",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Medium"
+               },
+               "size": 13,
+               "color": "#ECE7E1",
+               "align": "center"
+              }
+             ]
+            },
+            {
+             "id": "8:3117",
+             "type": "FRAME",
+             "name": "Button",
+             "key": "adh.k1iipu",
+             "x": 226,
+             "y": 4,
+             "w": 81,
+             "h": 34,
+             "fills": [
+              "#121217"
+             ],
+             "stroke": {
+              "color": "#55555F",
+              "weight": 1
+             },
+             "radius": 9,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               7,
+               14,
+               7,
+               14
+              ],
+              "main": "center",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:3118",
+               "type": "TEXT",
+               "name": "Button",
+               "key": "adh.k1iipu#text",
+               "x": 15,
+               "y": 8.5,
+               "w": 51,
+               "h": 17,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "Duplicar",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Medium"
+               },
+               "size": 13,
+               "color": "#ECE7E1",
+               "align": "center"
+              }
+             ]
+            },
+            {
+             "id": "8:3119",
+             "type": "INSTANCE",
+             "name": "Link button",
+             "key": "adh.k1jjit",
+             "x": 315,
+             "y": 4,
+             "w": 144,
+             "h": 34,
+             "fills": [
+              "#121217"
+             ],
+             "stroke": {
+              "color": "#55555F",
+              "weight": 1
+             },
+             "radius": 9,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               7,
+               14,
+               7,
+               14
+              ],
+              "main": "center",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fixed"
+             },
+             "of": {
+              "id": "8:62",
+              "name": "variant=Default",
+              "key": "adh.c.a1hbom.default"
+             },
+             "instanceProps": {
+              "variant": "Default"
+             }
+            },
+            {
+             "id": "8:3121",
+             "type": "FRAME",
+             "name": "Button",
+             "key": "adh.k1klja",
+             "x": 467,
+             "y": 4,
+             "w": 69,
+             "h": 34,
+             "fills": [
+              "#121217"
+             ],
+             "stroke": {
+              "color": "#55555F",
+              "weight": 1
+             },
+             "radius": 9,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               7,
+               14,
+               7,
+               14
+              ],
+              "main": "center",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:3122",
+               "type": "TEXT",
+               "name": "Button",
+               "key": "adh.k1klja#text",
+               "x": 15,
+               "y": 8.5,
+               "w": 39,
+               "h": 17,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "Mudar",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Medium"
+               },
+               "size": 13,
+               "color": "#ECE7E1",
+               "align": "center"
+              }
+             ]
+            },
+            {
+             "id": "8:3123",
+             "type": "FRAME",
+             "name": "Button",
+             "key": "adh.k1lc65",
+             "x": 544,
+             "y": 4,
+             "w": 71,
+             "h": 34,
+             "fills": [
+              "#121217"
+             ],
+             "stroke": {
+              "color": "#55555F",
+              "weight": 1
+             },
+             "radius": 9,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               7,
+               14,
+               7,
+               14
+              ],
+              "main": "center",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:3124",
+               "type": "TEXT",
+               "name": "Button",
+               "key": "adh.k1lc65#text",
+               "x": 15,
+               "y": 0,
+               "w": 41,
+               "h": 34,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "Pausar",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Medium"
+               },
+               "size": 13,
+               "color": "#ECE7E1",
+               "align": "center"
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:3125",
+       "type": "FRAME",
+       "name": "Box",
+       "key": "adh.k1mdgp",
+       "x": 24,
+       "y": 181.16,
+       "w": 1392,
+       "h": 0.01,
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "children": []
+      },
+      {
+       "id": "8:3126",
+       "type": "FRAME",
+       "name": "Box",
+       "key": "adh.k1n65y",
+       "x": 24,
+       "y": 181.16,
+       "w": 1392,
+       "h": 0.01,
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "children": []
+      },
+      {
+       "id": "8:3127",
+       "type": "FRAME",
+       "name": "Spacing",
+       "key": "adh.k1oa8b~sp",
+       "x": 24,
+       "y": 164.5,
+       "w": 1392,
+       "h": 62,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         18,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:3128",
+         "type": "FRAME",
+         "name": "Note 3",
+         "key": "adh.k1oa8b",
+         "x": 0,
+         "y": 18,
+         "w": 1392,
+         "h": 44,
+         "fills": [
+          "#121217"
+         ],
+         "stroke": {
+          "color": "#1D1D23",
+          "weight": 1
+         },
+         "radius": 10,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           11,
+           13,
+           11,
+           13
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3129",
+           "type": "TEXT",
+           "name": "Note 3",
+           "key": "adh.k1oa8b#text",
+           "x": 14,
+           "y": 12,
+           "w": 1364,
+           "h": 20,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "A outra metade do par: Memory Loss US · Desktop · Rodando · Desktop",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 13
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:3130",
+       "type": "FRAME",
+       "name": "Panel",
+       "key": "adh.k1v7la",
+       "x": 24,
+       "y": 226.5,
+       "w": 1392,
+       "h": 280.5,
+       "fills": [
+        "#0F0F13"
+       ],
+       "stroke": {
+        "color": "#1D1D23",
+        "weight": 1
+       },
+       "radius": 14,
+       "layout": {
+        "mode": "V",
+        "gap": -0.009999999776482582,
+        "padding": [
+         17,
+         19,
+         17.010000228881836,
+         19
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:3131",
+         "type": "TEXT",
+         "name": "Configurações",
+         "key": "adh.k1w36h",
+         "x": 20,
+         "y": 18,
+         "w": 1352,
+         "h": 21,
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "text": "Configurações",
+         "font": {
+          "family": "Archivo Expanded",
+          "style": "Bold"
+         },
+         "size": 16,
+         "color": "#F4EFE9"
+        },
+        {
+         "id": "8:3132",
+         "type": "FRAME",
+         "name": "Summary",
+         "key": "adh.k1xrwh",
+         "x": 20,
+         "y": 38.99,
+         "w": 1354,
+         "h": 223.5,
+         "sizing": {
+          "h": "fixed",
+          "v": "fixed"
+         },
+         "children": [
+          {
+           "id": "8:3133",
+           "type": "TEXT",
+           "name": "CPC",
+           "key": "adh.k1y83n",
+           "x": 0,
+           "y": 0,
+           "w": 25,
+           "h": 20,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "text": "CPC",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 13,
+           "color": "#9A948D"
+          },
+          {
+           "id": "8:3134",
+           "type": "FRAME",
+           "name": "US$ 0,32",
+           "key": "adh.k1zye5",
+           "x": 99,
+           "y": 0,
+           "w": 1255,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3135",
+             "type": "TEXT",
+             "name": "US$ 0,32",
+             "key": "adh.k1zye5#text",
+             "x": 0,
+             "y": 0,
+             "w": 1255,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "US$ 0,32",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1"
+            }
+           ]
+          },
+          {
+           "id": "8:3136",
+           "type": "FRAME",
+           "name": "Teto diário",
+           "key": "adh.k20irs",
+           "x": 0,
+           "y": 25.5,
+           "w": 81,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3137",
+             "type": "TEXT",
+             "name": "Teto diário",
+             "key": "adh.k20irs#text",
+             "x": 0,
+             "y": 0,
+             "w": 81,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Teto diário",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "8:3138",
+           "type": "FRAME",
+           "name": "US$ 25,00",
+           "key": "adh.k2123f",
+           "x": 99,
+           "y": 25.5,
+           "w": 1255,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3139",
+             "type": "TEXT",
+             "name": "US$ 25,00",
+             "key": "adh.k2123f#text",
+             "x": 0,
+             "y": 0,
+             "w": 1255,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "US$ 25,00",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1"
+            }
+           ]
+          },
+          {
+           "id": "8:3140",
+           "type": "FRAME",
+           "name": "Limite total",
+           "key": "adh.k22z89",
+           "x": 0,
+           "y": 51,
+           "w": 81,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3141",
+             "type": "TEXT",
+             "name": "Limite total",
+             "key": "adh.k22z89#text",
+             "x": 0,
+             "y": 0,
+             "w": 81,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Limite total",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "8:3142",
+           "type": "FRAME",
+           "name": "—",
+           "key": "adh.k23v94",
+           "x": 99,
+           "y": 51,
+           "w": 1255,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3143",
+             "type": "TEXT",
+             "name": "—",
+             "key": "adh.k23v94#text",
+             "x": 0,
+             "y": 0,
+             "w": 1255,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "—",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1"
+            }
+           ]
+          },
+          {
+           "id": "8:3144",
+           "type": "FRAME",
+           "name": "Grupo",
+           "key": "adh.k246b7",
+           "x": 0,
+           "y": 76.5,
+           "w": 81,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3145",
+             "type": "TEXT",
+             "name": "Grupo",
+             "key": "adh.k246b7#text",
+             "x": 0,
+             "y": 0,
+             "w": 81,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Grupo",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "8:3146",
+           "type": "FRAME",
+           "name": "Memory Loss US · orçamento US$ 3",
+           "key": "adh.k25gls",
+           "x": 99,
+           "y": 76.5,
+           "w": 1255,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3147",
+             "type": "TEXT",
+             "name": "Memory Loss US · orçamento US$ 3",
+             "key": "adh.k25gls#text",
+             "x": 0,
+             "y": 0,
+             "w": 1255,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Memory Loss US · orçamento US$ 300,00 por mês",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1"
+            }
+           ]
+          },
+          {
+           "id": "8:3148",
+           "type": "FRAME",
+           "name": "Países",
+           "key": "adh.k26305",
+           "x": 0,
+           "y": 102,
+           "w": 81,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3149",
+             "type": "TEXT",
+             "name": "Países",
+             "key": "adh.k26305#text",
+             "x": 0,
+             "y": 0,
+             "w": 81,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Países",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "8:3150",
+           "type": "FRAME",
+           "name": "US",
+           "key": "adh.k277br",
+           "x": 99,
+           "y": 102,
+           "w": 1255,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3151",
+             "type": "TEXT",
+             "name": "US",
+             "key": "adh.k277br#text",
+             "x": 0,
+             "y": 0,
+             "w": 1255,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "US",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1"
+            }
+           ]
+          },
+          {
+           "id": "8:3152",
+           "type": "FRAME",
+           "name": "Objetivo",
+           "key": "adh.k2838n",
+           "x": 0,
+           "y": 127.5,
+           "w": 81,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3153",
+             "type": "TEXT",
+             "name": "Objetivo",
+             "key": "adh.k2838n#text",
+             "x": 0,
+             "y": 0,
+             "w": 81,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Objetivo",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "8:3154",
+           "type": "FRAME",
+           "name": "Tráfego para o site",
+           "key": "adh.k29ztq",
+           "x": 99,
+           "y": 127.5,
+           "w": 1255,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3155",
+             "type": "TEXT",
+             "name": "Tráfego para o site",
+             "key": "adh.k29ztq#text",
+             "x": 0,
+             "y": 0,
+             "w": 1255,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Tráfego para o site",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1"
+            }
+           ]
+          },
+          {
+           "id": "8:3156",
+           "type": "FRAME",
+           "name": "Marca",
+           "key": "adh.k2avhs",
+           "x": 0,
+           "y": 153,
+           "w": 81,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3157",
+             "type": "TEXT",
+             "name": "Marca",
+             "key": "adh.k2avhs#text",
+             "x": 0,
+             "y": 0,
+             "w": 81,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Marca",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "8:3158",
+           "type": "FRAME",
+           "name": "Health Daily",
+           "key": "adh.k2boa6",
+           "x": 99,
+           "y": 153,
+           "w": 1255,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3159",
+             "type": "TEXT",
+             "name": "Health Daily",
+             "key": "adh.k2boa6#text",
+             "x": 0,
+             "y": 0,
+             "w": 1255,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Health Daily",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1"
+            }
+           ]
+          },
+          {
+           "id": "8:3160",
+           "type": "FRAME",
+           "name": "Tracking code",
+           "key": "adh.k2c4rd",
+           "x": 0,
+           "y": 178.5,
+           "w": 81,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3161",
+             "type": "TEXT",
+             "name": "Tracking code",
+             "key": "adh.k2c4rd#text",
+             "x": 0,
+             "y": 0,
+             "w": 81,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Tracking code",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "8:3162",
+           "type": "FRAME",
+           "name": "sub1={campaign_id}&sub4={campaig",
+           "key": "adh.k2dl8q",
+           "x": 99,
+           "y": 178.5,
+           "w": 1255,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             2,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3163",
+             "type": "TEXT",
+             "name": "sub1={campaign_id}&sub4={campaig",
+             "key": "adh.k2dl8q#text",
+             "x": 0,
+             "y": 0,
+             "w": 1255,
+             "h": 18,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "sub1={campaign_id}&sub4={campaign_item_id}",
+             "font": {
+              "family": "IBM Plex Mono",
+              "style": "Regular"
+             },
+             "size": 12,
+             "color": "#ECE7E1"
+            }
+           ]
+          },
+          {
+           "id": "8:3164",
+           "type": "FRAME",
+           "name": "Datas",
+           "key": "adh.k2eglc",
+           "x": 0,
+           "y": 204,
+           "w": 81,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3165",
+             "type": "TEXT",
+             "name": "Datas",
+             "key": "adh.k2eglc#text",
+             "x": 0,
+             "y": 0,
+             "w": 81,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Datas",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#9A948D"
+            }
+           ]
+          },
+          {
+           "id": "8:3166",
+           "type": "FRAME",
+           "name": "sem datas",
+           "key": "adh.k2f16t",
+           "x": 99,
+           "y": 204,
+           "w": 1255,
+           "h": 20,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3167",
+             "type": "TEXT",
+             "name": "sem datas",
+             "key": "adh.k2f16t#text",
+             "x": 0,
+             "y": 0,
+             "w": 1255,
+             "h": 20,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "sem datas",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:3168",
+       "type": "FRAME",
+       "name": "Spacing",
+       "key": "adh.k2gk9w~sp",
+       "x": 24,
+       "y": 507,
+       "w": 1392,
+       "h": 153.99,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         13.989999771118164,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:3169",
+         "type": "FRAME",
+         "name": "Panel",
+         "key": "adh.k2gk9w",
+         "x": 0,
+         "y": 13.99,
+         "w": 1392,
+         "h": 140,
+         "fills": [
+          "#0F0F13"
+         ],
+         "stroke": {
+          "color": "#1D1D23",
+          "weight": 1
+         },
+         "radius": 14,
+         "layout": {
+          "mode": "V",
+          "gap": 10,
+          "padding": [
+           17,
+           19,
+           17,
+           19
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3170",
+           "type": "TEXT",
+           "name": "Anúncios · 1",
+           "key": "adh.k2hv2x",
+           "x": 20,
+           "y": 18,
+           "w": 1352,
+           "h": 21,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "Anúncios · 1",
+           "font": {
+            "family": "Archivo Expanded",
+            "style": "Bold"
+           },
+           "size": 16,
+           "color": "#F4EFE9"
+          },
+          {
+           "id": "8:3171",
+           "type": "FRAME",
+           "name": "Table",
+           "key": "adh.k2imw0",
+           "x": 20,
+           "y": 49,
+           "w": 1352,
+           "h": 73,
+           "fills": [
+            "#0F0F13"
+           ],
+           "stroke": {
+            "color": "#1D1D23",
+            "weight": 1
+           },
+           "radius": 12,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             1,
+             1,
+             1,
+             1
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3172",
+             "type": "FRAME",
+             "name": "List",
+             "key": "adh.k2j271",
+             "x": 2,
+             "y": 2,
+             "w": 1352.01,
+             "h": 69,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:3173",
+               "type": "FRAME",
+               "name": "Head",
+               "key": "adh.k2k8lb",
+               "x": 0,
+               "y": 0,
+               "w": 1352.01,
+               "h": 32.5,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fixed"
+               },
+               "children": [
+                {
+                 "id": "8:3174",
+                 "type": "FRAME",
+                 "name": "Row",
+                 "key": "adh.k2lgd6",
+                 "x": 0,
+                 "y": 0,
+                 "w": 1352.01,
+                 "h": 32.5,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   0,
+                   0
+                  ],
+                  "main": "start",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:3175",
+                   "type": "FRAME",
+                   "name": "Header cell",
+                   "key": "adh.k2mqze",
+                   "x": 0,
+                   "y": 0,
+                   "w": 44.05,
+                   "h": 32.5,
+                   "stroke": {
+                    "color": "#1D1D23",
+                    "weight": 1
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": []
+                  },
+                  {
+                   "id": "8:3176",
+                   "type": "FRAME",
+                   "name": "Headline",
+                   "key": "adh.k2nwxa",
+                   "x": 44.05,
+                   "y": 0,
+                   "w": 473.5,
+                   "h": 32.5,
+                   "stroke": {
+                    "color": "#1D1D23",
+                    "weight": 1
+                   },
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     9,
+                     12,
+                     10,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3177",
+                     "type": "TEXT",
+                     "name": "Headline",
+                     "key": "adh.k2nwxa#text",
+                     "x": 12,
+                     "y": 9,
+                     "w": 449.5,
+                     "h": 14,
+                     "sizing": {
+                      "h": "fill",
+                      "v": "hug"
+                     },
+                     "text": "Headline",
+                     "font": {
+                      "family": "Inter",
+                      "style": "Bold"
+                     },
+                     "size": 10,
+                     "color": "#9A948D"
+                    }
+                   ]
+                  },
+                  {
+                   "id": "8:3178",
+                   "type": "FRAME",
+                   "name": "Botão",
+                   "key": "adh.k2oiim",
+                   "x": 517.55,
+                   "y": 0,
+                   "w": 159.69,
+                   "h": 32.5,
+                   "stroke": {
+                    "color": "#1D1D23",
+                    "weight": 1
+                   },
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     9,
+                     12,
+                     10,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3179",
+                     "type": "TEXT",
+                     "name": "Botão",
+                     "key": "adh.k2oiim#text",
+                     "x": 12,
+                     "y": 9,
+                     "w": 135.69,
+                     "h": 14,
+                     "sizing": {
+                      "h": "fill",
+                      "v": "hug"
+                     },
+                     "text": "Botão",
+                     "font": {
+                      "family": "Inter",
+                      "style": "Bold"
+                     },
+                     "size": 10,
+                     "color": "#9A948D"
+                    }
+                   ]
+                  },
+                  {
+                   "id": "8:3180",
+                   "type": "FRAME",
+                   "name": "Estado",
+                   "key": "adh.k2p9nj",
+                   "x": 677.24,
+                   "y": 0,
+                   "w": 154.58,
+                   "h": 32.5,
+                   "stroke": {
+                    "color": "#1D1D23",
+                    "weight": 1
+                   },
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     9,
+                     12,
+                     10,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3181",
+                     "type": "TEXT",
+                     "name": "Estado",
+                     "key": "adh.k2p9nj#text",
+                     "x": 12,
+                     "y": 9,
+                     "w": 130.58,
+                     "h": 14,
+                     "sizing": {
+                      "h": "fill",
+                      "v": "hug"
+                     },
+                     "text": "Estado",
+                     "font": {
+                      "family": "Inter",
+                      "style": "Bold"
+                     },
+                     "size": 10,
+                     "color": "#9A948D"
+                    }
+                   ]
+                  },
+                  {
+                   "id": "8:3182",
+                   "type": "FRAME",
+                   "name": "Revisão",
+                   "key": "adh.k2qwwf",
+                   "x": 831.82,
+                   "y": 0,
+                   "w": 167.8,
+                   "h": 32.5,
+                   "stroke": {
+                    "color": "#1D1D23",
+                    "weight": 1
+                   },
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     9,
+                     12,
+                     10,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3183",
+                     "type": "TEXT",
+                     "name": "Revisão",
+                     "key": "adh.k2qwwf#text",
+                     "x": 12,
+                     "y": 9,
+                     "w": 143.8,
+                     "h": 14,
+                     "sizing": {
+                      "h": "fill",
+                      "v": "hug"
+                     },
+                     "text": "Revisão",
+                     "font": {
+                      "family": "Inter",
+                      "style": "Bold"
+                     },
+                     "size": 10,
+                     "color": "#9A948D"
+                    }
+                   ]
+                  },
+                  {
+                   "id": "8:3184",
+                   "type": "FRAME",
+                   "name": "Id",
+                   "key": "adh.k2r5tt",
+                   "x": 999.62,
+                   "y": 0,
+                   "w": 352.39,
+                   "h": 32.5,
+                   "stroke": {
+                    "color": "#1D1D23",
+                    "weight": 1
+                   },
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     9,
+                     12,
+                     10,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3185",
+                     "type": "TEXT",
+                     "name": "Id",
+                     "key": "adh.k2r5tt#text",
+                     "x": 12,
+                     "y": 9,
+                     "w": 328.39,
+                     "h": 14,
+                     "sizing": {
+                      "h": "fill",
+                      "v": "hug"
+                     },
+                     "text": "Id",
+                     "font": {
+                      "family": "Inter",
+                      "style": "Bold"
+                     },
+                     "size": 10,
+                     "color": "#9A948D"
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:3186",
+               "type": "FRAME",
+               "name": "Rows",
+               "key": "adh.k2spa5",
+               "x": 0,
+               "y": 32.5,
+               "w": 1352.01,
+               "h": 38.5,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fixed"
+               },
+               "children": [
+                {
+                 "id": "8:3187",
+                 "type": "FRAME",
+                 "name": "Row",
+                 "key": "adh.k2t1s5",
+                 "x": 0,
+                 "y": 0,
+                 "w": 1352.01,
+                 "h": 38.5,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   0,
+                   0
+                  ],
+                  "main": "start",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:3188",
+                   "type": "FRAME",
+                   "name": "Cell",
+                   "key": "adh.k2usaw",
+                   "x": 0,
+                   "y": 0,
+                   "w": 44.05,
+                   "h": 38.5,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": []
+                  },
+                  {
+                   "id": "8:3189",
+                   "type": "FRAME",
+                   "name": "Doctors Surprised By This Mornin",
+                   "key": "adh.k2vm9j",
+                   "x": 44.05,
+                   "y": 0,
+                   "w": 473.5,
+                   "h": 38.5,
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     9,
+                     12,
+                     9,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3190",
+                     "type": "TEXT",
+                     "name": "Doctors Surprised By This Mornin",
+                     "key": "adh.k2vm9j#text",
+                     "x": 12,
+                     "y": 9,
+                     "w": 449.5,
+                     "h": 20,
+                     "sizing": {
+                      "h": "fill",
+                      "v": "hug"
+                     },
+                     "text": "Doctors Surprised By This Morning Habit",
+                     "font": {
+                      "family": "IBM Plex Sans",
+                      "style": "Regular"
+                     },
+                     "size": 13,
+                     "color": "#ECE7E1"
+                    }
+                   ]
+                  },
+                  {
+                   "id": "8:3191",
+                   "type": "FRAME",
+                   "name": "learn more",
+                   "key": "adh.k2w1g5",
+                   "x": 517.55,
+                   "y": 0,
+                   "w": 159.69,
+                   "h": 38.5,
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     9,
+                     12,
+                     9,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3192",
+                     "type": "TEXT",
+                     "name": "learn more",
+                     "key": "adh.k2w1g5#text",
+                     "x": 12,
+                     "y": 9,
+                     "w": 135.69,
+                     "h": 20,
+                     "sizing": {
+                      "h": "fill",
+                      "v": "hug"
+                     },
+                     "text": "learn more",
+                     "font": {
+                      "family": "IBM Plex Sans",
+                      "style": "Regular"
+                     },
+                     "size": 13,
+                     "color": "#ECE7E1"
+                    }
+                   ]
+                  },
+                  {
+                   "id": "8:3193",
+                   "type": "FRAME",
+                   "name": "Cell",
+                   "key": "adh.k2xlws",
+                   "x": 677.24,
+                   "y": 0,
+                   "w": 154.58,
+                   "h": 38.5,
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     9,
+                     12,
+                     9,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3194",
+                     "type": "INSTANCE",
+                     "name": "Badge",
+                     "key": "adh.k2ydy9",
+                     "x": 12,
+                     "y": 9,
+                     "w": 63,
+                     "h": 20.5,
+                     "fills": [
+                      "#0D1410"
+                     ],
+                     "stroke": {
+                      "color": "#1F3A2A",
+                      "weight": 1
+                     },
+                     "radius": 4,
+                     "layout": {
+                      "mode": "H",
+                      "gap": 0,
+                      "padding": [
+                       2,
+                       8,
+                       2,
+                       8
+                      ],
+                      "main": "start",
+                      "cross": "center"
+                     },
+                     "sizing": {
+                      "h": "hug",
+                      "v": "fill"
+                     },
+                     "of": {
+                      "id": "8:88",
+                      "name": "variant=Running",
+                      "key": "adh.c.a1t3qx.running"
+                     },
+                     "instanceProps": {
+                      "variant": "Running"
+                     }
+                    }
+                   ]
+                  },
+                  {
+                   "id": "8:3196",
+                   "type": "FRAME",
+                   "name": "Cell",
+                   "key": "adh.k2zvi2",
+                   "x": 831.82,
+                   "y": 0,
+                   "w": 167.8,
+                   "h": 38.5,
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     9,
+                     12,
+                     9,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3197",
+                     "type": "INSTANCE",
+                     "name": "Badge",
+                     "key": "adh.k30zxw",
+                     "x": 12,
+                     "y": 9,
+                     "w": 66,
+                     "h": 20.5,
+                     "fills": [
+                      "#0D1410"
+                     ],
+                     "stroke": {
+                      "color": "#1F3A2A",
+                      "weight": 1
+                     },
+                     "radius": 4,
+                     "layout": {
+                      "mode": "H",
+                      "gap": 0,
+                      "padding": [
+                       2,
+                       8,
+                       2,
+                       8
+                      ],
+                      "main": "start",
+                      "cross": "center"
+                     },
+                     "sizing": {
+                      "h": "hug",
+                      "v": "fill"
+                     },
+                     "of": {
+                      "id": "8:88",
+                      "name": "variant=Running",
+                      "key": "adh.c.a1t3qx.running"
+                     },
+                     "instanceProps": {
+                      "variant": "Running"
+                     }
+                    }
+                   ]
+                  },
+                  {
+                   "id": "8:3199",
+                   "type": "FRAME",
+                   "name": "ah-4f2a91c0de-77b1c2a9e0",
+                   "key": "adh.k31k5p",
+                   "x": 999.62,
+                   "y": 0,
+                   "w": 352.39,
+                   "h": 38.5,
+                   "layout": {
+                    "mode": "V",
+                    "gap": 0,
+                    "padding": [
+                     10,
+                     12,
+                     10.5,
+                     12
+                    ],
+                    "main": "start",
+                    "cross": "start"
+                   },
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fill"
+                   },
+                   "children": [
+                    {
+                     "id": "8:3200",
+                     "type": "TEXT",
+                     "name": "ah-4f2a91c0de-77b1c2a9e0",
+                     "key": "adh.k31k5p#text",
+                     "x": 12,
+                     "y": 10,
+                     "w": 328.39,
+                     "h": 18,
+                     "sizing": {
+                      "h": "fill",
+                      "v": "hug"
+                     },
+                     "text": "ah-4f2a91c0de-77b1c2a9e0",
+                     "font": {
+                      "family": "IBM Plex Mono",
+                      "style": "Regular"
+                     },
+                     "size": 12,
+                     "color": "#8F8A85"
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:3201",
+       "type": "FRAME",
+       "name": "Spacing",
+       "key": "adh.k3246o~sp",
+       "x": 24,
+       "y": 660.99,
+       "w": 1392,
+       "h": 116,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         14,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:3202",
+         "type": "FRAME",
+         "name": "Panel",
+         "key": "adh.k3246o",
+         "x": 0,
+         "y": 14,
+         "w": 1392,
+         "h": 102,
+         "fills": [
+          "#0F0F13"
+         ],
+         "stroke": {
+          "color": "#1D1D23",
+          "weight": 1
+         },
+         "radius": 14,
+         "layout": {
+          "mode": "V",
+          "gap": 10,
+          "padding": [
+           17,
+           19,
+           31,
+           19
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:3203",
+           "type": "TEXT",
+           "name": "Histórico",
+           "key": "adh.k33w6r",
+           "x": 20,
+           "y": 18,
+           "w": 1352,
+           "h": 21,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "Histórico",
+           "font": {
+            "family": "Archivo Expanded",
+            "style": "Bold"
+           },
+           "size": 16,
+           "color": "#F4EFE9"
+          },
+          {
+           "id": "8:3204",
+           "type": "FRAME",
+           "name": "Nada feito pelo Launch nesta cam",
+           "key": "adh.k34ux9",
+           "x": 20,
+           "y": 49,
+           "w": 1352,
+           "h": 21,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3205",
+             "type": "TEXT",
+             "name": "Nada feito pelo Launch nesta cam",
+             "key": "adh.k34ux9#text",
+             "x": 0,
+             "y": 0,
+             "w": 1352,
+             "h": 21,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Nada feito pelo Launch nesta campanha ainda.",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 14,
+             "color": "#8F8A85"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "page": "Launch"
+}

@@ -1,0 +1,200 @@
+FRAME 'Create · Sessão (chat)' key=adh.k0ut7 1440x1047.09 @1640,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start fills=["#09090C"]
+  FRAME 'Top bar' key=adh.k1pyl 1440x48 @0,0 layout=H gap=10 pad=[0, 0, 1, 0] main=start cross=start sizing=fill/fixed fills=["#060608"] stroke={"color": "#1D1D23", "weight": 1}
+    INSTANCE 'App selector · Create' key=adh.k2ucr 232x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=fixed/fill fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1} instanceOf=adh.c.a2o7kz.default
+    FRAME 'Page tabs' key=adh.k8ujo 202x46 @242,0 layout=H gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+      INSTANCE 'Tab' key=adh.k91cf 52x46 @0,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill stroke={"color": "#FF7A1A", "weight": 1} instanceOf=adh.c.awh7q.current props={"variant": "Current"}
+      INSTANCE 'Tab' key=adh.karfp 82x46 @54,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kbtp9 64x46 @138,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+    FRAME 'Spacer' key=adh.kci0i 642x46 @454,0 sizing=fill/fill
+    FRAME 'Tools' key=adh.kd9vt 334x46 @1106,0 layout=H gap=12 pad=[0, 14, 0, 0] main=start cross=center sizing=hug/fill
+      INSTANCE 'Search box' key=adh.kepvm 280x30 @0,8 layout=H gap=8 pad=[1, 11, 1, 11] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=9 instanceOf=adh.c.a11ghd.default
+      INSTANCE 'Avatar' key=adh.ki2k0 28x28 @292,9 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#18181E"] stroke={"color": "#2A2A33", "weight": 1} radius=8 instanceOf=adh.c.a133ym.default
+  FRAME 'Body' key=adh.kjfch 1440x999.09 @0,48 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+    FRAME 'Filters' key=adh.kkz12 232x858 @0,0 layout=V gap=16 pad=[14, 13, 443.75, 12] main=start cross=start sizing=fixed/hug fills=["#0A0A0D"] stroke={"color": "#1D1D23", "weight": 1}
+      FRAME 'Filters head' key=adh.kleeo 206x20 @12,14 layout=H gap=123.61000061035156 pad=[0, 0, 0, 0] main=start cross=center sizing=fill/hug
+        TEXT 'Label' key=adh.kmjwd 49x14 @0,3 sizing=hug/hug font=Inter Bold 10 color=#9A948D text="Filtros"
+        INSTANCE 'Fold button' key=adh.kn3cr 23x20 @172.61,0 layout=H gap=0 pad=[1, 7, 1, 7] main=center cross=center sizing=hug/hug stroke={"color": "#26262E", "weight": 1} radius=6 instanceOf=adh.c.a150rn.default
+      FRAME 'Filter group' key=adh.ko1md 206x61 @12,50 layout=V gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Label' key=adh.kp93q 206x14 @0,0 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Vertical"
+        INSTANCE 'Select' key=adh.kqrya 206x40 @0,21 layout=H gap=8 pad=[9, 11, 9, 11] main=start cross=center sizing=fill/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a1rxtf.default
+      FRAME 'Filter group' key=adh.ktgkh 206x198 @12,127 layout=V gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Label' key=adh.kujck 206x14 @0,0 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Nova sessão"
+        FRAME 'New session' key=adh.kvq9i 206x116 @0,21 layout=V gap=6 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+          INSTANCE 'Select' key=adh.kw9nx 206x40 @0,0 layout=H gap=8 pad=[9, 11, 9, 11] main=start cross=center sizing=fill/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a1rxtf.default
+          FRAME 'Text field' key=adh.kz3hd 206x36 @0,46 layout=V gap=0 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+            FRAME 'Placeholder' key=adh.kz3hd/a17bxo 103x16 @12,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+              TEXT 'Placeholder' key=adh.kz3hd/a17bxo#text 103x18 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#9A948D text="Nome da sessão"
+          FRAME 'Button' key=adh.k11fma 206x28 @0,88 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=fill/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k11fma#text 185x15 @10.5,6.5 sizing=fixed/fixed font=IBM Plex Sans SemiBold 12 color=#140A04 text="Nova sessão"
+        FRAME 'Vertical, plataforma e nome: a s' key=adh.k12iat 206x54 @0,144 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+          TEXT 'Vertical, plataforma e nome: a s' key=adh.k12iat#text 206x54 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Vertical, plataforma e nome: a sessão vira a pasta vertical › plataforma › sessão na biblioteca."
+      FRAME 'Filter group' key=adh.k131lg 206x73.25 @12,341 layout=V gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Label' key=adh.k14ggd 206x14 @0,0 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Sessões"
+        FRAME 'Sessions' key=adh.k15jfi 206x52.25 @0,21 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed
+          FRAME 'List' key=adh.k16jgt 207x52.25 @0,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fill
+            FRAME 'Item' key=adh.k17316 207x52.25 @0,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed
+              FRAME 'Link' key=adh.k18r1c 207x52.25 @0,0 layout=V gap=0 pad=[7, 9, 7, 9] main=start cross=start sizing=fixed/fill fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=8
+                TEXT 'Colher de sopa' key=adh.k19hx2 187x21 @10,8 sizing=fill/hug font=IBM Plex Sans SemiBold 14 color=#F4EFE9 text="Colher de sopa"
+                FRAME '3 img · 4 hl' key=adh.k1aqcg 187x18 @10,29 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                  TEXT '3 img · 4 hl' key=adh.k1aqcg#text 187x18 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 11.5 color=#8F8A85 text="3 img · 4 hl"
+    FRAME 'Main' key=adh.k1bt88 1208x999.09 @232,0 sizing=fill/fill
+      FRAME 'Chat head' key=adh.k1c6lz 1160x76 @24,20 layout=V gap=10 pad=[0, 0, 11, 0] main=start cross=start sizing=hug/hug stroke={"color": "#1D1D23", "weight": 1}
+        FRAME 'Breadcrumb' key=adh.k1dpui 1158x19 @0,0 layout=H gap=6 pad=[0, 751, 0, 0] main=start cross=center sizing=hug/hug
+          TEXT 'Biblioteca' key=adh.k1er9h 57x19 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 12.5 color=#9A948D text="Biblioteca"
+          FRAME '›' key=adh.k1fpxo 4x19 @63,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+            TEXT '›' key=adh.k1fpxo#text 4x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#8F8A85 text="›"
+          FRAME 'Memory Loss' key=adh.k1g6ua 76x19 @73,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+            TEXT 'Memory Loss' key=adh.k1g6ua#text 76x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#9A948D text="Memory Loss"
+          FRAME '›' key=adh.k1hfga 4x19 @155,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+            TEXT '›' key=adh.k1hfga#text 4x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#8F8A85 text="›"
+          FRAME 'Taboola' key=adh.k1iz6y 46x19 @165,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+            TEXT 'Taboola' key=adh.k1iz6y#text 46x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#9A948D text="Taboola"
+          FRAME '›' key=adh.k1jxyd 4x19 @217,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+            TEXT '›' key=adh.k1jxyd#text 4x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#8F8A85 text="›"
+          FRAME 'pasta criada no primeiro salvar' key=adh.k1kerw 180x19 @227,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+            TEXT 'pasta criada no primeiro salvar' key=adh.k1kerw#text 180x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#D8D2CB text="pasta criada no primeiro salvar"
+        FRAME 'Spread' key=adh.k1lpb9 1160x35 @0,29 sizing=fixed/fixed
+          TEXT 'Colher de sopa' key=adh.k1maca 162x27 @0,6.3 sizing=fixed/fixed font=Inter Bold 22 color=#F4EFE9 text="Colher de sopa"
+          FRAME 'Actions' key=adh.k1ni2x 68x21 @1096,14 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/hug
+            TEXT 'US$ 0,00' key=adh.k1omfw 68x21 @0,0 sizing=hug/hug font=IBM Plex Mono Regular 14 color=#8F8A85 text="US$ 0,00"
+      FRAME 'Chat log' key=adh.k1ppx2 1100x730.39 @24,94.75 layout=V gap=12 pad=[16, 0, 24, 0] main=start cross=start sizing=fixed/hug
+        FRAME 'Msg' key=adh.k1q5dy 1100x31 @0,16 layout=H gap=0 pad=[0, 0, 0, 977] main=end cross=start sizing=fill/fixed
+          FRAME 'Bubble' key=adh.k1rr9c 124x31 @976,0 layout=V gap=0 pad=[5, 13, 5.5, 13] main=start cross=start sizing=hug/fill fills=["#18181E"] stroke={"color": "#26262E", "weight": 1} radius=[14, 14, 4, 14]
+            TEXT 'Você adicionou' key=adh.k1sfn2 96x21 @14,6 sizing=hug/hug font=IBM Plex Sans Regular 14 color=#8F8A85 text="Você adicionou"
+        FRAME 'Msg' key=adh.k1tncx 1100x129.35 @0,59 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+          FRAME 'Hls' key=adh.k1uk3x 820x129.35 @0,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+            FRAME 'Hl' key=adh.k1verj 820x129.35 @0,0 layout=H gap=10 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/hug fills=["#121217"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+              FRAME 'Hl pick' key=adh.k1wmf1 24x24 @12,10 sizing=fixed/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=12
+              FRAME 'Hl body' key=adh.k1x8pe 675x109.35 @46,10 layout=V gap=6.349999904632568 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+                TEXT 'This SHOCKING Memory Trick' key=adh.k1ye10 196x21 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 14.5 color=#ECE7E1 text="This SHOCKING Memory Trick"
+                FRAME 'Warns' key=adh.k1zkvw 675x82 @0,27.35 layout=V gap=3 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                  TEXT 'Palavra toda em maiúsculas (SHOC' key=adh.k20og8 323x18 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 12 color=#FFC890 text="Palavra toda em maiúsculas (SHOCKING): o Taboola recusa."
+                  FRAME '“SHOCKING” é sensacionalista par' key=adh.k21fwx 675x18 @0,21 layout=H gap=0 pad=[0, 423, 0, 0] main=start cross=center sizing=fill/hug
+                    TEXT '“SHOCKING” é sensacionalista par' key=adh.k21fwx#text 253x18 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 12 color=#FFC890 text="“SHOCKING” é sensacionalista para o Taboola."
+                  FRAME 'Warn' key=adh.k22zlv 675x40 @0,42 sizing=fill/fixed
+                    TEXT 'Tem “memory”: está na lista de p' key=adh.k232vk 429x18 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 12 color=#FFC890 text="Tem “memory”: está na lista de palavras que o Taboola já bloqueou para o time."
+                    FRAME 'Button' key=adh.k24pbo 100x18 @435,1 layout=H gap=0 pad=[1, 8, 1, 8] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      TEXT 'Button' key=adh.k24pbo#text 82x14 @9,2 sizing=fixed/fixed font=IBM Plex Sans Medium 11 color=#ECE7E1 text="Trocar por focus"
+                    FRAME 'Button' key=adh.k25pro 101x18 @539,1 layout=H gap=0 pad=[1, 8, 1, 8] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      TEXT 'Button' key=adh.k25pro#text 83x14 @9,2 sizing=fixed/fixed font=IBM Plex Sans Medium 11 color=#ECE7E1 text="Trocar por recall"
+                    FRAME 'Button' key=adh.k26ubi 161x32 @0,24 layout=H gap=0 pad=[1, 8, 1, 8] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      TEXT 'Button' key=adh.k26ubi#text 143x28 @9,2 sizing=fixed/fixed font=IBM Plex Sans Medium 11 color=#ECE7E1 text="Trocar por mental sharpness"
+              FRAME '26' key=adh.k27i7i 14x30 @731,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT '26' key=adh.k27i7i#text 14x30 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 12 color=#8F8A85 text="26"
+              FRAME 'Button' key=adh.k289lf 57x28 @755,10 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k289lf#text 33x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="Editar"
+        FRAME 'Msg' key=adh.k29r7f 1100x96 @0,200.35 layout=H gap=0 pad=[0, 0, 0, 745] main=end cross=start sizing=fill/fixed
+          FRAME 'Bubble' key=adh.k2aohi 355x96 @745,0 layout=V gap=4 pad=[11, 15, 12.75, 15] main=start cross=start sizing=fixed/fill fills=["#18181E"] stroke={"color": "#26262E", "weight": 1} radius=[14, 14, 4, 14]
+            FRAME 'Mini' key=adh.k2b0md 325x24 @16,12 layout=H gap=0 pad=[0, 146, 0, 0] main=start cross=start sizing=hug/fixed
+              FRAME 'This SHOCKING Memory Trick' key=adh.k2co0p 179x24 @0,0 layout=V gap=0 pad=[3, 9, 3, 9] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=6
+                TEXT 'This SHOCKING Memory Trick' key=adh.k2co0p#text 159x36 @10,4 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#ECE7E1 text="This SHOCKING Memory Trick"
+            FRAME 'make it warmer, a spoon on a kit' key=adh.k2dvt6 323x21 @16,40 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT 'make it warmer, a spoon on a kit' key=adh.k2dvt6#text 323x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="make it warmer, a spoon on a kitchen table"
+            FRAME 'Spacing' key=adh.k2e8qv~sp 316x19.75 @16,65 layout=V gap=0 pad=[1.75, 0, 0, 0] main=start cross=start sizing=hug/hug
+              FRAME '3 imagens e 3 headlines · 02/10 ' key=adh.k2e8qv 316x18 @0,1.75 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+                TEXT '3 imagens e 3 headlines · 02/10 ' key=adh.k2e8qv#text 316x18 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 11.66670036315918 color=#8F8A85 text="3 imagens e 3 headlines · 02/10 04:17 · mari@example.com"
+        FRAME 'Msg' key=adh.k2fi8x 1100x398.04 @0,308.35 layout=V gap=10 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+          FRAME 'Tiles' key=adh.k2g5hu 1100x151.34 @0,0 layout=H gap=10 pad=[0, 277.5, 0, 0] main=start cross=start sizing=fill/fixed
+            FRAME 'Thumb' key=adh.k2hgxp 267.5x151.34 @0,0 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=10
+              FRAME 'Cover' key=adh.k2irg9 263.5x147.34 @2,2 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+                RECTANGLE "warm kitchen, spoon, morning light\n\nThe ad's headline, for the mood only (never write it, or any text, in the picture): This SHOCKING Memory Trick" key=adh.k2jk18 263.5x147.34 @0,0 sizing=fill/fill fills=[{"type": "IMAGE", "imageHash": "cfcdf4e6e43cf8a8db85b186a40089e45ccd90cf", "sca
+              FRAME 'Button' key=adh.k2k6qv 34x28 @228.5,7 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed fills=["#060608B8"] stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k2k6qv#text 10x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="⤢"
+            FRAME 'Thumb' key=adh.k2l1fu 267.5x151.34 @277.5,0 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=10
+              FRAME 'Cover' key=adh.k2moxp 263.5x147.34 @2,2 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+                RECTANGLE "warm kitchen, spoon, morning light\n\nThe ad's headline, for the mood only (never write it, or any text, in the picture): This SHOCKING Memory Trick" key=adh.k2n6ev 263.5x147.34 @0,0 sizing=fill/fill fills=[{"type": "IMAGE", "imageHash": "a34c914b85826d93711877fbfabf0450c517555a", "sca
+              FRAME 'Button' key=adh.k2okmf 34x28 @228.5,7 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed fills=["#060608B8"] stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k2okmf#text 10x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="⤢"
+            FRAME 'Thumb' key=adh.k2pry0 267.5x151.34 @555,0 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=10
+              FRAME 'Cover' key=adh.k2q0co 263.5x147.34 @2,2 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+                RECTANGLE "warm kitchen, spoon, morning light\n\nThe ad's headline, for the mood only (never write it, or any text, in the picture): This SHOCKING Memory Trick" key=adh.k2rwik 263.5x147.34 @0,0 sizing=fill/fill fills=[{"type": "IMAGE", "imageHash": "21c661afdffcbb79b5bab63c6ffffe1438958076", "sca
+              FRAME 'Button' key=adh.k2sgtd 34x28 @228.5,7 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed fills=["#060608B8"] stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k2sgtd#text 10x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="⤢"
+          FRAME 'Hls' key=adh.k2ti5d 820x236.7 @0,161.34 layout=V gap=6 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+            FRAME 'Hl' key=adh.k2unh2 820x87.35 @0,0 layout=H gap=10 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/hug fills=["#121217"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+              FRAME 'Hl pick' key=adh.k2vz48 24x24 @12,10 sizing=fixed/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=12
+              FRAME 'Hl body' key=adh.k2wcfw 675x67.35 @46,10 layout=V gap=6.349999904632568 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+                TEXT 'Doctors Surprised By This Mornin' key=adh.k2x6cw 263x21 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 14.5 color=#ECE7E1 text="Doctors Surprised By This Morning Habit"
+                FRAME 'Warns' key=adh.k2yo9b 675x40 @0,27.35 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                  FRAME 'Warn' key=adh.k2zdpl 675x40 @0,0 sizing=fill/fixed
+                    TEXT 'Tem “doctors”: está na lista de ' key=adh.k30bvh 424x18 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 12 color=#FFC890 text="Tem “doctors”: está na lista de palavras que o Taboola já bloqueou para o time."
+                    FRAME 'Button' key=adh.k31r1u 111x18 @431,1 layout=H gap=0 pad=[1, 8, 1, 8] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      TEXT 'Button' key=adh.k31r1u#text 93x14 @9,2 sizing=fixed/fixed font=IBM Plex Sans Medium 11 color=#ECE7E1 text="Trocar por experts"
+                    FRAME 'Button' key=adh.k32xbz 131x32 @546,1 layout=H gap=0 pad=[1, 8, 1, 8] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      TEXT 'Button' key=adh.k32xbz#text 113x28 @9,2 sizing=fixed/fixed font=IBM Plex Sans Medium 11 color=#ECE7E1 text="Trocar por researchers"
+                    FRAME 'Button' key=adh.k33zki 126x18 @0,24 layout=H gap=0 pad=[1, 8, 1, 8] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      TEXT 'Button' key=adh.k33zki#text 108x14 @9,2 sizing=fixed/fixed font=IBM Plex Sans Medium 11 color=#ECE7E1 text="Trocar por specialists"
+              FRAME '39' key=adh.k348zp 14x30 @731,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT '39' key=adh.k348zp#text 14x30 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 12 color=#8F8A85 text="39"
+              FRAME 'Button' key=adh.k35lgz 57x28 @755,10 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k35lgz#text 33x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="Editar"
+            FRAME 'Hl' key=adh.k36vge 820x87.35 @0,93.35 layout=H gap=10 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/hug fills=["#121217"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+              FRAME 'Hl pick' key=adh.k37ugu 24x24 @12,10 sizing=fixed/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=12
+              FRAME 'Hl body' key=adh.k38f1y 675x67.35 @46,10 layout=V gap=6.349999904632568 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+                TEXT 'The 10-Second Trick For Sharper ' key=adh.k39w94 271x21 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 14.5 color=#ECE7E1 text="The 10-Second Trick For Sharper Memory"
+                FRAME 'Warns' key=adh.k3aqkg 675x40 @0,27.35 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                  FRAME 'Warn' key=adh.k3bzu7 675x40 @0,0 sizing=fill/fixed
+                    TEXT 'Tem “memory”: está na lista de p' key=adh.k3cwbi 429x18 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 12 color=#FFC890 text="Tem “memory”: está na lista de palavras que o Taboola já bloqueou para o time."
+                    FRAME 'Button' key=adh.k3d8sh 100x18 @435,1 layout=H gap=0 pad=[1, 8, 1, 8] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      TEXT 'Button' key=adh.k3d8sh#text 82x14 @9,2 sizing=fixed/fixed font=IBM Plex Sans Medium 11 color=#ECE7E1 text="Trocar por focus"
+                    FRAME 'Button' key=adh.k3ejrb 101x18 @539,1 layout=H gap=0 pad=[1, 8, 1, 8] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      TEXT 'Button' key=adh.k3ejrb#text 83x14 @9,2 sizing=fixed/fixed font=IBM Plex Sans Medium 11 color=#ECE7E1 text="Trocar por recall"
+                    FRAME 'Button' key=adh.k3fp5o 161x32 @0,24 layout=H gap=0 pad=[1, 8, 1, 8] main=center cross=center sizing=hug/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      TEXT 'Button' key=adh.k3fp5o#text 143x28 @9,2 sizing=fixed/fixed font=IBM Plex Sans Medium 11 color=#ECE7E1 text="Trocar por mental sharpness"
+              FRAME '38' key=adh.k3gb54 14x30 @731,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT '38' key=adh.k3gb54#text 14x30 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 12 color=#8F8A85 text="38"
+              FRAME 'Button' key=adh.k3hyin 57x28 @755,10 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k3hyin#text 33x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="Editar"
+            FRAME 'Hl' key=adh.k3ie5w 820x50 @0,186.7 layout=H gap=10 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/hug fills=["#121217"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+              FRAME 'Hl pick' key=adh.k3jz50 24x24 @12,10 sizing=fixed/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=12
+              FRAME 'Hl body' key=adh.k3koja 675x22.35 @46,10 layout=V gap=0 pad=[0, 0, 1.350000023841858, 0] main=start cross=start sizing=fixed/hug
+                TEXT 'Seniors Are Trying This Simple R' key=adh.k3l5rx 282x21 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 14.5 color=#ECE7E1 text="Seniors Are Trying This Simple Recall Ritual"
+              FRAME '44' key=adh.k3mju1 14x30 @731,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT '44' key=adh.k3mju1#text 14x30 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 12 color=#8F8A85 text="44"
+              FRAME 'Button' key=adh.k3n09u 57x28 @755,10 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k3n09u#text 33x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="Editar"
+      FRAME 'Composer' key=adh.k3otit 1208x189 @0,811.09 layout=V gap=8 pad=[11, 24, 14, 24] main=start cross=start sizing=fixed/hug fills=["#09090C"] stroke={"color": "#2A2A33", "weight": 1}
+        FRAME 'Compose row' key=adh.k3pn5f 1160x127 @24,12 layout=H gap=10 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed
+          FRAME 'Text area' key=adh.k3qv0v 852x127 @0,0 layout=V gap=0 pad=[9, 11, 100, 11] main=start cross=start sizing=fill/fill fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+            FRAME 'Placeholder' key=adh.k3rozi 515x16 @12,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+              TEXT 'Placeholder' key=adh.k3rozi#text 515x18 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#9A948D text="O que você quer? Ex.: homem de 65 anos na cozinha, colher na mão, luz da manhã."
+          FRAME 'Compose side' key=adh.k3s2nl 298x127 @862,0 layout=V gap=6 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fill
+            FRAME 'Stepper' key=adh.k3t7ha 298x26 @0,0 layout=H gap=6 pad=[0, 0, 0, 0] main=start cross=center sizing=fill/hug
+              TEXT 'Imagens' key=adh.k3uehh 202x20 @0,3 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#B5AEA6 text="Imagens"
+              FRAME 'Button' key=adh.k3vfmt 28x26 @208,0 layout=H gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k3vfmt#text 24x15 @2,5.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="−"
+              FRAME '2' key=adh.k3wd74 22x20 @242,3 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT '2' key=adh.k3wd74#text 22x20 @0,0 sizing=fill/fixed font=IBM Plex Mono Regular 13 color=#ECE7E1 text="2"
+              FRAME 'Button' key=adh.k3xpjl 28x26 @270,0 layout=H gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k3xpjl#text 24x15 @2,5.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="+"
+            FRAME 'Stepper' key=adh.k3y2px 298x26 @0,32 layout=H gap=6 pad=[0, 0, 0, 0] main=start cross=center sizing=fill/hug
+              TEXT 'Headlines' key=adh.k3zav9 202x20 @0,3 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#B5AEA6 text="Headlines"
+              FRAME 'Button' key=adh.k40b6r 28x26 @208,0 layout=H gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k40b6r#text 24x15 @2,5.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="−"
+              FRAME '5' key=adh.k418gs 22x20 @242,3 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT '5' key=adh.k418gs#text 22x20 @0,0 sizing=fill/fixed font=IBM Plex Mono Regular 13 color=#ECE7E1 text="5"
+              FRAME 'Button' key=adh.k42cho 28x26 @270,0 layout=H gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k42cho#text 24x15 @2,5.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="+"
+            FRAME 'Compose picks' key=adh.k43g5x 298x23 @0,64 layout=H gap=6 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed
+              FRAME 'Select' key=adh.k44zg2 146x23 @0,0 layout=H gap=8 pad=[3, 7, 3, 7] main=start cross=center sizing=fill/fill fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                FRAME 'Value' key=adh.k44zg2/a1pia6 115.97x17 @8,3 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                  TEXT 'Value' key=adh.k44zg2/a1pia6#text 115.97x17 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 12 color=#ECE7E1 text="16:9 horizontal"
+                FRAME 'Chevron' key=adh.k44zg2/a1q2m2 6.03x17 @131.97,3 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                  TEXT 'Chevron' key=adh.k44zg2/a1q2m2#text 6.03x17 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#9A948D text="▾"
+              FRAME 'Select' key=adh.k47bag 146x23 @152,0 layout=H gap=8 pad=[3, 7, 3, 7] main=start cross=center sizing=fill/fill fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                FRAME 'Value' key=adh.k47bag/a1pia6 115.97x17 @8,3 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                  TEXT 'Value' key=adh.k47bag/a1pia6#text 115.97x17 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 12 color=#ECE7E1 text="Headlines: OpenAI"
+                FRAME 'Chevron' key=adh.k47bag/a1q2m2 6.03x17 @131.97,3 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                  TEXT 'Chevron' key=adh.k47bag/a1q2m2#text 6.03x17 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#9A948D text="▾"
+            FRAME 'Compose send' key=adh.k4a3rk 298x34 @0,93 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fixed
+              FRAME 'Button' key=adh.k4bayq 298x34 @0,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=fill/fill fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=9
+                TEXT 'Button' key=adh.k4bayq#text 270x17 @14,8.5 sizing=fixed/fixed font=IBM Plex Sans SemiBold 13 color=#140A04 text="Enviar"
+        FRAME 'Compose tools' key=adh.k4c72z 1160x28 @24,147 layout=H gap=6 pad=[0, 323, 0, 0] main=start cross=center sizing=fill/hug
+          FRAME 'Button' key=adh.k4d8vq 169x28 @0,0 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k4d8vq#text 145x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="+ Imagem do computador"
+          FRAME 'Button' key=adh.k4e0g6 106x28 @175,0 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k4e0g6#text 82x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="+ Da biblioteca"
+          FRAME 'Button' key=adh.k4fdr2 134x28 @287,0 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k4fdr2#text 110x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="+ Escrever headline"
+          FRAME 'Clique numa imagem ou headline p' key=adh.k4gkpc 416x18 @427,5 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+            TEXT 'Clique numa imagem ou headline p' key=adh.k4gkpc#text 416x18 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Clique numa imagem ou headline para escolher. Headlines sempre em inglês."

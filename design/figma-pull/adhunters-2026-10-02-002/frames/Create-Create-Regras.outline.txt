@@ -1,0 +1,273 @@
+FRAME 'Create · Regras' key=adh.k0qyp 1440x964.17 @4920,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start fills=["#09090C"]
+  FRAME 'Top bar' key=adh.k1juh 1440x48 @0,0 layout=H gap=10 pad=[0, 0, 1, 0] main=start cross=start sizing=fill/fixed fills=["#060608"] stroke={"color": "#1D1D23", "weight": 1}
+    INSTANCE 'App selector · Create' key=adh.k28e1 232x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=fixed/fill fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1} instanceOf=adh.c.a2o7kz.default
+    FRAME 'Page tabs' key=adh.k8u9q 202x46 @242,0 layout=H gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+      INSTANCE 'Tab' key=adh.k9uld 52x46 @0,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kazck 82x46 @54,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kbsfl 64x46 @138,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill stroke={"color": "#FF7A1A", "weight": 1} instanceOf=adh.c.awh7q.current props={"variant": "Current"}
+    FRAME 'Spacer' key=adh.kcd4o 642x46 @454,0 sizing=fill/fill
+    FRAME 'Tools' key=adh.kd392 334x46 @1106,0 layout=H gap=12 pad=[0, 14, 0, 0] main=start cross=center sizing=hug/fill
+      INSTANCE 'Search box' key=adh.ke1yq 280x30 @0,8 layout=H gap=8 pad=[1, 11, 1, 11] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=9 instanceOf=adh.c.a11ghd.default
+      INSTANCE 'Avatar' key=adh.kieg8 28x28 @292,9 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#18181E"] stroke={"color": "#2A2A33", "weight": 1} radius=8 instanceOf=adh.c.a133ym.default
+  FRAME 'Body' key=adh.kjnr5 1440x916.17 @0,48 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+    FRAME 'Main' key=adh.kkhxt 1440x916.17 @0,0 layout=V gap=13.989999771118164 pad=[20, 24, 64, 24] main=start cross=start sizing=fill/fill
+      FRAME 'Page head' key=adh.klvma 1392x73 @24,20 layout=H gap=0 pad=[0, 832, 0, 0] main=start cross=end sizing=hug/hug
+        FRAME 'Box' key=adh.kmpef 560x73 @0,0 layout=V gap=4 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+          TEXT 'Regras' key=adh.kn5z7 560x27 @0,0 sizing=fill/hug font=Inter Bold 22 color=#F4EFE9 text="Regras"
+          FRAME 'O que o Create segue ao escrever' key=adh.kokzs 560x42 @0,31 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+            TEXT 'O que o Create segue ao escrever' key=adh.kokzs#text 560x42 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 14 color=#B5AEA6 text="O que o Create segue ao escrever e o que ele marca. As regras do Taboola só avisam: quem decide é você."
+      FRAME 'Spacing' key=adh.kptcu~sp 1392x211.01 @24,106.99 layout=V gap=0 pad=[4.010000228881836, 0, 0, 0] main=start cross=start sizing=fill/hug
+        FRAME 'Panel' key=adh.kptcu 1392x207 @0,4.01 layout=V gap=9.989999771118164 pad=[17, 19, 31.010000228881836, 19] main=start cross=start sizing=fill/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=14
+          TEXT 'Sempre' key=adh.kqce0 1352x21 @20,18 sizing=fill/hug font=Archivo Expanded Bold 16 color=#F4EFE9 text="Sempre"
+          FRAME 'List' key=adh.krbkc 1352x126 @20,48.99 layout=V gap=0 pad=[0, 0, 0, 18] main=start cross=start sizing=fill/hug
+            FRAME 'Imagens feitas com a OpenAI; hea' key=adh.ksb0n 1336x21 @18,0 sizing=fixed/fixed
+              TEXT 'Marker' key=adh.ksb0n#marker 15x21 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#ECE7E1 text="•"
+              FRAME 'Imagens feitas com a OpenAI; hea' key=adh.ksb0n#item 1314x21 @22,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT 'Imagens feitas com a OpenAI; hea' key=adh.ksb0n#item#text 1314x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="Imagens feitas com a OpenAI; headlines com a OpenAI ou, quando ligados no servidor, Grok, DeepSeek ou Kimi. Headlines sempre em inglês."
+            FRAME 'Pessoas espontâneas, sem olhar p' key=adh.ktrlp 1336x21 @18,21 sizing=fixed/fixed
+              TEXT 'Marker' key=adh.ktrlp#marker 15x21 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#ECE7E1 text="•"
+              FRAME 'Pessoas espontâneas, sem olhar p' key=adh.ktrlp#item 1314x21 @22,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT 'Pessoas espontâneas, sem olhar p' key=adh.ktrlp#item#text 1314x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="Pessoas espontâneas, sem olhar para a câmera, foto com cara de real, a menos que o pedido diga outra coisa."
+            FRAME 'Sem texto, logo, antes e depois,' key=adh.kusra 1336x21 @18,42 sizing=fixed/fixed
+              TEXT 'Marker' key=adh.kusra#marker 15x21 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#ECE7E1 text="•"
+              FRAME 'Sem texto, logo, antes e depois,' key=adh.kusra#item 1314x21 @22,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT 'Sem texto, logo, antes e depois,' key=adh.kusra#item#text 1314x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="Sem texto, logo, antes e depois, celebridades ou close de partes do corpo nas imagens."
+            FRAME 'Headlines de 34 a 45 caracteres ' key=adh.kvuks 1336x21 @18,63 sizing=fixed/fixed
+              TEXT 'Marker' key=adh.kvuks#marker 15x21 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#ECE7E1 text="•"
+              FRAME 'Headlines de 34 a 45 caracteres ' key=adh.kvuks#item 1314x21 @22,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT 'Headlines de 34 a 45 caracteres ' key=adh.kvuks#item#text 1314x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="Headlines de 34 a 45 caracteres (nunca mais de 60), sem palavras em maiúsculas, sem \"!!\", sintomas e não doenças, sem promessa de cura, sem valores."
+            FRAME 'Até 8 imagens e 20 headlines por' key=adh.kwygz 1336x21 @18,84 sizing=fixed/fixed
+              TEXT 'Marker' key=adh.kwygz#marker 15x21 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#ECE7E1 text="•"
+              FRAME 'Até 8 imagens e 20 headlines por' key=adh.kwygz#item 1314x21 @22,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT 'Até 8 imagens e 20 headlines por' key=adh.kwygz#item#text 1314x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="Até 8 imagens e 20 headlines por pedido, a partir de até 8 escolhidas."
+            FRAME 'Nada vai para a biblioteca até v' key=adh.kx1fp 1336x21 @18,105 sizing=fixed/fixed
+              TEXT 'Marker' key=adh.kx1fp#marker 15x21 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#ECE7E1 text="•"
+              FRAME 'Nada vai para a biblioteca até v' key=adh.kx1fp#item 1314x21 @22,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT 'Nada vai para a biblioteca até v' key=adh.kx1fp#item#text 1314x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="Nada vai para a biblioteca até você salvar. O selo de IA é escolha sua ao salvar; o Create avisa se estiver desligado."
+      FRAME 'Panel' key=adh.ky42j 1392x525.17 @24,331.99 layout=V gap=10 pad=[17, 19, 30, 19] main=start cross=start sizing=fill/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=14
+        TEXT 'Palavras que o Taboola já bloque' key=adh.kzp3s 1352x21 @20,18 sizing=fill/hug font=Archivo Expanded Bold 16 color=#F4EFE9 text="Palavras que o Taboola já bloqueou para o time (56)"
+        FRAME 'Words' key=adh.k10dhc 1352x445.17 @20,49 sizing=fill/fixed
+          FRAME 'Item' key=adh.k11mkf 445.66x19.5 @19,0 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k11mkf#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k11mkf#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k11mkf#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="neuropathy→ tingling, numbness, pins and needles"
+          FRAME 'Item' key=adh.k14sw5 445.66x19.5 @19,23.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k14sw5#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k14sw5#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k14sw5#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="feet→ toes, soles, legs"
+          FRAME 'Item' key=adh.k17w07 445.66x20.25 @19,47 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k17w07#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k17w07#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Neuropathy Has Been Linked to a ' key=adh.k186lk 293x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="Neuropathy Has Been Linked to a Common Habit"
+          FRAME 'Item' key=adh.k19bjn 445.66x19.5 @19,70.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k19bjn#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k19bjn#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k19bjn#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="sciatica→ leg discomfort, hip discomfort, stiff lower back"
+          FRAME 'Item' key=adh.k1c1zn 445.66x19.5 @19,94 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k1c1zn#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1c1zn#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k1c1zn#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="nerve pain→ tingling, pins and needles, numbness"
+          FRAME 'Item' key=adh.k1fxxh 445.66x20.25 @19,117.5 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k1fxxh#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1fxxh#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Füße' key=adh.k1gxzm 31x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="Füße"
+          FRAME 'Item' key=adh.k1hta8 445.66x19.5 @19,141 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k1hta8#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1hta8#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k1hta8#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="back pain→ stiff back, sore back, back discomfort"
+          FRAME 'Item' key=adh.k1kd5r 445.66x19.5 @19,164.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k1kd5r#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1kd5r#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k1kd5r#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="Burning, Tingling & Numbness→ pins and needles, that tingling feeling"
+          FRAME 'Item' key=adh.k1njzq 445.66x19.5 @19,188 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k1njzq#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1njzq#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k1njzq#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="weight→ belly fat, waistline, body shape"
+          FRAME 'Item' key=adh.k1qixw 445.66x20.25 @19,211.5 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k1qixw#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1qixw#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Bauchfett' key=adh.k1rzc9 60x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="Bauchfett"
+          FRAME 'Item' key=adh.k1sna5 445.66x20.25 @19,235 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k1sna5#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1sna5#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'gordura' key=adh.k1thn5 48x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="gordura"
+          FRAME 'Item' key=adh.k1u0fq 445.66x19.5 @19,258.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k1u0fq#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1u0fq#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k1u0fq#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="stop losing weight→ hit a plateau, stall"
+          FRAME 'Item' key=adh.k1x0gd 445.66x20.25 @19,282 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k1x0gd#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1x0gd#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Drink 1 Cup In The Morning' key=adh.k1y7xl 165x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="Drink 1 Cup In The Morning"
+          FRAME 'Item' key=adh.k1zkah 445.66x20.25 @19,305.5 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k1zkah#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k1zkah#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'barriga' key=adh.k20xoz 44x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="barriga"
+          FRAME 'Item' key=adh.k210gz 445.66x19.5 @19,329 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k210gz#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k210gz#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k210gz#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="keto→ low-carb"
+          FRAME 'Item' key=adh.k24nxf 445.66x19.5 @19,352.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k24nxf#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k24nxf#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k24nxf#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="dropping weight→ slimming down, trimming down, getting leaner"
+          FRAME 'Item' key=adh.k275u7 445.66x19.5 @19,376 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k275u7#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k275u7#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k275u7#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="blood sugar→ glucose levels, sugar levels"
+          FRAME 'Item' key=adh.k2a5qy 445.66x20.25 @19,399.5 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k2a5qy#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k2a5qy#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'glucosa' key=adh.k2bxml 47x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="glucosa"
+          FRAME 'Item' key=adh.k2cbdx 445.66x19.5 @19,423 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k2cbdx#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k2cbdx#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k2cbdx#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="The Greatest Enemy of Blood Sugar→ the worst thing for glucose levels"
+          FRAME 'Item' key=adh.k2feim 445.66x19.5 @463.66,0 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k2feim#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k2feim#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k2feim#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="memory→ focus, recall, mental sharpness"
+          FRAME 'Item' key=adh.k2id5o 445.66x19.5 @463.66,23.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k2id5o#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k2id5o#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k2id5o#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="memory loss→ fading focus, senior moments, slipping recall"
+          FRAME 'Item' key=adh.k2lcg0 445.66x39 @463.66,47 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k2lcg0#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k2lcg0#item 424.66x39 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k2lcg0#item#text 424.66x39 @0,0 sizing=fill/fixed font=None None 13 color=None text="neurologists· também em descrições→ brain experts, specialists, researchers"
+          FRAME 'Item' key=adh.k2ptjh 445.66x19.5 @463.66,90 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k2ptjh#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k2ptjh#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k2ptjh#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="brain fog→ mental fatigue, cloudy thinking, low focus"
+          FRAME 'Item' key=adh.k2swi3 445.66x19.5 @463.66,113.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k2swi3#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k2swi3#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k2swi3#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="cognitive decline→ mental slowdown, slipping focus"
+          FRAME 'Item' key=adh.k2v3gv 445.66x19.5 @463.66,137 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k2v3gv#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k2v3gv#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k2v3gv#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="forget→ misplace, lose track of, blank on"
+          FRAME 'Item' key=adh.k2yqtr 445.66x19.5 @463.66,160.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k2yqtr#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k2yqtr#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k2yqtr#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="cognitive→ mental, thinking"
+          FRAME 'Item' key=adh.k31cw1 445.66x20.25 @463.66,184 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k31cw1#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k31cw1#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Doctors Warn… Rapid Memory Decli' key=adh.k32wa8 232x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="Doctors Warn… Rapid Memory Decline"
+          FRAME 'Item' key=adh.k33trw 445.66x20.25 @463.66,207.5 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k33trw#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k33trw#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Memory Loss and Brain Plaque' key=adh.k3465t 185x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="Memory Loss and Brain Plaque"
+          FRAME 'Item' key=adh.k350em 445.66x19.5 @463.66,231 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k350em#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k350em#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k350em#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="tinnitus→ ear buzzing, humming in the ears, ear noise"
+          FRAME 'Item' key=adh.k3862t 445.66x19.5 @463.66,254.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k3862t#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3862t#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k3862t#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="Ringing In The Ears→ buzzing in the ears, ear noise"
+          FRAME 'Item' key=adh.k3bcrv 445.66x20.25 @463.66,278 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k3bcrv#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3bcrv#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'auditiva' key=adh.k3czph 49x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="auditiva"
+          FRAME 'Item' key=adh.k3d481 445.66x19.5 @463.66,301.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k3d481#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3d481#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k3d481#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="gelatin→ collagen"
+          FRAME 'Item' key=adh.k3ge2n 445.66x19.5 @463.66,325 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k3ge2n#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3ge2n#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k3ge2n#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="wrinkles→ fine lines, creases, aging skin"
+          FRAME 'Item' key=adh.k3jiy4 445.66x20.25 @463.66,348.5 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k3jiy4#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3jiy4#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Dermatologists: The 1 Vitamin' key=adh.k3kpvn 183x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="Dermatologists: The 1 Vitamin"
+          FRAME 'Item' key=adh.k3lvwu 445.66x19.5 @463.66,372 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k3lvwu#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3lvwu#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k3lvwu#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="Gelatin Trick→ collagen trick"
+          FRAME 'Item' key=adh.k3oiwp 445.66x19.5 @463.66,395.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k3oiwp#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3oiwp#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k3oiwp#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="plastic surgeon→ skin expert, beauty expert"
+          FRAME 'Item' key=adh.k3rux2 445.66x20.25 @463.66,419 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k3rux2#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3rux2#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'impotência' key=adh.k3s8zo 68x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="impotência"
+          FRAME 'Item' key=adh.k3trp4 445.66x19.5 @908.31,0 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k3trp4#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3trp4#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k3trp4#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="prostate→ men's health, nighttime bathroom trips"
+          FRAME 'Item' key=adh.k3wlev 445.66x20.25 @908.31,23.5 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k3wlev#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3wlev#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'prostata' key=adh.k3xou4 51x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="prostata"
+          FRAME 'Item' key=adh.k3yh54 445.66x19.5 @908.31,47 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k3yh54#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k3yh54#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k3yh54#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="doctors→ experts, researchers, specialists"
+          FRAME 'Item' key=adh.k41dda 445.66x19.5 @908.31,70.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k41dda#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k41dda#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k41dda#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="cardiologists→ heart experts, specialists, researchers"
+          FRAME 'Item' key=adh.k44sv5 445.66x19.5 @908.31,94 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k44sv5#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k44sv5#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k44sv5#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="doctor→ expert, researcher, specialist"
+          FRAME 'Item' key=adh.k47viy 445.66x19.5 @908.31,117.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k47viy#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k47viy#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k47viy#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="MDs→ experts, specialists"
+          FRAME 'Item' key=adh.k4ams7 445.66x19.5 @908.31,141 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k4ams7#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4ams7#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k4ams7#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="apnea→ snoring, restless sleep"
+          FRAME 'Item' key=adh.k4dr7w 445.66x20.25 @908.31,164.5 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k4dr7w#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4dr7w#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'intestino' key=adh.k4en76 54x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="intestino"
+          FRAME 'Item' key=adh.k4f9f0 445.66x19.5 @908.31,188 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k4f9f0#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4f9f0#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k4f9f0#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="pill→ capsule, formula"
+          FRAME 'Item' key=adh.k4ini2 445.66x19.5 @908.31,211.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k4ini2#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4ini2#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k4ini2#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="medication→ formula, routine"
+          FRAME 'Item' key=adh.k4l3tc 445.66x19.5 @908.31,235 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k4l3tc#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4l3tc#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k4l3tc#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="mineral→ nutrient"
+          FRAME 'Item' key=adh.k4o40c 445.66x19.5 @908.31,258.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k4o40c#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4o40c#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k4o40c#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="vitamin→ nutrient, supplement"
+          FRAME 'Item' key=adh.k4r3lp 445.66x19.5 @908.31,282 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k4r3lp#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4r3lp#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k4r3lp#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="drink→ sip, beverage, tonic"
+          FRAME 'Item' key=adh.k4u2h6 445.66x19.5 @908.31,305.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k4u2h6#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4u2h6#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k4u2h6#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="poison→ toxin, worst ingredient"
+          FRAME 'Item' key=adh.k4x2sh 445.66x20.25 @908.31,329 layout=H gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+            TEXT 'Marker' key=adh.k4x2sh#marker 14x20 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4x2sh#item 424.66x20.25 @21,0 layout=V gap=0 pad=[0, 0, 0.25, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'linked to this common drink' key=adh.k4y9aw 168x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="linked to this common drink"
+          FRAME 'Item' key=adh.k4zykp 445.66x19.5 @908.31,352.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k4zykp#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k4zykp#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k4zykp#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="soda→ pop, cola, soft beverage"
+          FRAME 'Item' key=adh.k52yrs 445.66x19.5 @908.31,376 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k52yrs#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k52yrs#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k52yrs#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="food→ snack, meal, ingredient"
+          FRAME 'Item' key=adh.k55lk3 445.66x19.5 @908.31,399.5 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k55lk3#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k55lk3#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k55lk3#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="wine· também em descrições→ red grape, beverage"
+          FRAME 'Item' key=adh.k59cn3 445.66x19.5 @908.31,423 sizing=fixed/fixed
+            TEXT 'Marker' key=adh.k59cn3#marker 14x20 @0,1 sizing=fixed/fixed font=IBM Plex Sans Regular 13 color=#ECE7E1 text="•"
+            FRAME 'Item' key=adh.k59cn3#item 424.66x20 @21,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Item' key=adh.k59cn3#item#text 424.66x20 @0,0 sizing=fill/hug font=None None 13 color=None text="enemy→ worst foe, threat, rival"

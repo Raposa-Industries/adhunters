@@ -1,0 +1,623 @@
+{
+ "id": "14:2085",
+ "type": "COMPONENT",
+ "name": "App selector · Create (300 wide, before sidebar alignment)",
+ "key": "mm.backup.comp.create.764e971635",
+ "x": 2240,
+ "y": 100,
+ "w": 233,
+ "h": 48,
+ "fills": [
+  "#0F0F13"
+ ],
+ "stroke": {
+  "color": "#6A6A75",
+  "weight": 1
+ },
+ "layout": {
+  "mode": "H",
+  "gap": 0,
+  "padding": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "main": "start",
+  "cross": "center"
+ },
+ "description": "Draw Designer component a2o7kz (App selector · Create)",
+ "children": [
+  {
+   "id": "14:2086",
+   "type": "FRAME",
+   "name": "Selected app",
+   "key": "mm.backup.comp.create.764e971635>mm.sel.create.row",
+   "x": 0,
+   "y": 8,
+   "w": 232,
+   "h": 32,
+   "layout": {
+    "mode": "H",
+    "gap": 10,
+    "padding": [
+     0,
+     14,
+     0,
+     12
+    ],
+    "main": "start",
+    "cross": "center"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fixed"
+   },
+   "children": [
+    {
+     "id": "14:2087",
+     "type": "FRAME",
+     "name": "Glyph",
+     "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>adh.k8hy1g",
+     "x": 12,
+     "y": 2,
+     "w": 28,
+     "h": 28,
+     "fills": [
+      "#1C1109"
+     ],
+     "stroke": {
+      "color": "#4A240D",
+      "weight": 1
+     },
+     "radius": 7,
+     "layout": {
+      "mode": "V",
+      "gap": 0,
+      "padding": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "main": "center",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "fixed",
+      "v": "fixed"
+     },
+     "children": [
+      {
+       "id": "14:2088",
+       "type": "FRAME",
+       "name": "Icon",
+       "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>adh.k8i8fr",
+       "x": 6,
+       "y": 6,
+       "w": 16,
+       "h": 16,
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "children": [
+        {
+         "id": "14:2089",
+         "type": "VECTOR",
+         "name": "Vector",
+         "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>#8:1290",
+         "x": 1.5,
+         "y": 1.5,
+         "w": 13,
+         "h": 13,
+         "stroke": {
+          "color": "#FF7A1A",
+          "weight": 1.5
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "fixed"
+         },
+         "svg": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 13 13\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M6.5 0V4M6.5 9V13M0 6.5H4M9 6.5H13\" stroke=\"#FF7A1A\" stroke-width=\"1.5\"/>\n</svg>\n"
+        },
+        {
+         "id": "14:2090",
+         "type": "VECTOR",
+         "name": "Vector",
+         "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>#8:1291",
+         "x": 4,
+         "y": 4,
+         "w": 8,
+         "h": 8,
+         "stroke": {
+          "color": "#FF7A1A",
+          "weight": 1.2000000476837158
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "fixed"
+         },
+         "svg": "<svg width=\"9\" height=\"9\" viewBox=\"0 0 9 9\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M0.424316 0.424263L2.22432 2.22426M6.62432 6.62426L8.42432 8.42426M8.42432 0.424263L6.62432 2.22426M2.22432 6.62426L0.424316 8.42426\" stroke=\"#FF7A1A\" stroke-width=\"1.2\"/>\n</svg>\n"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "14:2091",
+     "type": "FRAME",
+     "name": "Apps text",
+     "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>adh.k8jo7b",
+     "x": 50,
+     "y": 0,
+     "w": 142,
+     "h": 32,
+     "layout": {
+      "mode": "V",
+      "gap": 0,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "fill",
+      "v": "hug"
+     },
+     "children": [
+      {
+       "id": "14:2092",
+       "type": "TEXT",
+       "name": "Create",
+       "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>adh.k8kmll",
+       "x": 0,
+       "y": 0,
+       "w": 142,
+       "h": 14,
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "text": "Create",
+       "font": {
+        "family": "Archivo Expanded",
+        "style": "Bold"
+       },
+       "size": 13,
+       "color": "#F4EFE9"
+      },
+      {
+       "id": "14:2093",
+       "type": "FRAME",
+       "name": "Imagens e headlines",
+       "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>adh.k8l3u4",
+       "x": 0,
+       "y": 14,
+       "w": 142,
+       "h": 18,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "14:2094",
+         "type": "TEXT",
+         "name": "Imagens e headlines",
+         "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>adh.k8l3u4#text",
+         "x": 0,
+         "y": 0,
+         "w": 142,
+         "h": 18,
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "text": "Imagens e headlines",
+         "font": {
+          "family": "IBM Plex Sans",
+          "style": "Regular"
+         },
+         "size": 12,
+         "color": "#B5AEA6"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "14:2095",
+     "type": "FRAME",
+     "name": "Keys",
+     "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>adh.k8mebb",
+     "x": 235,
+     "y": 14.5,
+     "w": 41,
+     "h": 19,
+     "visible": false,
+     "layout": {
+      "mode": "H",
+      "gap": 3,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fixed"
+     },
+     "children": [
+      {
+       "id": "14:2096",
+       "type": "INSTANCE",
+       "name": "Key",
+       "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>adh.k8ni7f",
+       "x": 0,
+       "y": 0,
+       "w": 19,
+       "h": 19,
+       "fills": [
+        "#121217"
+       ],
+       "stroke": {
+        "color": "#2A2A33",
+        "weight": 1
+       },
+       "radius": 4,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         4,
+         6,
+         4,
+         6
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:60",
+        "name": "Key",
+        "key": "adh.c.a1f5cz.default"
+       },
+       "instanceProps": {}
+      },
+      {
+       "id": "14:2097",
+       "type": "INSTANCE",
+       "name": "Key",
+       "key": "mm.backup.comp.create.764e971635>mm.sel.create.row>adh.k8o1lw",
+       "x": 22,
+       "y": 0,
+       "w": 19,
+       "h": 19,
+       "fills": [
+        "#121217"
+       ],
+       "stroke": {
+        "color": "#2A2A33",
+        "weight": 1
+       },
+       "radius": 4,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         4,
+         6,
+         4,
+         6
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:60",
+        "name": "Key",
+        "key": "adh.c.a1f5cz.default"
+       },
+       "instanceProps": {}
+      }
+     ]
+    },
+    {
+     "id": "14:2098",
+     "type": "FRAME",
+     "name": "Chevron",
+     "key": "mm.backup.comp.create.764e971635>mm.sel.create.row.chevron",
+     "x": 202,
+     "y": 8,
+     "w": 16,
+     "h": 16,
+     "sizing": {
+      "h": "fixed",
+      "v": "fixed"
+     },
+     "children": [
+      {
+       "id": "14:2099",
+       "type": "VECTOR",
+       "name": "Vector",
+       "key": "mm.backup.comp.create.764e971635>#13:1433",
+       "x": 4,
+       "y": 6,
+       "w": 8,
+       "h": 4,
+       "stroke": {
+        "color": "#8B8B96",
+        "weight": 1.5
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "svg": "<svg width=\"10\" height=\"6\" viewBox=\"0 0 10 6\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M0.75 4.75L4.75 0.75L8.75 4.75\" stroke=\"#8B8B96\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n</svg>\n"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "14:2100",
+   "type": "FRAME",
+   "name": "Glyph",
+   "key": "mm.backup.comp.create.764e971635>adh.c.a2o7kz.default.a2jdxk",
+   "x": 30,
+   "y": 2,
+   "w": 28,
+   "h": 28,
+   "visible": false,
+   "fills": [
+    "#1C1109"
+   ],
+   "stroke": {
+    "color": "#4A240D",
+    "weight": 1
+   },
+   "radius": 7,
+   "layout": {
+    "mode": "V",
+    "gap": 0,
+    "padding": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "main": "center",
+    "cross": "center"
+   },
+   "sizing": {
+    "h": "fixed",
+    "v": "fixed"
+   },
+   "children": [
+    {
+     "id": "14:2101",
+     "type": "FRAME",
+     "name": "Icon",
+     "key": "mm.backup.comp.create.764e971635>adh.c.a2o7kz.default.a2kdol",
+     "x": 6,
+     "y": 6,
+     "w": 16,
+     "h": 16,
+     "sizing": {
+      "h": "fixed",
+      "v": "fixed"
+     },
+     "children": [
+      {
+       "id": "14:2102",
+       "type": "VECTOR",
+       "name": "Vector",
+       "key": "mm.backup.comp.create.764e971635>#8:124",
+       "x": 1.5,
+       "y": 1.5,
+       "w": 13,
+       "h": 13,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1.5
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       }
+      },
+      {
+       "id": "14:2103",
+       "type": "VECTOR",
+       "name": "Vector",
+       "key": "mm.backup.comp.create.764e971635>#8:125",
+       "x": 4,
+       "y": 4,
+       "w": 8,
+       "h": 8,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1.2000000476837158
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "14:2104",
+   "type": "FRAME",
+   "name": "Create",
+   "key": "mm.backup.comp.create.764e971635>adh.c.a2o7kz.default.a2ls2d",
+   "x": 50,
+   "y": 8.5,
+   "w": 59,
+   "h": 15,
+   "visible": false,
+   "layout": {
+    "mode": "V",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fixed",
+    "v": "hug"
+   },
+   "children": [
+    {
+     "id": "14:2105",
+     "type": "TEXT",
+     "name": "Create",
+     "key": "mm.backup.comp.create.764e971635>adh.c.a2o7kz.default.a2ls2d#text",
+     "x": 0,
+     "y": 0,
+     "w": 59,
+     "h": 15,
+     "sizing": {
+      "h": "fill",
+      "v": "hug"
+     },
+     "text": "Create",
+     "font": {
+      "family": "Archivo Expanded",
+      "style": "Bold"
+     },
+     "size": 14,
+     "color": "#ECE7E1"
+    }
+   ]
+  },
+  {
+   "id": "14:2106",
+   "type": "FRAME",
+   "name": "Spacing",
+   "key": "mm.backup.comp.create.764e971635>adh.c.a2o7kz.default.a2mb13~sp",
+   "x": 119,
+   "y": 9,
+   "w": 100,
+   "h": 14,
+   "visible": false,
+   "layout": {
+    "mode": "H",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     86
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "hug",
+    "v": "hug"
+   },
+   "children": [
+    {
+     "id": "14:2107",
+     "type": "FRAME",
+     "name": "Chevron",
+     "key": "mm.backup.comp.create.764e971635>adh.c.a2o7kz.default.a2mb13",
+     "x": 86,
+     "y": 0,
+     "w": 14,
+     "h": 14,
+     "layout": {
+      "mode": "H",
+      "gap": 0,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fixed"
+     },
+     "children": [
+      {
+       "id": "14:2108",
+       "type": "FRAME",
+       "name": "Icon",
+       "key": "mm.backup.comp.create.764e971635>adh.c.a2o7kz.default.a2n7f8",
+       "x": 0,
+       "y": 0,
+       "w": 14,
+       "h": 14,
+       "sizing": {
+        "h": "fixed",
+        "v": "fill"
+       },
+       "children": [
+        {
+         "id": "14:2109",
+         "type": "VECTOR",
+         "name": "Vector",
+         "key": "mm.backup.comp.create.764e971635>#8:131",
+         "x": 3.94,
+         "y": 5.69,
+         "w": 6.13,
+         "h": 3.06,
+         "stroke": {
+          "color": "#8F8A85",
+          "weight": 1.3125
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "fixed"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "page": "Draw Designer backups"
+}

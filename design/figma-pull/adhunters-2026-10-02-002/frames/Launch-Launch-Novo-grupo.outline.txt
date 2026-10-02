@@ -1,0 +1,97 @@
+FRAME 'Launch · Novo grupo' key=adh.k0h16 1440x900 @3280,1100 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start fills=["#09090C"]
+  FRAME 'Top bar' key=adh.k1okx 1440x48 @0,0 layout=H gap=10 pad=[0, 0, 1, 0] main=start cross=start sizing=fill/fixed fills=["#060608"] stroke={"color": "#1D1D23", "weight": 1}
+    INSTANCE 'App selector · Launch' key=adh.k21kt 232x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=fixed/fill fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1} instanceOf=adh.c.au7t0.default
+    FRAME 'Page tabs' key=adh.k84dq 628x46 @242,0 layout=H gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+      INSTANCE 'Tab' key=adh.k9ez5 146x46 @0,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kaff9 92x46 @148,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill stroke={"color": "#FF7A1A", "weight": 1} instanceOf=adh.c.awh7q.current props={"variant": "Current"}
+      INSTANCE 'Tab' key=adh.kbdz9 77x46 @242,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kcqnl 70x46 @321,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kdu0l 76x46 @393,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kelu3 68x46 @471,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kfp7g 87x46 @541,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+    FRAME 'Spacer' key=adh.kgey7 216x46 @880,0 sizing=fill/fill
+    FRAME 'Tools' key=adh.khvhu 334x46 @1106,0 layout=H gap=12 pad=[0, 14, 0, 0] main=start cross=center sizing=hug/fill
+      INSTANCE 'Search box' key=adh.kidn6 280x30 @0,8 layout=H gap=8 pad=[1, 11, 1, 11] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=9 instanceOf=adh.c.a11ghd.default
+      INSTANCE 'Avatar' key=adh.km4hj 28x28 @292,9 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#18181E"] stroke={"color": "#2A2A33", "weight": 1} radius=8 instanceOf=adh.c.a133ym.default
+  FRAME 'Body' key=adh.knys2 1440x852 @0,48 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+    FRAME 'Main' key=adh.ko455 1440x852 @0,0 layout=V gap=18 pad=[20, 24, 350.2900085449219, 24] main=start cross=start sizing=fill/fill
+      FRAME 'Page head' key=adh.kp0rw 1394x73 @24,20 layout=H gap=751 pad=[0, 0, 0, 0] main=start cross=end sizing=hug/hug
+        FRAME 'Box' key=adh.kqlzz 560x73 @0,0 layout=V gap=4 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+          TEXT 'Novo grupo de campanha' key=adh.krqh4 560x27 @0,0 sizing=fill/hug font=Inter Bold 22 color=#F4EFE9 text="Novo grupo de campanha"
+          FRAME 'O grupo nasce sem campanhas. As ' key=adh.ksp5m 560x42 @0,31 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+            TEXT 'O grupo nasce sem campanhas. As ' key=adh.ksp5m#text 560x42 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 14 color=#B5AEA6 text="O grupo nasce sem campanhas. As campanhas de um grupo têm o mesmo objetivo e podem dividir o orçamento dele."
+        FRAME 'Actions' key=adh.kt2hg 83x34 @1311,39 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/hug
+          INSTANCE 'Link button' key=adh.ku714 83x34 @0,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9 instanceOf=adh.c.a1hbom.ghost props={"variant": "Ghost"}
+      FRAME 'Wizard' key=adh.kvhlk 1392x395.51 @24,111 layout=H gap=20 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+        FRAME 'Wiz main' key=adh.kwpzw 992x395.51 @0,0 layout=V gap=14 pad=[0, 0, 0.009999999776482582, 0] main=start cross=start sizing=fixed/hug
+          FRAME 'Wiz nav' key=adh.kxokf 996x36 @0,0 layout=H gap=6 pad=[0, 768, 0, 0] main=start cross=start sizing=hug/fixed
+            FRAME 'On' key=adh.kyl25 88x36 @0,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+              FRAME 'Step button' key=adh.kz5jg 88x36 @0,0 layout=H gap=8 pad=[7, 13, 7, 7] main=center cross=center sizing=hug/fill fills=["#0F0F13"] stroke={"color": "#FF7A1A", "weight": 1} radius=18
+                FRAME '1' key=adh.kz5jg/a2fa9t 22x22 @8,7 layout=V gap=0 pad=[0, 0, 1, 0] main=center cross=center sizing=hug/fixed fills=["#FF7A1A"] radius=11
+                  TEXT '1' key=adh.kz5jg/a2fa9t#text 22x18 @0,1.5 sizing=fixed/fixed font=IBM Plex Sans SemiBold 12 color=#140A04 text="1"
+                FRAME 'Grupo' key=adh.kz5jg/a2gbhd 36x39 @38,-1.5 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                  TEXT 'Grupo' key=adh.kz5jg/a2gbhd#text 36x39 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 13 color=#F4EFE9 text="Grupo"
+            FRAME 'Item' key=adh.k12y8o 134x36 @94,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+              FRAME 'Step button' key=adh.k13i46 134x36 @0,0 layout=H gap=8 pad=[7, 13, 7, 7] main=center cross=center sizing=hug/fill fills=["#0F0F13"] stroke={"color": "#FFFFFF", "weight": 1} radius=18
+                FRAME '1' key=adh.k13i46/a2fa9t 22x22 @8,7 layout=V gap=0 pad=[0, 0, 1, 0] main=center cross=center sizing=hug/fixed fills=["#18181E"] radius=11
+                  TEXT '1' key=adh.k13i46/a2fa9t#text 22x18 @0,1.5 sizing=fixed/fixed font=IBM Plex Sans SemiBold 12 color=#B5AEA6 text="2"
+                FRAME 'Grupo' key=adh.k13i46/a2gbhd 82x39 @38,-1.5 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                  TEXT 'Grupo' key=adh.k13i46/a2gbhd#text 82x39 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 13 color=#B5AEA6 text="Revisar e criar"
+          FRAME 'Panel' key=adh.k169bj 992x297.5 @0,50 layout=V gap=9.989999771118164 pad=[17, 19, 17.010000228881836, 19] main=start cross=start sizing=fill/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=14
+            TEXT '1 · Grupo' key=adh.k17kbq 952x21 @20,18 sizing=fill/hug font=Archivo Expanded Bold 16 color=#F4EFE9 text="1 · Grupo"
+            FRAME 'Fields' key=adh.k18uz1 954x61.75 @20,48.99 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fixed
+              FRAME 'Field' key=adh.k19wpo 226.5x61.75 @0,0 layout=V gap=5 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fill
+                TEXT 'Conta' key=adh.k1azhl 226.5x19 @0,0 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="Conta"
+                INSTANCE 'Select' key=adh.k1b70d 226.5x40 @0,24 layout=H gap=8 pad=[9, 11, 9, 11] main=start cross=center sizing=fill/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a1rxtf.default
+            FRAME 'Spacing' key=adh.k1ez6p~sp 952x158.76 @20,120.73 layout=V gap=0 pad=[2.009999990463257, 0, 0, 0] main=start cross=start sizing=fill/hug
+              FRAME 'New group' key=adh.k1ez6p 952x156.75 @0,2.01 layout=V gap=14 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                FRAME 'Preset bar' key=adh.k1f9tr 956x40 @0,0 layout=H gap=8 pad=[0, 496, 0, 0] main=start cross=center sizing=hug/hug
+                  INSTANCE 'Select' key=adh.k1gh1y 320x40 @0,0 layout=H gap=8 pad=[9, 11, 9, 11] main=start cross=center sizing=fixed/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a1rxtf.default
+                  FRAME 'Button' key=adh.k1j8yn 132x28 @328,6 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+                    TEXT 'Button' key=adh.k1j8yn#text 108x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="Salvar como preset"
+                FRAME 'Fields' key=adh.k1k0sy 954x102.75 @0,54 layout=H gap=16 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+                  FRAME 'Field' key=adh.k1l31s 226.5x102.75 @0,0 layout=V gap=5 pad=[0, 0, 20, 0] main=start cross=start sizing=fixed/fill
+                    TEXT 'Nome do grupo' key=adh.k1mnur 226.5x19 @0,0 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="Nome do grupo"
+                    FRAME 'Text field' key=adh.k1ncaw 226.5x36 @0,24 layout=V gap=0 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+                      FRAME 'Placeholder' key=adh.k1ncaw/a17bxo 104x16 @12,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+                        TEXT 'Placeholder' key=adh.k1ncaw/a17bxo#text 104x18 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#9A948D text="próximo número"
+                    FRAME 'vazio: 01' key=adh.k1pvl5 226.5x18 @0,65 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                      TEXT 'vazio: 01' key=adh.k1pvl5#text 226.5x18 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#B5AEA6 text="vazio: 01"
+                  FRAME 'Field' key=adh.k1qrpe 226.5x102.75 @242.5,0 layout=V gap=5 pad=[0, 0, 18, 0] main=start cross=start sizing=fixed/fill
+                    TEXT 'Objetivo' key=adh.k1rgts 226.5x19 @0,0 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="Objetivo"
+                    INSTANCE 'Select' key=adh.k1ss52 226.5x40 @0,24 layout=H gap=8 pad=[9, 11, 9, 11] main=start cross=center sizing=fill/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a1rxtf.default
+                    FRAME 'as campanhas do grupo têm o mesm' key=adh.k1v9xg 226.5x18 @0,69 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                      TEXT 'as campanhas do grupo têm o mesm' key=adh.k1v9xg#text 226.5x18 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#B5AEA6 text="as campanhas do grupo têm o mesmo"
+                  FRAME 'Field' key=adh.k1wo2t 226.5x102.75 @485,0 layout=V gap=5 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fill
+                    TEXT 'Orçamento' key=adh.k1xlfs 226.5x19 @0,0 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="Orçamento"
+                    INSTANCE 'Select' key=adh.k1ywir 226.5x40 @0,24 layout=H gap=8 pad=[9, 11, 9, 11] main=start cross=center sizing=fill/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a1rxtf.default
+                    FRAME 'por campanha: cada campanha tem ' key=adh.k21sua 226.5x36 @0,69 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                      TEXT 'por campanha: cada campanha tem ' key=adh.k21sua#text 226.5x36 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 12 color=#B5AEA6 text="por campanha: cada campanha tem o seu (padrão)"
+                  FRAME 'Field' key=adh.k22dbv 226.5x102.75 @727.5,0 layout=V gap=5 pad=[0, 0, 5.25, 0] main=start cross=start sizing=fixed/fill
+                    TEXT 'Duração' key=adh.k23fry 226.5x19 @0,0 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="Duração"
+                    FRAME 'Para sempre' key=adh.k24eqe 226.5x33 @0,24 layout=V gap=0 pad=[7, 0, 7, 0] main=start cross=start sizing=fill/hug
+                      TEXT 'Para sempre' key=adh.k24eqe#text 226.5x19 @0,7 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="Para sempre"
+                    FRAME 'sem data de fim: o grupo segue a' key=adh.k258rg 226.5x36 @0,62 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                      TEXT 'sem data de fim: o grupo segue a' key=adh.k258rg#text 226.5x36 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 12 color=#B5AEA6 text="sem data de fim: o grupo segue até alguém pausar"
+          FRAME 'Box' key=adh.k26vib 992x0.01 @0,357.29 sizing=fixed/fixed
+          FRAME 'Actions' key=adh.k272em 994x34 @0,361.5 layout=H gap=0 pad=[0, 0, 0, 914] main=end cross=center sizing=hug/hug
+            FRAME 'Button' key=adh.k28air 80x34 @914,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=9
+              TEXT 'Button' key=adh.k28air#text 50x17 @15,8.5 sizing=fixed/fixed font=IBM Plex Sans SemiBold 13 color=#140A04 text="Próximo"
+        FRAME 'Wiz preview' key=adh.k293uk 380x246 @1012,0 layout=V gap=9.989999771118164 pad=[17, 19, 31.010000228881836, 19] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=14
+          TEXT 'Prévia' key=adh.k2a2o2 340x21 @20,18 sizing=fill/hug font=Archivo Expanded Bold 16 color=#F4EFE9 text="Prévia"
+          FRAME 'Wiz preview body' key=adh.k2bh98 340x165 @20,48.99 layout=V gap=10 pad=[0, 0, 0, 0] main=start cross=end sizing=fill/hug
+            FRAME 'Pv row' key=adh.k2csbz 342x36 @-2,0 layout=V gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Label' key=adh.k2dfhp 342x14 @0,0 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Conta"
+              FRAME 'Acme Health' key=adh.k2evhf 342x20 @0,16 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT 'Acme Health' key=adh.k2evhf#text 342x20 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#ECE7E1 text="Acme Health"
+            FRAME 'Pv node' key=adh.k2fnz9 334x84 @6,46 layout=V gap=4 pad=[2, 0, 2, 14] main=start cross=start sizing=fixed/hug stroke={"color": "#26262E", "weight": 1}
+              FRAME 'Pv row' key=adh.k2gsj6 320x38 @16,2 layout=V gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+                TEXT 'Label' key=adh.k2hk3b 320x14 @0,0 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Grupo"
+                FRAME 'Box' key=adh.k2i6vv 320x22 @0,16 layout=H gap=6 pad=[0, 259, 0, 0] main=start cross=start sizing=fill/hug
+                  TEXT '01' key=adh.k2jdx2 16x20 @0,0 sizing=hug/hug font=IBM Plex Sans SemiBold 13 color=#F4EFE9 text="01"
+                  INSTANCE 'Badge' key=adh.k2k0dc 42x22 @22,0 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#18181E"] stroke={"color": "#26262E", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.default props={"variant": "Default"}
+              FRAME 'Compras · orçamento por campanha' key=adh.k2l9f2 318x38 @16,44 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT 'Compras · orçamento por campanha' key=adh.k2l9f2#text 318x38 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 12.5 color=#8F8A85 text="Compras · orçamento por campanha · para sempre, sem data de fim"
+            FRAME 'Spacing' key=adh.k2m46f~sp 340x25 @0,140 layout=V gap=0 pad=[4, 0, 0, 0] main=start cross=start sizing=fill/hug
+              FRAME 'Tudo nasce pausado: alguém liga ' key=adh.k2m46f 340x21 @0,4 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT 'Tudo nasce pausado: alguém liga ' key=adh.k2m46f#text 340x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#8F8A85 text="Tudo nasce pausado: alguém liga no Taboola."

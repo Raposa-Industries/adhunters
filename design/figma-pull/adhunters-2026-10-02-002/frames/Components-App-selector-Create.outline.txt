@@ -1,0 +1,25 @@
+COMPONENT 'App selector · Create' key=adh.c.a2o7kz.default 233x48 @0,2163 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1}
+  FRAME 'Selected app' key=mm.sel.create.row 232x32 @0,8 layout=H gap=10 pad=[0, 14, 0, 12] main=start cross=center sizing=fill/fixed
+    FRAME 'Glyph' key=mm.sel.create.row>adh.k8hy1g 28x28 @12,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7
+      FRAME 'Icon' key=mm.sel.create.row>adh.k8i8fr 16x16 @6,6 sizing=fixed/fixed
+        VECTOR 'Vector' key=mm.sel.create.row>#8:1290 13x13 @1.5,1.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+        VECTOR 'Vector' key=mm.sel.create.row>#8:1291 8x8 @4,4 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.2000000476837158}
+    FRAME 'Apps text' key=mm.sel.create.row>adh.k8jo7b 142x32 @50,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+      TEXT 'Create' key=mm.sel.create.row>adh.k8kmll 142x14 @0,0 sizing=fill/hug font=Archivo Expanded Bold 13 color=#F4EFE9 text="Create"
+      FRAME 'Imagens e headlines' key=mm.sel.create.row>adh.k8l3u4 142x18 @0,14 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Imagens e headlines' key=mm.sel.create.row>adh.k8l3u4#text 142x18 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Imagens e headlines"
+    FRAME 'Keys' key=mm.sel.create.row>adh.k8mebb 41x19 @235,14.5 layout=H gap=3 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed HIDDEN
+      INSTANCE 'Key' key=mm.sel.create.row>adh.k8ni7f 19x19 @0,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+      INSTANCE 'Key' key=mm.sel.create.row>adh.k8o1lw 19x19 @22,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+    FRAME 'Chevron' key=mm.sel.create.row.chevron 16x16 @202,8 sizing=fixed/fixed
+      VECTOR 'Vector' 8x4 @4,6 sizing=fixed/fixed stroke={"color": "#8B8B96", "weight": 1.5}
+  FRAME 'Glyph' key=adh.c.a2o7kz.default.a2jdxk 28x28 @30,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7 HIDDEN
+    FRAME 'Icon' key=adh.c.a2o7kz.default.a2kdol 16x16 @6,6 sizing=fixed/fixed
+      VECTOR 'Vector' 13x13 @1.5,1.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+      VECTOR 'Vector' 8x8 @4,4 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.2000000476837158}
+  FRAME 'Create' key=adh.c.a2o7kz.default.a2ls2d 59x15 @50,8.5 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug HIDDEN
+    TEXT 'Create' key=adh.c.a2o7kz.default.a2ls2d#text 59x15 @0,0 sizing=fill/hug font=Archivo Expanded Bold 14 color=#ECE7E1 text="Create"
+  FRAME 'Spacing' key=adh.c.a2o7kz.default.a2mb13~sp 100x14 @119,9 layout=H gap=0 pad=[0, 0, 0, 86] main=start cross=start sizing=hug/hug HIDDEN
+    FRAME 'Chevron' key=adh.c.a2o7kz.default.a2mb13 14x14 @86,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+      FRAME 'Icon' key=adh.c.a2o7kz.default.a2n7f8 14x14 @0,0 sizing=fixed/fill
+        VECTOR 'Vector' 6.13x3.06 @3.94,5.69 sizing=fixed/fixed stroke={"color": "#8F8A85", "weight": 1.3125}

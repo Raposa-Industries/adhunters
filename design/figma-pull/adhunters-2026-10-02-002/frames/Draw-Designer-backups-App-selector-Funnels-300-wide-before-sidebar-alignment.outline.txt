@@ -1,0 +1,23 @@
+COMPONENT 'App selector · Funnels (300 wide, before sidebar alignment)' key=mm.backup.comp.funnels.764e971635 233x48 @2240,400 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1}
+  FRAME 'Selected app' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row 232x32 @0,8 layout=H gap=10 pad=[0, 14, 0, 12] main=start cross=center sizing=fill/fixed
+    FRAME 'Glyph' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>adh.k98fas 28x28 @12,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7
+      FRAME 'Icon' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>adh.k99u7g 16x16 @6,6 sizing=fixed/fixed
+        VECTOR 'Vector' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>#8:1532 13x11 @1.5,2.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+    FRAME 'Apps text' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>adh.k9ajvx 142x32 @50,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+      TEXT 'Funnels' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>adh.k9bdw3 142x14 @0,0 sizing=fill/hug font=Archivo Expanded Bold 13 color=#F4EFE9 text="Funnels"
+      FRAME 'Landing pages e funis' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>adh.k9chv0 142x18 @0,14 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Landing pages e funis' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>adh.k9chv0#text 142x18 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Landing pages e funis"
+    FRAME 'Keys' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>adh.k9ds9m 41x19 @235,14.5 layout=H gap=3 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed HIDDEN
+      INSTANCE 'Key' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>adh.k9ecya 19x19 @0,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+      INSTANCE 'Key' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row>adh.k9f6go 19x19 @22,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+    FRAME 'Chevron' key=mm.backup.comp.funnels.764e971635>mm.sel.funnels.row.chevron 16x16 @202,8 sizing=fixed/fixed
+      VECTOR 'Vector' key=mm.backup.comp.funnels.764e971635>#13:1481 8x4 @4,6 sizing=fixed/fixed stroke={"color": "#8B8B96", "weight": 1.5}
+  FRAME 'Glyph' key=mm.backup.comp.funnels.764e971635>adh.c.a3dsj5.default.a38msy 28x28 @30,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7 HIDDEN
+    FRAME 'Icon' key=mm.backup.comp.funnels.764e971635>adh.c.a3dsj5.default.a39ly0 16x16 @6,6 sizing=fixed/fixed
+      VECTOR 'Vector' key=mm.backup.comp.funnels.764e971635>#8:160 13x11 @1.5,2.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+  FRAME 'Funnels' key=mm.backup.comp.funnels.764e971635>adh.c.a3dsj5.default.a3axxv 66x30 @50,1 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug HIDDEN
+    TEXT 'Funnels' key=mm.backup.comp.funnels.764e971635>adh.c.a3dsj5.default.a3axxv#text 66x30 @0,0 sizing=fill/hug font=Archivo Expanded Bold 14 color=#ECE7E1 text="Funnels"
+  FRAME 'Spacing' key=mm.backup.comp.funnels.764e971635>adh.c.a3dsj5.default.a3b9it~sp 93x14 @126,9 layout=H gap=0 pad=[0, 0, 0, 79] main=start cross=start sizing=hug/hug HIDDEN
+    FRAME 'Chevron' key=mm.backup.comp.funnels.764e971635>adh.c.a3dsj5.default.a3b9it 14x14 @79,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+      FRAME 'Icon' key=mm.backup.comp.funnels.764e971635>adh.c.a3dsj5.default.a3ch6i 14x14 @0,0 sizing=fixed/fill
+        VECTOR 'Vector' key=mm.backup.comp.funnels.764e971635>#8:166 6.13x3.06 @3.94,5.69 sizing=fixed/fixed stroke={"color": "#8F8A85", "weight": 1.3125}

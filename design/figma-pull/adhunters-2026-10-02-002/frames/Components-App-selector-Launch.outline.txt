@@ -1,0 +1,25 @@
+COMPONENT 'App selector · Launch' key=adh.c.au7t0.default 233x48 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1}
+  FRAME 'Selected app' key=mm.sel.launch.row 232x32 @0,8 layout=H gap=10 pad=[0, 14, 0, 12] main=start cross=center sizing=fill/fixed
+    FRAME 'Glyph' key=mm.sel.launch.row>adh.k8q53f 28x28 @12,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7
+      FRAME 'Icon' key=mm.sel.launch.row>adh.k8rurp 16x16 @6,6 sizing=fixed/fixed
+        VECTOR 'Vector' key=mm.sel.launch.row>#8:1338 11x3.5 @2.5,10 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+        VECTOR 'Vector' key=mm.sel.launch.row>#8:1339 6.4x8.5 @4.8,2.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+    FRAME 'Apps text' key=mm.sel.launch.row>adh.k8s06j 142x32 @50,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+      TEXT 'Launch' key=mm.sel.launch.row>adh.k8t7st 142x14 @0,0 sizing=fill/hug font=Archivo Expanded Bold 13 color=#F4EFE9 text="Launch"
+      FRAME 'Criar e mudar campanhas' key=mm.sel.launch.row>adh.k8ukcs 142x18 @0,14 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Criar e mudar campanhas' key=mm.sel.launch.row>adh.k8ukcs#text 142x18 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Criar e mudar campanhas"
+    FRAME 'Keys' key=mm.sel.launch.row>adh.k8v5nw 41x19 @151,6.5 layout=H gap=3 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed HIDDEN
+      INSTANCE 'Key' key=mm.sel.launch.row>adh.k8wn3x 19x19 @0,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+      INSTANCE 'Key' key=mm.sel.launch.row>adh.k8xk9p 19x19 @22,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+    FRAME 'Chevron' key=mm.sel.launch.row.chevron 16x16 @202,8 sizing=fixed/fixed
+      VECTOR 'Vector' 8x4 @4,6 sizing=fixed/fixed stroke={"color": "#8B8B96", "weight": 1.5}
+  FRAME 'Glyph' key=adh.c.au7t0.default.aparz 28x28 @30,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7 HIDDEN
+    FRAME 'Icon' key=adh.c.au7t0.default.aqvhm 16x16 @6,6 sizing=fixed/fixed
+      VECTOR 'Vector' 11x3.5 @2.5,10 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+      VECTOR 'Vector' 6.4x8.5 @4.8,2.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+  FRAME 'Launch' key=adh.c.au7t0.default.ar9gv 61x30 @50,1 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug HIDDEN
+    TEXT 'Launch' key=adh.c.au7t0.default.ar9gv#text 61x30 @0,0 sizing=fill/hug font=Archivo Expanded Bold 14 color=#ECE7E1 text="Launch"
+  FRAME 'Spacing' key=adh.c.au7t0.default.asp7b~sp 98x14 @121,9 layout=H gap=0 pad=[0, 0, 0, 84] main=start cross=start sizing=hug/hug HIDDEN
+    FRAME 'Chevron' key=adh.c.au7t0.default.asp7b 14x14 @84,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+      FRAME 'Icon' key=adh.c.au7t0.default.at8rg 14x14 @0,0 sizing=fixed/fill
+        VECTOR 'Vector' 6.13x3.06 @3.94,5.69 sizing=fixed/fixed stroke={"color": "#8F8A85", "weight": 1.3125}

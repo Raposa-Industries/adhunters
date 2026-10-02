@@ -1,0 +1,10 @@
+COMPONENT 'App selector · Funnels (before Option A)' key=mm.backup.comp.funnels.004 233x30 @1640,400 layout=H gap=10 pad=[0, 13, 0, 12] main=center cross=center fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1}
+  FRAME 'Glyph' key=mm.backup.comp.funnels.004>adh.c.a3dsj5.default.a38msy 28x28 @12,1 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7
+    FRAME 'Icon' key=mm.backup.comp.funnels.004>adh.c.a3dsj5.default.a39ly0 16x16 @6,6 sizing=fixed/fixed
+      VECTOR 'Vector' key=mm.backup.comp.funnels.004>#8:160 13x11 @1.5,2.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+  FRAME 'Funnels' key=mm.backup.comp.funnels.004>adh.c.a3dsj5.default.a3axxv 66x30 @50,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+    TEXT 'Funnels' key=mm.backup.comp.funnels.004>adh.c.a3dsj5.default.a3axxv#text 66x30 @0,0 sizing=fill/hug font=Archivo Expanded Bold 14 color=#ECE7E1 text="Funnels"
+  FRAME 'Spacing' key=mm.backup.comp.funnels.004>adh.c.a3dsj5.default.a3b9it~sp 93x14 @126,8 layout=H gap=0 pad=[0, 0, 0, 79] main=start cross=start sizing=hug/hug
+    FRAME 'Chevron' key=mm.backup.comp.funnels.004>adh.c.a3dsj5.default.a3b9it 14x14 @79,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+      FRAME 'Icon' key=mm.backup.comp.funnels.004>adh.c.a3dsj5.default.a3ch6i 14x14 @0,0 sizing=fixed/fill
+        VECTOR 'Vector' key=mm.backup.comp.funnels.004>#8:166 6.13x3.06 @3.94,5.69 sizing=fixed/fixed stroke={"color": "#8F8A85", "weight": 1.3125}

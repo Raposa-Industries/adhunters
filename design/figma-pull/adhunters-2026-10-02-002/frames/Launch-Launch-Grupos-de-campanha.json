@@ -1,0 +1,7268 @@
+{
+ "id": "8:1749",
+ "type": "FRAME",
+ "name": "Launch · Grupos de campanha",
+ "key": "adh.k0qhf",
+ "x": 1640,
+ "y": 0,
+ "w": 1440,
+ "h": 900,
+ "fills": [
+  "#09090C"
+ ],
+ "layout": {
+  "mode": "V",
+  "gap": 0,
+  "padding": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "main": "start",
+  "cross": "start"
+ },
+ "children": [
+  {
+   "id": "8:1750",
+   "type": "FRAME",
+   "name": "Top bar",
+   "key": "adh.k1gum",
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 48,
+   "fills": [
+    "#060608"
+   ],
+   "stroke": {
+    "color": "#1D1D23",
+    "weight": 1
+   },
+   "layout": {
+    "mode": "H",
+    "gap": 10,
+    "padding": [
+     0,
+     0,
+     1,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fixed"
+   },
+   "children": [
+    {
+     "id": "8:1751",
+     "type": "INSTANCE",
+     "name": "App selector · Launch",
+     "key": "adh.k2f1u",
+     "x": 0,
+     "y": 0,
+     "w": 232,
+     "h": 46,
+     "fills": [
+      "#0F0F13"
+     ],
+     "stroke": {
+      "color": "#6A6A75",
+      "weight": 1
+     },
+     "layout": {
+      "mode": "H",
+      "gap": 0,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "fixed",
+      "v": "fill"
+     },
+     "of": {
+      "id": "8:3",
+      "name": "App selector · Launch",
+      "key": "adh.c.au7t0.default"
+     },
+     "instanceProps": {}
+    },
+    {
+     "id": "8:1762",
+     "type": "FRAME",
+     "name": "Page tabs",
+     "key": "adh.k8umn",
+     "x": 242,
+     "y": 0,
+     "w": 628,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 2,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:1763",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.k9vzj",
+       "x": 0,
+       "y": 0,
+       "w": 146,
+       "h": 46,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1
+       },
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:16",
+        "name": "variant=Current",
+        "key": "adh.c.awh7q.current"
+       },
+       "instanceProps": {
+        "variant": "Current"
+       }
+      },
+      {
+       "id": "8:1765",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kamoo",
+       "x": 148,
+       "y": 0,
+       "w": 92,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:1767",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kbfcs",
+       "x": 242,
+       "y": 0,
+       "w": 77,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:1769",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kck8d",
+       "x": 321,
+       "y": 0,
+       "w": 70,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:1771",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kd1ll",
+       "x": 393,
+       "y": 0,
+       "w": 76,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:1773",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.ketlb",
+       "x": 471,
+       "y": 0,
+       "w": 68,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:1775",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kfr36",
+       "x": 541,
+       "y": 0,
+       "w": 87,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      }
+     ]
+    },
+    {
+     "id": "8:1777",
+     "type": "FRAME",
+     "name": "Spacer",
+     "key": "adh.kgehz",
+     "x": 880,
+     "y": 0,
+     "w": 216,
+     "h": 46,
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": []
+    },
+    {
+     "id": "8:1778",
+     "type": "FRAME",
+     "name": "Tools",
+     "key": "adh.kho5y",
+     "x": 1106,
+     "y": 0,
+     "w": 334,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 12,
+      "padding": [
+       0,
+       14,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:1779",
+       "type": "INSTANCE",
+       "name": "Search box",
+       "key": "adh.ki319",
+       "x": 0,
+       "y": 8,
+       "w": 280,
+       "h": 30,
+       "fills": [
+        "#121217"
+       ],
+       "stroke": {
+        "color": "#26262E",
+        "weight": 1
+       },
+       "radius": 9,
+       "layout": {
+        "mode": "H",
+        "gap": 8,
+        "padding": [
+         1,
+         11,
+         1,
+         11
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:19",
+        "name": "Search box",
+        "key": "adh.c.a11ghd.default"
+       },
+       "instanceProps": {}
+      },
+      {
+       "id": "8:1787",
+       "type": "INSTANCE",
+       "name": "Avatar",
+       "key": "adh.kmtzp",
+       "x": 292,
+       "y": 9,
+       "w": 28,
+       "h": 28,
+       "fills": [
+        "#18181E"
+       ],
+       "stroke": {
+        "color": "#2A2A33",
+        "weight": 1
+       },
+       "radius": 8,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         1,
+         1,
+         1,
+         1
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:27",
+        "name": "Avatar",
+        "key": "adh.c.a133ym.default"
+       },
+       "instanceProps": {}
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "8:1789",
+   "type": "FRAME",
+   "name": "Body",
+   "key": "adh.kn8eg",
+   "x": 0,
+   "y": 48,
+   "w": 1440,
+   "h": 852,
+   "layout": {
+    "mode": "H",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fill"
+   },
+   "children": [
+    {
+     "id": "8:1790",
+     "type": "FRAME",
+     "name": "Filters",
+     "key": "adh.kofx8",
+     "x": 0,
+     "y": 0,
+     "w": 232,
+     "h": 854,
+     "fills": [
+      "#0A0A0D"
+     ],
+     "stroke": {
+      "color": "#1D1D23",
+      "weight": 1
+     },
+     "layout": {
+      "mode": "V",
+      "gap": 16,
+      "padding": [
+       14,
+       13,
+       657,
+       12
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "fixed",
+      "v": "hug"
+     },
+     "children": [
+      {
+       "id": "8:1791",
+       "type": "FRAME",
+       "name": "Filters head",
+       "key": "adh.kp4js",
+       "x": 12,
+       "y": 14,
+       "w": 206,
+       "h": 20,
+       "layout": {
+        "mode": "H",
+        "gap": 123.61000061035156,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:1792",
+         "type": "TEXT",
+         "name": "Label",
+         "key": "adh.kqmmc",
+         "x": 0,
+         "y": 3,
+         "w": 49,
+         "h": 14,
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "text": "Filtros",
+         "font": {
+          "family": "Inter",
+          "style": "Bold"
+         },
+         "size": 10,
+         "color": "#9A948D"
+        },
+        {
+         "id": "8:1793",
+         "type": "INSTANCE",
+         "name": "Fold button",
+         "key": "adh.kr954",
+         "x": 172.61,
+         "y": 0,
+         "w": 23,
+         "h": 20,
+         "stroke": {
+          "color": "#26262E",
+          "weight": 1
+         },
+         "radius": 6,
+         "layout": {
+          "mode": "H",
+          "gap": 0,
+          "padding": [
+           1,
+           7,
+           1,
+           7
+          ],
+          "main": "center",
+          "cross": "center"
+         },
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "of": {
+          "id": "8:29",
+          "name": "Fold button",
+          "key": "adh.c.a150rn.default"
+         },
+         "instanceProps": {}
+        }
+       ]
+      },
+      {
+       "id": "8:1795",
+       "type": "FRAME",
+       "name": "Filter group",
+       "key": "adh.kszom",
+       "x": 12,
+       "y": 50,
+       "w": 206,
+       "h": 57,
+       "layout": {
+        "mode": "V",
+        "gap": 7,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:1796",
+         "type": "TEXT",
+         "name": "Label",
+         "key": "adh.ktqkj",
+         "x": 0,
+         "y": 0,
+         "w": 206,
+         "h": 14,
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "text": "Busca",
+         "font": {
+          "family": "Inter",
+          "style": "Bold"
+         },
+         "size": 10,
+         "color": "#9A948D"
+        },
+        {
+         "id": "8:1797",
+         "type": "INSTANCE",
+         "name": "Text field",
+         "key": "adh.kuj20",
+         "x": 0,
+         "y": 21,
+         "w": 206,
+         "h": 36,
+         "fills": [
+          "#121217"
+         ],
+         "stroke": {
+          "color": "#55555F",
+          "weight": 1
+         },
+         "radius": 8,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           9,
+           11,
+           9,
+           11
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "fixed"
+         },
+         "of": {
+          "id": "8:31",
+          "name": "variant=Placeholder",
+          "key": "adh.c.a18gut.placeholder"
+         },
+         "instanceProps": {
+          "variant": "Placeholder"
+         }
+        }
+       ]
+      },
+      {
+       "id": "8:1800",
+       "type": "FRAME",
+       "name": "Filter group",
+       "key": "adh.kwyq8",
+       "x": 12,
+       "y": 123,
+       "w": 206,
+       "h": 74,
+       "layout": {
+        "mode": "V",
+        "gap": 7,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:1801",
+         "type": "TEXT",
+         "name": "Label",
+         "key": "adh.kxqtr",
+         "x": 0,
+         "y": 0,
+         "w": 206,
+         "h": 14,
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "text": "Estado",
+         "font": {
+          "family": "Inter",
+          "style": "Bold"
+         },
+         "size": 10,
+         "color": "#9A948D"
+        },
+        {
+         "id": "8:1802",
+         "type": "FRAME",
+         "name": "Chips",
+         "key": "adh.kya9t",
+         "x": 0,
+         "y": 21,
+         "w": 206,
+         "h": 53,
+         "sizing": {
+          "h": "fill",
+          "v": "fixed"
+         },
+         "children": [
+          {
+           "id": "8:1803",
+           "type": "INSTANCE",
+           "name": "Chip",
+           "key": "adh.kziin",
+           "x": 0,
+           "y": 0,
+           "w": 53,
+           "h": 24,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "of": {
+            "id": "8:38",
+            "name": "variant=On",
+            "key": "adh.c.a1bwmv.on"
+           },
+           "instanceProps": {
+            "variant": "On"
+           }
+          },
+          {
+           "id": "8:1806",
+           "type": "INSTANCE",
+           "name": "Chip",
+           "key": "adh.k11ou4",
+           "x": 58,
+           "y": 0,
+           "w": 69,
+           "h": 24,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "of": {
+            "id": "8:41",
+            "name": "variant=Off",
+            "key": "adh.c.a1bwmv.off"
+           },
+           "instanceProps": {
+            "variant": "Off"
+           }
+          },
+          {
+           "id": "8:1809",
+           "type": "INSTANCE",
+           "name": "Chip",
+           "key": "adh.k13fpb",
+           "x": 132,
+           "y": 0,
+           "w": 72,
+           "h": 24,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "of": {
+            "id": "8:41",
+            "name": "variant=Off",
+            "key": "adh.c.a1bwmv.off"
+           },
+           "instanceProps": {
+            "variant": "Off"
+           }
+          },
+          {
+           "id": "8:1812",
+           "type": "INSTANCE",
+           "name": "Chip",
+           "key": "adh.k15hv7",
+           "x": 0,
+           "y": 29,
+           "w": 57,
+           "h": 24,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "of": {
+            "id": "8:41",
+            "name": "variant=Off",
+            "key": "adh.c.a1bwmv.off"
+           },
+           "instanceProps": {
+            "variant": "Off"
+           }
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "8:1815",
+     "type": "FRAME",
+     "name": "Main",
+     "key": "adh.k17byq",
+     "x": 232,
+     "y": 0,
+     "w": 1208,
+     "h": 852,
+     "layout": {
+      "mode": "V",
+      "gap": 12,
+      "padding": [
+       20,
+       24,
+       364.5899963378906,
+       24
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:1816",
+       "type": "FRAME",
+       "name": "Pickers",
+       "key": "adh.k18sce",
+       "x": 24,
+       "y": 20,
+       "w": 1160,
+       "h": 48.75,
+       "layout": {
+        "mode": "H",
+        "gap": 4,
+        "padding": [
+         0,
+         671.6599731445312,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fixed"
+       },
+       "children": [
+        {
+         "id": "8:1817",
+         "type": "FRAME",
+         "name": "Pick crumb",
+         "key": "adh.k19uzr",
+         "x": 0,
+         "y": 0,
+         "w": 121.78,
+         "h": 48.75,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           6
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "hug",
+          "v": "fill"
+         },
+         "children": [
+          {
+           "id": "8:1818",
+           "type": "FRAME",
+           "name": "Picker",
+           "key": "adh.k1ammu",
+           "x": 6,
+           "y": 0,
+           "w": 115.78,
+           "h": 48.75,
+           "radius": 8,
+           "layout": {
+            "mode": "V",
+            "gap": 1,
+            "padding": [
+             5,
+             12,
+             6,
+             12
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "fill"
+           },
+           "children": [
+            {
+             "id": "8:1819",
+             "type": "TEXT",
+             "name": "Conta",
+             "key": "adh.k1ammu/a21ame",
+             "x": 12,
+             "y": 5,
+             "w": 91.78,
+             "h": 17,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Conta",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 11,
+             "color": "#9A948D"
+            },
+            {
+             "id": "8:1820",
+             "type": "FRAME",
+             "name": "Acme Health ▾",
+             "key": "adh.k1ammu/a22yza",
+             "x": 12,
+             "y": 23,
+             "w": 91.78,
+             "h": 21,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:1821",
+               "type": "TEXT",
+               "name": "Acme Health ▾",
+               "key": "adh.k1ammu/a22yza#text",
+               "x": 0,
+               "y": 0,
+               "w": 91.78,
+               "h": 21,
+               "sizing": {
+                "h": "fill",
+                "v": "fixed"
+               },
+               "text": "Acme Health ▾",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13.5,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "8:1822",
+         "type": "FRAME",
+         "name": "Pick crumb",
+         "key": "adh.k1dpfy",
+         "x": 125.78,
+         "y": 0,
+         "w": 164.78,
+         "h": 48.75,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           6
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "hug",
+          "v": "fill"
+         },
+         "children": [
+          {
+           "id": "8:1823",
+           "type": "TEXT",
+           "name": "Before",
+           "key": "adh.k1e6s4",
+           "x": -9,
+           "y": 60.75,
+           "w": 5,
+           "h": 21,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "text": "›",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 14,
+           "color": "#8F8A85"
+          },
+          {
+           "id": "8:1824",
+           "type": "FRAME",
+           "name": "Picker",
+           "key": "adh.k1fx8m",
+           "x": 6,
+           "y": 0,
+           "w": 158.78,
+           "h": 48.75,
+           "radius": 8,
+           "layout": {
+            "mode": "V",
+            "gap": 1,
+            "padding": [
+             5,
+             12,
+             6,
+             12
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "fill"
+           },
+           "children": [
+            {
+             "id": "8:1825",
+             "type": "TEXT",
+             "name": "Conta",
+             "key": "adh.k1fx8m/a21ame",
+             "x": 12,
+             "y": 5,
+             "w": 134.78,
+             "h": 17,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Grupo de campanha",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 11,
+             "color": "#9A948D"
+            },
+            {
+             "id": "8:1826",
+             "type": "FRAME",
+             "name": "Acme Health ▾",
+             "key": "adh.k1fx8m/a22yza",
+             "x": 12,
+             "y": 23,
+             "w": 134.78,
+             "h": 21,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:1827",
+               "type": "TEXT",
+               "name": "Acme Health ▾",
+               "key": "adh.k1fx8m/a22yza#text",
+               "x": 0,
+               "y": 0,
+               "w": 134.78,
+               "h": 21,
+               "sizing": {
+                "h": "fill",
+                "v": "fixed"
+               },
+               "text": "Todos os grupos (3) ▾",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13.5,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "8:1828",
+         "type": "FRAME",
+         "name": "Pick crumb",
+         "key": "adh.k1i1zv",
+         "x": 294.56,
+         "y": 0,
+         "w": 193.78,
+         "h": 48.75,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           6
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "hug",
+          "v": "fill"
+         },
+         "children": [
+          {
+           "id": "8:1829",
+           "type": "TEXT",
+           "name": "Before",
+           "key": "adh.k1joa0",
+           "x": -9,
+           "y": 60.75,
+           "w": 5,
+           "h": 21,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "text": "›",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 14,
+           "color": "#8F8A85"
+          },
+          {
+           "id": "8:1830",
+           "type": "FRAME",
+           "name": "Picker",
+           "key": "adh.k1kxod",
+           "x": 6,
+           "y": 0,
+           "w": 187.78,
+           "h": 48.75,
+           "radius": 8,
+           "layout": {
+            "mode": "V",
+            "gap": 1,
+            "padding": [
+             5,
+             12,
+             6,
+             12
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "fill"
+           },
+           "children": [
+            {
+             "id": "8:1831",
+             "type": "TEXT",
+             "name": "Conta",
+             "key": "adh.k1kxod/a21ame",
+             "x": 12,
+             "y": 5,
+             "w": 163.78,
+             "h": 17,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Campanha",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 11,
+             "color": "#9A948D"
+            },
+            {
+             "id": "8:1832",
+             "type": "FRAME",
+             "name": "Acme Health ▾",
+             "key": "adh.k1kxod/a22yza",
+             "x": 12,
+             "y": 23,
+             "w": 163.78,
+             "h": 21,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:1833",
+               "type": "TEXT",
+               "name": "Acme Health ▾",
+               "key": "adh.k1kxod/a22yza#text",
+               "x": 0,
+               "y": 0,
+               "w": 163.78,
+               "h": 21,
+               "sizing": {
+                "h": "fill",
+                "v": "fixed"
+               },
+               "text": "Todas as campanhas (5) ▾",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13.5,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:1834",
+       "type": "FRAME",
+       "name": "Spacing",
+       "key": "adh.k1n6j9~sp",
+       "x": 24,
+       "y": 80.75,
+       "w": 1162.47,
+       "h": 52,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         2,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:1835",
+         "type": "FRAME",
+         "name": "Page head",
+         "key": "adh.k1n6j9",
+         "x": 0,
+         "y": 2,
+         "w": 1162.47,
+         "h": 50,
+         "layout": {
+          "mode": "H",
+          "gap": 503.4700012207031,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "end"
+         },
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:1836",
+           "type": "FRAME",
+           "name": "Box",
+           "key": "adh.k1oywc",
+           "x": 0,
+           "y": 0,
+           "w": 442,
+           "h": 50,
+           "layout": {
+            "mode": "V",
+            "gap": 4,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:1837",
+             "type": "TEXT",
+             "name": "Todos os grupos de campanha",
+             "key": "adh.k1pwx5",
+             "x": 0,
+             "y": 0,
+             "w": 442,
+             "h": 27,
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "text": "Todos os grupos de campanha",
+             "font": {
+              "family": "Inter",
+              "style": "Bold"
+             },
+             "size": 22,
+             "color": "#F4EFE9"
+            },
+            {
+             "id": "8:1838",
+             "type": "FRAME",
+             "name": "Números do Intel, atualizados 02",
+             "key": "adh.k1q4n6",
+             "x": 0,
+             "y": 31,
+             "w": 442,
+             "h": 19,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:1839",
+               "type": "TEXT",
+               "name": "Números do Intel, atualizados 02",
+               "key": "adh.k1q4n6#text",
+               "x": 0,
+               "y": 0,
+               "w": 442,
+               "h": 19,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Números do Intel, atualizados 02/10, 03:38. Vendas e receita do RedTrack.",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 12.5,
+               "color": "#B5AEA6"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:1840",
+           "type": "FRAME",
+           "name": "Actions",
+           "key": "adh.k1r64o",
+           "x": 945.47,
+           "y": 10,
+           "w": 217,
+           "h": 40,
+           "layout": {
+            "mode": "H",
+            "gap": 8,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:1841",
+             "type": "INSTANCE",
+             "name": "Select",
+             "key": "adh.k1svs2",
+             "x": 0,
+             "y": 0,
+             "w": 139,
+             "h": 40,
+             "fills": [
+              "#121217"
+             ],
+             "stroke": {
+              "color": "#55555F",
+              "weight": 1
+             },
+             "radius": 8,
+             "layout": {
+              "mode": "H",
+              "gap": 8,
+              "padding": [
+               9,
+               11,
+               9,
+               11
+              ],
+              "main": "start",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "of": {
+              "id": "8:81",
+              "name": "Select",
+              "key": "adh.c.a1rxtf.default"
+             },
+             "instanceProps": {}
+            },
+            {
+             "id": "8:1846",
+             "type": "FRAME",
+             "name": "New menu",
+             "key": "adh.k1vweh",
+             "x": 147,
+             "y": 3,
+             "w": 70,
+             "h": 34,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:1847",
+               "type": "INSTANCE",
+               "name": "Menu button",
+               "key": "adh.k1watu",
+               "x": 0,
+               "y": 0,
+               "w": 70,
+               "h": 34,
+               "fills": [
+                "#FF7A1A"
+               ],
+               "stroke": {
+                "color": "#FF7A1A",
+                "weight": 1
+               },
+               "radius": 9,
+               "layout": {
+                "mode": "H",
+                "gap": 0,
+                "padding": [
+                 7,
+                 14,
+                 7,
+                 14
+                ],
+                "main": "center",
+                "cross": "center"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "of": {
+                "id": "8:112",
+                "name": "Menu button",
+                "key": "adh.c.a25z7l.primary"
+               },
+               "instanceProps": {}
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:1849",
+       "type": "FRAME",
+       "name": "Result",
+       "key": "adh.k1xth2",
+       "x": 24,
+       "y": 149.91,
+       "w": 1160,
+       "h": 0.01,
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "children": []
+      },
+      {
+       "id": "8:1850",
+       "type": "FRAME",
+       "name": "Spacing",
+       "key": "adh.k1yhrm~sp",
+       "x": 24,
+       "y": 144.75,
+       "w": 1160,
+       "h": 67.5,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         6,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:1851",
+         "type": "FRAME",
+         "name": "Totals",
+         "key": "adh.k1yhrm",
+         "x": 0,
+         "y": 6,
+         "w": 1160,
+         "h": 61.5,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "fixed"
+         },
+         "children": [
+          {
+           "id": "8:1852",
+           "type": "FRAME",
+           "name": "Kpis",
+           "key": "adh.k1z3xr",
+           "x": 0,
+           "y": 0,
+           "w": 1162,
+           "h": 61.5,
+           "fills": [
+            "#1D1D23"
+           ],
+           "stroke": {
+            "color": "#1D1D23",
+            "weight": 1
+           },
+           "radius": 12,
+           "layout": {
+            "mode": "H",
+            "gap": 1,
+            "padding": [
+             1,
+             1,
+             1,
+             1
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "fill"
+           },
+           "children": [
+            {
+             "id": "8:1853",
+             "type": "FRAME",
+             "name": "Kpi",
+             "key": "adh.k20yvt",
+             "x": 2,
+             "y": 2,
+             "w": 127.77,
+             "h": 57.5,
+             "fills": [
+              "#0F0F13"
+             ],
+             "layout": {
+              "mode": "V",
+              "gap": 3,
+              "padding": [
+               10,
+               12,
+               10,
+               12
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1854",
+               "type": "TEXT",
+               "name": "Label",
+               "key": "adh.k21xx9",
+               "x": 12,
+               "y": 10,
+               "w": 103.77,
+               "h": 14,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Linhas",
+               "font": {
+                "family": "Inter",
+                "style": "Bold"
+               },
+               "size": 10,
+               "color": "#9A948D"
+              },
+              {
+               "id": "8:1855",
+               "type": "FRAME",
+               "name": "3",
+               "key": "adh.k2257q",
+               "x": 12,
+               "y": 27,
+               "w": 103.77,
+               "h": 23,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:1856",
+                 "type": "TEXT",
+                 "name": "3",
+                 "key": "adh.k2257q#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 103.77,
+                 "h": 23,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "3",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 15,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:1857",
+             "type": "FRAME",
+             "name": "Kpi",
+             "key": "adh.k23txi",
+             "x": 130.77,
+             "y": 2,
+             "w": 127.78,
+             "h": 57.5,
+             "fills": [
+              "#0F0F13"
+             ],
+             "layout": {
+              "mode": "V",
+              "gap": 3,
+              "padding": [
+               10,
+               12,
+               10,
+               12
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1858",
+               "type": "TEXT",
+               "name": "Label",
+               "key": "adh.k24o1m",
+               "x": 12,
+               "y": 10,
+               "w": 103.78,
+               "h": 14,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Gasto",
+               "font": {
+                "family": "Inter",
+                "style": "Bold"
+               },
+               "size": 10,
+               "color": "#9A948D"
+              },
+              {
+               "id": "8:1859",
+               "type": "FRAME",
+               "name": "US$ 1.723,84",
+               "key": "adh.k25zuf",
+               "x": 12,
+               "y": 27,
+               "w": 103.78,
+               "h": 45,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:1860",
+                 "type": "TEXT",
+                 "name": "US$ 1.723,84",
+                 "key": "adh.k25zuf#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 103.78,
+                 "h": 45,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 1.723,84",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 15,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:1861",
+             "type": "FRAME",
+             "name": "Kpi",
+             "key": "adh.k26w4r",
+             "x": 259.55,
+             "y": 2,
+             "w": 127.78,
+             "h": 57.5,
+             "fills": [
+              "#0F0F13"
+             ],
+             "layout": {
+              "mode": "V",
+              "gap": 3,
+              "padding": [
+               10,
+               12,
+               10,
+               12
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1862",
+               "type": "TEXT",
+               "name": "Label",
+               "key": "adh.k27sj1",
+               "x": 12,
+               "y": 10,
+               "w": 103.78,
+               "h": 14,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Cliques",
+               "font": {
+                "family": "Inter",
+                "style": "Bold"
+               },
+               "size": 10,
+               "color": "#9A948D"
+              },
+              {
+               "id": "8:1863",
+               "type": "FRAME",
+               "name": "5.632",
+               "key": "adh.k28dtw",
+               "x": 12,
+               "y": 27,
+               "w": 103.78,
+               "h": 23,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:1864",
+                 "type": "TEXT",
+                 "name": "5.632",
+                 "key": "adh.k28dtw#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 103.78,
+                 "h": 23,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "5.632",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 15,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:1865",
+             "type": "FRAME",
+             "name": "Kpi",
+             "key": "adh.k295md",
+             "x": 388.33,
+             "y": 2,
+             "w": 127.78,
+             "h": 57.5,
+             "fills": [
+              "#0F0F13"
+             ],
+             "layout": {
+              "mode": "V",
+              "gap": 3,
+              "padding": [
+               10,
+               12,
+               10,
+               12
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1866",
+               "type": "TEXT",
+               "name": "Label",
+               "key": "adh.k2a8qb",
+               "x": 12,
+               "y": 10,
+               "w": 103.78,
+               "h": 14,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "CTR",
+               "font": {
+                "family": "Inter",
+                "style": "Bold"
+               },
+               "size": 10,
+               "color": "#9A948D"
+              },
+              {
+               "id": "8:1867",
+               "type": "FRAME",
+               "name": "0,96%",
+               "key": "adh.k2bw58",
+               "x": 12,
+               "y": 27,
+               "w": 103.78,
+               "h": 23,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:1868",
+                 "type": "TEXT",
+                 "name": "0,96%",
+                 "key": "adh.k2bw58#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 103.78,
+                 "h": 23,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "0,96%",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 15,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:1869",
+             "type": "FRAME",
+             "name": "Kpi",
+             "key": "adh.k2cpmz",
+             "x": 517.11,
+             "y": 2,
+             "w": 127.77,
+             "h": 57.5,
+             "fills": [
+              "#0F0F13"
+             ],
+             "layout": {
+              "mode": "V",
+              "gap": 3,
+              "padding": [
+               10,
+               12,
+               10,
+               12
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1870",
+               "type": "TEXT",
+               "name": "Label",
+               "key": "adh.k2dzxz",
+               "x": 12,
+               "y": 10,
+               "w": 103.77,
+               "h": 14,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Vendas",
+               "font": {
+                "family": "Inter",
+                "style": "Bold"
+               },
+               "size": 10,
+               "color": "#9A948D"
+              },
+              {
+               "id": "8:1871",
+               "type": "FRAME",
+               "name": "69",
+               "key": "adh.k2e342",
+               "x": 12,
+               "y": 27,
+               "w": 103.77,
+               "h": 23,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:1872",
+                 "type": "TEXT",
+                 "name": "69",
+                 "key": "adh.k2e342#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 103.77,
+                 "h": 23,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "69",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 15,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:1873",
+             "type": "FRAME",
+             "name": "Kpi",
+             "key": "adh.k2f9a8",
+             "x": 645.88,
+             "y": 2,
+             "w": 127.78,
+             "h": 57.5,
+             "fills": [
+              "#0F0F13"
+             ],
+             "layout": {
+              "mode": "V",
+              "gap": 3,
+              "padding": [
+               10,
+               12,
+               10,
+               12
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1874",
+               "type": "TEXT",
+               "name": "Label",
+               "key": "adh.k2gpv4",
+               "x": 12,
+               "y": 10,
+               "w": 103.78,
+               "h": 14,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "CPA",
+               "font": {
+                "family": "Inter",
+                "style": "Bold"
+               },
+               "size": 10,
+               "color": "#9A948D"
+              },
+              {
+               "id": "8:1875",
+               "type": "FRAME",
+               "name": "US$ 24,98",
+               "key": "adh.k2hwyb",
+               "x": 12,
+               "y": 27,
+               "w": 103.78,
+               "h": 23,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:1876",
+                 "type": "TEXT",
+                 "name": "US$ 24,98",
+                 "key": "adh.k2hwyb#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 103.78,
+                 "h": 23,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 24,98",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 15,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:1877",
+             "type": "FRAME",
+             "name": "Kpi",
+             "key": "adh.k2i4wu",
+             "x": 774.66,
+             "y": 2,
+             "w": 127.78,
+             "h": 57.5,
+             "fills": [
+              "#0F0F13"
+             ],
+             "layout": {
+              "mode": "V",
+              "gap": 3,
+              "padding": [
+               10,
+               12,
+               10,
+               12
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1878",
+               "type": "TEXT",
+               "name": "Label",
+               "key": "adh.k2j3uk",
+               "x": 12,
+               "y": 10,
+               "w": 103.78,
+               "h": 14,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Receita",
+               "font": {
+                "family": "Inter",
+                "style": "Bold"
+               },
+               "size": 10,
+               "color": "#9A948D"
+              },
+              {
+               "id": "8:1879",
+               "type": "FRAME",
+               "name": "US$ 2.691,00",
+               "key": "adh.k2kvym",
+               "x": 12,
+               "y": 27,
+               "w": 103.78,
+               "h": 45,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:1880",
+                 "type": "TEXT",
+                 "name": "US$ 2.691,00",
+                 "key": "adh.k2kvym#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 103.78,
+                 "h": 45,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 2.691,00",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 15,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:1881",
+             "type": "FRAME",
+             "name": "Kpi",
+             "key": "adh.k2l38w",
+             "x": 903.44,
+             "y": 2,
+             "w": 127.78,
+             "h": 57.5,
+             "fills": [
+              "#0F0F13"
+             ],
+             "layout": {
+              "mode": "V",
+              "gap": 3,
+              "padding": [
+               10,
+               12,
+               10,
+               12
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1882",
+               "type": "TEXT",
+               "name": "Label",
+               "key": "adh.k2mbdr",
+               "x": 12,
+               "y": 10,
+               "w": 103.78,
+               "h": 14,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Lucro",
+               "font": {
+                "family": "Inter",
+                "style": "Bold"
+               },
+               "size": 10,
+               "color": "#9A948D"
+              },
+              {
+               "id": "8:1883",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k2ne7t",
+               "x": 12,
+               "y": 27,
+               "w": 103.78,
+               "h": 22.5,
+               "layout": {
+                "mode": "H",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 1.5,
+                 13.779999732971191
+                ],
+                "main": "start",
+                "cross": "center"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "fixed"
+               },
+               "children": [
+                {
+                 "id": "8:1884",
+                 "type": "TEXT",
+                 "name": "US$ 967,16",
+                 "key": "adh.k2o6g0",
+                 "x": 13.78,
+                 "y": -1,
+                 "w": 90,
+                 "h": 23,
+                 "sizing": {
+                  "h": "fixed",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 967,16",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 15,
+                 "color": "#3FBF7F",
+                 "align": "right"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:1885",
+             "type": "FRAME",
+             "name": "Kpi",
+             "key": "adh.k2pcku",
+             "x": 1032.22,
+             "y": 2,
+             "w": 127.78,
+             "h": 57.5,
+             "fills": [
+              "#0F0F13"
+             ],
+             "layout": {
+              "mode": "V",
+              "gap": 3,
+              "padding": [
+               10,
+               12,
+               10,
+               12
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1886",
+               "type": "TEXT",
+               "name": "Label",
+               "key": "adh.k2q6bu",
+               "x": 12,
+               "y": 10,
+               "w": 103.78,
+               "h": 14,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "ROI",
+               "font": {
+                "family": "Inter",
+                "style": "Bold"
+               },
+               "size": 10,
+               "color": "#9A948D"
+              },
+              {
+               "id": "8:1887",
+               "type": "FRAME",
+               "name": "56,10%",
+               "key": "adh.k2rg3q",
+               "x": 12,
+               "y": 27,
+               "w": 103.78,
+               "h": 23,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:1888",
+                 "type": "TEXT",
+                 "name": "56,10%",
+                 "key": "adh.k2rg3q#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 103.78,
+                 "h": 23,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "56,10%",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 15,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:1889",
+       "type": "FRAME",
+       "name": "Table",
+       "key": "adh.k2smlw",
+       "x": 24,
+       "y": 224.25,
+       "w": 1160,
+       "h": 264,
+       "fills": [
+        "#0F0F13"
+       ],
+       "stroke": {
+        "color": "#1D1D23",
+        "weight": 1
+       },
+       "radius": 12,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         1,
+         0,
+         1,
+         1
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "fixed"
+       },
+       "children": [
+        {
+         "id": "8:1890",
+         "type": "FRAME",
+         "name": "List",
+         "key": "adh.k2ti8r",
+         "x": 2,
+         "y": 2,
+         "w": 1705.19,
+         "h": 260,
+         "sizing": {
+          "h": "fixed",
+          "v": "fill"
+         },
+         "children": [
+          {
+           "id": "8:1891",
+           "type": "FRAME",
+           "name": "Head",
+           "key": "adh.k2uwuj",
+           "x": 0,
+           "y": 0,
+           "w": 1705.19,
+           "h": 52.5,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:1892",
+             "type": "FRAME",
+             "name": "Row",
+             "key": "adh.k2v6kt",
+             "x": 0,
+             "y": 0,
+             "w": 1705.19,
+             "h": 52.5,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1893",
+               "type": "FRAME",
+               "name": "Sortable",
+               "key": "adh.k2wihe",
+               "x": 0,
+               "y": 0,
+               "w": 240,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1894",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k2xkts",
+                 "x": 12,
+                 "y": 9,
+                 "w": 54,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1895",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k2xkts#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 54,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "Grupo",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1896",
+               "type": "FRAME",
+               "name": "Estado",
+               "key": "adh.k2yulf",
+               "x": 240,
+               "y": 0,
+               "w": 115,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.5,
+                 12,
+                 20,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1897",
+                 "type": "TEXT",
+                 "name": "Estado",
+                 "key": "adh.k2yulf#text",
+                 "x": 12,
+                 "y": 18.5,
+                 "w": 91,
+                 "h": 14,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Estado",
+                 "font": {
+                  "family": "Inter",
+                  "style": "Bold"
+                 },
+                 "size": 10,
+                 "color": "#9A948D"
+                }
+               ]
+              },
+              {
+               "id": "8:1898",
+               "type": "FRAME",
+               "name": "Campanhas",
+               "key": "adh.k2zop1",
+               "x": 355,
+               "y": 0,
+               "w": 128,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.5,
+                 12,
+                 20,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1899",
+                 "type": "TEXT",
+                 "name": "Campanhas",
+                 "key": "adh.k2zop1#text",
+                 "x": 12,
+                 "y": 18.5,
+                 "w": 104,
+                 "h": 14,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "Campanhas",
+                 "font": {
+                  "family": "Inter",
+                  "style": "Bold"
+                 },
+                 "size": 10,
+                 "color": "#9A948D",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1900",
+               "type": "FRAME",
+               "name": "Orçamento",
+               "key": "adh.k30r7l",
+               "x": 483,
+               "y": 0,
+               "w": 119.81,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.5,
+                 12,
+                 20,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1901",
+                 "type": "TEXT",
+                 "name": "Orçamento",
+                 "key": "adh.k30r7l#text",
+                 "x": 12,
+                 "y": 18.5,
+                 "w": 95.81,
+                 "h": 14,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Orçamento",
+                 "font": {
+                  "family": "Inter",
+                  "style": "Bold"
+                 },
+                 "size": 10,
+                 "color": "#9A948D"
+                }
+               ]
+              },
+              {
+               "id": "8:1902",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k315mv",
+               "x": 602.81,
+               "y": 0,
+               "w": 120,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.5,
+                 45.61000061035156
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1903",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k32r6s",
+                 "x": 45.61,
+                 "y": 9,
+                 "w": 62.39,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1904",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k32r6s#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 62.39,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "Gasto ↓",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#FFC890",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1905",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k33fbs",
+               "x": 722.81,
+               "y": 0,
+               "w": 124,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1906",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k342d4",
+                 "x": 12,
+                 "y": 9,
+                 "w": 100,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1907",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k342d4#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 100,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "Impressões",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1908",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k35xc7",
+               "x": 846.81,
+               "y": 0,
+               "w": 91.39,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1909",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k364k4",
+                 "x": 12,
+                 "y": 9,
+                 "w": 67.39,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1910",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k364k4#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 67.39,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "Cliques",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1911",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k3755z",
+               "x": 938.2,
+               "y": 0,
+               "w": 64,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.5,
+                 22.40999984741211
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1912",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k38hie",
+                 "x": 22.41,
+                 "y": 9,
+                 "w": 29.59,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1913",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k38hie#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 29.59,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "CTR",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1914",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k39av9",
+               "x": 1002.2,
+               "y": 0,
+               "w": 107.8,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1915",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k3atyo",
+                 "x": 12,
+                 "y": 9,
+                 "w": 83.8,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1916",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k3atyo#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 83.8,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "CPC médio",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1917",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k3b58e",
+               "x": 1110,
+               "y": 0,
+               "w": 86.19,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1918",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k3cyr7",
+                 "x": 12,
+                 "y": 9,
+                 "w": 62.19,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1919",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k3cyr7#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 62.19,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "Vendas",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1920",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k3dgks",
+               "x": 1196.19,
+               "y": 0,
+               "w": 96,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12.010000228881836,
+                 9.5,
+                 54.400001525878906
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1921",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k3esom",
+                 "x": 54.4,
+                 "y": 9,
+                 "w": 29.59,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1922",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k3esom#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 29.59,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "CPA",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1923",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k3fz7t",
+               "x": 1292.19,
+               "y": 0,
+               "w": 120,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.5,
+                 43.61000061035156
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1924",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k3gpyj",
+                 "x": 43.61,
+                 "y": 9,
+                 "w": 64.39,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1925",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k3gpyj#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 64.39,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "Receita",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1926",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k3hg4e",
+               "x": 1412.19,
+               "y": 0,
+               "w": 104,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.5,
+                 40
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1927",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k3i4pj",
+                 "x": 40,
+                 "y": 9,
+                 "w": 52,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1928",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k3i4pj#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 52,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "Lucro",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1929",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k3jhl7",
+               "x": 1516.19,
+               "y": 0,
+               "w": 72,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12.010000228881836,
+                 9.5,
+                 33.400001525878906
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1930",
+                 "type": "FRAME",
+                 "name": "Button",
+                 "key": "adh.k3krjx",
+                 "x": 33.4,
+                 "y": 9,
+                 "w": 26.59,
+                 "h": 33,
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   1,
+                   0
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1931",
+                   "type": "TEXT",
+                   "name": "Button",
+                   "key": "adh.k3krjx#text",
+                   "x": 0,
+                   "y": 9,
+                   "w": 26.59,
+                   "h": 14,
+                   "sizing": {
+                    "h": "fixed",
+                    "v": "fixed"
+                   },
+                   "text": "ROI",
+                   "font": {
+                    "family": "Inter",
+                    "style": "Bold"
+                   },
+                   "size": 10,
+                   "color": "#9A948D",
+                   "align": "center"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1932",
+               "type": "FRAME",
+               "name": "Row acts",
+               "key": "adh.k3lpn2",
+               "x": 1588.19,
+               "y": 0,
+               "w": 117,
+               "h": 52.5,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:1933",
+           "type": "FRAME",
+           "name": "tfoot",
+           "key": "adh.k3mpcq",
+           "x": 0,
+           "y": 224.5,
+           "w": 1705.19,
+           "h": 37.5,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:1934",
+             "type": "FRAME",
+             "name": "Row",
+             "key": "adh.k3nb9w",
+             "x": 0,
+             "y": 0,
+             "w": 1705.19,
+             "h": 37.5,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:1935",
+               "type": "FRAME",
+               "name": "Cell",
+               "key": "adh.k3ol6l",
+               "x": 0,
+               "y": 0,
+               "w": 602.81,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1936",
+                 "type": "TEXT",
+                 "name": "Total",
+                 "key": "adh.k3phx8",
+                 "x": 12,
+                 "y": 9,
+                 "w": 30,
+                 "h": 20,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": "Total",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9"
+                }
+               ]
+              },
+              {
+               "id": "8:1937",
+               "type": "FRAME",
+               "name": "US$ 1.723,84",
+               "key": "adh.k3q181",
+               "x": 602.81,
+               "y": 0,
+               "w": 120,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1938",
+                 "type": "TEXT",
+                 "name": "US$ 1.723,84",
+                 "key": "adh.k3q181#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 96,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 1.723,84",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1939",
+               "type": "FRAME",
+               "name": "584.458",
+               "key": "adh.k3r82j",
+               "x": 722.81,
+               "y": 0,
+               "w": 124,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1940",
+                 "type": "TEXT",
+                 "name": "584.458",
+                 "key": "adh.k3r82j#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 100,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "584.458",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1941",
+               "type": "FRAME",
+               "name": "5.632",
+               "key": "adh.k3sqj8",
+               "x": 846.81,
+               "y": 0,
+               "w": 91.39,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1942",
+                 "type": "TEXT",
+                 "name": "5.632",
+                 "key": "adh.k3sqj8#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 67.39,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "5.632",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1943",
+               "type": "FRAME",
+               "name": "0,96%",
+               "key": "adh.k3tf2h",
+               "x": 938.2,
+               "y": 0,
+               "w": 64,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1944",
+                 "type": "TEXT",
+                 "name": "0,96%",
+                 "key": "adh.k3tf2h#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 40,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "0,96%",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1945",
+               "type": "FRAME",
+               "name": "US$ 0,306",
+               "key": "adh.k3usu4",
+               "x": 1002.2,
+               "y": 0,
+               "w": 107.8,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1946",
+                 "type": "TEXT",
+                 "name": "US$ 0,306",
+                 "key": "adh.k3usu4#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 83.8,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 0,306",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1947",
+               "type": "FRAME",
+               "name": "69",
+               "key": "adh.k3vds2",
+               "x": 1110,
+               "y": 0,
+               "w": 86.19,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1948",
+                 "type": "TEXT",
+                 "name": "69",
+                 "key": "adh.k3vds2#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 62.19,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "69",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1949",
+               "type": "FRAME",
+               "name": "US$ 24,98",
+               "key": "adh.k3wwwn",
+               "x": 1196.19,
+               "y": 0,
+               "w": 96,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1950",
+                 "type": "TEXT",
+                 "name": "US$ 24,98",
+                 "key": "adh.k3wwwn#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 72,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 24,98",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1951",
+               "type": "FRAME",
+               "name": "US$ 2.691,00",
+               "key": "adh.k3xain",
+               "x": 1292.19,
+               "y": 0,
+               "w": 120,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1952",
+                 "type": "TEXT",
+                 "name": "US$ 2.691,00",
+                 "key": "adh.k3xain#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 96,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 2.691,00",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1953",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k3ysoz",
+               "x": 1412.19,
+               "y": 0,
+               "w": 104,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 7,
+                 12,
+                 8.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1954",
+                 "type": "TEXT",
+                 "name": "US$ 967,16",
+                 "key": "adh.k3zugm",
+                 "x": 12,
+                 "y": 7,
+                 "w": 80,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 967,16",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#3FBF7F",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1955",
+               "type": "FRAME",
+               "name": "56,10%",
+               "key": "adh.k40mqi",
+               "x": 1516.19,
+               "y": 0,
+               "w": 72,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1956",
+                 "type": "TEXT",
+                 "name": "56,10%",
+                 "key": "adh.k40mqi#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 48,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "56,10%",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "SemiBold"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1957",
+               "type": "FRAME",
+               "name": "Cell",
+               "key": "adh.k41o56",
+               "x": 1588.19,
+               "y": 0,
+               "w": 117,
+               "h": 37.5,
+               "fills": [
+                "#121217"
+               ],
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:1958",
+           "type": "FRAME",
+           "name": "Rows",
+           "key": "adh.k42wwl",
+           "x": 0,
+           "y": 52.5,
+           "w": 1708.19,
+           "h": 172,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:1959",
+             "type": "FRAME",
+             "name": "Row",
+             "key": "adh.k43tkq",
+             "x": 0,
+             "y": 0,
+             "w": 1705.19,
+             "h": 58,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:1960",
+               "type": "FRAME",
+               "name": "Cell",
+               "key": "adh.k44zhv",
+               "x": 0,
+               "y": 0,
+               "w": 240,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0.25,
+                "padding": [
+                 10,
+                 12,
+                 10.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1961",
+                 "type": "TEXT",
+                 "name": "Memory Loss US",
+                 "key": "adh.k452pr",
+                 "x": 12,
+                 "y": 10,
+                 "w": 98,
+                 "h": 20,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": "Memory Loss US",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Medium"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9"
+                },
+                {
+                 "id": "8:1962",
+                 "type": "FRAME",
+                 "name": "1001",
+                 "key": "adh.k4624l",
+                 "x": 12,
+                 "y": 30.25,
+                 "w": 216,
+                 "h": 18,
+                 "layout": {
+                  "mode": "V",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   0,
+                   0
+                  ],
+                  "main": "start",
+                  "cross": "start"
+                 },
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "children": [
+                  {
+                   "id": "8:1963",
+                   "type": "TEXT",
+                   "name": "1001",
+                   "key": "adh.k4624l#text",
+                   "x": 0,
+                   "y": 0,
+                   "w": 216,
+                   "h": 18,
+                   "sizing": {
+                    "h": "fill",
+                    "v": "hug"
+                   },
+                   "text": "1001",
+                   "font": {
+                    "family": "IBM Plex Mono",
+                    "style": "Regular"
+                   },
+                   "size": 12,
+                   "color": "#8F8A85"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:1964",
+               "type": "FRAME",
+               "name": "Cell",
+               "key": "adh.k477la",
+               "x": 240,
+               "y": 0,
+               "w": 115,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1965",
+                 "type": "INSTANCE",
+                 "name": "Badge",
+                 "key": "adh.k4896m",
+                 "x": 12,
+                 "y": 19,
+                 "w": 63,
+                 "h": 20,
+                 "fills": [
+                  "#0D1410"
+                 ],
+                 "stroke": {
+                  "color": "#1F3A2A",
+                  "weight": 1
+                 },
+                 "radius": 4,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   2,
+                   8,
+                   2,
+                   8
+                  ],
+                  "main": "start",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "of": {
+                  "id": "8:88",
+                  "name": "variant=Running",
+                  "key": "adh.c.a1t3qx.running"
+                 },
+                 "instanceProps": {
+                  "variant": "Running"
+                 }
+                }
+               ]
+              },
+              {
+               "id": "8:1967",
+               "type": "FRAME",
+               "name": "3 (2 rodando)",
+               "key": "adh.k49pmr",
+               "x": 355,
+               "y": 0,
+               "w": 128,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1968",
+                 "type": "TEXT",
+                 "name": "3 (2 rodando)",
+                 "key": "adh.k49pmr#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 104,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "3 (2 rodando)",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1969",
+               "type": "FRAME",
+               "name": "US$ 300,00 por mês",
+               "key": "adh.k4azly",
+               "x": 483,
+               "y": 0,
+               "w": 119.81,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 9,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1970",
+                 "type": "TEXT",
+                 "name": "US$ 300,00 por mês",
+                 "key": "adh.k4azly#text",
+                 "x": 12,
+                 "y": 9,
+                 "w": 95.81,
+                 "h": 39,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 300,00 por mês",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#B5AEA6"
+                }
+               ]
+              },
+              {
+               "id": "8:1971",
+               "type": "FRAME",
+               "name": "US$ 1.723,84",
+               "key": "adh.k4bwxx",
+               "x": 602.81,
+               "y": 0,
+               "w": 120,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1972",
+                 "type": "TEXT",
+                 "name": "US$ 1.723,84",
+                 "key": "adh.k4bwxx#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 96,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 1.723,84",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1973",
+               "type": "FRAME",
+               "name": "584.458",
+               "key": "adh.k4c73p",
+               "x": 722.81,
+               "y": 0,
+               "w": 124,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1974",
+                 "type": "TEXT",
+                 "name": "584.458",
+                 "key": "adh.k4c73p#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 100,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "584.458",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1975",
+               "type": "FRAME",
+               "name": "5.632",
+               "key": "adh.k4dfma",
+               "x": 846.81,
+               "y": 0,
+               "w": 91.39,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1976",
+                 "type": "TEXT",
+                 "name": "5.632",
+                 "key": "adh.k4dfma#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 67.39,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "5.632",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1977",
+               "type": "FRAME",
+               "name": "0,96%",
+               "key": "adh.k4ev5f",
+               "x": 938.2,
+               "y": 0,
+               "w": 64,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1978",
+                 "type": "TEXT",
+                 "name": "0,96%",
+                 "key": "adh.k4ev5f#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 40,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "0,96%",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1979",
+               "type": "FRAME",
+               "name": "US$ 0,306",
+               "key": "adh.k4fp45",
+               "x": 1002.2,
+               "y": 0,
+               "w": 107.8,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1980",
+                 "type": "TEXT",
+                 "name": "US$ 0,306",
+                 "key": "adh.k4fp45#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 83.8,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 0,306",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1981",
+               "type": "FRAME",
+               "name": "69",
+               "key": "adh.k4g5ja",
+               "x": 1110,
+               "y": 0,
+               "w": 86.19,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1982",
+                 "type": "TEXT",
+                 "name": "69",
+                 "key": "adh.k4g5ja#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 62.19,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "69",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1983",
+               "type": "FRAME",
+               "name": "US$ 24,98",
+               "key": "adh.k4hfgu",
+               "x": 1196.19,
+               "y": 0,
+               "w": 96,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1984",
+                 "type": "TEXT",
+                 "name": "US$ 24,98",
+                 "key": "adh.k4hfgu#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 72,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 24,98",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1985",
+               "type": "FRAME",
+               "name": "US$ 2.691,00",
+               "key": "adh.k4ia42",
+               "x": 1292.19,
+               "y": 0,
+               "w": 120,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1986",
+                 "type": "TEXT",
+                 "name": "US$ 2.691,00",
+                 "key": "adh.k4ia42#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 96,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 2.691,00",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1987",
+               "type": "FRAME",
+               "name": "Num",
+               "key": "adh.k4jdos",
+               "x": 1412.19,
+               "y": 0,
+               "w": 104,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1988",
+                 "type": "TEXT",
+                 "name": "US$ 967,16",
+                 "key": "adh.k4ksyy",
+                 "x": 12,
+                 "y": 19,
+                 "w": 80,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 967,16",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#3FBF7F",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1989",
+               "type": "FRAME",
+               "name": "56,10%",
+               "key": "adh.k4l7c1",
+               "x": 1516.19,
+               "y": 0,
+               "w": 72,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1990",
+                 "type": "TEXT",
+                 "name": "56,10%",
+                 "key": "adh.k4l7c1#text",
+                 "x": 12,
+                 "y": 19,
+                 "w": 48,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "56,10%",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:1991",
+               "type": "FRAME",
+               "name": "Row acts",
+               "key": "adh.k4mt69",
+               "x": 1588.19,
+               "y": 0,
+               "w": 117,
+               "h": 58,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 15,
+                 12,
+                 15,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:1992",
+                 "type": "INSTANCE",
+                 "name": "Link button",
+                 "key": "adh.k4nj3t",
+                 "x": 12,
+                 "y": 15,
+                 "w": 93,
+                 "h": 28,
+                 "stroke": {
+                  "color": "#55555F",
+                  "weight": 1
+                 },
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   4,
+                   11,
+                   4,
+                   11
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "of": {
+                  "id": "8:64",
+                  "name": "variant=Ghost small",
+                  "key": "adh.c.a1hbom.ghost-small"
+                 },
+                 "instanceProps": {
+                  "variant": "Ghost small"
+                 }
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:2011",
+             "type": "FRAME",
+             "name": "Row",
+             "key": "adh.k4od5g",
+             "x": 0,
+             "y": 58,
+             "w": 1705.19,
+             "h": 58,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2012",
+               "type": "FRAME",
+               "name": "Cell",
+               "key": "adh.k4plx1",
+               "x": 0,
+               "y": 0,
+               "w": 240,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0.25,
+                "padding": [
+                 10,
+                 12,
+                 10.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2013",
+                 "type": "TEXT",
+                 "name": "Blood Pressure US",
+                 "key": "adh.k4qkti",
+                 "x": 12,
+                 "y": 11,
+                 "w": 110,
+                 "h": 20,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": "Blood Pressure US",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Medium"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9"
+                },
+                {
+                 "id": "8:2014",
+                 "type": "FRAME",
+                 "name": "1002",
+                 "key": "adh.k4r9zl",
+                 "x": 12,
+                 "y": 31.25,
+                 "w": 216,
+                 "h": 18,
+                 "layout": {
+                  "mode": "V",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   0,
+                   0
+                  ],
+                  "main": "start",
+                  "cross": "start"
+                 },
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "children": [
+                  {
+                   "id": "8:2015",
+                   "type": "TEXT",
+                   "name": "1002",
+                   "key": "adh.k4r9zl#text",
+                   "x": 0,
+                   "y": 0,
+                   "w": 216,
+                   "h": 18,
+                   "sizing": {
+                    "h": "fill",
+                    "v": "hug"
+                   },
+                   "text": "1002",
+                   "font": {
+                    "family": "IBM Plex Mono",
+                    "style": "Regular"
+                   },
+                   "size": 12,
+                   "color": "#8F8A85"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:2016",
+               "type": "FRAME",
+               "name": "Cell",
+               "key": "adh.k4svro",
+               "x": 240,
+               "y": 0,
+               "w": 115,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2017",
+                 "type": "INSTANCE",
+                 "name": "Badge",
+                 "key": "adh.k4twpl",
+                 "x": 12,
+                 "y": 20,
+                 "w": 61,
+                 "h": 19,
+                 "fills": [
+                  "#1C1109"
+                 ],
+                 "stroke": {
+                  "color": "#4A240D",
+                  "weight": 1
+                 },
+                 "radius": 4,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   2,
+                   8,
+                   2,
+                   8
+                  ],
+                  "main": "start",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "of": {
+                  "id": "8:90",
+                  "name": "variant=Paused",
+                  "key": "adh.c.a1t3qx.paused"
+                 },
+                 "instanceProps": {
+                  "variant": "Paused"
+                 }
+                }
+               ]
+              },
+              {
+               "id": "8:2023",
+               "type": "FRAME",
+               "name": "1",
+               "key": "adh.k4uu5e",
+               "x": 355,
+               "y": 0,
+               "w": 128,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2024",
+                 "type": "TEXT",
+                 "name": "1",
+                 "key": "adh.k4uu5e#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 104,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "1",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2025",
+               "type": "FRAME",
+               "name": "US$ 150,00 por mês",
+               "key": "adh.k4vcp0",
+               "x": 483,
+               "y": 0,
+               "w": 119.81,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 10,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2026",
+                 "type": "TEXT",
+                 "name": "US$ 150,00 por mês",
+                 "key": "adh.k4vcp0#text",
+                 "x": 12,
+                 "y": 11,
+                 "w": 95.81,
+                 "h": 39,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "US$ 150,00 por mês",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#B5AEA6"
+                }
+               ]
+              },
+              {
+               "id": "8:2027",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k4wsh5",
+               "x": 602.81,
+               "y": 0,
+               "w": 120,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2028",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k4wsh5#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 96,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2029",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k4xvq3",
+               "x": 722.81,
+               "y": 0,
+               "w": 124,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2030",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k4xvq3#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 100,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2031",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k4ye7v",
+               "x": 846.81,
+               "y": 0,
+               "w": 91.39,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2032",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k4ye7v#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 67.39,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2033",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k4zmvo",
+               "x": 938.2,
+               "y": 0,
+               "w": 64,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2034",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k4zmvo#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 40,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2035",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k50hzh",
+               "x": 1002.2,
+               "y": 0,
+               "w": 107.8,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2036",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k50hzh#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 83.8,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2037",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k51kec",
+               "x": 1110,
+               "y": 0,
+               "w": 86.19,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2038",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k51kec#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 62.19,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2039",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k52zxg",
+               "x": 1196.19,
+               "y": 0,
+               "w": 96,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2040",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k52zxg#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 72,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2041",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k53kds",
+               "x": 1292.19,
+               "y": 0,
+               "w": 120,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2042",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k53kds#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 96,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2043",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k54f7k",
+               "x": 1412.19,
+               "y": 0,
+               "w": 104,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2044",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k54f7k#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 80,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2045",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k55ek9",
+               "x": 1516.19,
+               "y": 0,
+               "w": 72,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 19,
+                 12,
+                 19.5,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2046",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k55ek9#text",
+                 "x": 12,
+                 "y": 20,
+                 "w": 48,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2047",
+               "type": "FRAME",
+               "name": "Row acts",
+               "key": "adh.k56bzn",
+               "x": 1588.19,
+               "y": 0,
+               "w": 117,
+               "h": 58,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 15,
+                 12,
+                 15,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2048",
+                 "type": "INSTANCE",
+                 "name": "Link button",
+                 "key": "adh.k57b9y",
+                 "x": 12,
+                 "y": 16,
+                 "w": 93,
+                 "h": 27,
+                 "stroke": {
+                  "color": "#55555F",
+                  "weight": 1
+                 },
+                 "radius": 9,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   4,
+                   11,
+                   4,
+                   11
+                  ],
+                  "main": "center",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "of": {
+                  "id": "8:64",
+                  "name": "variant=Ghost small",
+                  "key": "adh.c.a1hbom.ghost-small"
+                 },
+                 "instanceProps": {
+                  "variant": "Ghost small"
+                 }
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:2060",
+             "type": "FRAME",
+             "name": "Row",
+             "key": "adh.k58j6i",
+             "x": 0,
+             "y": 116,
+             "w": 1708.19,
+             "h": 56,
+             "layout": {
+              "mode": "H",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "center"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2061",
+               "type": "FRAME",
+               "name": "Cell",
+               "key": "adh.k59oku",
+               "x": 0,
+               "y": 0,
+               "w": 240,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0.25,
+                "padding": [
+                 10,
+                 12,
+                 9,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2062",
+                 "type": "TEXT",
+                 "name": "Grupo apagado · 990001",
+                 "key": "adh.k5awmy",
+                 "x": 12,
+                 "y": 11,
+                 "w": 149,
+                 "h": 20,
+                 "sizing": {
+                  "h": "hug",
+                  "v": "hug"
+                 },
+                 "text": "Grupo apagado · 990001",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Medium"
+                 },
+                 "size": 13,
+                 "color": "#F4EFE9"
+                },
+                {
+                 "id": "8:2063",
+                 "type": "FRAME",
+                 "name": "990001",
+                 "key": "adh.k5bed7",
+                 "x": 12,
+                 "y": 31.25,
+                 "w": 216,
+                 "h": 18,
+                 "layout": {
+                  "mode": "V",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   0,
+                   0
+                  ],
+                  "main": "start",
+                  "cross": "start"
+                 },
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "children": [
+                  {
+                   "id": "8:2064",
+                   "type": "TEXT",
+                   "name": "990001",
+                   "key": "adh.k5bed7#text",
+                   "x": 0,
+                   "y": 0,
+                   "w": 216,
+                   "h": 18,
+                   "sizing": {
+                    "h": "fill",
+                    "v": "hug"
+                   },
+                   "text": "990001",
+                   "font": {
+                    "family": "IBM Plex Mono",
+                    "style": "Regular"
+                   },
+                   "size": 12,
+                   "color": "#8F8A85"
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "8:2065",
+               "type": "FRAME",
+               "name": "Cell",
+               "key": "adh.k5cf9n",
+               "x": 240,
+               "y": 0,
+               "w": 118,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 17.75,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "hug",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2066",
+                 "type": "INSTANCE",
+                 "name": "Badge",
+                 "key": "adh.k5dtfz",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 94,
+                 "h": 19,
+                 "fills": [
+                  "#1A0B09"
+                 ],
+                 "stroke": {
+                  "color": "#5A1D14",
+                  "weight": 1
+                 },
+                 "radius": 4,
+                 "layout": {
+                  "mode": "H",
+                  "gap": 0,
+                  "padding": [
+                   2,
+                   8,
+                   2,
+                   8
+                  ],
+                  "main": "start",
+                  "cross": "center"
+                 },
+                 "sizing": {
+                  "h": "hug",
+                  "v": "fill"
+                 },
+                 "of": {
+                  "id": "8:94",
+                  "name": "variant=Rejected",
+                  "key": "adh.c.a1t3qx.rejected"
+                 },
+                 "instanceProps": {
+                  "variant": "Rejected"
+                 }
+                }
+               ]
+              },
+              {
+               "id": "8:2070",
+               "type": "FRAME",
+               "name": "1",
+               "key": "adh.k5eecb",
+               "x": 358,
+               "y": 0,
+               "w": 128,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2071",
+                 "type": "TEXT",
+                 "name": "1",
+                 "key": "adh.k5eecb#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 104,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "1",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2072",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5frih",
+               "x": 486,
+               "y": 0,
+               "w": 119.81,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2073",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5frih#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 95.81,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#B5AEA6"
+                }
+               ]
+              },
+              {
+               "id": "8:2074",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5gt7h",
+               "x": 605.81,
+               "y": 0,
+               "w": 120,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2075",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5gt7h#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 96,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2076",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5h6le",
+               "x": 725.81,
+               "y": 0,
+               "w": 124,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2077",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5h6le#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 100,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2078",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5i24t",
+               "x": 849.81,
+               "y": 0,
+               "w": 91.39,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2079",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5i24t#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 67.39,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2080",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5jf0q",
+               "x": 941.2,
+               "y": 0,
+               "w": 64,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2081",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5jf0q#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 40,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2082",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5ktm6",
+               "x": 1005.2,
+               "y": 0,
+               "w": 107.8,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2083",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5ktm6#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 83.8,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2084",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5ljwb",
+               "x": 1113,
+               "y": 0,
+               "w": 86.19,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2085",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5ljwb#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 62.19,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2086",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5mrhc",
+               "x": 1199.19,
+               "y": 0,
+               "w": 96,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2087",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5mrhc#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 72,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2088",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5n3hu",
+               "x": 1295.19,
+               "y": 0,
+               "w": 120,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2089",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5n3hu#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 96,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2090",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5o2tv",
+               "x": 1415.19,
+               "y": 0,
+               "w": 104,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2091",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5o2tv#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 80,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2092",
+               "type": "FRAME",
+               "name": "—",
+               "key": "adh.k5px9o",
+               "x": 1519.19,
+               "y": 0,
+               "w": 72,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 18.25,
+                 12,
+                 18.25,
+                 12
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2093",
+                 "type": "TEXT",
+                 "name": "—",
+                 "key": "adh.k5px9o#text",
+                 "x": 12,
+                 "y": 19.25,
+                 "w": 48,
+                 "h": 20,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "fixed"
+                 },
+                 "text": "—",
+                 "font": {
+                  "family": "IBM Plex Mono",
+                  "style": "Regular"
+                 },
+                 "size": 13,
+                 "color": "#ECE7E1",
+                 "align": "right"
+                }
+               ]
+              },
+              {
+               "id": "8:2094",
+               "type": "FRAME",
+               "name": "Row acts",
+               "key": "adh.k5qcqm",
+               "x": 1591.19,
+               "y": 0,
+               "w": 117,
+               "h": 56,
+               "stroke": {
+                "color": "#1D1D23",
+                "weight": 1
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": []
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "page": "Launch"
+}

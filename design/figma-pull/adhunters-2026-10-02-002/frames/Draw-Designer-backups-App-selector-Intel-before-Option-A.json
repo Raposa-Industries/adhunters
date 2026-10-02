@@ -1,0 +1,263 @@
+{
+ "id": "13:1381",
+ "type": "COMPONENT",
+ "name": "App selector · Intel (before Option A)",
+ "key": "mm.backup.comp.intel.004",
+ "x": 1640,
+ "y": 300,
+ "w": 233,
+ "h": 28,
+ "fills": [
+  "#0F0F13"
+ ],
+ "stroke": {
+  "color": "#6A6A75",
+  "weight": 1
+ },
+ "layout": {
+  "mode": "H",
+  "gap": 10,
+  "padding": [
+   0,
+   13,
+   0,
+   12
+  ],
+  "main": "center",
+  "cross": "center"
+ },
+ "description": "Draw Designer component a36vnq (App selector · Intel)",
+ "children": [
+  {
+   "id": "13:1382",
+   "type": "FRAME",
+   "name": "Glyph",
+   "key": "mm.backup.comp.intel.004>adh.c.a36vnq.default.a31cnp",
+   "x": 12,
+   "y": 0,
+   "w": 28,
+   "h": 28,
+   "fills": [
+    "#1C1109"
+   ],
+   "stroke": {
+    "color": "#4A240D",
+    "weight": 1
+   },
+   "radius": 7,
+   "layout": {
+    "mode": "V",
+    "gap": 0,
+    "padding": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "main": "center",
+    "cross": "center"
+   },
+   "sizing": {
+    "h": "fixed",
+    "v": "fixed"
+   },
+   "children": [
+    {
+     "id": "13:1383",
+     "type": "FRAME",
+     "name": "Icon",
+     "key": "mm.backup.comp.intel.004>adh.c.a36vnq.default.a323n0",
+     "x": 6,
+     "y": 6,
+     "w": 16,
+     "h": 16,
+     "sizing": {
+      "h": "fixed",
+      "v": "fixed"
+     },
+     "children": [
+      {
+       "id": "13:1384",
+       "type": "VECTOR",
+       "name": "Vector",
+       "key": "mm.backup.comp.intel.004>#8:149",
+       "x": 1.5,
+       "y": 3.5,
+       "w": 13,
+       "h": 9,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1.5
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "svg": "<svg width=\"15\" height=\"10\" viewBox=\"0 0 15 10\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M0.560547 9.4881L4.56055 4.9881L7.56055 7.4881L13.5605 0.488098\" stroke=\"#FF7A1A\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/>\n</svg>\n"
+      },
+      {
+       "id": "13:1385",
+       "type": "VECTOR",
+       "name": "Vector",
+       "key": "mm.backup.comp.intel.004>#8:150",
+       "x": 1.5,
+       "y": 14.5,
+       "w": 13,
+       "h": 0,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1.2000000476837158
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "svg": "<svg width=\"13\" height=\"2\" viewBox=\"0 0 13 2\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M0 0.600006H13\" stroke=\"#FF7A1A\" stroke-width=\"1.2\"/>\n</svg>\n"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "13:1386",
+   "type": "FRAME",
+   "name": "Intel",
+   "key": "mm.backup.comp.intel.004>adh.c.a36vnq.default.a33c5d",
+   "x": 50,
+   "y": 6.5,
+   "w": 37,
+   "h": 15,
+   "layout": {
+    "mode": "V",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fixed",
+    "v": "hug"
+   },
+   "children": [
+    {
+     "id": "13:1387",
+     "type": "TEXT",
+     "name": "Intel",
+     "key": "mm.backup.comp.intel.004>adh.c.a36vnq.default.a33c5d#text",
+     "x": 0,
+     "y": 0,
+     "w": 37,
+     "h": 15,
+     "sizing": {
+      "h": "fill",
+      "v": "hug"
+     },
+     "text": "Intel",
+     "font": {
+      "family": "Archivo Expanded",
+      "style": "Bold"
+     },
+     "size": 14,
+     "color": "#ECE7E1"
+    }
+   ]
+  },
+  {
+   "id": "13:1388",
+   "type": "FRAME",
+   "name": "Spacing",
+   "key": "mm.backup.comp.intel.004>adh.c.a36vnq.default.a34ngh~sp",
+   "x": 97,
+   "y": 7,
+   "w": 122,
+   "h": 14,
+   "layout": {
+    "mode": "H",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     108
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "hug",
+    "v": "hug"
+   },
+   "children": [
+    {
+     "id": "13:1389",
+     "type": "FRAME",
+     "name": "Chevron",
+     "key": "mm.backup.comp.intel.004>adh.c.a36vnq.default.a34ngh",
+     "x": 108,
+     "y": 0,
+     "w": 14,
+     "h": 14,
+     "layout": {
+      "mode": "H",
+      "gap": 0,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fixed"
+     },
+     "children": [
+      {
+       "id": "13:1390",
+       "type": "FRAME",
+       "name": "Icon",
+       "key": "mm.backup.comp.intel.004>adh.c.a36vnq.default.a35qqo",
+       "x": 0,
+       "y": 0,
+       "w": 14,
+       "h": 14,
+       "sizing": {
+        "h": "fixed",
+        "v": "fill"
+       },
+       "children": [
+        {
+         "id": "13:1391",
+         "type": "VECTOR",
+         "name": "Vector",
+         "key": "mm.backup.comp.intel.004>#8:156",
+         "x": 3.94,
+         "y": 5.69,
+         "w": 6.13,
+         "h": 3.06,
+         "stroke": {
+          "color": "#8F8A85",
+          "weight": 1.3125
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "fixed"
+         },
+         "svg": "<svg width=\"8\" height=\"5\" viewBox=\"0 0 8 5\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M0.463989 0.46405L3.52649 3.52655L6.58899 0.46405\" stroke=\"#8F8A85\" stroke-width=\"1.3125\"/>\n</svg>\n"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "page": "Draw Designer backups"
+}

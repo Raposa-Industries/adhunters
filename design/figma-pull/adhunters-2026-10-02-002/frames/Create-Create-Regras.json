@@ -1,0 +1,6096 @@
+{
+ "id": "8:2751",
+ "type": "FRAME",
+ "name": "Create · Regras",
+ "key": "adh.k0qyp",
+ "x": 4920,
+ "y": 0,
+ "w": 1440,
+ "h": 964.17,
+ "fills": [
+  "#09090C"
+ ],
+ "layout": {
+  "mode": "V",
+  "gap": 0,
+  "padding": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "main": "start",
+  "cross": "start"
+ },
+ "children": [
+  {
+   "id": "8:2752",
+   "type": "FRAME",
+   "name": "Top bar",
+   "key": "adh.k1juh",
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 48,
+   "fills": [
+    "#060608"
+   ],
+   "stroke": {
+    "color": "#1D1D23",
+    "weight": 1
+   },
+   "layout": {
+    "mode": "H",
+    "gap": 10,
+    "padding": [
+     0,
+     0,
+     1,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fixed"
+   },
+   "children": [
+    {
+     "id": "8:2753",
+     "type": "INSTANCE",
+     "name": "App selector · Create",
+     "key": "adh.k28e1",
+     "x": 0,
+     "y": 0,
+     "w": 232,
+     "h": 46,
+     "fills": [
+      "#0F0F13"
+     ],
+     "stroke": {
+      "color": "#6A6A75",
+      "weight": 1
+     },
+     "layout": {
+      "mode": "H",
+      "gap": 0,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "fixed",
+      "v": "fill"
+     },
+     "of": {
+      "id": "8:121",
+      "name": "App selector · Create",
+      "key": "adh.c.a2o7kz.default"
+     },
+     "instanceProps": {}
+    },
+    {
+     "id": "8:2764",
+     "type": "FRAME",
+     "name": "Page tabs",
+     "key": "adh.k8u9q",
+     "x": 242,
+     "y": 0,
+     "w": 202,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 2,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:2765",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.k9uld",
+       "x": 0,
+       "y": 0,
+       "w": 52,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:2769",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kazck",
+       "x": 54,
+       "y": 0,
+       "w": 82,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:2773",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kbsfl",
+       "x": 138,
+       "y": 0,
+       "w": 64,
+       "h": 46,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1
+       },
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:16",
+        "name": "variant=Current",
+        "key": "adh.c.awh7q.current"
+       },
+       "instanceProps": {
+        "variant": "Current"
+       }
+      }
+     ]
+    },
+    {
+     "id": "8:2777",
+     "type": "FRAME",
+     "name": "Spacer",
+     "key": "adh.kcd4o",
+     "x": 454,
+     "y": 0,
+     "w": 642,
+     "h": 46,
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": []
+    },
+    {
+     "id": "8:2778",
+     "type": "FRAME",
+     "name": "Tools",
+     "key": "adh.kd392",
+     "x": 1106,
+     "y": 0,
+     "w": 334,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 12,
+      "padding": [
+       0,
+       14,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:2779",
+       "type": "INSTANCE",
+       "name": "Search box",
+       "key": "adh.ke1yq",
+       "x": 0,
+       "y": 8,
+       "w": 280,
+       "h": 30,
+       "fills": [
+        "#121217"
+       ],
+       "stroke": {
+        "color": "#26262E",
+        "weight": 1
+       },
+       "radius": 9,
+       "layout": {
+        "mode": "H",
+        "gap": 8,
+        "padding": [
+         1,
+         11,
+         1,
+         11
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:19",
+        "name": "Search box",
+        "key": "adh.c.a11ghd.default"
+       },
+       "instanceProps": {}
+      },
+      {
+       "id": "8:2789",
+       "type": "INSTANCE",
+       "name": "Avatar",
+       "key": "adh.kieg8",
+       "x": 292,
+       "y": 9,
+       "w": 28,
+       "h": 28,
+       "fills": [
+        "#18181E"
+       ],
+       "stroke": {
+        "color": "#2A2A33",
+        "weight": 1
+       },
+       "radius": 8,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         1,
+         1,
+         1,
+         1
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:27",
+        "name": "Avatar",
+        "key": "adh.c.a133ym.default"
+       },
+       "instanceProps": {}
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "8:2793",
+   "type": "FRAME",
+   "name": "Body",
+   "key": "adh.kjnr5",
+   "x": 0,
+   "y": 48,
+   "w": 1440,
+   "h": 916.17,
+   "layout": {
+    "mode": "H",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fill"
+   },
+   "children": [
+    {
+     "id": "8:2794",
+     "type": "FRAME",
+     "name": "Main",
+     "key": "adh.kkhxt",
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 916.17,
+     "layout": {
+      "mode": "V",
+      "gap": 13.989999771118164,
+      "padding": [
+       20,
+       24,
+       64,
+       24
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:2795",
+       "type": "FRAME",
+       "name": "Page head",
+       "key": "adh.klvma",
+       "x": 24,
+       "y": 20,
+       "w": 1392,
+       "h": 73,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         832,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "end"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:2796",
+         "type": "FRAME",
+         "name": "Box",
+         "key": "adh.kmpef",
+         "x": 0,
+         "y": 0,
+         "w": 560,
+         "h": 73,
+         "layout": {
+          "mode": "V",
+          "gap": 4,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:2797",
+           "type": "TEXT",
+           "name": "Regras",
+           "key": "adh.kn5z7",
+           "x": 0,
+           "y": 0,
+           "w": 560,
+           "h": 27,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "Regras",
+           "font": {
+            "family": "Inter",
+            "style": "Bold"
+           },
+           "size": 22,
+           "color": "#F4EFE9"
+          },
+          {
+           "id": "8:2798",
+           "type": "FRAME",
+           "name": "O que o Create segue ao escrever",
+           "key": "adh.kokzs",
+           "x": 0,
+           "y": 31,
+           "w": 560,
+           "h": 42,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2799",
+             "type": "TEXT",
+             "name": "O que o Create segue ao escrever",
+             "key": "adh.kokzs#text",
+             "x": 0,
+             "y": 0,
+             "w": 560,
+             "h": 42,
+             "sizing": {
+              "h": "fill",
+              "v": "fixed"
+             },
+             "text": "O que o Create segue ao escrever e o que ele marca. As regras do Taboola só avisam: quem decide é você.",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 14,
+             "color": "#B5AEA6"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:2800",
+       "type": "FRAME",
+       "name": "Spacing",
+       "key": "adh.kptcu~sp",
+       "x": 24,
+       "y": 106.99,
+       "w": 1392,
+       "h": 211.01,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         4.010000228881836,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:2801",
+         "type": "FRAME",
+         "name": "Panel",
+         "key": "adh.kptcu",
+         "x": 0,
+         "y": 4.01,
+         "w": 1392,
+         "h": 207,
+         "fills": [
+          "#0F0F13"
+         ],
+         "stroke": {
+          "color": "#1D1D23",
+          "weight": 1
+         },
+         "radius": 14,
+         "layout": {
+          "mode": "V",
+          "gap": 9.989999771118164,
+          "padding": [
+           17,
+           19,
+           31.010000228881836,
+           19
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:2802",
+           "type": "TEXT",
+           "name": "Sempre",
+           "key": "adh.kqce0",
+           "x": 20,
+           "y": 18,
+           "w": 1352,
+           "h": 21,
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "text": "Sempre",
+           "font": {
+            "family": "Archivo Expanded",
+            "style": "Bold"
+           },
+           "size": 16,
+           "color": "#F4EFE9"
+          },
+          {
+           "id": "8:2803",
+           "type": "FRAME",
+           "name": "List",
+           "key": "adh.krbkc",
+           "x": 20,
+           "y": 48.99,
+           "w": 1352,
+           "h": 126,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             0,
+             0,
+             0,
+             18
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2804",
+             "type": "FRAME",
+             "name": "Imagens feitas com a OpenAI; hea",
+             "key": "adh.ksb0n",
+             "x": 18,
+             "y": 0,
+             "w": 1336,
+             "h": 21,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2805",
+               "type": "TEXT",
+               "name": "Marker",
+               "key": "adh.ksb0n#marker",
+               "x": 0,
+               "y": 1,
+               "w": 15,
+               "h": 21,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "•",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 14,
+               "color": "#ECE7E1",
+               "align": "right"
+              },
+              {
+               "id": "8:2806",
+               "type": "FRAME",
+               "name": "Imagens feitas com a OpenAI; hea",
+               "key": "adh.ksb0n#item",
+               "x": 22,
+               "y": 0,
+               "w": 1314,
+               "h": 21,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:2807",
+                 "type": "TEXT",
+                 "name": "Imagens feitas com a OpenAI; hea",
+                 "key": "adh.ksb0n#item#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 1314,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Imagens feitas com a OpenAI; headlines com a OpenAI ou, quando ligados no servidor, Grok, DeepSeek ou Kimi. Headlines sempre em inglês.",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#ECE7E1"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:2808",
+             "type": "FRAME",
+             "name": "Pessoas espontâneas, sem olhar p",
+             "key": "adh.ktrlp",
+             "x": 18,
+             "y": 21,
+             "w": 1336,
+             "h": 21,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2809",
+               "type": "TEXT",
+               "name": "Marker",
+               "key": "adh.ktrlp#marker",
+               "x": 0,
+               "y": 1,
+               "w": 15,
+               "h": 21,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "•",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 14,
+               "color": "#ECE7E1",
+               "align": "right"
+              },
+              {
+               "id": "8:2810",
+               "type": "FRAME",
+               "name": "Pessoas espontâneas, sem olhar p",
+               "key": "adh.ktrlp#item",
+               "x": 22,
+               "y": 0,
+               "w": 1314,
+               "h": 21,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:2811",
+                 "type": "TEXT",
+                 "name": "Pessoas espontâneas, sem olhar p",
+                 "key": "adh.ktrlp#item#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 1314,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Pessoas espontâneas, sem olhar para a câmera, foto com cara de real, a menos que o pedido diga outra coisa.",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#ECE7E1"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:2812",
+             "type": "FRAME",
+             "name": "Sem texto, logo, antes e depois,",
+             "key": "adh.kusra",
+             "x": 18,
+             "y": 42,
+             "w": 1336,
+             "h": 21,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2813",
+               "type": "TEXT",
+               "name": "Marker",
+               "key": "adh.kusra#marker",
+               "x": 0,
+               "y": 1,
+               "w": 15,
+               "h": 21,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "•",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 14,
+               "color": "#ECE7E1",
+               "align": "right"
+              },
+              {
+               "id": "8:2814",
+               "type": "FRAME",
+               "name": "Sem texto, logo, antes e depois,",
+               "key": "adh.kusra#item",
+               "x": 22,
+               "y": 0,
+               "w": 1314,
+               "h": 21,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:2815",
+                 "type": "TEXT",
+                 "name": "Sem texto, logo, antes e depois,",
+                 "key": "adh.kusra#item#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 1314,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Sem texto, logo, antes e depois, celebridades ou close de partes do corpo nas imagens.",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#ECE7E1"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:2816",
+             "type": "FRAME",
+             "name": "Headlines de 34 a 45 caracteres ",
+             "key": "adh.kvuks",
+             "x": 18,
+             "y": 63,
+             "w": 1336,
+             "h": 21,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2817",
+               "type": "TEXT",
+               "name": "Marker",
+               "key": "adh.kvuks#marker",
+               "x": 0,
+               "y": 1,
+               "w": 15,
+               "h": 21,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "•",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 14,
+               "color": "#ECE7E1",
+               "align": "right"
+              },
+              {
+               "id": "8:2818",
+               "type": "FRAME",
+               "name": "Headlines de 34 a 45 caracteres ",
+               "key": "adh.kvuks#item",
+               "x": 22,
+               "y": 0,
+               "w": 1314,
+               "h": 21,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:2819",
+                 "type": "TEXT",
+                 "name": "Headlines de 34 a 45 caracteres ",
+                 "key": "adh.kvuks#item#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 1314,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Headlines de 34 a 45 caracteres (nunca mais de 60), sem palavras em maiúsculas, sem \"!!\", sintomas e não doenças, sem promessa de cura, sem valores.",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#ECE7E1"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:2820",
+             "type": "FRAME",
+             "name": "Até 8 imagens e 20 headlines por",
+             "key": "adh.kwygz",
+             "x": 18,
+             "y": 84,
+             "w": 1336,
+             "h": 21,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2821",
+               "type": "TEXT",
+               "name": "Marker",
+               "key": "adh.kwygz#marker",
+               "x": 0,
+               "y": 1,
+               "w": 15,
+               "h": 21,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "•",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 14,
+               "color": "#ECE7E1",
+               "align": "right"
+              },
+              {
+               "id": "8:2822",
+               "type": "FRAME",
+               "name": "Até 8 imagens e 20 headlines por",
+               "key": "adh.kwygz#item",
+               "x": 22,
+               "y": 0,
+               "w": 1314,
+               "h": 21,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:2823",
+                 "type": "TEXT",
+                 "name": "Até 8 imagens e 20 headlines por",
+                 "key": "adh.kwygz#item#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 1314,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Até 8 imagens e 20 headlines por pedido, a partir de até 8 escolhidas.",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#ECE7E1"
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:2824",
+             "type": "FRAME",
+             "name": "Nada vai para a biblioteca até v",
+             "key": "adh.kx1fp",
+             "x": 18,
+             "y": 105,
+             "w": 1336,
+             "h": 21,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2825",
+               "type": "TEXT",
+               "name": "Marker",
+               "key": "adh.kx1fp#marker",
+               "x": 0,
+               "y": 1,
+               "w": 15,
+               "h": 21,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "•",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 14,
+               "color": "#ECE7E1",
+               "align": "right"
+              },
+              {
+               "id": "8:2826",
+               "type": "FRAME",
+               "name": "Nada vai para a biblioteca até v",
+               "key": "adh.kx1fp#item",
+               "x": 22,
+               "y": 0,
+               "w": 1314,
+               "h": 21,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 0,
+                 0,
+                 0,
+                 0
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "hug"
+               },
+               "children": [
+                {
+                 "id": "8:2827",
+                 "type": "TEXT",
+                 "name": "Nada vai para a biblioteca até v",
+                 "key": "adh.kx1fp#item#text",
+                 "x": 0,
+                 "y": 0,
+                 "w": 1314,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Nada vai para a biblioteca até você salvar. O selo de IA é escolha sua ao salvar; o Create avisa se estiver desligado.",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "Regular"
+                 },
+                 "size": 14,
+                 "color": "#ECE7E1"
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:2828",
+       "type": "FRAME",
+       "name": "Panel",
+       "key": "adh.ky42j",
+       "x": 24,
+       "y": 331.99,
+       "w": 1392,
+       "h": 525.17,
+       "fills": [
+        "#0F0F13"
+       ],
+       "stroke": {
+        "color": "#1D1D23",
+        "weight": 1
+       },
+       "radius": 14,
+       "layout": {
+        "mode": "V",
+        "gap": 10,
+        "padding": [
+         17,
+         19,
+         30,
+         19
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:2829",
+         "type": "TEXT",
+         "name": "Palavras que o Taboola já bloque",
+         "key": "adh.kzp3s",
+         "x": 20,
+         "y": 18,
+         "w": 1352,
+         "h": 21,
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "text": "Palavras que o Taboola já bloqueou para o time (56)",
+         "font": {
+          "family": "Archivo Expanded",
+          "style": "Bold"
+         },
+         "size": 16,
+         "color": "#F4EFE9"
+        },
+        {
+         "id": "8:2830",
+         "type": "FRAME",
+         "name": "Words",
+         "key": "adh.k10dhc",
+         "x": 20,
+         "y": 49,
+         "w": 1352,
+         "h": 445.17,
+         "sizing": {
+          "h": "fill",
+          "v": "fixed"
+         },
+         "children": [
+          {
+           "id": "8:2831",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k11mkf",
+           "x": 19,
+           "y": 0,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2832",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k11mkf#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2833",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k11mkf#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2834",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k11mkf#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "neuropathy→ tingling, numbness, pins and needles",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2835",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k14sw5",
+           "x": 19,
+           "y": 23.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2836",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k14sw5#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2837",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k14sw5#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2838",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k14sw5#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "feet→ toes, soles, legs",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2839",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k17w07",
+           "x": 19,
+           "y": 47,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2840",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k17w07#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2841",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k17w07#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2842",
+               "type": "TEXT",
+               "name": "Neuropathy Has Been Linked to a ",
+               "key": "adh.k186lk",
+               "x": 0,
+               "y": 0,
+               "w": 293,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Neuropathy Has Been Linked to a Common Habit",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2843",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k19bjn",
+           "x": 19,
+           "y": 70.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2844",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k19bjn#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2845",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k19bjn#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2846",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k19bjn#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "sciatica→ leg discomfort, hip discomfort, stiff lower back",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2847",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1c1zn",
+           "x": 19,
+           "y": 94,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2848",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1c1zn#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2849",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1c1zn#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2850",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k1c1zn#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "nerve pain→ tingling, pins and needles, numbness",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2851",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1fxxh",
+           "x": 19,
+           "y": 117.5,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2852",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1fxxh#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2853",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1fxxh#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2854",
+               "type": "TEXT",
+               "name": "Füße",
+               "key": "adh.k1gxzm",
+               "x": 0,
+               "y": 0,
+               "w": 31,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Füße",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2855",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1hta8",
+           "x": 19,
+           "y": 141,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2856",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1hta8#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2857",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1hta8#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2858",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k1hta8#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "back pain→ stiff back, sore back, back discomfort",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2859",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1kd5r",
+           "x": 19,
+           "y": 164.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2860",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1kd5r#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2861",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1kd5r#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2862",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k1kd5r#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Burning, Tingling & Numbness→ pins and needles, that tingling feeling",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2863",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1njzq",
+           "x": 19,
+           "y": 188,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2864",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1njzq#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2865",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1njzq#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2866",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k1njzq#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "weight→ belly fat, waistline, body shape",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2867",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1qixw",
+           "x": 19,
+           "y": 211.5,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2868",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1qixw#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2869",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1qixw#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2870",
+               "type": "TEXT",
+               "name": "Bauchfett",
+               "key": "adh.k1rzc9",
+               "x": 0,
+               "y": 0,
+               "w": 60,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Bauchfett",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2871",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1sna5",
+           "x": 19,
+           "y": 235,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2872",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1sna5#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2873",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1sna5#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2874",
+               "type": "TEXT",
+               "name": "gordura",
+               "key": "adh.k1thn5",
+               "x": 0,
+               "y": 0,
+               "w": 48,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "gordura",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2875",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1u0fq",
+           "x": 19,
+           "y": 258.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2876",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1u0fq#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2877",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1u0fq#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2878",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k1u0fq#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "stop losing weight→ hit a plateau, stall",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2879",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1x0gd",
+           "x": 19,
+           "y": 282,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2880",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1x0gd#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2881",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1x0gd#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2882",
+               "type": "TEXT",
+               "name": "Drink 1 Cup In The Morning",
+               "key": "adh.k1y7xl",
+               "x": 0,
+               "y": 0,
+               "w": 165,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Drink 1 Cup In The Morning",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2883",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k1zkah",
+           "x": 19,
+           "y": 305.5,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2884",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k1zkah#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2885",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1zkah#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2886",
+               "type": "TEXT",
+               "name": "barriga",
+               "key": "adh.k20xoz",
+               "x": 0,
+               "y": 0,
+               "w": 44,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "barriga",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2887",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k210gz",
+           "x": 19,
+           "y": 329,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2888",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k210gz#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2889",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k210gz#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2890",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k210gz#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "keto→ low-carb",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2891",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k24nxf",
+           "x": 19,
+           "y": 352.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2892",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k24nxf#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2893",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k24nxf#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2894",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k24nxf#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "dropping weight→ slimming down, trimming down, getting leaner",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2895",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k275u7",
+           "x": 19,
+           "y": 376,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2896",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k275u7#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2897",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k275u7#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2898",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k275u7#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "blood sugar→ glucose levels, sugar levels",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2899",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k2a5qy",
+           "x": 19,
+           "y": 399.5,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2900",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k2a5qy#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2901",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k2a5qy#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2902",
+               "type": "TEXT",
+               "name": "glucosa",
+               "key": "adh.k2bxml",
+               "x": 0,
+               "y": 0,
+               "w": 47,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "glucosa",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2903",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k2cbdx",
+           "x": 19,
+           "y": 423,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2904",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k2cbdx#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2905",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k2cbdx#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2906",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k2cbdx#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "The Greatest Enemy of Blood Sugar→ the worst thing for glucose levels",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2907",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k2feim",
+           "x": 463.66,
+           "y": 0,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2908",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k2feim#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2909",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k2feim#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2910",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k2feim#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "memory→ focus, recall, mental sharpness",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2911",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k2id5o",
+           "x": 463.66,
+           "y": 23.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2912",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k2id5o#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2913",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k2id5o#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2914",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k2id5o#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "memory loss→ fading focus, senior moments, slipping recall",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2915",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k2lcg0",
+           "x": 463.66,
+           "y": 47,
+           "w": 445.66,
+           "h": 39,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2916",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k2lcg0#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2917",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k2lcg0#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 39,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2918",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k2lcg0#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 39,
+               "sizing": {
+                "h": "fill",
+                "v": "fixed"
+               },
+               "text": "neurologists· também em descrições→ brain experts, specialists, researchers",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2919",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k2ptjh",
+           "x": 463.66,
+           "y": 90,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2920",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k2ptjh#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2921",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k2ptjh#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2922",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k2ptjh#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "brain fog→ mental fatigue, cloudy thinking, low focus",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2923",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k2swi3",
+           "x": 463.66,
+           "y": 113.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2924",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k2swi3#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2925",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k2swi3#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2926",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k2swi3#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "cognitive decline→ mental slowdown, slipping focus",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2927",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k2v3gv",
+           "x": 463.66,
+           "y": 137,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2928",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k2v3gv#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2929",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k2v3gv#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2930",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k2v3gv#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "forget→ misplace, lose track of, blank on",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2931",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k2yqtr",
+           "x": 463.66,
+           "y": 160.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2932",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k2yqtr#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2933",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k2yqtr#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2934",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k2yqtr#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "cognitive→ mental, thinking",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2935",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k31cw1",
+           "x": 463.66,
+           "y": 184,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2936",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k31cw1#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2937",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k31cw1#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2938",
+               "type": "TEXT",
+               "name": "Doctors Warn… Rapid Memory Decli",
+               "key": "adh.k32wa8",
+               "x": 0,
+               "y": 0,
+               "w": 232,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Doctors Warn… Rapid Memory Decline",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2939",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k33trw",
+           "x": 463.66,
+           "y": 207.5,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2940",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k33trw#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2941",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k33trw#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2942",
+               "type": "TEXT",
+               "name": "Memory Loss and Brain Plaque",
+               "key": "adh.k3465t",
+               "x": 0,
+               "y": 0,
+               "w": 185,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Memory Loss and Brain Plaque",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2943",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k350em",
+           "x": 463.66,
+           "y": 231,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2944",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k350em#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2945",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k350em#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2946",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k350em#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "tinnitus→ ear buzzing, humming in the ears, ear noise",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2947",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3862t",
+           "x": 463.66,
+           "y": 254.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2948",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3862t#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2949",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3862t#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2950",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k3862t#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Ringing In The Ears→ buzzing in the ears, ear noise",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2951",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3bcrv",
+           "x": 463.66,
+           "y": 278,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2952",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3bcrv#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2953",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3bcrv#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2954",
+               "type": "TEXT",
+               "name": "auditiva",
+               "key": "adh.k3czph",
+               "x": 0,
+               "y": 0,
+               "w": 49,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "auditiva",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2955",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3d481",
+           "x": 463.66,
+           "y": 301.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2956",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3d481#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2957",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3d481#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2958",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k3d481#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "gelatin→ collagen",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2959",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3ge2n",
+           "x": 463.66,
+           "y": 325,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2960",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3ge2n#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2961",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3ge2n#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2962",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k3ge2n#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "wrinkles→ fine lines, creases, aging skin",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2963",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3jiy4",
+           "x": 463.66,
+           "y": 348.5,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2964",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3jiy4#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2965",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3jiy4#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2966",
+               "type": "TEXT",
+               "name": "Dermatologists: The 1 Vitamin",
+               "key": "adh.k3kpvn",
+               "x": 0,
+               "y": 0,
+               "w": 183,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "Dermatologists: The 1 Vitamin",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2967",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3lvwu",
+           "x": 463.66,
+           "y": 372,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2968",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3lvwu#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2969",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3lvwu#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2970",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k3lvwu#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "Gelatin Trick→ collagen trick",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2971",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3oiwp",
+           "x": 463.66,
+           "y": 395.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2972",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3oiwp#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2973",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3oiwp#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2974",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k3oiwp#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "plastic surgeon→ skin expert, beauty expert",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2975",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3rux2",
+           "x": 463.66,
+           "y": 419,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2976",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3rux2#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2977",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3rux2#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2978",
+               "type": "TEXT",
+               "name": "impotência",
+               "key": "adh.k3s8zo",
+               "x": 0,
+               "y": 0,
+               "w": 68,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "impotência",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2979",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3trp4",
+           "x": 908.31,
+           "y": 0,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2980",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3trp4#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2981",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3trp4#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2982",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k3trp4#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "prostate→ men's health, nighttime bathroom trips",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2983",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3wlev",
+           "x": 908.31,
+           "y": 23.5,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:2984",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3wlev#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2985",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3wlev#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2986",
+               "type": "TEXT",
+               "name": "prostata",
+               "key": "adh.k3xou4",
+               "x": 0,
+               "y": 0,
+               "w": 51,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "prostata",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2987",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k3yh54",
+           "x": 908.31,
+           "y": 47,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2988",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k3yh54#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2989",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k3yh54#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2990",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k3yh54#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "doctors→ experts, researchers, specialists",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2991",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k41dda",
+           "x": 908.31,
+           "y": 70.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2992",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k41dda#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2993",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k41dda#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2994",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k41dda#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "cardiologists→ heart experts, specialists, researchers",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2995",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k44sv5",
+           "x": 908.31,
+           "y": 94,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2996",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k44sv5#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:2997",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k44sv5#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:2998",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k44sv5#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "doctor→ expert, researcher, specialist",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2999",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k47viy",
+           "x": 908.31,
+           "y": 117.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3000",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k47viy#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3001",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k47viy#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3002",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k47viy#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "MDs→ experts, specialists",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3003",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4ams7",
+           "x": 908.31,
+           "y": 141,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3004",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4ams7#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3005",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4ams7#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3006",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k4ams7#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "apnea→ snoring, restless sleep",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3007",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4dr7w",
+           "x": 908.31,
+           "y": 164.5,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3008",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4dr7w#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3009",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4dr7w#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3010",
+               "type": "TEXT",
+               "name": "intestino",
+               "key": "adh.k4en76",
+               "x": 0,
+               "y": 0,
+               "w": 54,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "intestino",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3011",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4f9f0",
+           "x": 908.31,
+           "y": 188,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3012",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4f9f0#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3013",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4f9f0#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3014",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k4f9f0#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "pill→ capsule, formula",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3015",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4ini2",
+           "x": 908.31,
+           "y": 211.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3016",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4ini2#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3017",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4ini2#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3018",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k4ini2#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "medication→ formula, routine",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3019",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4l3tc",
+           "x": 908.31,
+           "y": 235,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3020",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4l3tc#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3021",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4l3tc#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3022",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k4l3tc#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "mineral→ nutrient",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3023",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4o40c",
+           "x": 908.31,
+           "y": 258.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3024",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4o40c#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3025",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4o40c#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3026",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k4o40c#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "vitamin→ nutrient, supplement",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3027",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4r3lp",
+           "x": 908.31,
+           "y": 282,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3028",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4r3lp#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3029",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4r3lp#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3030",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k4r3lp#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "drink→ sip, beverage, tonic",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3031",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4u2h6",
+           "x": 908.31,
+           "y": 305.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3032",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4u2h6#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3033",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4u2h6#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3034",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k4u2h6#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "poison→ toxin, worst ingredient",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3035",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4x2sh",
+           "x": 908.31,
+           "y": 329,
+           "w": 445.66,
+           "h": 20.25,
+           "layout": {
+            "mode": "H",
+            "gap": 7,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "hug",
+            "v": "hug"
+           },
+           "children": [
+            {
+             "id": "8:3036",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4x2sh#marker",
+             "x": 0,
+             "y": 0,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3037",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4x2sh#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0.25,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3038",
+               "type": "TEXT",
+               "name": "linked to this common drink",
+               "key": "adh.k4y9aw",
+               "x": 0,
+               "y": 0,
+               "w": 168,
+               "h": 20,
+               "sizing": {
+                "h": "hug",
+                "v": "hug"
+               },
+               "text": "linked to this common drink",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "SemiBold"
+               },
+               "size": 13,
+               "color": "#F4EFE9"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3039",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k4zykp",
+           "x": 908.31,
+           "y": 352.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3040",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k4zykp#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3041",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k4zykp#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3042",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k4zykp#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "soda→ pop, cola, soft beverage",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3043",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k52yrs",
+           "x": 908.31,
+           "y": 376,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3044",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k52yrs#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3045",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k52yrs#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3046",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k52yrs#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "food→ snack, meal, ingredient",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3047",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k55lk3",
+           "x": 908.31,
+           "y": 399.5,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3048",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k55lk3#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3049",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k55lk3#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3050",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k55lk3#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "wine· também em descrições→ red grape, beverage",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:3051",
+           "type": "FRAME",
+           "name": "Item",
+           "key": "adh.k59cn3",
+           "x": 908.31,
+           "y": 423,
+           "w": 445.66,
+           "h": 19.5,
+           "sizing": {
+            "h": "fixed",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:3052",
+             "type": "TEXT",
+             "name": "Marker",
+             "key": "adh.k59cn3#marker",
+             "x": 0,
+             "y": 1,
+             "w": 14,
+             "h": 20,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "•",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "Regular"
+             },
+             "size": 13,
+             "color": "#ECE7E1",
+             "align": "right"
+            },
+            {
+             "id": "8:3053",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k59cn3#item",
+             "x": 21,
+             "y": 0,
+             "w": 424.66,
+             "h": 20,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fixed",
+              "v": "hug"
+             },
+             "children": [
+              {
+               "id": "8:3054",
+               "type": "TEXT",
+               "name": "Item",
+               "key": "adh.k59cn3#item#text",
+               "x": 0,
+               "y": 0,
+               "w": 424.66,
+               "h": 20,
+               "sizing": {
+                "h": "fill",
+                "v": "hug"
+               },
+               "text": "enemy→ worst foe, threat, rival",
+               "size": 13
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "page": "Create"
+}

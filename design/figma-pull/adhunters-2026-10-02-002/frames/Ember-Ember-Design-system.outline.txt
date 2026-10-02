@@ -1,0 +1,506 @@
+FRAME 'Ember · Design system' key=adh.k0ehl 1440x2786.84 @0,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start fills=["#09090C"]
+  FRAME 'Top bar' key=adh.k1flf 1440x48 @0,0 layout=H gap=10 pad=[0, 0, 1, 0] main=start cross=start sizing=fill/fixed fills=["#060608"] stroke={"color": "#1D1D23", "weight": 1}
+    INSTANCE 'App selector · Launch' key=adh.k2hzz 232x46 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=fixed/fill fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1} instanceOf=adh.c.au7t0.default
+    FRAME 'Page tabs' key=adh.k83f2 295x46 @242,0 layout=H gap=2 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+      INSTANCE 'Tab' key=adh.k9n09 57x46 @0,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kar8i 56x46 @59,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+      INSTANCE 'Tab' key=adh.kbids 104x46 @117,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill stroke={"color": "#FF7A1A", "weight": 1} instanceOf=adh.c.awh7q.current props={"variant": "Current"}
+      INSTANCE 'Tab' key=adh.kc6cf 72x46 @223,0 layout=H gap=0 pad=[0, 12, 2, 12] main=start cross=center sizing=hug/fill instanceOf=adh.c.awh7q.default props={"variant": "Default"}
+    FRAME 'Spacer' key=adh.kd174 549x46 @547,0 sizing=fill/fill
+    FRAME 'Tools' key=adh.kerzf 334x46 @1106,0 layout=H gap=12 pad=[0, 14, 0, 0] main=start cross=center sizing=hug/fill
+      INSTANCE 'Search box' key=adh.kfenc 280x30 @0,8 layout=H gap=8 pad=[1, 11, 1, 11] main=center cross=center sizing=fixed/fixed fills=["#121217"] stroke={"color": "#26262E", "weight": 1} radius=9 instanceOf=adh.c.a11ghd.default
+      INSTANCE 'Avatar' key=adh.kjk5n 28x28 @292,9 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#18181E"] stroke={"color": "#2A2A33", "weight": 1} radius=8 instanceOf=adh.c.a133ym.default
+  FRAME 'Body' key=adh.kki35 1440x2738.84 @0,48 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/fill
+    FRAME 'Filters' key=adh.kl47w 232x854 @0,0 layout=V gap=16 pad=[14, 13, 686, 12] main=start cross=start sizing=fixed/hug fills=["#0A0A0D"] stroke={"color": "#1D1D23", "weight": 1}
+      FRAME 'Filters head' key=adh.kmbcy 206x20 @12,14 layout=H gap=123.61000061035156 pad=[0, 0, 0, 0] main=start cross=center sizing=fill/hug
+        TEXT 'Label' key=adh.knq3t 49x14 @0,3 sizing=hug/hug font=Inter Bold 10 color=#9A948D text="Filtros"
+        INSTANCE 'Fold button' key=adh.kot7l 23x20 @172.61,0 layout=H gap=0 pad=[1, 7, 1, 7] main=center cross=center sizing=hug/hug stroke={"color": "#26262E", "weight": 1} radius=6 instanceOf=adh.c.a150rn.default
+      FRAME 'Filter group' key=adh.kpfbx 206x57 @12,50 layout=V gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Label' key=adh.kq27k 206x14 @0,0 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Busca"
+        INSTANCE 'Text field' key=adh.krq5l 206x36 @0,21 layout=V gap=0 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a18gut.placeholder props={"variant": "Placeholder"}
+      FRAME 'Filter group' key=adh.kta1d 206x45 @12,123 layout=V gap=7 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Label' key=adh.kux0w 206x14 @0,0 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Estado"
+        FRAME 'Chips' key=adh.kvh5z 206x24 @0,21 layout=H gap=5 pad=[0, 3, 0, 0] main=start cross=start sizing=fill/fixed
+          INSTANCE 'Chip' key=adh.kw81v 55x24 @0,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill instanceOf=adh.c.a1bwmv.on props={"variant": "On"}
+          INSTANCE 'Chip' key=adh.ky04c 71x24 @60,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill instanceOf=adh.c.a1bwmv.off props={"variant": "Off"}
+          INSTANCE 'Chip' key=adh.k10vzh 75x24 @136,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill instanceOf=adh.c.a1bwmv.off props={"variant": "Off"}
+    FRAME 'Main' key=adh.k12x1d 1208x2738.84 @232,0 layout=V gap=28 pad=[20, 24, 64, 24] main=start cross=start sizing=fill/fill
+      FRAME 'Page head' key=adh.k13p4m 1164x73 @24,20 layout=H gap=413 pad=[0, 0, 0, 0] main=start cross=end sizing=hug/hug
+        FRAME 'Box' key=adh.k141n5 560x73 @0,0 layout=V gap=4 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+          TEXT 'Ember · Design system' key=adh.k15npv 560x27 @0,0 sizing=fill/hug font=Inter Bold 22 color=#F4EFE9 text="Ember · Design system"
+          FRAME 'As cores, os tipos e as peças qu' key=adh.k16px8 560x42 @0,31 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+            TEXT 'As cores, os tipos e as peças qu' key=adh.k16px8#text 560x42 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 14 color=#B5AEA6 text="As cores, os tipos e as peças que todo app do AdHunters usa (shared/frame). Laranja quer dizer \"aja aqui\" e, nos números, subindo."
+        FRAME 'Actions' key=adh.k17tmu 191x34 @973,39 layout=H gap=8 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/hug
+          INSTANCE 'Button' key=adh.k18u0e 98x34 @0,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=9 instanceOf=adh.c.a1dbqt.default props={"variant": "Default"}
+          FRAME 'Button' key=adh.k19a9y 85x34 @106,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k19a9y#text 55x17 @15,8.5 sizing=fixed/fixed font=IBM Plex Sans SemiBold 13 color=#140A04 text="Principal"
+      FRAME 'Ds sec' key=adh.k1aaqs 1160x718.75 @24,121 layout=V gap=11.989999771118164 pad=[0, 0, 0.009999999776482582, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Cores' key=adh.k1blkb 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Cores"
+        FRAME 'Ds swatches' key=adh.k1copg 1160x691.75 @0,26.99 sizing=fixed/fixed
+          FRAME 'Ds sw' key=adh.k1dmva 185x93 @0,0 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k1e6q3 181x44 @2,2 sizing=fill/fixed fills=["#09090C"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k1f0x9 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ground' key=adh.k1gik4 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ground"
+              FRAME '#09090c' key=adh.k1hk17 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#09090c' key=adh.k1hk17#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#09090c"
+          FRAME 'Ds sw' key=adh.k1imnm 185x93 @195,0 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k1jo28 181x44 @2,2 sizing=fill/fixed fills=["#060608"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k1ks8z 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'bar' key=adh.k1lvg0 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="bar"
+              FRAME '#060608' key=adh.k1mih0 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#060608' key=adh.k1mih0#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#060608"
+          FRAME 'Ds sw' key=adh.k1nc8y 185x93 @390,0 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k1ogg7 181x44 @2,2 sizing=fill/fixed fills=["#0A0A0D"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k1p0cu 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'rail' key=adh.k1q8s1 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="rail"
+              FRAME '#0a0a0d' key=adh.k1r063 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#0a0a0d' key=adh.k1r063#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#0a0a0d"
+          FRAME 'Ds sw' key=adh.k1spk0 185x93 @585,0 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k1trij 181x44 @2,2 sizing=fill/fixed fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k1ux5z 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'surface-1' key=adh.k1vbxr 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="surface-1"
+              FRAME '#0f0f13' key=adh.k1w8kp 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#0f0f13' key=adh.k1w8kp#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#0f0f13"
+          FRAME 'Ds sw' key=adh.k1xyx4 185x93 @780,0 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k1y4lg 181x44 @2,2 sizing=fill/fixed fills=["#121217"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k1z4gu 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'surface-2' key=adh.k20v4n 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="surface-2"
+              FRAME '#121217' key=adh.k217gl 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#121217' key=adh.k217gl#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#121217"
+          FRAME 'Ds sw' key=adh.k22lal 185x93 @975,0 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k234el 181x44 @2,2 sizing=fill/fixed fills=["#18181E"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k24n8m 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'surface-3' key=adh.k25etw 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="surface-3"
+              FRAME '#18181e' key=adh.k26ju0 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#18181e' key=adh.k26ju0#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#18181e"
+          FRAME 'Ds sw' key=adh.k27o6a 185x93 @0,100.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k281bs 181x44 @2,2 sizing=fill/fixed fills=["#1D1D23"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k29zuc 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'line-subtle' key=adh.k2arzg 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="line-subtle"
+              FRAME '#1d1d23' key=adh.k2b685 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#1d1d23' key=adh.k2b685#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#1d1d23"
+          FRAME 'Ds sw' key=adh.k2cz1s 185x93 @195,100.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k2durw 181x44 @2,2 sizing=fill/fixed fills=["#26262E"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k2envt 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'line' key=adh.k2fpdj 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="line"
+              FRAME '#26262e' key=adh.k2gtjd 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#26262e' key=adh.k2gtjd#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#26262e"
+          FRAME 'Ds sw' key=adh.k2huui 185x93 @390,100.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k2idbz 181x44 @2,2 sizing=fill/fixed fills=["#2A2A33"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k2jceh 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'line-strong' key=adh.k2k94c 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="line-strong"
+              FRAME '#2a2a33' key=adh.k2l0lm 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#2a2a33' key=adh.k2l0lm#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#2a2a33"
+          FRAME 'Ds sw' key=adh.k2m6dg 185x93 @585,100.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k2nhzi 181x44 @2,2 sizing=fill/fixed fills=["#55555F"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k2o3bb 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'control-line' key=adh.k2prae 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="control-line"
+              FRAME '#55555f' key=adh.k2q0dn 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#55555f' key=adh.k2q0dn#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#55555f"
+          FRAME 'Ds sw' key=adh.k2rlrs 185x93 @780,100.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k2stlj 181x44 @2,2 sizing=fill/fixed fills=["#F4EFE9"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k2tanh 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ink-strong' key=adh.k2uv0t 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ink-strong"
+              FRAME '#f4efe9' key=adh.k2vveb 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#f4efe9' key=adh.k2vveb#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#f4efe9"
+          FRAME 'Ds sw' key=adh.k2wiq4 185x93 @975,100.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k2xl5u 181x44 @2,2 sizing=fill/fixed fills=["#ECE7E1"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k2yx8y 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ink' key=adh.k2zlzk 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ink"
+              FRAME '#ece7e1' key=adh.k30gmt 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#ece7e1' key=adh.k30gmt#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#ece7e1"
+          FRAME 'Ds sw' key=adh.k31gx0 185x93 @0,200.5 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k3219n 181x44 @2,2 sizing=fill/fixed fills=["#D8D2CB"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k330bs 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ink-2' key=adh.k342e3 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ink-2"
+              FRAME '#d8d2cb' key=adh.k35iay 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#d8d2cb' key=adh.k35iay#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#d8d2cb"
+          FRAME 'Ds sw' key=adh.k366wz 185x93 @195,200.5 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k37n5z 181x44 @2,2 sizing=fill/fixed fills=["#B5AEA6"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k38qfu 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ink-3' key=adh.k39asj 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ink-3"
+              FRAME '#b5aea6' key=adh.k3a1l2 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#b5aea6' key=adh.k3a1l2#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#b5aea6"
+          FRAME 'Ds sw' key=adh.k3bykx 185x93 @390,200.5 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k3c3j0 181x44 @2,2 sizing=fill/fixed fills=["#9A948D"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k3d0gm 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'muted' key=adh.k3e25v 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="muted"
+              FRAME '#9a948d' key=adh.k3fm7w 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#9a948d' key=adh.k3fm7w#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#9a948d"
+          FRAME 'Ds sw' key=adh.k3gb6h 185x93 @585,200.5 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k3hnrm 181x44 @2,2 sizing=fill/fixed fills=["#8F8A85"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k3ivg2 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'faint' key=adh.k3j44i 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="faint"
+              FRAME '#8f8a85' key=adh.k3kwrx 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#8f8a85' key=adh.k3kwrx#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#8f8a85"
+          FRAME 'Ds sw' key=adh.k3ldkg 185x93 @780,200.5 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k3m1rk 181x44 @2,2 sizing=fill/fixed fills=["#FF7A1A"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k3n8ia 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'accent' key=adh.k3ozmr 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="accent"
+              FRAME '#ff7a1a' key=adh.k3p7p4 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#ff7a1a' key=adh.k3p7p4#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#ff7a1a"
+          FRAME 'Ds sw' key=adh.k3qsa6 185x93 @975,200.5 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k3rhtw 181x44 @2,2 sizing=fill/fixed fills=["#FF8C3A"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k3sxbt 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'accent-hover' key=adh.k3tmxy 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="accent-hover"
+              FRAME '#ff8c3a' key=adh.k3upwq 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#ff8c3a' key=adh.k3upwq#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#ff8c3a"
+          FRAME 'Ds sw' key=adh.k3vxj6 185x93 @0,300.75 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k3w1se 181x44 @2,2 sizing=fill/fixed fills=["#140A04"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k3xsex 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'on-accent' key=adh.k3yane 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="on-accent"
+              FRAME '#140a04' key=adh.k3zxe0 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#140a04' key=adh.k3zxe0#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#140a04"
+          FRAME 'Ds sw' key=adh.k401c3 185x93 @195,300.75 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k414qp 181x44 @2,2 sizing=fill/fixed fills=["#FFC890"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k428zu 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'accent-soft' key=adh.k43m0c 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="accent-soft"
+              FRAME '#ffc890' key=adh.k44md3 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#ffc890' key=adh.k44md3#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#ffc890"
+          FRAME 'Ds sw' key=adh.k45pca 185x93 @390,300.75 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k46nmo 181x44 @2,2 sizing=fill/fixed fills=["#FFA04A"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k478o3 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'link' key=adh.k48ica 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="link"
+              FRAME '#ffa04a' key=adh.k49m1u 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#ffa04a' key=adh.k49m1u#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#ffa04a"
+          FRAME 'Ds sw' key=adh.k4a1xg 185x93 @585,300.75 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k4bs30 181x44 @2,2 sizing=fill/fixed fills=["#FFC27F"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k4ci9f 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'link-hover' key=adh.k4d1bv 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="link-hover"
+              FRAME '#ffc27f' key=adh.k4ef8k 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#ffc27f' key=adh.k4ef8k#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#ffc27f"
+          FRAME 'Ds sw' key=adh.k4fjay 185x93 @780,300.75 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k4gds0 181x44 @2,2 sizing=fill/fixed fills=["#140B07"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k4hfe0 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ember-surface' key=adh.k4iv2r 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ember-surface"
+              FRAME '#140b07' key=adh.k4jy75 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#140b07' key=adh.k4jy75#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#140b07"
+          FRAME 'Ds sw' key=adh.k4kyj0 185x93 @975,300.75 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k4l6ua 181x44 @2,2 sizing=fill/fixed fills=["#3A1C0C"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k4m901 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ember-line' key=adh.k4nq3i 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ember-line"
+              FRAME '#3a1c0c' key=adh.k4o9f8 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#3a1c0c' key=adh.k4o9f8#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#3a1c0c"
+          FRAME 'Ds sw' key=adh.k4phqp 185x93 @0,401 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k4qmwc 181x44 @2,2 sizing=fill/fixed fills=["#1C1109"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k4rnxc 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ember-chip' key=adh.k4sx9c 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ember-chip"
+              FRAME '#1c1109' key=adh.k4tfph 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#1c1109' key=adh.k4tfph#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#1c1109"
+          FRAME 'Ds sw' key=adh.k4uiey 185x93 @195,401 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k4v51n 181x44 @2,2 sizing=fill/fixed fills=["#4A240D"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k4w9qe 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ember-chip-line' key=adh.k4x91h 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ember-chip-line"
+              FRAME '#4a240d' key=adh.k4y917 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#4a240d' key=adh.k4y917#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#4a240d"
+          FRAME 'Ds sw' key=adh.k4zv0g 185x93 @390,401 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k504ky 181x44 @2,2 sizing=fill/fixed fills=["#E0432F"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k51dnn 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'stopped' key=adh.k52jov 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="stopped"
+              FRAME '#e0432f' key=adh.k53bja 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#e0432f' key=adh.k53bja#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#e0432f"
+          FRAME 'Ds sw' key=adh.k54xr1 185x93 @585,401 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k55t5r 181x44 @2,2 sizing=fill/fixed fills=["#1A0B09"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k56sur 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'fail-surface' key=adh.k576dw 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="fail-surface"
+              FRAME '#1a0b09' key=adh.k58qcf 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#1a0b09' key=adh.k58qcf#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#1a0b09"
+          FRAME 'Ds sw' key=adh.k59vrj 185x93 @780,401 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k5acrf 181x44 @2,2 sizing=fill/fixed fills=["#5A1D14"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k5bivn 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'fail-line' key=adh.k5cnj8 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="fail-line"
+              FRAME '#5a1d14' key=adh.k5d2wl 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#5a1d14' key=adh.k5d2wl#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#5a1d14"
+          FRAME 'Ds sw' key=adh.k5eb8w 185x93 @975,401 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k5fign 181x44 @2,2 sizing=fill/fixed fills=["#FFB4A8"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k5g9in 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'fail-ink' key=adh.k5hck5 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="fail-ink"
+              FRAME '#ffb4a8' key=adh.k5i4et 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#ffb4a8' key=adh.k5i4et#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#ffb4a8"
+          FRAME 'Ds sw' key=adh.k5jru7 185x93 @0,501.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k5kqup 181x44 @2,2 sizing=fill/fixed fills=["#0E131C"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k5l139 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'steel-surface' key=adh.k5m0po 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="steel-surface"
+              FRAME '#0e131c' key=adh.k5n8l8 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#0e131c' key=adh.k5n8l8#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#0e131c"
+          FRAME 'Ds sw' key=adh.k5ovtn 185x93 @195,501.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k5pyor 181x44 @2,2 sizing=fill/fixed fills=["#2D4466"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k5qo4g 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'steel-line' key=adh.k5ri71 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="steel-line"
+              FRAME '#2d4466' key=adh.k5sslf 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#2d4466' key=adh.k5sslf#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#2d4466"
+          FRAME 'Ds sw' key=adh.k5t8xh 185x93 @390,501.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k5u5t1 181x44 @2,2 sizing=fill/fixed fills=["#A9C0E6"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k5vgv1 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'steel-ink' key=adh.k5wqma 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="steel-ink"
+              FRAME '#a9c0e6' key=adh.k5xcyv 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#a9c0e6' key=adh.k5xcyv#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#a9c0e6"
+          FRAME 'Ds sw' key=adh.k5yu58 185x93 @585,501.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k5zu2u 181x44 @2,2 sizing=fill/fixed fills=["#3FBF7F"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k606uw 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ok' key=adh.k619zp 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ok"
+              FRAME '#3fbf7f' key=adh.k62ks7 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#3fbf7f' key=adh.k62ks7#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#3fbf7f"
+          FRAME 'Ds sw' key=adh.k63x65 185x93 @780,501.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k64uiq 181x44 @2,2 sizing=fill/fixed fills=["#0D1410"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k65uq9 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ok-surface' key=adh.k6698o 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ok-surface"
+              FRAME '#0d1410' key=adh.k671m6 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#0d1410' key=adh.k671m6#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#0d1410"
+          FRAME 'Ds sw' key=adh.k68qpp 185x93 @975,501.25 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k69cdq 181x44 @2,2 sizing=fill/fixed fills=["#1F3A2A"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k6ak1v 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ok-line' key=adh.k6bpkn 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ok-line"
+              FRAME '#1f3a2a' key=adh.k6c11u 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#1f3a2a' key=adh.k6c11u#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#1f3a2a"
+          FRAME 'Ds sw' key=adh.k6ds4p 185x93 @0,601.5 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            FRAME 'Ds sw chip' key=adh.k6e5dm 181x44 @2,2 sizing=fill/fixed fills=["#B9D8C6"] stroke={"color": "#1D1D23", "weight": 1}
+            FRAME 'Ds sw text' key=adh.k6fj2c 183x45 @2,46 layout=V gap=1 pad=[6, 8, 6, 8] main=start cross=start sizing=fixed/hug
+              TEXT 'ok-ink' key=adh.k6ggeh 167x18 @8,6 sizing=fill/hug font=IBM Plex Sans SemiBold 11.5 color=#F4EFE9 text="ok-ink"
+              FRAME '#b9d8c6' key=adh.k6hl29 167x14 @8,25 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+                TEXT '#b9d8c6' key=adh.k6hl29#text 167x14 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 11 color=#B5AEA6 text="#b9d8c6"
+      FRAME 'Ds sec' key=adh.k6iy3u 1160x329.21 @24,867.75 layout=V gap=12 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Tipos' key=adh.k6jnyq 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Tipos"
+        FRAME 'Panel' key=adh.k6k71d 1160x302.21 @0,27 layout=V gap=10 pad=[17, 19, 17, 19] main=start cross=start sizing=fixed/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=14
+          FRAME 'Ds type row' key=adh.k6lvrv 1120x26.41 @20,18 sizing=fill/fixed
+            TEXT 'h1 · Archivo 800 22' key=adh.k6md6t 126x14 @0,9 sizing=fixed/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="h1 · Archivo 800 22"
+            FRAME 'Todas as campanhas' key=adh.k6nn74 906x27 @216,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Todas as campanhas' key=adh.k6nn74#text 906x27 @0,0 sizing=fill/hug font=Inter Bold 22 color=#F4EFE9 text="Todas as campanhas"
+          FRAME 'Ds type row' key=adh.k6oaed 1120x20.8 @20,54.41 sizing=fill/fixed
+            TEXT 'h2 · Archivo 700 16' key=adh.k6pg0m 126x14 @0,4 sizing=fixed/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="h2 · Archivo 700 16"
+            FRAME 'Grupo de campanha' key=adh.k6qd0a 906x21 @216,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Grupo de campanha' key=adh.k6qd0a#text 906x21 @0,0 sizing=fill/hug font=Archivo Expanded Bold 16 color=#F4EFE9 text="Grupo de campanha"
+          FRAME 'Ds type row' key=adh.k6rbf9 1120x15 @20,85.21 layout=H gap=16 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+            TEXT 'h3 · Archivo 800 11 caps' key=adh.k6sldl 159x14 @0,0 sizing=hug/hug font=IBM Plex Mono Regular 11 color=#8F8A85 text="h3 · Archivo 800 11 caps"
+            FRAME 'Dispositivo' key=adh.k6terf 906x15 @175,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Dispositivo' key=adh.k6terf#text 906x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Dispositivo"
+          FRAME 'Ds type row' key=adh.k6u96g 1120x15 @20,110.21 sizing=fill/fixed
+            TEXT 'fr-label · Archivo 800 10' key=adh.k6v95u 165x14 @0,0 sizing=fixed/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="fr-label · Archivo 800 10"
+            FRAME 'Label' key=adh.k6wqi7 906x14 @216,1 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Label' key=adh.k6wqi7#text 906x14 @0,0 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Filtros"
+          FRAME 'Ds type row' key=adh.k6xfv9 1120x21 @20,135.21 sizing=fill/fixed
+            TEXT 'body · Plex Sans 14' key=adh.k6yg2f 126x14 @0,4 sizing=fixed/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="body · Plex Sans 14"
+            FRAME 'Números do Intel, atualizados 01' key=adh.k6zt2l 906x21 @216,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Números do Intel, atualizados 01' key=adh.k6zt2l#text 906x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="Números do Intel, atualizados 01/10, 21:13. Vendas e receita do RedTrack."
+          FRAME 'Ds type row' key=adh.k70kpt 1120x25 @20,166.21 sizing=fill/fixed
+            TEXT 'lead / muted' key=adh.k71x7h 80x14 @0,8 sizing=fixed/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="lead / muted"
+            FRAME 'A sessão vira uma pasta dentro d' key=adh.k72u05 560x21 @216,4 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'A sessão vira uma pasta dentro d' key=adh.k72u05#text 560x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#B5AEA6 text="A sessão vira uma pasta dentro da pasta da vertical na biblioteca."
+          FRAME 'Ds type row' key=adh.k734cn 1120x21 @20,201.21 sizing=fill/fixed
+            TEXT 'num · Plex Mono' key=adh.k74it7 99x14 @0,4 sizing=fixed/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="num · Plex Mono"
+            FRAME 'US$ 1.723,84 · 0,96% · 5.632' key=adh.k75zut 906x21 @216,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'US$ 1.723,84 · 0,96% · 5.632' key=adh.k75zut#text 906x21 @0,0 sizing=fill/hug font=IBM Plex Mono Regular 14 color=#ECE7E1 text="US$ 1.723,84 · 0,96% · 5.632"
+          FRAME 'Ds type row' key=adh.k764d0 1120x21 @20,232.21 sizing=fill/fixed
+            TEXT 'link' key=adh.k775ow 27x14 @0,4 sizing=fixed/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="link"
+            FRAME 'Abrir no Launch' key=adh.k78h86 906x21 @216,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Abrir no Launch' key=adh.k78h86#text 906x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#FFA04A text="Abrir no Launch"
+          FRAME 'Ds type row' key=adh.k79cpz 1120x21 @20,263.21 sizing=fill/fixed
+            TEXT 'kbd' key=adh.k7aq8t 20x14 @0,4 sizing=fixed/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="kbd"
+            FRAME 'Span' key=adh.k7b7sw 904x21 @216,0 layout=H gap=0 pad=[0, 808, 0, 0] main=start cross=start sizing=hug/fixed
+              FRAME 'Key' key=adh.k7cv0z 54x24 @0,0 layout=V gap=0 pad=[5.5, 6, 5.5, 6] main=start cross=start sizing=hug/hug fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4
+                TEXT 'Key' key=adh.k7cv0z#text 40x11 @7,6.5 sizing=hug/hug font=IBM Plex Mono Medium 11 color=#D8D2CB text="Ctrl K"
+              FRAME 'Space' key=adh.k7dd4y 0x21 @54,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+                TEXT 'Space' key=adh.k7dd4y#text 0x21 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text=" "
+              FRAME 'Key' key=adh.k7erm8 21x24 @54,0 layout=V gap=0 pad=[5.5, 6, 5.5, 6] main=start cross=start sizing=hug/hug fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4
+                TEXT 'Key' key=adh.k7erm8#text 7x11 @7,6.5 sizing=hug/hug font=IBM Plex Mono Medium 11 color=#D8D2CB text="G"
+              FRAME 'Space' key=adh.k7fhgp 0x21 @75,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+                TEXT 'Space' key=adh.k7fhgp#text 0x21 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text=" "
+              FRAME 'Key' key=adh.k7gvn6 21x24 @75,0 layout=V gap=0 pad=[5.5, 6, 5.5, 6] main=start cross=start sizing=hug/hug fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4
+                TEXT 'Key' key=adh.k7gvn6#text 7x11 @7,6.5 sizing=hug/hug font=IBM Plex Mono Medium 11 color=#D8D2CB text="L"
+      FRAME 'Ds sec' key=adh.k7hhn9 1160x97 @24,1224.96 layout=V gap=12 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Espaços' key=adh.k7im7w 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Espaços"
+        FRAME 'Ds space' key=adh.k7j9ub 1160x70 @0,27 layout=H gap=14 pad=[0, 713, 0, 0] main=start cross=end sizing=hug/hug
+          FRAME 'Box' key=adh.k7ku25 9x26 @0,44 layout=V gap=4 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME 'Box' key=adh.k7lkhw 4x4 @2,2 sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=2
+            FRAME '4' key=adh.k7mt6b 5x14 @2,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT '4' key=adh.k7mt6b#text 5x14 @0,0 sizing=fill/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="4"
+          FRAME 'Box' key=adh.k7n6bd 10x30 @23,40 layout=V gap=4 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME 'Box' key=adh.k7okyd 6x8 @2,2 sizing=fill/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME '8' key=adh.k7p8aa 6x14 @2,14 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT '8' key=adh.k7p8aa#text 6x14 @0,0 sizing=fill/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="8"
+          FRAME 'Box' key=adh.k7ql9v 16x34 @47,36 layout=V gap=4 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME 'Box' key=adh.k7rhkq 12x12 @2,2 sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME '12' key=adh.k7sjzh 12x14 @2,18 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT '12' key=adh.k7sjzh#text 12x14 @0,0 sizing=fill/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="12"
+          FRAME 'Box' key=adh.k7tka3 18x38 @77,32 layout=V gap=4 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME 'Box' key=adh.k7utw2 14x16 @2,2 sizing=fill/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME '16' key=adh.k7vsjk 14x14 @2,22 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT '16' key=adh.k7vsjk#text 14x14 @0,0 sizing=fill/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="16"
+          FRAME 'Box' key=adh.k7wd5l 26x46 @109,24 layout=V gap=4 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME 'Box' key=adh.k7xm6i 22x24 @2,2 sizing=fill/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME '24' key=adh.k7yxan 22x14 @2,30 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT '24' key=adh.k7yxan#text 22x14 @0,0 sizing=fill/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="24"
+          FRAME 'Box' key=adh.k7zu7q 50x70 @149,0 layout=V gap=4 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME 'Box' key=adh.k80c1t 46x48 @2,2 sizing=fill/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME '48 top' key=adh.k81g9a 46x14 @2,54 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT '48 top' key=adh.k81g9a#text 46x14 @0,0 sizing=fill/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="48 top"
+          FRAME 'Box' key=adh.k8231y 234x46 @213,24 layout=V gap=4 pad=[1, 1, 1, 1] main=start cross=start sizing=fixed/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME 'Box' key=adh.k83ect 230x24 @2,2 sizing=fill/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4
+            FRAME '232 column' key=adh.k84kgd 230x14 @2,30 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT '232 column' key=adh.k84kgd#text 230x14 @0,0 sizing=fill/fixed font=IBM Plex Mono Regular 11 color=#8F8A85 text="232 column"
+      FRAME 'Ds sec' key=adh.k85i50 1160x61 @24,1349.96 layout=V gap=11.989999771118164 pad=[0, 0, 0.009999999776482582, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Botões' key=adh.k86qx7 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Botões"
+        FRAME 'Ds row' key=adh.k87nyb 1175x34 @0,26.99 layout=H gap=12 pad=[0, 484, 0, 0] main=start cross=center sizing=hug/hug
+          FRAME 'Button' key=adh.k88i67 65x34 @0,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k88i67#text 35x34 @15,0 sizing=fixed/fixed font=IBM Plex Sans Medium 13 color=#ECE7E1 text="Botão"
+          FRAME 'Button' key=adh.k89p65 85x34 @77,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k89p65#text 55x17 @15,8.5 sizing=fixed/fixed font=IBM Plex Sans SemiBold 13 color=#140A04 text="Principal"
+          FRAME 'Button' key=adh.k8aalt 87x34 @174,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed stroke={"color": "#55555F", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k8aalt#text 57x34 @15,0 sizing=fixed/fixed font=IBM Plex Sans Medium 13 color=#ECE7E1 text="Fantasma"
+          FRAME 'Button' key=adh.k8by0s 74x28 @273,3 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k8by0s#text 50x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans Medium 12 color=#ECE7E1 text="Pequeno"
+          FRAME 'Button' key=adh.k8csxw 126x28 @359,3 layout=H gap=0 pad=[4, 11, 4, 11] main=center cross=center sizing=hug/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k8csxw#text 102x15 @12,6.5 sizing=fixed/fixed font=IBM Plex Sans SemiBold 12 color=#140A04 text="Principal pequeno"
+          FRAME 'Button' key=adh.k8dv3d 88x34 @497,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=9
+            TEXT 'Button' key=adh.k8dv3d#text 58x34 @15,0 sizing=fixed/fixed font=IBM Plex Sans Medium 13 color=#ECE7E1 text="Desligado"
+          INSTANCE 'Link button' key=adh.k8ed0r 94x34 @597,0 layout=H gap=0 pad=[7, 14, 7, 14] main=center cross=center sizing=hug/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=9 instanceOf=adh.c.a1hbom.default props={"variant": "Default"}
+      FRAME 'Ds sec' key=adh.k8f8x4 1160x69 @24,1438.96 layout=V gap=12 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Chips e escolhas' key=adh.k8g5h0 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Chips e escolhas"
+        FRAME 'Ds row' key=adh.k8hq42 1170x42 @0,27 layout=H gap=12 pad=[0, 547, 0, 0] main=start cross=center sizing=hug/hug
+          FRAME 'Chips' key=adh.k8i38y 203x24 @0,9 layout=H gap=5 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+            INSTANCE 'Chip' key=adh.k8jflb 58x24 @0,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill instanceOf=adh.c.a1bwmv.on props={"variant": "On"}
+            INSTANCE 'Chip' key=adh.k8lb5l 76x24 @63,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill instanceOf=adh.c.a1bwmv.off props={"variant": "Off"}
+            INSTANCE 'Chip' key=adh.k8nfzs 59x24 @144,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill instanceOf=adh.c.a1bwmv.off props={"variant": "Off"}
+          FRAME 'Segmented' key=adh.k8paxb 182x32.75 @215,4.63 layout=H gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=hug/fixed stroke={"color": "#26262E", "weight": 1} radius=9
+            FRAME 'Label' key=adh.k8qmas 50x28.75 @2,2 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fill
+              FRAME 'Hoje' key=adh.k8r09v 50x28.75 @0,0 layout=V gap=0 pad=[6, 12, 6, 12] main=start cross=start sizing=fill/fill fills=["#18181E"]
+                TEXT 'Hoje' key=adh.k8r09v#text 26x19 @12,6 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#F4EFE9 text="Hoje"
+            FRAME 'Label' key=adh.k8sldr 60x28.75 @52,2 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fill
+              FRAME '7 dias' key=adh.k8tdxd 60x28.75 @0,0 layout=V gap=0 pad=[6, 12, 6, 13] main=start cross=start sizing=fill/fill stroke={"color": "#26262E", "weight": 1}
+                TEXT '7 dias' key=adh.k8tdxd#text 34x19 @14,6 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#B5AEA6 text="7 dias"
+            FRAME 'Label' key=adh.k8ugka 68x28.75 @112,2 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fill
+              FRAME '30 dias' key=adh.k8v53b 68x28.75 @0,0 layout=V gap=0 pad=[6, 12, 6, 13] main=start cross=start sizing=fill/fill stroke={"color": "#26262E", "weight": 1}
+                TEXT '30 dias' key=adh.k8v53b#text 42x19 @14,6 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#B5AEA6 text="30 dias"
+          FRAME 'Check' key=adh.k8w7u0 126x42 @409,0 layout=H gap=8 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/hug
+            INSTANCE 'Checkbox' key=adh.k8xmpm 16x16 @0,13 layout=H gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=4 instanceOf=adh.c.a1ku5c.on props={"variant": "On"}
+            FRAME 'Pausado ao criar' key=adh.k8z4d8 102x42 @24,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Pausado ao criar' key=adh.k8z4d8#text 102x42 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="Pausado ao criar"
+          FRAME 'Check' key=adh.k901ck 76x21 @547,10.5 layout=H gap=8 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/hug
+            INSTANCE 'Radio' key=adh.k915sz 16x16 @0,2.5 layout=H gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#FF7A1A"] stroke={"color": "#FF7A1A", "weight": 1} radius=3.5 instanceOf=adh.c.a1nd66.on props={"variant": "On"}
+            FRAME 'Desktop' key=adh.k93rnj 52x21 @24,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Desktop' key=adh.k93rnj#text 52x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#ECE7E1 text="Desktop"
+      FRAME 'Ds sec' key=adh.k94tlg 1160x109.75 @24,1535.96 layout=V gap=12 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Campos' key=adh.k95q7l 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Campos"
+        FRAME 'Fields' key=adh.k9605h 1160x82.75 @0,27 layout=H gap=16 pad=[0, 235.2100067138672, 0, 0] main=start cross=start sizing=hug/fixed
+          FRAME 'Field' key=adh.k974kd 219.19x82.75 @0,0 layout=V gap=5 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fill
+            TEXT 'Nome da campanha' key=adh.k98ovq 219.19x19 @0,0 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="Nome da campanha"
+            FRAME 'Text field' key=adh.k99kab 219.19x36 @0,24 layout=V gap=0 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+              FRAME 'Placeholder' key=adh.k99kab/a17bxo 147x16 @12,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+                TEXT 'Placeholder' key=adh.k99kab/a17bxo#text 147x18 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#ECE7E1 text="CMP12-1-Mobile-pp-bl"
+            FRAME 'Grupos 01, 02… e campanhas CMP<n' key=adh.k9b9hz 219.19x18 @0,65 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT 'Grupos 01, 02… e campanhas CMP<n' key=adh.k9b9hz#text 219.19x18 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Grupos 01, 02… e campanhas CMP<n>."
+          FRAME 'Field' key=adh.k9cgta 219.2x82.75 @235.19,0 layout=V gap=5 pad=[0, 0, 23, 0] main=start cross=start sizing=fixed/fill
+            TEXT 'CPC' key=adh.k9d4rz 219.2x19 @0,0 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="CPC"
+            FRAME 'Text field' key=adh.k9e0dc 219.2x36 @0,24 layout=V gap=0 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+              FRAME 'Placeholder' key=adh.k9e0dc/a17bxo 28x16 @12,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+                TEXT 'Placeholder' key=adh.k9e0dc/a17bxo#text 28x18 @0,0 sizing=fixed/fixed font=IBM Plex Sans Regular 14 color=#9A948D text="0,30"
+          FRAME 'Field' key=adh.k9gux8 219.2x82.75 @470.39,0 layout=V gap=5 pad=[0, 0, 21, 0] main=start cross=start sizing=fixed/fill
+            TEXT 'Conta' key=adh.k9htd7 219.2x19 @0,0 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="Conta"
+            INSTANCE 'Select' key=adh.k9iyi8 219.2x40 @0,24 layout=H gap=8 pad=[9, 11, 9, 11] main=start cross=center sizing=fill/hug fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8 instanceOf=adh.c.a1rxtf.default
+          FRAME 'Field' key=adh.k9l6w6 219.2x82.75 @705.59,0 layout=V gap=5 pad=[0, 0, 5, 0] main=start cross=start sizing=fixed/fill
+            TEXT 'Rastreamento' key=adh.k9m5cd 219.2x19 @0,0 sizing=fill/hug font=IBM Plex Sans Medium 12.5 color=#D8D2CB text="Rastreamento"
+            FRAME 'Text area' key=adh.k9n0ft 219.2x54 @0,24 layout=V gap=0 pad=[9, 11, 9, 11] main=start cross=start sizing=fill/fixed fills=["#121217"] stroke={"color": "#55555F", "weight": 1} radius=8
+              FRAME 'Value' key=adh.k9oeky 178x34 @12,10 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/fill
+                TEXT 'Value' key=adh.k9oeky#text 178x18 @0,0 sizing=fill/fixed font=IBM Plex Sans Regular 14 color=#ECE7E1 text="sub1={campaign_id}&sub4={campaign_item_id}"
+      FRAME 'Ds sec' key=adh.k9pdto 1160x157.99 @24,1673.71 layout=V gap=11.989999771118164 pad=[0, 0, 0.009999999776482582, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Selos e avisos' key=adh.k9qjxy 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Selos e avisos"
+        FRAME 'Ds row' key=adh.k9rx63 1179x22 @0,26.99 layout=H gap=12 pad=[0, 767, 0, 0] main=start cross=center sizing=hug/hug
+          INSTANCE 'Badge' key=adh.k9sdux 53x22 @0,0 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#18181E"] stroke={"color": "#26262E", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.default props={"variant": "Default"}
+          INSTANCE 'Badge' key=adh.k9tw1i 63x22 @65,0 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#0D1410"] stroke={"color": "#1F3A2A", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.running props={"variant": "Running"}
+          INSTANCE 'Badge' key=adh.k9uuhq 61x22 @140,0 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.paused props={"variant": "Paused"}
+          INSTANCE 'Badge' key=adh.k9vugz 73x22 @213,0 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#0E131C"] stroke={"color": "#2D4466", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.review props={"variant": "Review"}
+          INSTANCE 'Badge' key=adh.k9wn89 67x22 @298,0 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#1A0B09"] stroke={"color": "#5A1D14", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.rejected props={"variant": "Rejected"}
+          INSTANCE 'Badge' key=adh.k9xz3p 35x22 @377,0 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/hug fills=["#0E131C"] stroke={"color": "#2D4466", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.pair props={"variant": "Pair"}
+        FRAME 'Ds grid2' key=adh.k9yvd4 1160x97 @0,60.98 sizing=fixed/fixed
+          FRAME 'Note' key=adh.k9zw80 573x44 @0,0 layout=V gap=0 pad=[11, 13, 11, 13] main=start cross=start sizing=fixed/hug fills=["#121217"] stroke={"color": "#1D1D23", "weight": 1} radius=10
+            TEXT 'Note' key=adh.k9zw80#text 545x20 @14,12 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#D8D2CB text="Um aviso neutro."
+          FRAME 'Note 2' key=adh.ka0x3j 573x44 @587,0 layout=V gap=0 pad=[11, 13, 11, 13] main=start cross=start sizing=fixed/hug fills=["#140B07"] stroke={"color": "#3A1C0C", "weight": 1} radius=10
+            TEXT 'Note 2' key=adh.ka0x3j#text 545x20 @14,12 sizing=fill/hug font=None None 13 color=#FFC890 text="Atenção: um aviso nunca bloqueia."
+          FRAME 'Note' key=adh.ka3pk8 573x44 @0,55.5 layout=V gap=0 pad=[11, 13, 11, 13] main=start cross=start sizing=fixed/hug fills=["#0D1410"] stroke={"color": "#1F3A2A", "weight": 1} radius=10
+            TEXT 'Note' key=adh.ka3pk8#text 545x20 @14,12 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#B9D8C6 text="Tudo certo: 2 campanhas criadas pausadas."
+          FRAME 'Note' key=adh.ka4mie 573x44 @587,55.5 layout=V gap=0 pad=[11, 13, 11, 13] main=start cross=start sizing=fixed/hug fills=["#1A0B09"] stroke={"color": "#5A1D14", "weight": 1} radius=10
+            TEXT 'Note' key=adh.ka4mie#text 545x20 @14,12 sizing=fill/hug font=IBM Plex Sans Regular 13 color=#FFB4A8 text="O Taboola recusou: o orçamento passa de US$ 20."
+      FRAME 'Ds sec' key=adh.ka5moe 1160x284 @24,1859.7 layout=V gap=12 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Painel, caminho e tabela' key=adh.ka6mmm 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Painel, caminho e tabela"
+        FRAME 'Panel' key=adh.ka722i 1160x131 @0,27 layout=V gap=10 pad=[17, 19, 31, 19] main=start cross=start sizing=fill/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=14
+          FRAME 'Breadcrumb' key=adh.ka8ocj 1120x19 @20,18 layout=H gap=6 pad=[0, 773, 0, 0] main=start cross=center sizing=hug/hug
+            TEXT 'Acme Health' key=adh.ka9cie 73x19 @0,0 sizing=hug/hug font=IBM Plex Sans Regular 12.5 color=#B5AEA6 text="Acme Health"
+            FRAME '›' key=adh.kaaese 4x19 @79,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT '›' key=adh.kaaese#text 4x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#8F8A85 text="›"
+            FRAME 'Memory Loss US' key=adh.kabxwg 96x19 @89,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Memory Loss US' key=adh.kabxwg#text 96x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#B5AEA6 text="Memory Loss US"
+            FRAME '›' key=adh.kac5nd 4x19 @191,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT '›' key=adh.kac5nd#text 4x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#8F8A85 text="›"
+            FRAME 'Memory Loss US · Mobile' key=adh.kadxk6 146x19 @201,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug
+              TEXT 'Memory Loss US · Mobile' key=adh.kadxk6#text 146x19 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12.5 color=#D8D2CB text="Memory Loss US · Mobile"
+          FRAME 'Um painel' key=adh.kaeizh 1120x21 @20,47 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+            TEXT 'Um painel' key=adh.kaeizh#text 1120x21 @0,0 sizing=fill/hug font=Archivo Expanded Bold 16 color=#F4EFE9 text="Um painel"
+          FRAME 'Painéis agrupam uma parte da pág' key=adh.kafwde 1120x21 @20,78 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+            TEXT 'Painéis agrupam uma parte da pág' key=adh.kafwde#text 1120x21 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#B5AEA6 text="Painéis agrupam uma parte da página."
+        FRAME 'Spacing' key=adh.kagebx~sp 1160x114 @0,170 layout=V gap=0 pad=[2, 0, 0, 0] main=start cross=start sizing=fill/hug
+          FRAME 'Table' key=adh.kagebx 1160x112 @0,2 layout=V gap=0 pad=[1, 1, 1, 1] main=start cross=start sizing=fill/fixed fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=12
+            FRAME 'List' key=adh.kahzlj 1158x108 @2,2 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fill
+              FRAME 'Head' key=adh.kaivnu 1158x32.5 @0,0 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+                FRAME 'Row' key=adh.kajglr 1158x32.5 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/fill
+                  FRAME 'Campanha' key=adh.kakzxa 420.19x32.5 @0,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                    TEXT 'Campanha' key=adh.kakzxa#text 396.19x14 @12,9 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Campanha"
+                  FRAME 'Estado' key=adh.kal3vy 231x32.5 @420.19,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                    TEXT 'Estado' key=adh.kal3vy#text 207x14 @12,9 sizing=fill/hug font=Inter Bold 10 color=#9A948D text="Estado"
+                  FRAME 'Gasto' key=adh.kam7dj 294.89x32.5 @651.19,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                    TEXT 'Gasto' key=adh.kam7dj#text 270.89x14 @12,9 sizing=fill/fixed font=Inter Bold 10 color=#9A948D text="Gasto"
+                  FRAME 'Vendas' key=adh.kanrvz 211.92x32.5 @946.08,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                    TEXT 'Vendas' key=adh.kanrvz#text 187.92x14 @12,9 sizing=fill/fixed font=Inter Bold 10 color=#9A948D text="Vendas"
+              FRAME 'Rows' key=adh.kaoqo4 1158x77.5 @0,32.5 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/hug
+                FRAME 'Row' key=adh.kapk13 1158x39 @0,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/fixed
+                  FRAME 'Cell' key=adh.kaq8oz 420.19x39 @0,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill
+                    TEXT 'Memory Loss US · Mobile' key=adh.karvng 149x20 @12,9 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="Memory Loss US · Mobile"
+                  FRAME 'Cell' key=adh.kasb73 231x39 @420.19,0 layout=V gap=0 pad=[9, 12, 9.5, 12] main=start cross=start sizing=fixed/fill
+                    INSTANCE 'Badge' key=adh.kat802 63x20.5 @12,9 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/fill fills=["#0D1410"] stroke={"color": "#1F3A2A", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.running props={"variant": "Running"}
+                  FRAME 'US$ 1.176,00' key=adh.kaudpw 294.89x39 @651.19,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill
+                    TEXT 'US$ 1.176,00' key=adh.kaudpw#text 270.89x20 @12,9 sizing=fill/fixed font=IBM Plex Mono Regular 13 color=#ECE7E1 text="US$ 1.176,00"
+                  FRAME '38' key=adh.kav8pt 211.92x39 @946.08,0 layout=V gap=0 pad=[9, 12, 10, 12] main=start cross=start sizing=fixed/fill
+                    TEXT '38' key=adh.kav8pt#text 187.92x20 @12,9 sizing=fill/fixed font=IBM Plex Mono Regular 13 color=#ECE7E1 text="38"
+                FRAME 'Row' key=adh.kawl0l 1158x38.5 @0,39 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center sizing=hug/fixed
+                  FRAME 'Cell' key=adh.kaxlr3 420.19x38.5 @0,0 layout=V gap=0 pad=[10, 12, 9.5, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                    TEXT 'BP Seniors · Desktop' key=adh.kaya0e 125x20 @12,11 sizing=hug/hug font=IBM Plex Sans Medium 13 color=#F4EFE9 text="BP Seniors · Desktop"
+                  FRAME 'Cell' key=adh.kazrbq 231x38.5 @420.19,0 layout=V gap=0 pad=[10, 12, 9, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                    INSTANCE 'Badge' key=adh.kb0o20 73x18.5 @12,11 layout=H gap=0 pad=[2, 8, 2, 8] main=start cross=center sizing=hug/fill fills=["#0E131C"] stroke={"color": "#2D4466", "weight": 1} radius=4 instanceOf=adh.c.a1t3qx.review props={"variant": "Review"}
+                  FRAME '—' key=adh.kb1xws 294.89x38.5 @651.19,0 layout=V gap=0 pad=[10, 12, 9, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                    TEXT '—' key=adh.kb1xws#text 270.89x20 @12,11 sizing=fill/fixed font=IBM Plex Mono Regular 13 color=#ECE7E1 text="—"
+                  FRAME '—' key=adh.kb2sc4 211.92x38.5 @946.08,0 layout=V gap=0 pad=[10, 12, 9, 12] main=start cross=start sizing=fixed/fill stroke={"color": "#1D1D23", "weight": 1}
+                    TEXT '—' key=adh.kb2sc4#text 187.92x20 @12,11 sizing=fill/fixed font=IBM Plex Mono Regular 13 color=#ECE7E1 text="—"
+      FRAME 'Ds sec' key=adh.kb3oqh 1160x257.48 @24,2171.7 layout=V gap=12 pad=[0, 0, 0.009999999776482582, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Miniaturas' key=adh.kb4knt 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Miniaturas"
+        FRAME 'Thumbs' key=adh.kb5ftm 660x137.47 @0,27 layout=H gap=10 pad=[0, 167.5, 0, 0] main=start cross=start sizing=hug/fixed
+          FRAME 'Thumb' key=adh.kb645k 157.5x137.47 @0,0 layout=V gap=-0.009999999776482582 pad=[1, 1, 19.010000228881836, 1] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#FF7A1A", "weight": 1} radius=10
+            RECTANGLE 'Image' key=adh.kb7hj2 153.5x87.47 @2,2 sizing=fill/fixed fills=[{"type": "IMAGE", "imageHash": "cfcdf4e6e43cf8a8db85b186a40089e45ccd90cf", "sca
+            FRAME 'Escolhida' key=adh.kb83hy 153.5x30 @2,89.46 layout=V gap=0 pad=[6, 8, 6, 8] main=start cross=start sizing=fill/hug
+              TEXT 'Escolhida' key=adh.kb83hy#text 137.5x18 @8,6 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Escolhida"
+          FRAME 'Thumb' key=adh.kb92lt 157.5x137.47 @167.5,0 layout=V gap=-0.009999999776482582 pad=[1, 1, 1.0099999904632568, 1] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=10
+            RECTANGLE 'Image' key=adh.kba167 153.5x87.47 @2,2 sizing=fill/fixed fills=[{"type": "IMAGE", "imageHash": "a34c914b85826d93711877fbfabf0450c517555a", "sca
+            FRAME 'Doctors Surprised By This Mornin' key=adh.kbbl8v 153.5x48 @2,89.46 layout=V gap=0 pad=[6, 8, 6, 8] main=start cross=start sizing=fill/hug
+              TEXT 'Doctors Surprised By This Mornin' key=adh.kbbl8v#text 137.5x36 @8,6 sizing=fill/fixed font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Doctors Surprised By This Morning Habit"
+          FRAME 'Thumb' key=adh.kbcs4l 157.5x137.47 @335,0 layout=V gap=-0.009999999776482582 pad=[1, 1, 19.010000228881836, 1] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=10
+            RECTANGLE 'Image' key=adh.kbdvpb 153.5x87.47 @2,2 sizing=fill/fixed fills=[{"type": "IMAGE", "imageHash": "21c661afdffcbb79b5bab63c6ffffe1438958076", "sca
+            FRAME 'Uma miniatura' key=adh.kbexhs 153.5x30 @2,89.46 layout=V gap=0 pad=[6, 8, 6, 8] main=start cross=start sizing=fill/hug
+              TEXT 'Uma miniatura' key=adh.kbexhs#text 137.5x18 @8,6 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Uma miniatura"
+        FRAME 'Nada aqui ainda.' key=adh.kbfwts 660x81 @0,176.47 layout=V gap=0 pad=[29, 29, 29, 29] main=start cross=start sizing=fixed/hug stroke={"color": "#2A2A33", "weight": 1} radius=12
+          TEXT 'Nada aqui ainda.' key=adh.kbfwts#text 600x21 @30,30 sizing=fill/fixed font=IBM Plex Sans Regular 14 color=#B5AEA6 text="Nada aqui ainda."
+      FRAME 'Ds sec' key=adh.kbglyz 1160x247.7 @24,2457.18 layout=V gap=12 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Mascote' key=adh.kbho95 1160x15 @0,0 sizing=fill/hug font=Inter Bold 11 color=#9A948D text="Mascote"
+        FRAME 'Panel' key=adh.kbisfb 1162x220.7 @0,27 layout=H gap=24 pad=[17, 78, 17, 19] main=start cross=center sizing=hug/hug fills=["#0F0F13"] stroke={"color": "#1D1D23", "weight": 1} radius=14
+          FRAME 'Mascote do AdHunters' key=adh.kbj20z 280x184.7 @20,18 sizing=fixed/fixed
+            FRAME 'Frame' 0x0 @0.01,0 sizing=fixed/fixed
+              FRAME 'Frame' 0x0 @0,0 sizing=fixed/fixed
+                GROUP 'Clip path group' 90.07x121.39 @-5.87,-3.26 sizing=fixed/fixed
+                  FRAME 'fx-tail-clip' 90.07x121.39 @-5.87,-3.26 sizing=fixed/fixed
+                    VECTOR 'Vector' 90.07x121.39 @0,0 sizing=fixed/fixed fills=["#000000"]
+                  RECTANGLE 'Rectangle' 279.99x184.7 @0,0 sizing=fixed/fixed
+              GROUP 'Clip path group' 285.86x187.96 @-5.87,-3.26 sizing=fixed/fixed
+                FRAME 'fx-body-clip' 285.86x187.96 @-5.87,-3.26 sizing=fixed/fixed
+                  VECTOR 'Vector' 285.86x187.96 @0,0 sizing=fixed/fixed fills=["#000000"]
+                RECTANGLE 'Rectangle' 279.99x184.7 @0,0 sizing=fixed/fixed
+          FRAME 'Box' key=adh.kbkyvu 759x91 @324,64.85 layout=V gap=14 pad=[0, 0, 14, 0] main=start cross=start sizing=fixed/hug
+            TEXT 'A raposa' key=adh.kblbr6 759x21 @0,0 sizing=fill/hug font=Archivo Expanded Bold 16 color=#F4EFE9 text="A raposa"
+            FRAME 'A arte original, com o idle suti' key=adh.kbm74a 759x42 @0,35 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+              TEXT 'A arte original, com o idle suti' key=adh.kbm74a#text 759x42 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 14 color=#B5AEA6 text="A arte original, com o idle sutil (respira e mexe o rabo). Nunca redesenhar. Aparece nas telas de carregamento (fr-loader)."

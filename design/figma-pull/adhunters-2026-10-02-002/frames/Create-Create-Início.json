@@ -1,0 +1,1518 @@
+{
+ "id": "8:1995",
+ "type": "FRAME",
+ "name": "Create · Início",
+ "key": "adh.k0dc3",
+ "x": 0,
+ "y": 0,
+ "w": 1440,
+ "h": 900,
+ "fills": [
+  "#09090C"
+ ],
+ "layout": {
+  "mode": "V",
+  "gap": 0,
+  "padding": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "main": "start",
+  "cross": "start"
+ },
+ "children": [
+  {
+   "id": "8:1996",
+   "type": "FRAME",
+   "name": "Top bar",
+   "key": "adh.k1l37",
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 48,
+   "fills": [
+    "#060608"
+   ],
+   "stroke": {
+    "color": "#1D1D23",
+    "weight": 1
+   },
+   "layout": {
+    "mode": "H",
+    "gap": 10,
+    "padding": [
+     0,
+     0,
+     1,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fixed"
+   },
+   "children": [
+    {
+     "id": "8:1997",
+     "type": "INSTANCE",
+     "name": "App selector · Create",
+     "key": "adh.k22h2",
+     "x": 0,
+     "y": 0,
+     "w": 232,
+     "h": 46,
+     "fills": [
+      "#0F0F13"
+     ],
+     "stroke": {
+      "color": "#6A6A75",
+      "weight": 1
+     },
+     "layout": {
+      "mode": "H",
+      "gap": 0,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "fixed",
+      "v": "fill"
+     },
+     "of": {
+      "id": "8:121",
+      "name": "App selector · Create",
+      "key": "adh.c.a2o7kz.default"
+     },
+     "instanceProps": {}
+    },
+    {
+     "id": "8:2008",
+     "type": "FRAME",
+     "name": "Page tabs",
+     "key": "adh.k80ho",
+     "x": 242,
+     "y": 0,
+     "w": 202,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 2,
+      "padding": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:2009",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.k9p4h",
+       "x": 0,
+       "y": 0,
+       "w": 52,
+       "h": 46,
+       "stroke": {
+        "color": "#FF7A1A",
+        "weight": 1
+       },
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:16",
+        "name": "variant=Current",
+        "key": "adh.c.awh7q.current"
+       },
+       "instanceProps": {
+        "variant": "Current"
+       }
+      },
+      {
+       "id": "8:2019",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kam25",
+       "x": 54,
+       "y": 0,
+       "w": 82,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      },
+      {
+       "id": "8:2021",
+       "type": "INSTANCE",
+       "name": "Tab",
+       "key": "adh.kbd9u",
+       "x": 138,
+       "y": 0,
+       "w": 64,
+       "h": 46,
+       "layout": {
+        "mode": "H",
+        "gap": 0,
+        "padding": [
+         0,
+         12,
+         2,
+         12
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "hug",
+        "v": "fill"
+       },
+       "of": {
+        "id": "8:14",
+        "name": "variant=Default",
+        "key": "adh.c.awh7q.default"
+       },
+       "instanceProps": {
+        "variant": "Default"
+       }
+      }
+     ]
+    },
+    {
+     "id": "8:2050",
+     "type": "FRAME",
+     "name": "Spacer",
+     "key": "adh.kc0i5",
+     "x": 454,
+     "y": 0,
+     "w": 642,
+     "h": 46,
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": []
+    },
+    {
+     "id": "8:2051",
+     "type": "FRAME",
+     "name": "Tools",
+     "key": "adh.kdl0g",
+     "x": 1106,
+     "y": 0,
+     "w": 334,
+     "h": 46,
+     "layout": {
+      "mode": "H",
+      "gap": 12,
+      "padding": [
+       0,
+       14,
+       0,
+       0
+      ],
+      "main": "start",
+      "cross": "center"
+     },
+     "sizing": {
+      "h": "hug",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:2052",
+       "type": "INSTANCE",
+       "name": "Search box",
+       "key": "adh.ke1fv",
+       "x": 0,
+       "y": 8,
+       "w": 280,
+       "h": 30,
+       "fills": [
+        "#121217"
+       ],
+       "stroke": {
+        "color": "#26262E",
+        "weight": 1
+       },
+       "radius": 9,
+       "layout": {
+        "mode": "H",
+        "gap": 8,
+        "padding": [
+         1,
+         11,
+         1,
+         11
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:19",
+        "name": "Search box",
+        "key": "adh.c.a11ghd.default"
+       },
+       "instanceProps": {}
+      },
+      {
+       "id": "8:2068",
+       "type": "INSTANCE",
+       "name": "Avatar",
+       "key": "adh.kia26",
+       "x": 292,
+       "y": 9,
+       "w": 28,
+       "h": 28,
+       "fills": [
+        "#18181E"
+       ],
+       "stroke": {
+        "color": "#2A2A33",
+        "weight": 1
+       },
+       "radius": 8,
+       "layout": {
+        "mode": "V",
+        "gap": 0,
+        "padding": [
+         1,
+         1,
+         1,
+         1
+        ],
+        "main": "center",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fixed",
+        "v": "fixed"
+       },
+       "of": {
+        "id": "8:27",
+        "name": "Avatar",
+        "key": "adh.c.a133ym.default"
+       },
+       "instanceProps": {}
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "8:2113",
+   "type": "FRAME",
+   "name": "Body",
+   "key": "adh.kjhit",
+   "x": 0,
+   "y": 48,
+   "w": 1440,
+   "h": 852,
+   "layout": {
+    "mode": "H",
+    "gap": 0,
+    "padding": [
+     0,
+     0,
+     0,
+     0
+    ],
+    "main": "start",
+    "cross": "start"
+   },
+   "sizing": {
+    "h": "fill",
+    "v": "fill"
+   },
+   "children": [
+    {
+     "id": "8:2114",
+     "type": "FRAME",
+     "name": "Filters",
+     "key": "adh.kkcb2",
+     "x": 0,
+     "y": 0,
+     "w": 232,
+     "h": 858,
+     "fills": [
+      "#0A0A0D"
+     ],
+     "stroke": {
+      "color": "#1D1D23",
+      "weight": 1
+     },
+     "layout": {
+      "mode": "V",
+      "gap": 16,
+      "padding": [
+       14,
+       13,
+       341.25,
+       12
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "fixed",
+      "v": "hug"
+     },
+     "children": [
+      {
+       "id": "8:2115",
+       "type": "FRAME",
+       "name": "Filters head",
+       "key": "adh.kla5b",
+       "x": 12,
+       "y": 14,
+       "w": 206,
+       "h": 20,
+       "layout": {
+        "mode": "H",
+        "gap": 123.61000061035156,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "center"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:2116",
+         "type": "TEXT",
+         "name": "Label",
+         "key": "adh.kmi1k",
+         "x": 0,
+         "y": 3,
+         "w": 49,
+         "h": 14,
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "text": "Filtros",
+         "font": {
+          "family": "Inter",
+          "style": "Bold"
+         },
+         "size": 10,
+         "color": "#9A948D"
+        },
+        {
+         "id": "8:2117",
+         "type": "INSTANCE",
+         "name": "Fold button",
+         "key": "adh.knxnv",
+         "x": 172.61,
+         "y": 0,
+         "w": 23,
+         "h": 20,
+         "stroke": {
+          "color": "#26262E",
+          "weight": 1
+         },
+         "radius": 6,
+         "layout": {
+          "mode": "H",
+          "gap": 0,
+          "padding": [
+           1,
+           7,
+           1,
+           7
+          ],
+          "main": "center",
+          "cross": "center"
+         },
+         "sizing": {
+          "h": "hug",
+          "v": "hug"
+         },
+         "of": {
+          "id": "8:29",
+          "name": "Fold button",
+          "key": "adh.c.a150rn.default"
+         },
+         "instanceProps": {}
+        }
+       ]
+      },
+      {
+       "id": "8:2119",
+       "type": "FRAME",
+       "name": "Filter group",
+       "key": "adh.kofta",
+       "x": 12,
+       "y": 50,
+       "w": 206,
+       "h": 61,
+       "layout": {
+        "mode": "V",
+        "gap": 7,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:2120",
+         "type": "TEXT",
+         "name": "Label",
+         "key": "adh.kprj7",
+         "x": 0,
+         "y": 0,
+         "w": 206,
+         "h": 14,
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "text": "Vertical",
+         "font": {
+          "family": "Inter",
+          "style": "Bold"
+         },
+         "size": 10,
+         "color": "#9A948D"
+        },
+        {
+         "id": "8:2121",
+         "type": "INSTANCE",
+         "name": "Select",
+         "key": "adh.kqviy",
+         "x": 0,
+         "y": 21,
+         "w": 206,
+         "h": 40,
+         "fills": [
+          "#121217"
+         ],
+         "stroke": {
+          "color": "#55555F",
+          "weight": 1
+         },
+         "radius": 8,
+         "layout": {
+          "mode": "H",
+          "gap": 8,
+          "padding": [
+           9,
+           11,
+           9,
+           11
+          ],
+          "main": "start",
+          "cross": "center"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "of": {
+          "id": "8:81",
+          "name": "Select",
+          "key": "adh.c.a1rxtf.default"
+         },
+         "instanceProps": {}
+        }
+       ]
+      },
+      {
+       "id": "8:2128",
+       "type": "FRAME",
+       "name": "Filter group",
+       "key": "adh.kt2cf",
+       "x": 12,
+       "y": 127,
+       "w": 206,
+       "h": 198,
+       "layout": {
+        "mode": "V",
+        "gap": 7,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:2129",
+         "type": "TEXT",
+         "name": "Label",
+         "key": "adh.kup3p",
+         "x": 0,
+         "y": 0,
+         "w": 206,
+         "h": 14,
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "text": "Nova sessão",
+         "font": {
+          "family": "Inter",
+          "style": "Bold"
+         },
+         "size": 10,
+         "color": "#9A948D"
+        },
+        {
+         "id": "8:2130",
+         "type": "FRAME",
+         "name": "New session",
+         "key": "adh.kvwtl",
+         "x": 0,
+         "y": 21,
+         "w": 206,
+         "h": 116,
+         "layout": {
+          "mode": "V",
+          "gap": 6,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:2131",
+           "type": "INSTANCE",
+           "name": "Select",
+           "key": "adh.kw4pq",
+           "x": 0,
+           "y": 0,
+           "w": 206,
+           "h": 40,
+           "fills": [
+            "#121217"
+           ],
+           "stroke": {
+            "color": "#55555F",
+            "weight": 1
+           },
+           "radius": 8,
+           "layout": {
+            "mode": "H",
+            "gap": 8,
+            "padding": [
+             9,
+             11,
+             9,
+             11
+            ],
+            "main": "start",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "hug"
+           },
+           "of": {
+            "id": "8:81",
+            "name": "Select",
+            "key": "adh.c.a1rxtf.default"
+           },
+           "instanceProps": {}
+          },
+          {
+           "id": "8:2138",
+           "type": "FRAME",
+           "name": "Text field",
+           "key": "adh.kzuoy",
+           "x": 0,
+           "y": 46,
+           "w": 206,
+           "h": 36,
+           "fills": [
+            "#121217"
+           ],
+           "stroke": {
+            "color": "#55555F",
+            "weight": 1
+           },
+           "radius": 8,
+           "layout": {
+            "mode": "V",
+            "gap": 0,
+            "padding": [
+             9,
+             11,
+             9,
+             11
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2139",
+             "type": "FRAME",
+             "name": "Placeholder",
+             "key": "adh.kzuoy/a17bxo",
+             "x": 12,
+             "y": 10,
+             "w": 103,
+             "h": 16,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "hug",
+              "v": "fill"
+             },
+             "children": [
+              {
+               "id": "8:2140",
+               "type": "TEXT",
+               "name": "Placeholder",
+               "key": "adh.kzuoy/a17bxo#text",
+               "x": 0,
+               "y": 0,
+               "w": 103,
+               "h": 18,
+               "sizing": {
+                "h": "fixed",
+                "v": "fixed"
+               },
+               "text": "Nome da sessão",
+               "font": {
+                "family": "IBM Plex Sans",
+                "style": "Regular"
+               },
+               "size": 14,
+               "color": "#9A948D"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "8:2141",
+           "type": "FRAME",
+           "name": "Button",
+           "key": "adh.k11ovn",
+           "x": 0,
+           "y": 88,
+           "w": 206,
+           "h": 28,
+           "fills": [
+            "#FF7A1A"
+           ],
+           "stroke": {
+            "color": "#FF7A1A",
+            "weight": 1
+           },
+           "radius": 9,
+           "layout": {
+            "mode": "H",
+            "gap": 0,
+            "padding": [
+             4,
+             11,
+             4,
+             11
+            ],
+            "main": "center",
+            "cross": "center"
+           },
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "children": [
+            {
+             "id": "8:2142",
+             "type": "TEXT",
+             "name": "Button",
+             "key": "adh.k11ovn#text",
+             "x": 10.5,
+             "y": 6.5,
+             "w": 185,
+             "h": 15,
+             "sizing": {
+              "h": "fixed",
+              "v": "fixed"
+             },
+             "text": "Nova sessão",
+             "font": {
+              "family": "IBM Plex Sans",
+              "style": "SemiBold"
+             },
+             "size": 12,
+             "color": "#140A04",
+             "align": "center"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "8:2143",
+         "type": "FRAME",
+         "name": "Vertical, plataforma e nome: a s",
+         "key": "adh.k12q05",
+         "x": 0,
+         "y": 144,
+         "w": 206,
+         "h": 54,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:2144",
+           "type": "TEXT",
+           "name": "Vertical, plataforma e nome: a s",
+           "key": "adh.k12q05#text",
+           "x": 0,
+           "y": 0,
+           "w": 206,
+           "h": 54,
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "text": "Vertical, plataforma e nome: a sessão vira a pasta vertical › plataforma › sessão na biblioteca.",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 12,
+           "color": "#B5AEA6"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "8:2145",
+       "type": "FRAME",
+       "name": "Filter group",
+       "key": "adh.k13bhf",
+       "x": 12,
+       "y": 341,
+       "w": 206,
+       "h": 175.75,
+       "layout": {
+        "mode": "V",
+        "gap": 7,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "hug"
+       },
+       "children": [
+        {
+         "id": "8:2146",
+         "type": "TEXT",
+         "name": "Label",
+         "key": "adh.k14z7d",
+         "x": 0,
+         "y": 0,
+         "w": 206,
+         "h": 14,
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "text": "Sessões",
+         "font": {
+          "family": "Inter",
+          "style": "Bold"
+         },
+         "size": 10,
+         "color": "#9A948D"
+        },
+        {
+         "id": "8:2147",
+         "type": "FRAME",
+         "name": "Sessions",
+         "key": "adh.k15yuq",
+         "x": 0,
+         "y": 21,
+         "w": 206,
+         "h": 154.75,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fill",
+          "v": "fixed"
+         },
+         "children": [
+          {
+           "id": "8:2148",
+           "type": "FRAME",
+           "name": "List",
+           "key": "adh.k16wz4",
+           "x": 0,
+           "y": 0,
+           "w": 207,
+           "h": 154.75,
+           "layout": {
+            "mode": "V",
+            "gap": 2,
+            "padding": [
+             0,
+             0,
+             0,
+             0
+            ],
+            "main": "start",
+            "cross": "start"
+           },
+           "sizing": {
+            "h": "fixed",
+            "v": "fill"
+           },
+           "children": [
+            {
+             "id": "8:2149",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k17rx8",
+             "x": 0,
+             "y": 0,
+             "w": 207,
+             "h": 50.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2150",
+               "type": "FRAME",
+               "name": "Link",
+               "key": "adh.k18zfc",
+               "x": 0,
+               "y": 0,
+               "w": 207,
+               "h": 50.25,
+               "radius": 8,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 6,
+                 8,
+                 6,
+                 8
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2151",
+                 "type": "TEXT",
+                 "name": "Pressão 60+",
+                 "key": "adh.k19vo8",
+                 "x": 8,
+                 "y": 6,
+                 "w": 191,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Pressão 60+",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "SemiBold"
+                 },
+                 "size": 14,
+                 "color": "#F4EFE9"
+                },
+                {
+                 "id": "8:2152",
+                 "type": "FRAME",
+                 "name": "Blood Pressure · 3 img · 4 hl",
+                 "key": "adh.k1a1r6",
+                 "x": 8,
+                 "y": 27,
+                 "w": 191,
+                 "h": 18,
+                 "layout": {
+                  "mode": "V",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   0,
+                   0
+                  ],
+                  "main": "start",
+                  "cross": "start"
+                 },
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "children": [
+                  {
+                   "id": "8:2153",
+                   "type": "TEXT",
+                   "name": "Blood Pressure · 3 img · 4 hl",
+                   "key": "adh.k1a1r6#text",
+                   "x": 0,
+                   "y": 0,
+                   "w": 191,
+                   "h": 18,
+                   "sizing": {
+                    "h": "fill",
+                    "v": "hug"
+                   },
+                   "text": "Blood Pressure · 3 img · 4 hl",
+                   "font": {
+                    "family": "IBM Plex Sans",
+                    "style": "Regular"
+                   },
+                   "size": 11.5,
+                   "color": "#8F8A85"
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:2154",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1b925",
+             "x": 0,
+             "y": 52.25,
+             "w": 207,
+             "h": 50.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2155",
+               "type": "FRAME",
+               "name": "Link",
+               "key": "adh.k1c7a7",
+               "x": 0,
+               "y": 0,
+               "w": 207,
+               "h": 50.25,
+               "radius": 8,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 6,
+                 8,
+                 6,
+                 8
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2156",
+                 "type": "TEXT",
+                 "name": "Zumbido noturno",
+                 "key": "adh.k1d6wm",
+                 "x": 8,
+                 "y": 6,
+                 "w": 191,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Zumbido noturno",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "SemiBold"
+                 },
+                 "size": 14,
+                 "color": "#F4EFE9"
+                },
+                {
+                 "id": "8:2157",
+                 "type": "FRAME",
+                 "name": "Tinnitus · 3 img · 4 hl",
+                 "key": "adh.k1ejwz",
+                 "x": 8,
+                 "y": 27,
+                 "w": 191,
+                 "h": 18,
+                 "layout": {
+                  "mode": "V",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   0,
+                   0
+                  ],
+                  "main": "start",
+                  "cross": "start"
+                 },
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "children": [
+                  {
+                   "id": "8:2158",
+                   "type": "TEXT",
+                   "name": "Tinnitus · 3 img · 4 hl",
+                   "key": "adh.k1ejwz#text",
+                   "x": 0,
+                   "y": 0,
+                   "w": 191,
+                   "h": 18,
+                   "sizing": {
+                    "h": "fill",
+                    "v": "hug"
+                   },
+                   "text": "Tinnitus · 3 img · 4 hl",
+                   "font": {
+                    "family": "IBM Plex Sans",
+                    "style": "Regular"
+                   },
+                   "size": 11.5,
+                   "color": "#8F8A85"
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "8:2159",
+             "type": "FRAME",
+             "name": "Item",
+             "key": "adh.k1fu27",
+             "x": 0,
+             "y": 104.5,
+             "w": 207,
+             "h": 50.25,
+             "layout": {
+              "mode": "V",
+              "gap": 0,
+              "padding": [
+               0,
+               0,
+               0,
+               0
+              ],
+              "main": "start",
+              "cross": "start"
+             },
+             "sizing": {
+              "h": "fill",
+              "v": "fixed"
+             },
+             "children": [
+              {
+               "id": "8:2160",
+               "type": "FRAME",
+               "name": "Link",
+               "key": "adh.k1g4ka",
+               "x": 0,
+               "y": 0,
+               "w": 207,
+               "h": 50.25,
+               "radius": 8,
+               "layout": {
+                "mode": "V",
+                "gap": 0,
+                "padding": [
+                 6,
+                 8,
+                 6,
+                 8
+                ],
+                "main": "start",
+                "cross": "start"
+               },
+               "sizing": {
+                "h": "fixed",
+                "v": "fill"
+               },
+               "children": [
+                {
+                 "id": "8:2161",
+                 "type": "TEXT",
+                 "name": "Colher de sopa",
+                 "key": "adh.k1hwhf",
+                 "x": 8,
+                 "y": 6,
+                 "w": 191,
+                 "h": 21,
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "text": "Colher de sopa",
+                 "font": {
+                  "family": "IBM Plex Sans",
+                  "style": "SemiBold"
+                 },
+                 "size": 14,
+                 "color": "#F4EFE9"
+                },
+                {
+                 "id": "8:2162",
+                 "type": "FRAME",
+                 "name": "Memory Loss · 3 img · 4 hl",
+                 "key": "adh.k1iq5y",
+                 "x": 8,
+                 "y": 27,
+                 "w": 191,
+                 "h": 18,
+                 "layout": {
+                  "mode": "V",
+                  "gap": 0,
+                  "padding": [
+                   0,
+                   0,
+                   0,
+                   0
+                  ],
+                  "main": "start",
+                  "cross": "start"
+                 },
+                 "sizing": {
+                  "h": "fill",
+                  "v": "hug"
+                 },
+                 "children": [
+                  {
+                   "id": "8:2163",
+                   "type": "TEXT",
+                   "name": "Memory Loss · 3 img · 4 hl",
+                   "key": "adh.k1iq5y#text",
+                   "x": 0,
+                   "y": 0,
+                   "w": 191,
+                   "h": 18,
+                   "sizing": {
+                    "h": "fill",
+                    "v": "hug"
+                   },
+                   "text": "Memory Loss · 3 img · 4 hl",
+                   "font": {
+                    "family": "IBM Plex Sans",
+                    "style": "Regular"
+                   },
+                   "size": 11.5,
+                   "color": "#8F8A85"
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "8:2164",
+     "type": "FRAME",
+     "name": "Main",
+     "key": "adh.k1jia4",
+     "x": 232,
+     "y": 0,
+     "w": 1208,
+     "h": 852,
+     "layout": {
+      "mode": "V",
+      "gap": 0,
+      "padding": [
+       92,
+       284,
+       645.5900268554688,
+       284
+      ],
+      "main": "start",
+      "cross": "start"
+     },
+     "sizing": {
+      "h": "fill",
+      "v": "fill"
+     },
+     "children": [
+      {
+       "id": "8:2165",
+       "type": "FRAME",
+       "name": "Start",
+       "key": "adh.k1kjvf",
+       "x": 284,
+       "y": 92,
+       "w": 640,
+       "h": 114.41,
+       "layout": {
+        "mode": "V",
+        "gap": 4,
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "main": "start",
+        "cross": "start"
+       },
+       "sizing": {
+        "h": "fill",
+        "v": "fill"
+       },
+       "children": [
+        {
+         "id": "8:2166",
+         "type": "TEXT",
+         "name": "Criar",
+         "key": "adh.k1lzzk",
+         "x": 0,
+         "y": 0,
+         "w": 640,
+         "h": 27,
+         "sizing": {
+          "h": "fill",
+          "v": "hug"
+         },
+         "text": "Criar",
+         "font": {
+          "family": "Inter",
+          "style": "Bold"
+         },
+         "size": 22,
+         "color": "#F4EFE9"
+        },
+        {
+         "id": "8:2167",
+         "type": "FRAME",
+         "name": "Escolha a vertical e abra uma se",
+         "key": "adh.k1mv6n",
+         "x": 0,
+         "y": 31,
+         "w": 560,
+         "h": 84,
+         "layout": {
+          "mode": "V",
+          "gap": 0,
+          "padding": [
+           0,
+           0,
+           0,
+           0
+          ],
+          "main": "start",
+          "cross": "start"
+         },
+         "sizing": {
+          "h": "fixed",
+          "v": "hug"
+         },
+         "children": [
+          {
+           "id": "8:2168",
+           "type": "TEXT",
+           "name": "Escolha a vertical e abra uma se",
+           "key": "adh.k1mv6n#text",
+           "x": 0,
+           "y": 0,
+           "w": 560,
+           "h": 84,
+           "sizing": {
+            "h": "fill",
+            "v": "fixed"
+           },
+           "text": "Escolha a vertical e abra uma sessão nova à esquerda, ou continue uma das sessões da lista. Numa sessão você pede imagens e headlines, escolhe as que gostou e pede variações delas quantas vezes quiser. O que você salvar vai para a biblioteca, na pasta da sessão.",
+           "font": {
+            "family": "IBM Plex Sans",
+            "style": "Regular"
+           },
+           "size": 14,
+           "color": "#B5AEA6"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "page": "Create"
+}

@@ -1,0 +1,27 @@
+COMPONENT 'App selector · Spy (300 wide, before sidebar alignment)' key=mm.backup.comp.spy.764e971635 233x48 @2240,200 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=center fills=["#0F0F13"] stroke={"color": "#6A6A75", "weight": 1}
+  FRAME 'Selected app' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row 232x32 @0,8 layout=H gap=10 pad=[0, 14, 0, 12] main=start cross=center sizing=fill/fixed
+    FRAME 'Glyph' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>adh.k886tc 28x28 @12,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7
+      FRAME 'Icon' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>adh.k89pnc 16x16 @6,6 sizing=fixed/fixed
+        VECTOR 'Vector' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>#8:1260 9x9 @2.5,2.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+        VECTOR 'Vector' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>#8:1261 3.6x3.6 @10.4,10.4 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+        VECTOR 'Vector' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>#8:1262 2.8x2.8 @5.6,5.6 sizing=fixed/fixed fills=["#FF7A1A"]
+    FRAME 'Apps text' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>adh.k8agyc 142x50 @50,-9 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+      TEXT 'Spy' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>adh.k8besi 142x14 @0,0 sizing=fill/hug font=Archivo Expanded Bold 13 color=#F4EFE9 text="Spy"
+      FRAME 'Anúncios que estão funcionando' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>adh.k8ck90 142x36 @0,14 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fill/hug
+        TEXT 'Anúncios que estão funcionando' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>adh.k8ck90#text 142x36 @0,0 sizing=fill/hug font=IBM Plex Sans Regular 12 color=#B5AEA6 text="Anúncios que estão funcionando"
+    FRAME 'Keys' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>adh.k8dumm 41x19 @235,14.5 layout=H gap=3 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed HIDDEN
+      INSTANCE 'Key' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>adh.k8eqov 19x19 @0,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+      INSTANCE 'Key' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row>adh.k8fvxn 19x19 @22,0 layout=V gap=0 pad=[4, 6, 4, 6] main=start cross=start sizing=fixed/fill fills=["#121217"] stroke={"color": "#2A2A33", "weight": 1} radius=4 instanceOf=adh.c.a1f5cz.default
+    FRAME 'Chevron' key=mm.backup.comp.spy.764e971635>mm.sel.spy.row.chevron 16x16 @202,8 sizing=fixed/fixed
+      VECTOR 'Vector' key=mm.backup.comp.spy.764e971635>#13:1450 8x4 @4,6 sizing=fixed/fixed stroke={"color": "#8B8B96", "weight": 1.5}
+  FRAME 'Glyph' key=mm.backup.comp.spy.764e971635>adh.c.a2x5mj.default.a2smlu 28x28 @30,2 layout=V gap=0 pad=[1, 1, 1, 1] main=center cross=center sizing=fixed/fixed fills=["#1C1109"] stroke={"color": "#4A240D", "weight": 1} radius=7 HIDDEN
+    FRAME 'Icon' key=mm.backup.comp.spy.764e971635>adh.c.a2x5mj.default.a2t6cd 16x16 @6,6 sizing=fixed/fixed
+      VECTOR 'Vector' key=mm.backup.comp.spy.764e971635>#8:135 9x9 @2.5,2.5 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+      VECTOR 'Vector' key=mm.backup.comp.spy.764e971635>#8:136 3.6x3.6 @10.4,10.4 sizing=fixed/fixed stroke={"color": "#FF7A1A", "weight": 1.5}
+      VECTOR 'Vector' key=mm.backup.comp.spy.764e971635>#8:137 2.8x2.8 @5.6,5.6 sizing=fixed/fixed fills=["#FF7A1A"]
+  FRAME 'Spy' key=mm.backup.comp.spy.764e971635>adh.c.a2x5mj.default.a2u8v4 31x30 @50,1 layout=V gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=fixed/hug HIDDEN
+    TEXT 'Spy' key=mm.backup.comp.spy.764e971635>adh.c.a2x5mj.default.a2u8v4#text 31x30 @0,0 sizing=fill/hug font=Archivo Expanded Bold 14 color=#ECE7E1 text="Spy"
+  FRAME 'Spacing' key=mm.backup.comp.spy.764e971635>adh.c.a2x5mj.default.a2vipg~sp 128x14 @91,9 layout=H gap=0 pad=[0, 0, 0, 114] main=start cross=start sizing=hug/hug HIDDEN
+    FRAME 'Chevron' key=mm.backup.comp.spy.764e971635>adh.c.a2x5mj.default.a2vipg 14x14 @114,0 layout=H gap=0 pad=[0, 0, 0, 0] main=start cross=start sizing=hug/fixed
+      FRAME 'Icon' key=mm.backup.comp.spy.764e971635>adh.c.a2x5mj.default.a2w9bu 14x14 @0,0 sizing=fixed/fill
+        VECTOR 'Vector' key=mm.backup.comp.spy.764e971635>#8:143 6.13x3.06 @3.94,5.69 sizing=fixed/fixed stroke={"color": "#8F8A85", "weight": 1.3125}
