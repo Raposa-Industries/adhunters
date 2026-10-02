@@ -13,7 +13,7 @@
 // proxy, never which. Each row's ··· menu holds
 // what can be done to the account and its login.
 import { api, h, note, field, input, busy, plural } from './lib.js';
-import { rowsFrom, inLaunch, dayMonth, joining, loginName, hasProxy } from './accountrows.js';
+import { rowsFrom, inLaunch, dayMonth, joining, loginName, hasProxy, mixUp } from './accountrows.js';
 
 const PROXY_EXAMPLE = 'http://usuario:senha@host:porta';
 const PROXY_HINT = 'http, https ou socks5; todo pedido à Taboola dessas contas passa por ele';
@@ -293,8 +293,8 @@ function newLogin(rows, added) {
   let checked = null; // {key, allowed, all, fresh} once Taboola answered for these fields
   let asking = null; // the check under way: {key, promise}
   const form = h('form', { class: 'fields-col', novalidate: true },
-    field('Client ID', id),
-    field('User ID', user),
+    field('Client ID', id, 'a chave de 32 letras e números (Backstage › Account Settings › API)'),
+    field('User ID', user, 'o nome da conta na Taboola, como empresa-network'),
     field('Client secret', secret, 'fica guardado criptografado e não aparece de novo'),
     field('Proxy', proxy, PROXY_HINT),
     found, msg, h('div', { class: 'actions' }, cancel, go));
@@ -304,7 +304,7 @@ function newLogin(rows, added) {
   // The secret and the proxy never stay in the page once the dialog is gone.
   box.addEventListener('close', () => { secret.value = ''; proxy.value = ''; clearTimeout(wait); });
   cancel.onclick = () => box.close();
-  const key = () => JSON.stringify([id.value.trim(), secret.value, proxy.value.trim()]);
+  const key = () => JSON.stringify([id.value.trim(), user.value.trim(), secret.value, proxy.value.trim()]);
   const missing = () => [[id, 'o client ID'], [user, 'o user ID'], [secret, 'o client secret'], [proxy, 'o proxy']].filter(([el]) => !el.value.trim()).map(([, what]) => what);
   const label = () => {
     const n = checked?.fresh.length;
@@ -316,6 +316,11 @@ function newLogin(rows, added) {
     const k = key();
     if (checked?.key === k) return Promise.resolve(checked);
     if (asking?.key === k) return asking.promise;
+    const swapped = mixUp(id.value, user.value);
+    if (swapped) {
+      found.replaceChildren(note('fail', swapped));
+      return Promise.reject(new Error(swapped));
+    }
     found.replaceChildren(h('p', { class: 'faint', role: 'status' }, 'Perguntando à Taboola pelo proxy…'));
     const promise = api('logins/check', { method: 'POST', body: { client_id: id.value, client_secret: secret.value, proxy: proxy.value } }).then((data) => {
       if (key() !== k) return null;

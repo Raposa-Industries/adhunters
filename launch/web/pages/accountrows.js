@@ -71,3 +71,18 @@ export function loginName(allowed) {
   const letters = [...name];
   return letters.length > 60 ? letters.slice(0, 59).join('') + '…' : name;
 }
+
+// KEY is what Taboola's client IDs look like: 32 letters and digits (hex).
+const KEY = /^[0-9a-f]{32}$/i;
+
+// mixUp says, in Portuguese, when the client ID and the user ID look
+// swapped or the client ID looks like an account name, so a person sees
+// which is which before Taboola answers a bare 401. '' when nothing looks off.
+export function mixUp(clientId, userId) {
+  const c = (clientId || '').trim();
+  const u = (userId || '').trim();
+  if (!c || KEY.test(c)) return '';
+  if (KEY.test(u)) return 'O client ID e o user ID parecem trocados: o client ID é a chave de 32 letras e números, e o user ID é o nome da conta (como empresa-network).';
+  if (/[-_\s]/.test(c) || /network$/i.test(c)) return 'Esse client ID parece o nome de uma conta: o client ID é a chave de 32 letras e números da página de API do Backstage.';
+  return '';
+}

@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { rowsFrom, inLaunch, dayMonth, joining, loginName, goesVia, hasProxy } from '../pages/accountrows.js';
+import { rowsFrom, inLaunch, dayMonth, joining, loginName, goesVia, hasProxy, mixUp } from '../pages/accountrows.js';
 
 const logins = [
   { id: 0, server: true, network: 'taboola', name: 'x', accounts: [{ id: 'zoltagroup-1-sc', name: 'ZoltaGroup 1', proxy: '', added_at: '2026-10-02T12:00:00Z' }, { id: 'zoltagroup-2-sc', name: 'ZoltaGroup 2', proxy: 'zg.example:1080' }] },
@@ -70,4 +70,13 @@ test('loginName: the network account, else the accounts, at most 60 letters', ()
 test('hasProxy: whether an account goes through a proxy, never which', () => {
   const rows = rowsFrom(logins);
   assert.deepEqual(rows.map(hasProxy), [false, true, true, true]);
+});
+
+test('mixUp: a swapped client ID and user ID, or an account name as client ID', () => {
+  const key = '91db8f12e9894b38b190c8aac0f9ec7d';
+  assert.equal(mixUp(key, 'acme-network'), '');
+  assert.match(mixUp('acme-network', key), /trocados/);
+  assert.match(mixUp('acmemarketingcorporation-network', 'x'), /nome de uma conta/);
+  assert.equal(mixUp('', key), '');
+  assert.equal(mixUp('weird123', ''), '');
 });
