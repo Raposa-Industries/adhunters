@@ -37,12 +37,16 @@ func TestQueueQuick(t *testing.T) {
 		{15, 1, 2, 1},  // the walker failed only once
 		{16, 1, 2, 1},  // failed twice, then read on another ad
 	}
+	// The network is the publisher's: Taboola ads have no network_ad row.
+	mustExec(t, pool, `INSERT INTO tracks_api.publisher_v1 (id, network_id, name) VALUES (501, 1, 'A Taboola site'), (502, 2, 'A NewsBreak feed')`)
 	for i, a := range ads {
 		mustExec(t, pool, `INSERT INTO tracks_api.creative_v1 (id, creative_key, first_seen_at) VALUES ($1, $2, now() - make_interval(days => $3))`,
 			a.creative, "k"+itoa(a.creative), a.newDays)
 		mustExec(t, pool, `INSERT INTO tracks_api.ad_v1 (id, creative_id, last_seen_at) VALUES ($1, $2, now() - make_interval(mins => $3))`,
 			100+i, a.creative, a.seenMin)
-		mustExec(t, pool, `INSERT INTO tracks_api.network_ad_v1 (network_id, ad_id) VALUES ($1, $2)`, a.network, 100+i)
+		mustExec(t, pool, `INSERT INTO tracks_api.ad_hourly_v1 (hour, ad_id, publisher_id, device_id, sightings, first_seen_at, last_seen_at, closed)
+			SELECT date_trunc('hour', t), $1, $2, 1, 3, t, t, false FROM (SELECT now() - make_interval(mins => $3) AS t) x`,
+			100+i, 500+a.network, a.seenMin)
 	}
 	// What tracks-walker got: a usable page, a bot check, and walks that
 	// got nothing.
